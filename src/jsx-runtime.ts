@@ -1,6 +1,6 @@
 import { toNode } from "./core";
 import { effect, isReactive } from "./signals";
-import { createSlot } from "./slot";
+import { Slot } from "./slot";
 
 type Children = string | Node;
 
@@ -44,7 +44,7 @@ function h(
 
   for (const child of children) {
     if (isReactive(child)) {
-      const slot = createSlot();
+      const slot = Slot.new();
       el.appendChild(slot());
 
       effect(() => {

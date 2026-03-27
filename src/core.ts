@@ -1,5 +1,5 @@
 import { effect, isReactive } from "./signals";
-import { createSlot } from "./slot";
+import { Slot } from "./slot";
 
 export const DISPOSABLES: unique symbol = Symbol("disposables");
 export const DISPOSE: unique symbol = Symbol("dispose");
@@ -50,7 +50,7 @@ export class ElementBuilder<T extends Element = Element> {
 
     children.forEach((child) => {
       if (isReactive(child)) {
-        const slot = createSlot();
+        const slot = Slot.new();
         el.appendChild(slot());
 
         return this[EFFECT](() => {

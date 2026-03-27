@@ -7,7 +7,7 @@ import {
 } from "elements-kit/attributes";
 import { builder } from "elements-kit";
 import { reactive } from "elements-kit/decorators";
-import { createSlot } from "elements-kit/slot";
+import { Slots } from "elements-kit/slot";
 
 const value = signal(0);
 const doubleValue = computed(() => value() * 2);
@@ -32,10 +32,7 @@ class MyElement extends HTMLElement implements Lifecycle {
   }
   // }}}
 
-  // {{{ slots
-  static slots = ["children"] as const;
-  readonly slots = { children: createSlot() };
-  // }}}
+  readonly slots = Slots(["children"]);
 
   @reactive()
   count: number = 0;
