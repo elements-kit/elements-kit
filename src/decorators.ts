@@ -1,4 +1,4 @@
-import { signal, Signal } from "./signals";
+import { signal, type Signal } from "./signals";
 
 /**
  * A decorator that makes a class field reactive by automatically wrapping its value in a signal.
@@ -31,9 +31,7 @@ import { signal, Signal } from "./signals";
  * }
  * ```
  */
-export function reactive<This extends object, Value>(
-  initialSignal?: Signal<Value>,
-) {
+export function reactive<This extends object, Value>() {
   const signalStore = new WeakMap<This, Signal<Value>>();
 
   return (
@@ -70,7 +68,7 @@ export function reactive<This extends object, Value>(
     });
 
     return function (this: This, initialValue: Value): Value {
-      const sig = initialSignal ?? signal(initialValue);
+      const sig = signal(initialValue);
       signalStore.set(this, sig);
       return initialValue;
     };
