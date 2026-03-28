@@ -21,19 +21,23 @@ class MyElement extends HTMLElement implements Lifecycle {
 
   [$] = Slots(["children"]);
 
-  #count = signal(99);
+  #count = signal(0);
 
   @reactive((s) => s.#count)
   count: number;
 
+  @reactive((s) => computed(() => s.#count() * 2))
+  readonly double: number;
+
   connectedCallback() {
     this.append(
       div().children(
-        this[$].children(span().textContent("This is a slot content")),
+        this[$].children(),
         button()
           .textContent("Increment")
           .on("click", () => this.count++),
         span().textContent(computed(() => `Current count: ${this.count}`)),
+        span().textContent(computed(() => `Double count: ${this.double}`)),
       ),
     );
     this.#connected(true);

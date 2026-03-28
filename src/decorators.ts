@@ -1,4 +1,5 @@
 import { signal, type Signal } from "./signals";
+import { isComputed } from "alien-signals";
 
 /**
  * A decorator that makes a class field reactive by automatically wrapping its value in a signal.
@@ -11,9 +12,6 @@ import { signal, type Signal } from "./signals";
  * class Counter {
  *   @reactive()
  *   count: number = 0;
- *
- *   @reactive()
- *   items: string[] = [];
  * }
  *
  * const counter = new Counter();
@@ -36,21 +34,21 @@ export function reactive<This extends object, Value>(
 ) {
   const signalStore = new WeakMap<This, Signal<Value>>();
 
-  return (
-    target: undefined,
-    context: ClassFieldDecoratorContext<This, Value>,
-  ) => {
+  return (_target, context: ClassFieldDecoratorContext<This, Value>) => {
     // addInitializer runs after the field's [[DefineOwnProperty]] step, so the
     // accessor is installed on top of the data property the runtime just wrote.
     context.addInitializer(function (this: This) {
       const sig = signalStore.get(this)!;
+      const writable = !isComputed(sig);
       Object.defineProperty(this, context.name, {
         get(): Value {
           return sig();
         },
-        set(value: Value) {
-          sig(value);
-        },
+        ...(writable && {
+          set(value: Value) {
+            sig(value);
+          },
+        }),
         enumerable: true,
         configurable: true,
       });
