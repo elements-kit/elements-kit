@@ -1,14 +1,14 @@
 import { signal, computed } from "elements-kit/signals";
 import { reactive } from "elements-kit/decorators";
 import { Map, If } from "elements-kit/jsx-runtime";
-import { attributes, ATTRIBUTES } from "elements-kit/attributes";
+import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
 
 // ─ Counter (class component / custom element) ──────────────────────────────
 
 @attributes
-class CounterElement extends HTMLElement {
-  Host = () => this;
-  static [ATTRIBUTES] = {
+class Counter extends HTMLElement {
+  el = () => this;
+  static [attr] = {
     count(value: string) {
       this.count = Number(value);
     },
@@ -20,18 +20,18 @@ class CounterElement extends HTMLElement {
   doubled: number;
 
   connectedCallback() {
-    <this.Host>
+    <this.el>
       <section style="margin-bottom: 24px">
         <h2>Counter</h2>
         <p>
-          Count: <strong>{() => this.count}</strong> — Doubled:{" "}
+          Count: <strong>{this.#count}</strong> — Doubled:{" "}
           <strong>{() => this.doubled}</strong>
         </p>
         <button onClick={() => this.count++}>+1</button>{" "}
         <button onClick={() => this.count--}>−1</button>{" "}
         <button onClick={() => (this.count = 0)}>Reset</button>
       </section>
-    </this.Host>;
+    </this.el>;
   }
 }
 
@@ -42,7 +42,7 @@ declare global {
     }
   }
 }
-customElements.define("x-counter", CounterElement);
+customElements.define("x-counter", Counter);
 
 // ─ Signals ──────────────────────────────────────────────────────────────────
 
