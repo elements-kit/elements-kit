@@ -15,7 +15,7 @@ class MyElement extends HTMLElement implements Lifecycle {
 
   static [attr] = {
     count(this: MyElement, value: string | null) {
-      this.#count(Number(value));
+      this.count = Number(value);
     },
   };
 
