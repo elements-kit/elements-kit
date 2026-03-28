@@ -1,79 +1,160 @@
-import { computed, signal } from "elements-kit/signals";
-import { span, div, button, Lifecycle } from "elements-kit/dom";
-import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
-import { builder } from "elements-kit";
+import { signal, computed } from "elements-kit/signals";
 import { reactive } from "elements-kit/decorators";
-import { Slots, SLOTS as $ } from "elements-kit/slot";
+import { Map, If } from "elements-kit/jsx-runtime";
+import { attributes, ATTRIBUTES } from "elements-kit/attributes";
 
-const value = signal(0);
-const doubleValue = computed(() => value() * 2);
-const doubledMessage = computed(() => `The double value is: ${doubleValue()}`);
+// ─ Counter (class component / custom element) ──────────────────────────────
 
 @attributes
-class MyElement extends HTMLElement implements Lifecycle {
-  #connected = signal(false);
-
-  static [attr] = {
-    count(this: MyElement, value: string | null) {
+class CounterElement extends HTMLElement {
+  Host = () => this;
+  static [ATTRIBUTES] = {
+    count(value: string) {
       this.count = Number(value);
     },
   };
 
-  [$] = Slots(["children"]);
-
   #count = signal(0);
-
-  @reactive((s) => s.#count)
-  count: number;
-
+  @reactive((s) => s.#count) count: number;
   @reactive((s) => computed(() => s.#count() * 2))
-  readonly double: number;
+  doubled: number;
 
   connectedCallback() {
-    this.append(
-      div().children(
-        this[$].children(),
-        button()
-          .textContent("Increment")
-          .on("click", () => this.count++),
-        span().textContent(computed(() => `Current count: ${this.count}`)),
-        span().textContent(computed(() => `Double count: ${this.double}`)),
-      ),
-    );
-    this.#connected(true);
-  }
-  disconnectedCallback() {
-    this.#connected(false);
+    <this.Host>
+      <section style="margin-bottom: 24px">
+        <h2>Counter</h2>
+        <p>
+          Count: <strong>{() => this.count}</strong> — Doubled:{" "}
+          <strong>{() => this.doubled}</strong>
+        </p>
+        <button onClick={() => this.count++}>+1</button>{" "}
+        <button onClick={() => this.count--}>−1</button>{" "}
+        <button onClick={() => (this.count = 0)}>Reset</button>
+      </section>
+    </this.Host>;
   }
 }
-customElements.define("my-element", MyElement);
-const myelement = () =>
-  builder(document.createElement("my-element") as MyElement);
 
-const element = () =>
-  div()
-    .style.backgroundColor("lightblue")
-    .style.padding("20px")
-    .classList.add("my-element")
-    .children(
-      "Click the button to increment the value:",
-      document.createElement("br"),
-      button()
-        .textContent("Increment")
-        .on("click", () => {
-          value(value() + 1);
-        }),
-      span()
-        .style.display("block")
-        .textContent(computed(() => `Current value: ${value()}`)),
-      doubledMessage,
-      document.createElement("br"),
-      myelement(),
-    );
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      "x-counter": { count?: number };
+    }
+  }
+}
+customElements.define("x-counter", CounterElement);
 
-const interval = setInterval(() => {
-  console.log("incrementing", value());
-  value(value() + 1);
-}, 1000);
+// ─ Signals ──────────────────────────────────────────────────────────────────
 
-document.getElementById("app")?.appendChild(element());
+interface Todo {
+  id: number;
+  text: string;
+  done: boolean;
+}
+
+let nextId = 3;
+const todos = signal<Todo[]>([
+  { id: 1, text: "Learn elements-kit", done: true },
+  { id: 2, text: "Build something cool", done: false },
+]);
+
+const newTodo = signal("");
+const showDone = signal(true);
+
+const visibleTodos = computed(() =>
+  showDone() ? todos() : todos().filter((t) => !t.done),
+);
+
+// ─ Actions ──────────────────────────────────────────────────────────────────
+function addTodo() {
+  const text = newTodo().trim();
+  if (!text) return;
+  todos([...todos(), { id: nextId++, text, done: false }]);
+  newTodo("");
+}
+
+function toggleTodo(id: number) {
+  todos(todos().map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
+}
+
+function removeTodo(id: number) {
+  todos(todos().filter((t) => t.id !== id));
+}
+
+// ─ Components ───────────────────────────────────────────────────────────────
+function TodoApp() {
+  return (
+    <section>
+      <h2>Todo List</h2>
+
+      {/* Add todo */}
+      <form
+        on:submit={(e: Event) => {
+          e.preventDefault();
+          addTodo();
+        }}
+      >
+        <input
+          type="text"
+          placeholder="What needs to be done?"
+          prop:value={newTodo}
+          on:input={(e: Event) => newTodo((e.target as HTMLInputElement).value)}
+        />
+        <button type="submit">Add</button>
+      </form>
+
+      {/* Filter toggle */}
+      <label style="display: block; margin: 8px 0">
+        <input
+          type="checkbox"
+          prop:checked={showDone}
+          on:change={() => showDone(!showDone())}
+        />{" "}
+        Show completed
+      </label>
+
+      {/* Todo list with keyed reconciliation */}
+      <ul>
+        <Map each={visibleTodos} key={(t) => t.id}>
+          {(todo, i) => (
+            <li
+              style:text-decoration={todo.done ? "line-through" : "none"}
+              style:opacity={todo.done ? "0.6" : "1"}
+            >
+              <input
+                type="checkbox"
+                prop:checked={() => todo.done}
+                on:change={() => toggleTodo(todo.id)}
+              />{" "}
+              {todo.text} <button onClick={() => removeTodo(todo.id)}>✕</button>
+            </li>
+          )}
+        </Map>
+      </ul>
+
+      {/* Conditional rendering */}
+      <If when={() => todos().length === 0}>
+        <p style="color: gray">
+          <em>No todos yet — add one above!</em>
+        </p>
+      </If>
+
+      <p style="margin-top: 8px; font-size: 0.85em; color: #666">
+        {() => `${todos().filter((t) => t.done).length}/${todos().length} done`}
+      </p>
+    </section>
+  );
+}
+
+function App() {
+  return (
+    <div style="font-family: system-ui, sans-serif; max-width: 480px; margin: 40px auto; padding: 0 16px">
+      <h1>elements-kit JSX Demo</h1>
+      <x-counter count={signal(9)} />
+      <TodoApp />
+    </div>
+  );
+}
+
+// ─ Mount ─────────────────────────────────────────────────────────────────────
+document.getElementById("app")!.appendChild(App()!);
