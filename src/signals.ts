@@ -15,10 +15,7 @@ export function isReactive<T>(value: ValueOrReactive<T>): value is () => T {
 
 export type Signal<T> = ReturnType<typeof signal<T>>;
 
-/**
- * @param {function(): void} fn
- */
-export const batch = (fn) => {
+export const batch = (fn: () => void): void => {
   startBatch();
   try {
     fn();
@@ -27,12 +24,7 @@ export const batch = (fn) => {
   }
 };
 
-/**
- * @template T
- * @param {function(): T} fn
- * @returns {T}
- */
-export const untracked = (fn) => {
+export const untracked = <T>(fn: () => T): T => {
   const sub = setActiveSub(void 0);
   try {
     return fn();
