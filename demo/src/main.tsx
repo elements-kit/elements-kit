@@ -123,7 +123,7 @@ function TodoApp() {
             >
               <input
                 type="checkbox"
-                prop:checked={() => todo.done}
+                prop:checked={computed(() => todo.done)}
                 on:change={() => toggleTodo(todo.id)}
               />{" "}
               {todo.text} <button onClick={() => removeTodo(todo.id)}>✕</button>
@@ -133,7 +133,7 @@ function TodoApp() {
       </ul>
 
       {/* Conditional rendering */}
-      <If when={() => todos().length === 0}>
+      <If when={computed(() => todos().length === 0)}>
         <p style="color: gray">
           <em>No todos yet — add one above!</em>
         </p>
