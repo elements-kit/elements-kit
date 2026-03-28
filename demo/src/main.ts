@@ -15,14 +15,16 @@ class MyElement extends HTMLElement implements Lifecycle {
 
   static [attr] = {
     count(this: MyElement, value: string | null) {
-      this.count = Number(value);
+      this.#count(Number(value));
     },
   };
 
   [$] = Slots(["children"]);
 
-  @reactive()
-  count: number = 0;
+  #count = signal(99);
+
+  @reactive((s) => s.#count)
+  count: number;
 
   connectedCallback() {
     this.append(
