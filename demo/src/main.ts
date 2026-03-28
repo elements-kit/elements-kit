@@ -19,7 +19,7 @@ class MyElement extends HTMLElement implements Lifecycle {
     },
   };
 
-  readonly [$] = Slots(["children"]);
+  [$] = Slots(["children"]);
 
   @reactive()
   count: number = 0;

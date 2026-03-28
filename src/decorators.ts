@@ -38,38 +38,24 @@ export function reactive<This extends object, Value>() {
     target: undefined,
     context: ClassFieldDecoratorContext<This, Value>,
   ) => {
-    const fieldName = context.name;
-
+    // addInitializer runs after the field's [[DefineOwnProperty]] step, so the
+    // accessor is installed on top of the data property the runtime just wrote.
     context.addInitializer(function (this: This) {
-      const descriptor = {
-        get(this: This): Value {
-          const sig = signalStore.get(this);
-          if (!sig) {
-            throw new Error(
-              `Signal for field "${String(fieldName)}" was not initialized`,
-            );
-          }
+      const sig = signalStore.get(this)!;
+      Object.defineProperty(this, context.name, {
+        get(): Value {
           return sig();
         },
-        set(this: This, value: Value) {
-          const sig = signalStore.get(this);
-          if (!sig) {
-            throw new Error(
-              `Signal for field "${String(fieldName)}" was not initialized`,
-            );
-          }
+        set(value: Value) {
           sig(value);
         },
         enumerable: true,
         configurable: true,
-      };
-
-      Object.defineProperty(this, fieldName, descriptor);
+      });
     });
 
     return function (this: This, initialValue: Value): Value {
-      const sig = signal(initialValue);
-      signalStore.set(this, sig);
+      signalStore.set(this, signal(initialValue));
       return initialValue;
     };
   };
