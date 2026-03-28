@@ -1,4 +1,14 @@
-export { signal, computed, effect, isSignal, isComputed } from "alien-signals";
+export {
+  signal,
+  isSignal,
+  computed,
+  isComputed,
+  effect,
+  isEffect,
+  effectScope,
+  isEffectScope,
+  trigger,
+} from "alien-signals";
 import {
   isSignal,
   isComputed,
