@@ -5,7 +5,7 @@ import { builder } from "./core";
 export interface Lifecycle {
   connectedCallback?(): void;
   disconnectedCallback?(): void;
-  attributeChangedCallback(
+  attributeChangedCallback?(
     name: string,
     oldValue: string | null,
     newValue: string | null,

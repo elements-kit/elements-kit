@@ -102,7 +102,10 @@ export type SlotInstance = ReturnType<typeof Slot.new>;
 
 /** A callable slot — invoke to render, or access `.set()` / `.isMounted()` / `.parent()` for management. */
 
-const SLOTS: unique symbol = Symbol("slots");
+/** Symbol key for attaching a `SlotManager` to a custom element instance. */
+export const SLOTS: unique symbol = Symbol("slots");
+
+const MAP: unique symbol = Symbol("map");
 const KEYS: unique symbol = Symbol("keys");
 const HAS: unique symbol = Symbol("has");
 
@@ -111,16 +114,16 @@ const HAS: unique symbol = Symbol("has");
  * Slots are pre-created from the provided keys and lazily created on first access for unknown keys.
  */
 class SlotManager<K extends string> implements Iterable<[K, SlotInstance]> {
-  readonly [SLOTS] = new Map<K, SlotInstance>();
+  readonly [MAP] = new Map<K, SlotInstance>();
 
   constructor(keys: K[] = []) {
     for (const key of keys) {
-      this[SLOTS].set(key, Slot.new());
+      this[MAP].set(key, Slot.new());
     }
   }
 
   [Symbol.iterator]() {
-    return this[SLOTS][Symbol.iterator]();
+    return this[MAP][Symbol.iterator]();
   }
 
   [Symbol.toStringTag]() {
@@ -132,7 +135,7 @@ class SlotManager<K extends string> implements Iterable<[K, SlotInstance]> {
   }
 
   [HAS](key: K) {
-    return this[SLOTS].has(key);
+    return this[MAP].has(key);
   }
 
   /** Check whether a slot with the given key exists. */
@@ -141,7 +144,7 @@ class SlotManager<K extends string> implements Iterable<[K, SlotInstance]> {
   }
 
   [KEYS]() {
-    return this[SLOTS].keys();
+    return this[MAP].keys();
   }
 
   /** Iterate over all registered slot keys. */
@@ -156,8 +159,8 @@ export function Slots<K extends string>(
   const instance = new SlotManager(keys);
   return new Proxy(instance, {
     get(target, prop, receiver) {
-      if (typeof prop === "string" && target[SLOTS].has(prop as K)) {
-        return target[SLOTS].get(prop as K);
+      if (typeof prop === "string" && target[MAP].has(prop as K)) {
+        return target[MAP].get(prop as K);
       }
       return Reflect.get(target, prop, receiver);
     },
