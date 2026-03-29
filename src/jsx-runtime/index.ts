@@ -1,14 +1,8 @@
-import { effect, isReactive } from "./signals";
-import { Slot } from "./slot";
-import { SLOTS } from "./slot";
-import { toNode, VALUE } from "./core";
-import {
-  AnyFn,
-  Child,
-  ComponentClass,
-  Disposer,
-  ComponentFn,
-} from "./jsx-runtime/types";
+import { effect, isReactive } from "../signals";
+import { Slot } from "../slot";
+import { SLOTS } from "../slot";
+import { toNode, VALUE } from "../core";
+import { AnyFn, Child, ComponentClass, Disposer, ComponentFn } from "./types";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Part 1: Property assignment  (SolidJS 2.0 — dom-expressions/src/constants.js)
