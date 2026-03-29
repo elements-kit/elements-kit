@@ -2,34 +2,13 @@ import { effect, isReactive } from "./signals";
 import { Slot } from "./slot";
 import { SLOTS } from "./slot";
 import { toNode, VALUE } from "./core";
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// Types
-// ═══════════════════════════════════════════════════════════════════════════════
-
-type AnyFn = (...args: any[]) => any;
-
-/** Anything that can appear as a JSX child. */
-export type Child =
-  | string
-  | number
-  | boolean
-  | null
-  | undefined
-  | Node
-  | Element
-  | AnyFn // reactive child: () => Child
-  | Child[]; // nested arrays are flattened
-
-type Disposer = () => void;
-
-/** A function that renders props into an element or fragment. */
-type ComponentFn<P = Record<string, unknown>> = (
-  props: P,
-) => Element | DocumentFragment | null;
-
-/** A class whose constructor returns an Element (custom elements). */
-type ComponentClass = new () => Element;
+import {
+  AnyFn,
+  Child,
+  ComponentClass,
+  Disposer,
+  ComponentFn,
+} from "./jsx-runtime/types";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Part 1: Property assignment  (SolidJS 2.0 — dom-expressions/src/constants.js)
