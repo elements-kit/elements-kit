@@ -9,6 +9,6 @@ export default defineConfig({
     "src/attributes.ts",
     "src/decorators.ts",
     "src/slot.ts",
-    "src/jsx-runtime.ts",
+    "src/jsx-runtime/index.ts",
   ],
 });

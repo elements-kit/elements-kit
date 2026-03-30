@@ -48,12 +48,12 @@
       "types": "./dist/attributes.d.ts"
     },
     "./jsx-runtime": {
-      "import": "./dist/jsx-runtime.mjs",
-      "types": "./dist/jsx-runtime.d.ts"
+      "import": "./dist/jsx-runtime/index.mjs",
+      "types": "./dist/jsx-runtime/index.d.ts"
     },
     "./jsx-dev-runtime": {
-      "import": "./dist/jsx-runtime.mjs",
-      "types": "./dist/jsx-runtime.d.ts"
+      "import": "./dist/jsx-runtime/index.mjs",
+      "types": "./dist/jsx-runtime/index.d.ts"
     }
   },
   "scripts": {
