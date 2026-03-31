@@ -1,3 +1,4 @@
+import { PrimitiveNodeType, resolveNode } from "./lib";
 import { effect, isReactive } from "./signals";
 import { Slot } from "./slot";
 
@@ -133,11 +134,9 @@ function setterOrValue<T extends object = object>(
   });
 }
 
-export function toNode(c: ElementBuilder | Node | Element | string | number) {
-  if (typeof c === "string" || typeof c === "number") {
-    return document.createTextNode(String(c));
-  }
-  return c[VALUE] ?? c;
+export function toNode(c: ElementBuilder | PrimitiveNodeType): Node {
+  if (c instanceof ElementBuilder) return c.ref();
+  return resolveNode(c);
 }
 
 function isObject(v: unknown): v is Record<string | symbol, unknown> {
