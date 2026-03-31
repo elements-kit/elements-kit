@@ -61,12 +61,13 @@
     "build": "tsdown",
     "watch": "tsdown -w"
   },
-  "packageManager": "pnpm@10.26.2",
+  "packageManager": "pnpm@10.33.0",
   "devDependencies": {
     "tsdown": "0.20.3",
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "alien-signals": "^3.1.2"
+    "alien-signals": "^3.1.2",
+    "dom-expressions": "^0.40.6"
   }
 }
