@@ -54,7 +54,7 @@ export class Slot {
     parent.insertBefore(element, this.end);
   }
 
-  get(): DocumentFragment {
+  get(): DocumentFragment | null {
     if (!this.isMounted()) return null;
     const range = document.createRange();
     range.setStartAfter(this.start);
