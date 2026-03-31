@@ -42,7 +42,7 @@ export class Slot {
    * Replace the slot's content with the given element.
    * No-op if the slot is not mounted or the content is identical.
    */
-  set(element: HTMLElement) {
+  set(element: Node) {
     const parent = this.parent();
     if (!parent) return;
     if (this.isSame(element)) return;
@@ -66,7 +66,7 @@ export class Slot {
     );
   }
 
-  private isSame(element: HTMLElement) {
+  private isSame(element: Node) {
     return (
       this.start.nextSibling === element && this.end === element.nextSibling
     );
