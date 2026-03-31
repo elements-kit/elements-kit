@@ -54,6 +54,14 @@ export class Slot {
     parent.insertBefore(element, this.end);
   }
 
+  get() {
+    if (!this.isMounted()) return null;
+    const range = document.createRange();
+    range.setStartAfter(this.start);
+    range.setEndBefore(this.end);
+    return range.extractContents();
+  }
+
   /** Returns the parent node if the slot is mounted, otherwise `null`. */
   parent() {
     return this.isMounted() ? this.start.parentNode : null;
