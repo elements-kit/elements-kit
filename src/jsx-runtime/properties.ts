@@ -10,7 +10,7 @@ import { applyChildren, isChildrenProperty } from "./children";
 
 export function applyProps(
   node: Element | DocumentFragment | ComponentClass,
-  { children, ...props }: Record<string, unknown>,
+  props: Record<string, unknown>,
 ) {
   const disposables = new Set<Disposer>();
 
@@ -25,12 +25,20 @@ export function applyProps(
     // ─ Reactive ───────────────────────────────────────────────────────────────
     if (isReactive(value)) {
       if (isEventKey(key)) {
-        disposables.add(
-          effect(() => setEvent(node as Element, key, (value as AnyFn)())),
-        );
+        let cleanup: Disposer | void;
+        const dispose = effect(() => {
+          if (cleanup) cleanup();
+          cleanup = setEvent(node as Element, key, value());
+        });
+
+        disposables.add(() => {
+          dispose();
+          if (cleanup) cleanup();
+        });
+
         continue;
       }
-      disposables.add(effect(() => setProp(node, key, (value as AnyFn)())));
+      disposables.add(effect(() => setProp(node, key, value())));
       continue;
     }
 
@@ -108,8 +116,12 @@ function setProp(
   }
 
   // ─ Custom element own properties ─────────────────────────────────────────
-  if (node instanceof Element && node.nodeName.includes("-")) {
-    (node as unknown as Record<string, unknown>)[key] = value;
+  if (node instanceof Element && node.nodeName.includes("-") && key in node) {
+    try {
+      (node as unknown as Record<string, unknown>)[key] = value;
+    } catch {
+      setAttribute(node, key, value);
+    }
     return;
   }
 
