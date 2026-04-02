@@ -1,16 +1,14 @@
 import { Child, Component, ComponentClass, Disposer } from "./types";
 import { applyProps } from "./properties";
 import { $ref } from "./ref";
+import "../polyfill";
 
 function createElement(
   type: string | Element | ComponentClass,
-  { [$ref]: ref, ...props }: Record<string, unknown> = {},
+  { [$ref]: ref, ...props }: Record<string | symbol, unknown> = {},
 ): Element | DocumentFragment | null {
   const node = resolveElement(type);
   if (!node) return null;
-
-  // ref callback — fire once, synchronously, before children are mounted
-  if (typeof ref === "function") ref(node);
 
   // TODO: remove this later
   // DocumentFragment components (If, Map, …) manage their own internals.
@@ -22,13 +20,20 @@ function createElement(
 
   if (disposables.size > 0) attachDisposables(node, disposables);
 
-  return render(node);
+  const el = _render(node);
+
+  // ref fires after render with the final Element
+  if (typeof ref === "function" && el instanceof Element) ref(el);
+
+  return el;
 }
 
-function render(node: ComponentClass | Element | DocumentFragment | null) {
+function _render(
+  node: ComponentClass | Element | DocumentFragment | null,
+): Element | DocumentFragment | null {
   if (node instanceof Element || node instanceof DocumentFragment) return node;
-  if (node && typeof node.render === "function") return render(node.render());
-  return null;
+  if (!node || typeof node.render !== "function") return null;
+  return _render(node.render());
 }
 
 /**
@@ -48,22 +53,27 @@ function resolveElement(
 
 // ─ Disposable attachment ─────────────────────────────────────────────────────
 
-const JSX_DISPOSABLES: unique symbol = Symbol("jsx.disposables");
-
+function hasOwnDisposable(el: Component): el is Component & Disposable {
+  return Symbol.dispose in el;
+}
 function attachDisposables(el: Component, disposables: Set<Disposer>): void {
-  Object.defineProperty(el, JSX_DISPOSABLES, {
-    value: disposables,
+  const existingDispose = hasOwnDisposable(el)
+    ? el[Symbol.dispose].bind(el)
+    : null;
+
+  Object.defineProperty(el, Symbol.dispose, {
+    value() {
+      existingDispose?.();
+      disposables.forEach((fn) => fn());
+      disposables.clear();
+    },
     configurable: true,
   });
 }
 
 /** Runs all cleanup functions registered by JSX props/effects on `el`. */
 export function disposeElement(el: Element): void {
-  const d = (el as unknown as Record<symbol, unknown>)[JSX_DISPOSABLES] as
-    | Set<Disposer>
-    | undefined;
-  d?.forEach((fn) => fn());
-  d?.clear();
+  (el as unknown as Disposable)[Symbol.dispose]?.();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
