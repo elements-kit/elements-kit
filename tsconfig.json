@@ -8,5 +8,6 @@
     "emitDeclarationOnly": true,
     "declaration": true,
     "emitDecoratorMetadata": false
-  }
+  },
+  "exclude": ["dist"]
 }

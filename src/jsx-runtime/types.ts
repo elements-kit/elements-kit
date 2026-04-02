@@ -5,15 +5,20 @@
 import type { PrimitiveNodeType } from "../lib";
 
 /** A class whose constructor returns an Element (custom elements). */
-export type ComponentClass = new () => Child;
+export type ComponentClass = {
+  [key: string]: unknown;
+  new (...args: any[]): ComponentClass;
+  render(): Element;
+};
 
+export type Component = Element | DocumentFragment | ComponentClass;
 /** Anything that can appear as a JSX child. */
-export type Child = PrimitiveNodeType | ComponentClass | ComponentFn | Child[]; // nested arrays are flattened
+export type Child = PrimitiveNodeType;
 
 export type Disposer = () => void;
 
 /** A function that renders props into an element or fragment. */
-export type ComponentFn<P = Record<string, unknown>> = (props?: P) => Child;
+// export type ComponentFn<P = Record<string, unknown>> = (props?: P) => Child;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Types

@@ -103,6 +103,9 @@ export class Slot {
       get(_target, prop) {
         return instance[prop as keyof Slot];
       },
+      getPrototypeOf() {
+        return Slot.prototype;
+      },
     }) as Slot & typeof instance.slot;
   }
 }
@@ -110,28 +113,31 @@ export type SlotInstance = ReturnType<typeof Slot.new>;
 
 /** A callable slot — invoke to render, or access `.set()` / `.isMounted()` / `.parent()` for management. */
 
-/** Symbol key for attaching a `SlotManager` to a custom element instance. */
-export const SLOTS: unique symbol = Symbol("slots");
+/**
+ * Symbol key for attaching a `Slots` instance to a custom element instance.
+ * This prevent collisions with Element properties and are not meant to be treated as JSX children.
+ */
+export const $slots: unique symbol = Symbol("slots");
 
-const MAP: unique symbol = Symbol("map");
-const KEYS: unique symbol = Symbol("keys");
-const HAS: unique symbol = Symbol("has");
+const $map: unique symbol = Symbol("map");
+const $keys: unique symbol = Symbol("keys");
+const $has: unique symbol = Symbol("has");
 
 /**
  * A keyed collection of slot instances.
  * Slots are pre-created from the provided keys and lazily created on first access for unknown keys.
  */
-class SlotManager<K extends string> implements Iterable<[K, SlotInstance]> {
-  readonly [MAP] = new Map<K, SlotInstance>();
+export class Slots<K extends string> implements Iterable<[K, SlotInstance]> {
+  readonly [$map] = new Map<K, SlotInstance>();
 
-  constructor(keys: K[] = []) {
+  private constructor(keys: K[] = []) {
     for (const key of keys) {
-      this[MAP].set(key, Slot.new());
+      this[$map].set(key, Slot.new());
     }
   }
 
   [Symbol.iterator]() {
-    return this[MAP][Symbol.iterator]();
+    return this[$map][Symbol.iterator]();
   }
 
   [Symbol.toStringTag]() {
@@ -139,38 +145,37 @@ class SlotManager<K extends string> implements Iterable<[K, SlotInstance]> {
   }
 
   [Symbol.hasInstance](instance: unknown) {
-    return instance instanceof SlotManager;
+    return instance instanceof Slots;
   }
 
-  [HAS](key: K) {
-    return this[MAP].has(key);
+  [$has](key: K) {
+    return this[$map].has(key);
   }
 
   /** Check whether a slot with the given key exists. */
-  static has<K extends string>(slots: SlotManager<K>, key: K): boolean {
-    return slots[HAS](key);
+  static has<K extends string>(slots: Slots<K>, key: K): boolean {
+    return slots[$has](key);
   }
 
-  [KEYS]() {
-    return this[MAP].keys();
+  [$keys]() {
+    return this[$map].keys();
   }
 
   /** Iterate over all registered slot keys. */
-  static keys<K extends string>(slots: SlotManager<K>): MapIterator<K> {
-    return slots[KEYS]();
+  static keys<K extends string>(slots: Slots<K>): MapIterator<K> {
+    return slots[$keys]();
   }
-}
-
-export function Slots<K extends string>(
-  keys: K[],
-): SlotManager<K> & { readonly [P in K]: SlotInstance } {
-  const instance = new SlotManager(keys);
-  return new Proxy(instance, {
-    get(target, prop, receiver) {
-      if (typeof prop === "string" && target[MAP].has(prop as K)) {
-        return target[MAP].get(prop as K);
-      }
-      return Reflect.get(target, prop, receiver);
-    },
-  }) as SlotManager<K> & { readonly [P in K]: SlotInstance };
+  static new<K extends string>(
+    keys: K[],
+  ): Slots<K> & { readonly [P in K]: SlotInstance } {
+    const instance = new Slots(keys);
+    return new Proxy(instance, {
+      get(target, prop, receiver) {
+        if (typeof prop === "string" && target[$map].has(prop as K)) {
+          return target[$map].get(prop as K);
+        }
+        return Reflect.get(target, prop, receiver);
+      },
+    }) as Slots<K> & { readonly [P in K]: SlotInstance };
+  }
 }
