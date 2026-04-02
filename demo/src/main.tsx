@@ -1,6 +1,5 @@
 import { signal, computed } from "elements-kit/signals";
 import { reactive } from "elements-kit/decorators";
-import { Map, If } from "elements-kit/jsx-runtime";
 import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
 
 // ─ Counter (class component / custom element) ──────────────────────────────
@@ -9,15 +8,15 @@ import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
 class Counter extends HTMLElement {
   el = () => this;
   static [attr] = {
-    count(value: string) {
+    count(this: Counter, value: string | null) {
       this.count = Number(value);
     },
   };
 
   #count = signal(0);
-  @reactive((s) => s.#count) count: number;
+  @reactive((s) => s.#count) count: number = 0;
   @reactive((s) => computed(() => s.#count() * 2))
-  doubled: number;
+  doubled: number = 0;
 
   connectedCallback() {
     <this.el>
