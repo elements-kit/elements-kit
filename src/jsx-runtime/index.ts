@@ -1,5 +1,6 @@
 import { Child } from "./types";
 import { createElement } from "./element";
+import { $ref } from "./ref";
 
 export {
   createElement as jsx,
@@ -15,7 +16,7 @@ type EventHandler<E extends Event = Event> = (event: E) => void;
 
 /** Props shared by every intrinsic element. */
 interface BaseProps {
-  ref?: (el: Element) => void;
+  [$ref]?: (el: Element) => void;
   class?: ReactiveOr<string>;
   style?: ReactiveOr<string | Partial<CSSStyleDeclaration>>;
   innerHTML?: ReactiveOr<string>;
