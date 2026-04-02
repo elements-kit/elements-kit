@@ -1,5 +1,5 @@
 import { effect, isReactive } from "../signals";
-import { AnyFn, Child, ComponentClass, Disposer } from "./types";
+import { Child, ComponentClass, Disposer } from "./types";
 import {
   ChildProperties,
   Properties,
