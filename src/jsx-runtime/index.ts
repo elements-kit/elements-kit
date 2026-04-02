@@ -54,7 +54,7 @@ function resolveElement(
 // ─ Disposable attachment ─────────────────────────────────────────────────────
 
 function hasOwnDisposable(el: Component): el is Component & Disposable {
-  return Symbol.dispose in el;
+  return Object.hasOwn(el, Symbol.dispose);
 }
 function attachDisposables(el: Component, disposables: Set<Disposer>): void {
   const existingDispose = hasOwnDisposable(el)
