@@ -6,7 +6,6 @@ import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
 
 @attributes
 class Counter extends HTMLElement {
-  el = () => this;
   static [attr] = {
     count(this: Counter, value: string | null) {
       this.count = Number(value);
@@ -14,12 +13,15 @@ class Counter extends HTMLElement {
   };
 
   #count = signal(0);
-  @reactive((s) => s.#count) count: number = 0;
+  @reactive((s) => s.#count)
+  count: number = 0;
+
   @reactive((s) => computed(() => s.#count() * 2))
-  doubled: number = 0;
+  readonly doubled: number = 0;
 
   connectedCallback() {
-    <this.el>
+    const Host = this;
+    <Host>
       <section style="margin-bottom: 24px">
         <h2>Counter</h2>
         <p>
@@ -30,18 +32,18 @@ class Counter extends HTMLElement {
         <button onClick={() => this.count--}>−1</button>{" "}
         <button onClick={() => (this.count = 0)}>Reset</button>
       </section>
-    </this.el>;
+    </Host>;
   }
 }
+customElements.define("x-counter", Counter);
 
 declare global {
   namespace JSX {
     interface IntrinsicElements {
-      "x-counter": { count?: number };
+      "x-counter": Counter;
     }
   }
 }
-customElements.define("x-counter", Counter);
 
 // ─ Signals ──────────────────────────────────────────────────────────────────
 
@@ -81,79 +83,90 @@ function removeTodo(id: number) {
 }
 
 // ─ Components ───────────────────────────────────────────────────────────────
-function TodoApp() {
-  return (
-    <section>
-      <h2>Todo List</h2>
+class TodoApp {
+  render() {
+    return (
+      <section>
+        <h2>Todo List</h2>
 
-      {/* Add todo */}
-      <form
-        on:submit={(e: Event) => {
-          e.preventDefault();
-          addTodo();
-        }}
-      >
-        <input
-          type="text"
-          placeholder="What needs to be done?"
-          prop:value={newTodo}
-          on:input={(e: Event) => newTodo((e.target as HTMLInputElement).value)}
-        />
-        <button type="submit">Add</button>
-      </form>
+        {/* Add todo */}
+        <form
+          on:submit={(e: Event) => {
+            e.preventDefault();
+            addTodo();
+          }}
+        >
+          <input
+            type="text"
+            placeholder="What needs to be done?"
+            prop:value={newTodo}
+            on:input={(e: Event) =>
+              newTodo((e.target as HTMLInputElement).value)
+            }
+          />
+          <button type="submit">Add</button>
+        </form>
 
-      {/* Filter toggle */}
-      <label style="display: block; margin: 8px 0">
-        <input
-          type="checkbox"
-          prop:checked={showDone}
-          on:change={() => showDone(!showDone())}
-        />{" "}
-        Show completed
-      </label>
+        {/* Filter toggle */}
+        <label style="display: block; margin: 8px 0">
+          <input
+            type="checkbox"
+            prop:checked={showDone}
+            on:change={() => showDone(!showDone())}
+          />{" "}
+          Show completed
+        </label>
 
-      {/* Todo list with keyed reconciliation */}
-      <ul>
-        <Map each={visibleTodos} key={(t) => t.id}>
-          {(todo, i) => (
-            <li
-              style:text-decoration={todo.done ? "line-through" : "none"}
-              style:opacity={todo.done ? "0.6" : "1"}
-            >
-              <input
-                type="checkbox"
-                prop:checked={computed(() => todo.done)}
-                on:change={() => toggleTodo(todo.id)}
-              />{" "}
-              {todo.text} <button onClick={() => removeTodo(todo.id)}>✕</button>
-            </li>
-          )}
-        </Map>
-      </ul>
+        {/* Todo list with keyed reconciliation */}
+        <ul>
+          {() =>
+            visibleTodos().map((todo, i) => (
+              <li
+                style:text-decoration={todo.done ? "line-through" : "none"}
+                style:opacity={todo.done ? "0.6" : "1"}
+              >
+                <input
+                  type="checkbox"
+                  prop:checked={computed(() => todo.done)}
+                  on:change={() => toggleTodo(todo.id)}
+                />{" "}
+                {todo.text}{" "}
+                <button onClick={() => removeTodo(todo.id)}>✕</button>
+              </li>
+            ))
+          }
+        </ul>
 
-      {/* Conditional rendering */}
-      <If when={computed(() => todos().length === 0)}>
-        <p style="color: gray">
-          <em>No todos yet — add one above!</em>
+        {/* Conditional rendering  */}
+        {() =>
+          todos().length === 0 && (
+            <p style="color: gray">
+              <em>No todos yet — add one above!</em>
+            </p>
+          )
+        }
+
+        <p style="margin-top: 8px; font-size: 0.85em; color: #666">
+          {() =>
+            `${todos().filter((t) => t.done).length}/${todos().length} done`
+          }
         </p>
-      </If>
-
-      <p style="margin-top: 8px; font-size: 0.85em; color: #666">
-        {() => `${todos().filter((t) => t.done).length}/${todos().length} done`}
-      </p>
-    </section>
-  );
+      </section>
+    ) as Element;
+  }
 }
 
-function App() {
-  return (
-    <div style="font-family: system-ui, sans-serif; max-width: 480px; margin: 40px auto; padding: 0 16px">
-      <h1>elements-kit JSX Demo</h1>
-      <x-counter count={signal(9)} />
-      <TodoApp />
-    </div>
-  );
+class App {
+  render() {
+    return (
+      <div style="font-family: system-ui, sans-serif; max-width: 480px; margin: 40px auto; padding: 0 16px">
+        <h1>elements-kit JSX Demo</h1>
+        <x-counter count={signal(9)} />
+        <TodoApp />
+      </div>
+    ) as Element;
+  }
 }
 
 // ─ Mount ─────────────────────────────────────────────────────────────────────
-document.getElementById("app")!.appendChild(App()!);
+document.getElementById("app")!.appendChild(new App().render());
