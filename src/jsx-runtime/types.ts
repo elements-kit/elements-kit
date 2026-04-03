@@ -13,7 +13,7 @@ export type ComponentClass = {
 
 export type Component = Element | DocumentFragment | ComponentClass;
 /** Anything that can appear as a JSX child. */
-export type Child = PrimitiveNodeType;
+export type Child = PrimitiveNodeType | AnyFn;
 
 export type Disposer = () => void;
 

@@ -1,5 +1,5 @@
 import { effect, isReactive } from "../signals";
-import { Component, Child, AnyFn, Disposer } from "./types";
+import { Component, Child, Disposer } from "./types";
 import { $slots, Slots, Slot } from "../slot";
 import { resolveNode } from "../lib";
 
@@ -60,8 +60,8 @@ export function applyChildren(
  * Sets a Slot's content from a Child value.
  */
 function applySlot(slot: Slot, value: Child): (() => void) | void {
-  if (isReactive(value)) {
-    return effect(() => slot.set(resolveNode((value as AnyFn)())));
+  if (typeof value === "function") {
+    return effect(() => slot.set(resolveNode(value())));
   }
   slot.set(resolveNode(value));
 }
@@ -74,7 +74,7 @@ function mountChildren(
   const disposers: Disposer[] = [];
 
   for (const child of children) {
-    if (isReactive(child)) {
+    if (typeof child === "function") {
       const slot = Slot.new();
       el.appendChild(slot());
       disposers.push(effect(() => slot.set(resolveNode(child()))));
