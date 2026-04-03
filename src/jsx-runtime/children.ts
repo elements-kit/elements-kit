@@ -1,7 +1,7 @@
 import { effect, isReactive } from "../signals";
 import { Component, Child, Disposer } from "./types";
 import { $slots, Slots, Slot } from "../slot";
-import { resolveNode } from "../lib";
+import { PrimitiveNodeType, resolveNode } from "../lib";
 
 // ─ Typed $slots accessor ──────────────────────────────────────────────────────
 
@@ -61,9 +61,9 @@ export function applyChildren(
  */
 function applySlot(slot: Slot, value: Child): (() => void) | void {
   if (typeof value === "function") {
-    return effect(() => slot.set(resolveNode(value())));
+    return effect(() => slot.set(resolveChild(value())));
   }
-  slot.set(resolveNode(value));
+  slot.set(resolveChild(value));
 }
 
 function mountChildren(
@@ -77,14 +77,26 @@ function mountChildren(
     if (typeof child === "function") {
       const slot = Slot.new();
       el.appendChild(slot());
-      disposers.push(effect(() => slot.set(resolveNode(child()))));
+      disposers.push(effect(() => slot.set(resolveChild(child()))));
       continue;
     }
 
-    el.appendChild(resolveNode(child as any));
+    el.appendChild(resolveChild(child as any));
   }
 
   return disposers.length > 0 ? () => disposers.forEach((d) => d()) : undefined;
+}
+
+function resolveChild(value: Child): Node {
+  if (Array.isArray(value)) {
+    const fragment = document.createDocumentFragment();
+    for (const item of value as any[]) {
+      fragment.appendChild(resolveChild(item));
+    }
+    return fragment;
+  }
+  if (typeof value === "function") return resolveChild(value());
+  return resolveNode(value as PrimitiveNodeType);
 }
 
 /** Normalises the children prop into a flat array. */
