@@ -1,4 +1,4 @@
-import { effect, signal } from "../signals";
+import { effect, signal, untracked } from "../signals";
 import { disposeElement } from "../jsx-runtime/element";
 
 type KeyFn<T> = (item: T, index: number) => string | number;
@@ -113,7 +113,12 @@ export class For<T = unknown> {
       for (let i = bEnd - 1; i >= bStart; i--) {
         const key = b[i];
         const entry = this.#makeEntry(key);
-        insertEntry(parent, entry, cursor, this.children(items[i], i));
+        insertEntry(
+          parent,
+          entry,
+          cursor,
+          untracked(() => this.children(items[i], i)),
+        );
         this.#cache.set(key, entry);
         cursor = entry.start;
       }
@@ -131,7 +136,12 @@ export class For<T = unknown> {
 
       if (!entry) {
         entry = this.#makeEntry(key);
-        insertEntry(parent, entry, cursor, this.children(items[i], i));
+        insertEntry(
+          parent,
+          entry,
+          cursor,
+          untracked(() => this.children(items[i], i)),
+        );
         this.#cache.set(key, entry);
       } else if (entry.end.nextSibling !== cursor) {
         moveEntry(parent, entry, cursor);
