@@ -1,7 +1,6 @@
-import { signal, computed } from "elements-kit/signals";
-import { reactive } from "elements-kit/decorators";
-import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
 import { For } from "elements-kit";
+import { signal, computed, reactive } from "elements-kit/signals";
+import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
 
 // ─ Counter (class component / custom element) ──────────────────────────────
 

@@ -1,10 +1,7 @@
-import { PrimitiveNodeType, resolveNode } from "./lib";
-import { effect, isReactive } from "./signals";
-import { Slot } from "./slot";
-import "./polyfill";
-
-export { For } from "./components/for";
-export { Key } from "./components/key";
+import { PrimitiveNodeType, resolveNode } from "../lib";
+import { effect, isReactive } from "../signals";
+import { Slot } from "../slot";
+import "../polyfill";
 
 export const DISPOSABLES: unique symbol = Symbol("disposables");
 export const DISPOSE = Symbol.dispose;

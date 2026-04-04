@@ -131,8 +131,7 @@ const show = signal(true);
 Makes any class field behave like a signal — reads subscribe, writes trigger updates.
 
 ```ts
-import { reactive } from "elements-kit/decorators";
-import { computed } from "elements-kit/signals";
+import { computed, reactive } from "elements-kit/signals";
 
 class Todo {
   text: string;
@@ -162,8 +161,7 @@ Automatically wires `observedAttributes` and `attributeChangedCallback` for cust
 
 ```ts
 import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
-import { reactive } from "elements-kit/decorators";
-import { signal } from "elements-kit/signals";
+import { signal, reactive } from "elements-kit/signals";
 
 @attributes
 class Counter extends HTMLElement {

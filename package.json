@@ -24,20 +24,12 @@
   ],
   "exports": {
     ".": {
-      "import": "./dist/core.mjs",
-      "types": "./dist/core.d.ts"
+      "import": "./dist/index.mjs",
+      "types": "./dist/index.d.ts"
     },
     "./signals": {
       "import": "./dist/signals.mjs",
       "types": "./dist/signals.d.ts"
-    },
-    "./dom": {
-      "import": "./dist/dom.mjs",
-      "types": "./dist/dom.d.ts"
-    },
-    "./decorators": {
-      "import": "./dist/decorators.mjs",
-      "types": "./dist/decorators.d.ts"
     },
     "./slot": {
       "import": "./dist/slot.mjs",
@@ -46,6 +38,14 @@
     "./attributes": {
       "import": "./dist/attributes.mjs",
       "types": "./dist/attributes.d.ts"
+    },
+    "./builder": {
+      "import": "./dist/builder/core.mjs",
+      "types": "./dist/builder/core.d.ts"
+    },
+    "./builder/dom": {
+      "import": "./dist/builder/dom.mjs",
+      "types": "./dist/builder/dom.d.ts"
     },
     "./jsx-runtime": {
       "import": "./dist/jsx-runtime/index.mjs",
