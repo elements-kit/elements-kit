@@ -17,8 +17,8 @@
   ],
   "author": "@waelbettayeb",
   "license": "MIT",
-  "main": "./dist/core.mjs",
-  "types": "./dist/core.d.ts",
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "files": [
     "dist"
   ],
@@ -40,8 +40,8 @@
       "types": "./dist/attributes.d.ts"
     },
     "./builder": {
-      "import": "./dist/builder/core.mjs",
-      "types": "./dist/builder/core.d.ts"
+      "import": "./dist/builder/index.mjs",
+      "types": "./dist/builder/index.d.ts"
     },
     "./builder/dom": {
       "import": "./dist/builder/dom.mjs",

@@ -8,7 +8,7 @@ export default defineConfig({
     "src/attributes.ts",
     "src/slot.ts",
     "src/jsx-runtime/index.ts",
-    "src/builder/core.ts",
+    "src/builder/index.ts",
     "src/builder/dom.ts",
   ],
 });

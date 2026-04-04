@@ -17,7 +17,7 @@ import {
   startBatch,
   endBatch,
 } from "alien-signals";
-import type { ValueOrReactive } from "./builder/core";
+import type { ValueOrReactive } from "./builder";
 
 export function isReactive<T>(value: ValueOrReactive<T>): value is () => T {
   return isSignal(value as () => T) || isComputed(value as () => T);

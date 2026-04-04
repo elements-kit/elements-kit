@@ -1,6 +1,6 @@
 // Auto-generated file
 
-import { builder } from "./core";
+import { builder } from ".";
 
 export interface Lifecycle {
   connectedCallback?(): void;

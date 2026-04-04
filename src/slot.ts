@@ -1,4 +1,4 @@
-import { ElementBuilder } from "./builder/core";
+import { ElementBuilder } from "./builder";
 
 /**
  * A lightweight slot that reserves a region in the DOM using comment markers.
