@@ -15,12 +15,17 @@ function hasSlots(node: Component): node is WithSlots {
 // ─ Public API ─────────────────────────────────────────────────────────────────
 
 export function isChildrenProperty(node: Component, key: string): boolean {
+  if (
+    key === "children" &&
+    (node instanceof Element || node instanceof DocumentFragment)
+  )
+    return true;
+
   if (hasSlots(node)) {
     const slotName = key.replace(/^slot:/, "");
     if (Slots.has(node[$slots], slotName)) return true;
     // fall through — still check "children" and direct Slot properties
   }
-  if (key === "children") return true;
 
   return key in node && (node as Record<string, any>)[key] instanceof Slot;
 }

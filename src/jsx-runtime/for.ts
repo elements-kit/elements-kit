@@ -1,4 +1,4 @@
-import { effect } from "../signals";
+import { effect, signal } from "../signals";
 import { disposeElement } from "./element";
 
 type KeyFn<T> = (item: T, index: number) => string | number;
@@ -38,7 +38,14 @@ interface Entry {
  *   children — render function called once per new key
  */
 export class For<T = unknown> {
-  each: () => T[] = () => [];
+  readonly #each = signal<T[]>([]);
+  get each(): T[] {
+    return this.#each();
+  }
+  set each(v: T[]) {
+    this.#each(v);
+  }
+
   by: KeyFn<T> = (_, i) => i;
   children: RenderFn<T> = () => null;
 
@@ -64,7 +71,7 @@ export class For<T = unknown> {
     const parent = this.#start.parentNode;
     if (!parent) return;
 
-    const items = this.each();
+    const items = this.each;
     const b = items.map((item, i) => this.by(item, i)); // desired key order
     const bSet = new Set(b);
 

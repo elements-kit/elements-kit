@@ -1,6 +1,7 @@
 import { signal, computed } from "elements-kit/signals";
 import { reactive } from "elements-kit/decorators";
 import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
+import { For } from "elements-kit/jsx-runtime";
 
 // ─ Counter (class component / custom element) ──────────────────────────────
 
@@ -119,8 +120,8 @@ class TodoApp {
 
         {/* Todo list with keyed reconciliation */}
         <ul>
-          {() =>
-            visibleTodos().map((todo, i) => (
+          <For each={visibleTodos} by={(todo) => todo.id}>
+            {(todo) => (
               <li
                 style:text-decoration={todo.done ? "line-through" : "none"}
                 style:opacity={todo.done ? "0.6" : "1"}
@@ -133,8 +134,8 @@ class TodoApp {
                 {todo.text}{" "}
                 <button onClick={() => removeTodo(todo.id)}>✕</button>
               </li>
-            ))
-          }
+            )}
+          </For>
         </ul>
 
         {/* Conditional rendering  */}

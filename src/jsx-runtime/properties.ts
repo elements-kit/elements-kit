@@ -125,8 +125,14 @@ function setProp(
     return;
   }
 
+  // ─ Plain class component: set as property ────────────────────────────────
+  if (!(node instanceof Element)) {
+    (node as unknown as Record<string, unknown>)[key] = value;
+    return;
+  }
+
   // ─ Default: setAttribute ─────────────────────────────────────────────────
-  setAttribute(node as Element, key, value);
+  setAttribute(node, key, value);
 }
 
 function applyStyle(el: Element, value: unknown): void {
