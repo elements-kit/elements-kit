@@ -21,7 +21,9 @@ function mount<T>(
 
 /** Text content of every <li> inside the container, in DOM order. */
 function texts(container: Element): string[] {
-  return Array.from(container.querySelectorAll("li")).map((li) => li.textContent ?? "");
+  return Array.from(container.querySelectorAll("li")).map(
+    (li) => li.textContent ?? "",
+  );
 }
 
 /** IDs of every <li> inside the container, in DOM order. */

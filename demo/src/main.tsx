@@ -1,7 +1,7 @@
 import { signal, computed } from "elements-kit/signals";
 import { reactive } from "elements-kit/decorators";
 import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
-import { For } from "elements-kit/jsx-runtime";
+import { For } from "elements-kit";
 
 // ─ Counter (class component / custom element) ──────────────────────────────
 
@@ -128,7 +128,7 @@ class TodoApp {
               >
                 <input
                   type="checkbox"
-                  prop:checked={computed(() => todo.done)}
+                  checked={computed(() => todo.done)}
                   on:change={() => toggleTodo(todo.id)}
                 />{" "}
                 {todo.text}{" "}

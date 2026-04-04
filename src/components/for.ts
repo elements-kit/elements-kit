@@ -1,5 +1,5 @@
 import { effect, signal } from "../signals";
-import { disposeElement } from "./element";
+import { disposeElement } from "../jsx-runtime/element";
 
 type KeyFn<T> = (item: T, index: number) => string | number;
 type RenderFn<T> = (

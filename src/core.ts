@@ -3,6 +3,9 @@ import { effect, isReactive } from "./signals";
 import { Slot } from "./slot";
 import "./polyfill";
 
+export { For } from "./components/for";
+export { Key } from "./components/key";
+
 export const DISPOSABLES: unique symbol = Symbol("disposables");
 export const DISPOSE = Symbol.dispose;
 export const VALUE: unique symbol = Symbol("value");

@@ -9,9 +9,6 @@ export {
   createElement as h,
 };
 
-export { For } from "./for";
-export { Key } from "./key";
-
 // ─ JSX namespace ─────────────────────────────────────────────────────────────
 
 type ReactiveOr<T> = T | (() => T);

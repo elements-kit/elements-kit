@@ -1,5 +1,5 @@
 import { effect } from "../signals";
-import { disposeElement } from "./element";
+import { disposeElement } from "../jsx-runtime/element";
 
 /**
  * Key-gated renderer. Fully tears down and re-renders children whenever the
