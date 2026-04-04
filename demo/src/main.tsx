@@ -48,43 +48,63 @@ declare global {
 
 // ─ Signals ──────────────────────────────────────────────────────────────────
 
-interface Todo {
-  id: number;
+class Todo {
+  static id = 0;
+  id: number = Todo.id++;
   text: string;
+
+  @reactive()
   done: boolean;
+
+  constructor(text: string, done: boolean) {
+    this.text = text;
+    this.done = done;
+  }
 }
 
-let nextId = 3;
-const todos = signal<Todo[]>([
-  { id: 1, text: "Learn elements-kit", done: true },
-  { id: 2, text: "Build something cool", done: false },
-]);
+class TodoState {
+  @reactive()
+  todos: Todo[] = [];
 
-const newTodo = signal("");
-const showDone = signal(true);
-
-const visibleTodos = computed(() =>
-  showDone() ? todos() : todos().filter((t) => !t.done),
-);
+  addTodo(_text: string) {
+    const text = _text.trim();
+    if (!text) return;
+    this.todos = [...this.todos, new Todo(text, false)];
+  }
+  removeTodo(id: number) {
+    this.todos = this.todos.filter((t) => t.id !== id);
+  }
+}
 
 // ─ Actions ──────────────────────────────────────────────────────────────────
-function addTodo() {
-  const text = newTodo().trim();
-  if (!text) return;
-  todos([...todos(), { id: nextId++, text, done: false }]);
-  newTodo("");
-}
-
-function toggleTodo(id: number) {
-  todos(todos().map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
-}
-
-function removeTodo(id: number) {
-  todos(todos().filter((t) => t.id !== id));
-}
 
 // ─ Components ───────────────────────────────────────────────────────────────
-class TodoApp {
+class TodoApp extends TodoState {
+  @reactive()
+  showDone = true;
+
+  @reactive()
+  newTodo = "";
+
+  constructor() {
+    super();
+    this.todos = [
+      new Todo("Learn elements-kit", true),
+      new Todo("Build something fun with it", false),
+    ];
+  }
+
+  addTodo() {
+    const text = this.newTodo.trim();
+    if (!text) return;
+    super.addTodo(text);
+    this.newTodo = "";
+  }
+
+  visibleTodos = computed(() =>
+    this.showDone ? this.todos : this.todos.filter((t) => !t.done),
+  );
+
   render() {
     return (
       <section>
@@ -94,15 +114,15 @@ class TodoApp {
         <form
           on:submit={(e: Event) => {
             e.preventDefault();
-            addTodo();
+            this.addTodo();
           }}
         >
           <input
             type="text"
             placeholder="What needs to be done?"
-            prop:value={newTodo}
+            value={this.newTodo}
             on:input={(e: Event) =>
-              newTodo((e.target as HTMLInputElement).value)
+              (this.newTodo = (e.target as HTMLInputElement).value)
             }
           />
           <button type="submit">Add</button>
@@ -112,27 +132,29 @@ class TodoApp {
         <label style="display: block; margin: 8px 0">
           <input
             type="checkbox"
-            prop:checked={showDone}
-            on:change={() => showDone(!showDone())}
+            checked={this.showDone}
+            on:change={() => (this.showDone = !this.showDone)}
           />{" "}
           Show completed
         </label>
 
         {/* Todo list with keyed reconciliation */}
         <ul>
-          <For each={visibleTodos} by={(todo) => todo.id}>
+          <For each={this.visibleTodos} by={(todo) => todo.id}>
             {(todo) => (
               <li
-                style:text-decoration={todo.done ? "line-through" : "none"}
-                style:opacity={todo.done ? "0.6" : "1"}
+                style:text-decoration={computed(() =>
+                  todo.done ? "line-through" : "none",
+                )}
+                style:opacity={computed(() => (todo.done ? "0.6" : "1"))}
               >
                 <input
                   type="checkbox"
                   checked={computed(() => todo.done)}
-                  on:change={() => toggleTodo(todo.id)}
+                  on:change={() => (todo.done = !todo.done)}
                 />{" "}
                 {todo.text}{" "}
-                <button onClick={() => removeTodo(todo.id)}>✕</button>
+                <button onClick={() => this.removeTodo(todo.id)}>✕</button>
               </li>
             )}
           </For>
@@ -140,7 +162,7 @@ class TodoApp {
 
         {/* Conditional rendering  */}
         {() =>
-          todos().length === 0 && (
+          this.todos.length === 0 && (
             <p style="color: gray">
               <em>No todos yet — add one above!</em>
             </p>
@@ -149,7 +171,7 @@ class TodoApp {
 
         <p style="margin-top: 8px; font-size: 0.85em; color: #666">
           {() =>
-            `${todos().filter((t) => t.done).length}/${todos().length} done`
+            `${this.todos.filter((t) => t.done).length}/${this.todos.length} done`
           }
         </p>
       </section>
