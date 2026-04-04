@@ -1,4 +1,4 @@
-import { effect, isReactive } from "../signals";
+import { effect } from "../signals";
 import { Component, Child, Disposer } from "./types";
 import { $slots, Slots, Slot } from "../slot";
 import { PrimitiveNodeType, resolveNode } from "../lib";
@@ -53,7 +53,7 @@ export function applyChildren(
 
   // ─ Slots ─────────────────────────────────────────────────────────────────
   if (key in node) {
-    const slot = (node as Record<typeof key, unknown>)[key];
+    const slot = (node as unknown as Record<typeof key, unknown>)[key];
     if (!(slot instanceof Slot)) return;
     return applySlot(slot, value);
   }

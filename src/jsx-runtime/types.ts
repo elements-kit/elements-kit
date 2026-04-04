@@ -4,14 +4,15 @@
 
 import type { PrimitiveNodeType } from "../lib";
 
-/** A class whose constructor returns an Element (custom elements). */
-export type ComponentClass = {
-  [key: string]: unknown;
-  new (...args: any[]): ComponentClass;
-  render(): Element;
-};
+/** An instance created by a component class — must expose `render()`. */
+export interface ComponentInstance {
+  render(): Element | DocumentFragment | null;
+}
 
-export type Component = Element | DocumentFragment | ComponentClass;
+/** A class whose constructor returns a ComponentInstance. */
+export type ComponentClass = new (...args: any[]) => ComponentInstance;
+
+export type Component = Element | DocumentFragment | ComponentInstance;
 /** Anything that can appear as a JSX child. */
 export type Child = PrimitiveNodeType | AnyFn | Child[];
 

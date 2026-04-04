@@ -1,13 +1,34 @@
-import { Component, ComponentClass, Disposer } from "./types";
+import {
+  Component,
+  ComponentClass,
+  ComponentInstance,
+  Disposer,
+} from "./types";
 import { applyProps } from "./properties";
 import { $ref } from "./ref";
 import "../polyfill";
 
 export function createElement(
-  type: string | Element | ComponentClass,
+  type:
+    | string
+    | Element
+    | DocumentFragment
+    | ComponentClass
+    | ((
+        props: Record<string | symbol, unknown>,
+      ) => null | Element | DocumentFragment),
   { [$ref]: ref, ...props }: Record<string | symbol, unknown> = {},
 ): Element | DocumentFragment | null {
-  const node = resolveElement(type);
+  // ─ Function component ───────────────────────────────────────────────────
+  if (typeof type === "function" && !type.prototype?.render) {
+    const el = (type as Function)(props);
+    if (typeof ref === "function" && el instanceof Element) ref(el);
+    return el;
+  }
+
+  const node = resolveElement(
+    type as string | Element | ComponentClass | DocumentFragment,
+  );
   if (!node) return null;
 
   // ─ Properties ─────────────────────────────────────────────────────────────
@@ -24,7 +45,7 @@ export function createElement(
 }
 
 function _render(
-  node: ComponentClass | Element | DocumentFragment | null,
+  node: ComponentInstance | Element | DocumentFragment | null,
 ): Element | DocumentFragment | null {
   if (node instanceof Element || node instanceof DocumentFragment) return node;
   if (!node || typeof node.render !== "function") return null;
@@ -38,10 +59,10 @@ function _render(
  *   - class component → new type()
  */
 function resolveElement(
-  type: string | Element | ComponentClass,
-): ComponentClass | Element | DocumentFragment | null {
+  type: string | Element | ComponentClass | DocumentFragment,
+): ComponentInstance | Element | DocumentFragment | null {
   if (typeof type === "string") return document.createElement(type);
-  if (type instanceof Element) return type;
+  if (type instanceof Element || type instanceof DocumentFragment) return type;
 
   return new type();
 }

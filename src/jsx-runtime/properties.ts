@@ -1,5 +1,5 @@
 import { effect, isReactive } from "../signals";
-import { Child, ComponentClass, Disposer } from "./types";
+import { Child, ComponentInstance, Disposer } from "./types";
 import {
   ChildProperties,
   Properties,
@@ -9,7 +9,7 @@ import {
 import { applyChildren, isChildrenProperty } from "./children";
 
 export function applyProps(
-  node: Element | DocumentFragment | ComponentClass,
+  node: Element | DocumentFragment | ComponentInstance,
   props: Record<string, unknown>,
 ) {
   const disposables = new Set<Disposer>();
@@ -56,7 +56,7 @@ export function applyProps(
 }
 
 function setProp(
-  node: Element | DocumentFragment | ComponentClass,
+  node: Element | DocumentFragment | ComponentInstance,
   key: string,
   value: unknown,
 ): void {

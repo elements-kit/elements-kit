@@ -1,6 +1,7 @@
-import { Child } from "./types";
+import { Child, ComponentClass } from "./types";
 import { createElement } from "./element";
 import { $ref } from "./ref";
+import type { JSX as DomJSX } from "dom-expressions/src/jsx-h";
 
 export {
   createElement as jsx,
@@ -9,66 +10,69 @@ export {
   createElement as h,
 };
 
+// ─ Helpers: namespaced prop types ────────────────────────────────────────────
+
+/** A value or a reactive zero-argument getter. */
+export type FunctionMaybe<T> = DomJSX.FunctionMaybe<T>;
+
+/**
+ * Maps slot names to `Child` content.
+ * Use this to type `slot:name` JSX props on a custom component.
+ *
+ * @example
+ * ```tsx
+ * function Card(props: { title: string } & SlotProps<"header" | "footer">) { … }
+ * // caller: <Card title="…" slot:header={<h1>…</h1>} slot:footer={<p>…</p>} />
+ * ```
+ */
+export type SlotProps<K extends string> = {
+  [P in K as `slot:${P}`]?: Child;
+};
+
+/**
+ * Get the full JSX prop types for a given tag name, including reactive
+ * attributes, events, and all our namespace extensions.
+ *
+ * @example
+ * ```ts
+ * type InputProps = Attrs<"input">;   // typed props for <input>
+ * type DivProps   = Attrs<"div">;     // typed props for <div>
+ * ```
+ */
+export type Attrs<K extends keyof JSX.IntrinsicElements> =
+  JSX.IntrinsicElements[K];
+
+// ─ Our additions on top of every dom-expressions element ─────────────────────
+
+/** Extra props injected into every intrinsic element beyond dom-expressions defaults. */
+type OurProps = {
+  [$ref]?: (el: Element) => void;
+  [slot: `slot:${string}`]: Child;
+  [cls: `class:${string}`]: FunctionMaybe<boolean>;
+  [sty: `style:${string}`]: FunctionMaybe<string | null>;
+  [prop: `prop:${string}`]: unknown;
+};
+
+type WithOurProps<T> = T & OurProps;
+
 // ─ JSX namespace ─────────────────────────────────────────────────────────────
 
-type ReactiveOr<T> = T | (() => T);
-type EventHandler<E extends Event = Event> = (event: E) => void;
-
-/** Props shared by every intrinsic element. */
-interface BaseProps {
-  [$ref]?: (el: Element) => void;
-  class?: ReactiveOr<string>;
-  style?: ReactiveOr<string | Partial<CSSStyleDeclaration>>;
-  innerHTML?: ReactiveOr<string>;
-  children?: Child | Child[];
-  [prop: `prop:${string}`]: unknown;
-  [slot: `slot:${string}`]: Child;
-  [event: `on:${string}`]: EventHandler;
-  [style: `style:${string}`]: ReactiveOr<string | null>;
-  [cls: `class:${string}`]: ReactiveOr<boolean>;
-}
-
-type IntrinsicHTMLProps<T extends HTMLElement> = BaseProps &
-  Partial<{
-    [K in keyof T as K extends keyof BaseProps | `on${string}`
-      ? never
-      : T[K] extends Function
-        ? never
-        : K]: ReactiveOr<T[K]>;
-  }> & {
-    [K in keyof HTMLElementEventMap as `on${Capitalize<K>}`]?: EventHandler<
-      HTMLElementEventMap[K]
-    >;
-  };
-
 export namespace JSX {
-  export type Element = globalThis.Element | DocumentFragment | null;
-
+  export type Element = globalThis.Element | globalThis.DocumentFragment | null;
+  export type ElementType = Child | ComponentClass;
   export interface ElementChildrenAttribute {
     children: {};
   }
 
-  /** Special components available inside a <Map> children context. */
-  export interface MapIntrinsicElements {
-    item: {
-      key?: (item: any, index: number) => string | number;
-      children: (item: any, index: number) => JSX.Element;
-    };
-  }
-
-  /** Special components available inside an <If>. */
-  export interface IfIntrinsicElements {
-    then: { children: Child | Child[] };
-    else: { children: Child | Child[] };
-  }
-
-  type IntrinsicHTMLElements = {
-    [K in keyof HTMLElementTagNameMap]: IntrinsicHTMLProps<
-      HTMLElementTagNameMap[K]
+  export type IntrinsicElements = {
+    [K in keyof DomJSX.IntrinsicElements]: WithOurProps<
+      DomJSX.IntrinsicElements[K]
     >;
+  } & {
+    /** Custom elements (`x-foo`, `my-component`, …) get a loose typed fallback. */
+    [customElement: `${string}-${string}`]: WithOurProps<
+      DomJSX.DOMAttributes<HTMLElement>
+    > &
+      Record<string, unknown>;
   };
-
-  export interface IntrinsicElements extends IntrinsicHTMLElements {
-    [customElement: `${string}-${string}`]: BaseProps & Record<string, unknown>;
-  }
 }

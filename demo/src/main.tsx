@@ -20,7 +20,7 @@ class Counter extends HTMLElement {
   readonly doubled: number = 0;
 
   connectedCallback() {
-    const Host = this;
+    const Host = () => this;
     <Host>
       <section style="margin-bottom: 24px">
         <h2>Counter</h2>
@@ -74,8 +74,6 @@ class TodoState {
     this.todos = this.todos.filter((t) => t.id !== id);
   }
 }
-
-// ─ Actions ──────────────────────────────────────────────────────────────────
 
 // ─ Components ───────────────────────────────────────────────────────────────
 class TodoApp extends TodoState {
@@ -138,8 +136,8 @@ class TodoApp extends TodoState {
 
         {/* Todo list with keyed reconciliation */}
         <ul>
-          <For each={this.visibleTodos} by={(todo) => todo.id}>
-            {(todo) => (
+          <For<Todo> each={this.visibleTodos} by={(todo: Todo) => todo.id}>
+            {(todo: Todo) => (
               <li
                 style:text-decoration={computed(() =>
                   todo.done ? "line-through" : "none",
