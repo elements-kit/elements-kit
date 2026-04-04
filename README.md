@@ -1,116 +1,260 @@
 # ElementsKit
 
-ElementsKit is a lightweight reactive UI library that transforms native HTMLElements into reactive elements. Perfect for framework-agnostic applications and web component development.
+A lightweight reactive UI library built on JSX and native DOM APIs. No virtual DOM, no diffing — fine-grained reactivity that updates only what changes.
 
-```ts
-import { signal } from "elements-kit/signals"
-import { div } from "elements-kit/dom"
-import { ReactiveElement, element } from "elements-kit"
+```tsx
+import { signal, computed } from "elements-kit/signals";
 
-const externalSignal = signal("something")
+class Counter {
+  #count = signal(0);
 
-function Elements(property1, property2, children): ReactiveElement{
-    const value = signal(0)
-    return div()
-        .style.color("green")
-        .title("tooltip").children(
-            header("This is my header"),
-            main("Second children"),
-            b(value),
-            span(externalSignal),
-            ...children
-        )
+  render() {
+    return (
+      <section>
+        <p>Count: <strong>{this.#count}</strong></p>
+        <button onClick={() => this.#count(this.#count() + 1)}>+1</button>
+      </section>
+    ) as Element;
+  }
 }
 
-document.body.appendChild(element(Elements))
+document.getElementById("app")!.appendChild(new Counter().render());
 ```
 
 ## Principles
 
-- **Direct DOM Manipulation** - Work directly with native HTMLElements, no virtual DOM or diffing overhead
-- **Zero Magic** - Explicit, predictable behavior with no hidden transformations or implicit state management
-- **No Build Step Required** - Use vanilla JavaScript/TypeScript without JSX transpilation or custom syntax
-- **Framework-Agnostic** - Integrate seamlessly with any existing project or use standalone
-- **Reactive by Design** - Fine-grained reactivity through signals that automatically update the DOM
-- **Type-Safe** - Full TypeScript support with comprehensive type inference
-- **Minimal Abstraction** - Thin layer over standard DOM APIs, learn once and use anywhere
-- **Composable** - Build complex UIs from simple, reusable reactive elements
+- **Direct DOM Manipulation** — Works with native HTMLElements, no virtual DOM or diffing overhead
+- **Fine-Grained Reactivity** — Only the exact DOM nodes that depend on a changed signal update
+- **JSX Without a Framework** — Standard JSX syntax compiled to real DOM nodes, no plugin required
+- **Decorator-Driven** — `@reactive()` turns any class field into a signal transparently
+- **Web Component Ready** — First-class support for custom elements and `attributeChangedCallback`
+- **Type-Safe** — Full TypeScript support with comprehensive type inference
 
-## Event Listeners
+---
 
-Attach event listeners using the `.on()` method with full TypeScript inference and standard [EventListener options](https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener#options).
+## Signals
 
 ```ts
+import { signal, computed, effect, batch, untracked } from "elements-kit/signals";
 
-const count = signal(0);
+const count = signal(0);          // writable signal
+const doubled = computed(() => count() * 2); // derived, read-only
 
-button()
-  .textContent("Click me")
-  .on("click", (e) => {
-    count(count() + 1);
-    console.log("Clicked!", e.target);
-  }, { once: true });
+effect(() => console.log(count())); // runs whenever count changes
+
+count(count() + 1);               // write by calling with a value
+console.log(count());             // read by calling with no arguments
+
+batch(() => {                     // defer updates until the batch ends
+  count(10);
+  count(20);
+});
+
+const raw = untracked(() => count()); // read without subscribing
 ```
 
-## Make Existing Objects Reactive
+Signals are the reactive primitive. Passing a signal directly as a JSX child or prop creates a live binding — no wrapper needed:
 
-Transform any existing element reference into a reactive builder using the `reactive()` function.
+```tsx
+const name = signal("world");
+
+// Both are equivalent live bindings:
+<p>{name}</p>
+<p>{() => name()}</p>
+```
+
+---
+
+## JSX
+
+Configure your `tsconfig.json` to use the built-in JSX runtime:
+
+```json
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "elements-kit"
+  }
+}
+```
+
+### Props
+
+| Syntax | Effect |
+| --- | --- |
+| `value={signal}` | Live-bound — updates DOM when signal changes |
+| `value={42}` | Set once at render time |
+| `onClick={fn}` | Camel-case event listener (`onclick`) |
+| `on:click={fn}` | Explicit event namespace |
+| `style:color={signal}` | Reactive inline style property |
+| `class:active={signal}` | Reactive `classList.toggle` |
+| `prop:foo={val}` | Force property assignment (bypasses `setAttribute`) |
+
+```tsx
+const active = signal(false);
+const label = signal("Submit");
+
+<button
+  class:active={active}
+  style:opacity={computed(() => active() ? "1" : "0.5")}
+  onClick={() => (active(!active()))}
+>
+  {label}
+</button>
+```
+
+### Children
+
+Any of the following are valid children:
+
+- Primitive values (`string`, `number`, …)
+- `Node` / `Element`
+- A signal or `computed` — re-renders in place when it changes
+- A plain function `() => value` — re-evaluated reactively
+- Arrays of the above
+
+```tsx
+const show = signal(true);
+
+<div>
+  <strong>Static text</strong>
+  {count}                          // signal — live
+  {() => count() * 2}             // thunk — live
+  {() => show() && <span>Conditional</span>}
+</div>
+```
+
+---
+
+## `@reactive()` Decorator
+
+Makes any class field behave like a signal — reads subscribe, writes trigger updates.
 
 ```ts
-const canvasRef = document.createElement("canvas");
-// setup the canvas...
-// const ctx = canvas.getContext("2d");
-// ...
+import { reactive } from "elements-kit/decorators";
+import { computed } from "elements-kit/signals";
 
-const canvas = reactive(canvasRef)
-  .width("400")
-  .height("300");
+class Todo {
+  text: string;
+  @reactive() done: boolean;
+}
+
+class TodoApp {
+  @reactive()
+  todos: Todo[] = [];
+
+  @reactive()
+  showDone = true;
+
+  // Bind to an existing computed
+  @reactive((self) => computed(() => self.todos.filter(t => !t.done)))
+  readonly pending: Todo[] = [];
+}
 ```
 
-## Element Reference
+`@reactive()` without arguments auto-wraps the field's initial value in a `signal`. Pass a factory `(self) => signal | computed` to bind the field to an existing reactive value.
 
-Access the underlying DOM element directly using the `ref` method when you need to use native APIs or third-party libraries.
+---
 
-> **Note:** Direct DOM manipulation via `ref` bypasses reactivity. Wrap changes in `effect()` for reactive updates.
+## `@attributes` Decorator
+
+Automatically wires `observedAttributes` and `attributeChangedCallback` for custom elements from a static `[ATTRIBUTES]` map.
 
 ```ts
-import { REF } from "elements-kit/core";
-import { signal, effect } from "elements-kit/signals";
+import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
+import { reactive } from "elements-kit/decorators";
+import { signal } from "elements-kit/signals";
 
-const canvasRef = signal<HTMLCanvasElement | null>(null);
-const color = signal("blue");
+@attributes
+class Counter extends HTMLElement {
+  static [attr] = {
+    count(this: Counter, value: string | null) {
+      this.count = Number(value);  // calls the @reactive setter
+    },
+  };
 
-const chart = canvas()
-  .ref((canvas) => {
-    canvasRef(canvas); // Store reference for later use
-    
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    
-    // Reactive drawing - redraws when color changes
-    return effect(() => {
-      ctx.fillStyle = color();
-      ctx.fillRect(0, 0, 150, 100);
-    });
-  })
-  .width("300")
-  .height("200");
+  #count = signal(0);
 
-// Later: change color triggers redraw
-color("red");
+  @reactive((s) => s.#count)
+  count: number = 0;
 
-const chartEl = chart.ref()
+  connectedCallback() {
+    const Host = this;
+    <Host>
+      <p>Count: <strong>{this.#count}</strong></p>
+      <button onClick={() => this.count++}>+1</button>
+    </Host>;
+  }
+}
+
+customElements.define("x-counter", Counter);
 ```
+
+Use `<x-counter count={signal(9)} />` to pass a reactive attribute from JSX.
+
+---
+
+## `For` — Keyed List Rendering
+
+Efficiently reconciles a reactive array into the DOM. Each item is rendered once per unique key — no full re-renders on reorder, add, or remove.
+
+```tsx
+import { For } from "elements-kit";
+
+const todos = computed(() => state.todos.filter(t => !t.done));
+
+<ul>
+  <For each={todos} by={(todo) => todo.id}>
+    {(todo) => (
+      <li
+        style:text-decoration={computed(() => todo.done ? "line-through" : "none")}
+      >
+        <input
+          type="checkbox"
+          checked={computed(() => todo.done)}
+          on:change={() => (todo.done = !todo.done)}
+        />{" "}
+        {todo.text}
+      </li>
+    )}
+  </For>
+</ul>
+```
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `each` | `T[] \| (() => T[])` | Reactive array to render |
+| `by` | `(item: T, index: number) => string \| number` | Key function — defaults to index |
+| `children` | `(item: T, index: number) => Element` | Render function, called once per new key |
+
+---
+
+## Class Components
+
+Any class with a `render()` method returning an `Element` or `DocumentFragment` works as a component. JSX instantiates it automatically:
+
+```tsx
+class App {
+  render() {
+    return (
+      <div style="max-width: 480px; margin: 40px auto">
+        <h1>My App</h1>
+        <x-counter count={signal(0)} />
+        <TodoApp />
+      </div>
+    ) as Element;
+  }
+}
+
+document.getElementById("app")!.appendChild(new App().render());
+```
+
+---
 
 ## TO-DO
 
 - [ ] Complete type safety
-- [ ] Function calling (like classList reactive adder, attributes)
 - [ ] Async signal
-- [ ] URLPattern signal <https://developer.mozilla.org/en-US/docs/Web/API/URL_Pattern_API>
-- [ ] document reactive element (set and get cookies, delegate events)
-- [ ] Builder extensions (like style extensions)
-
-- [ ] Context?
-- [ ] Conditional rendering?
-- [ ] List rendering?
+- [ ] URLPattern signal
+- [ ] Context
+- [ ] `Key` component (conditional key-gated subtrees)
