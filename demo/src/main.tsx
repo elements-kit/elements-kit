@@ -83,8 +83,7 @@ class TodoApp extends TodoState {
   @reactive()
   showDone = true;
 
-  @reactive()
-  newTodo = "";
+  newTodo = signal("");
 
   constructor() {
     super();
@@ -95,10 +94,10 @@ class TodoApp extends TodoState {
   }
 
   addTodo() {
-    const text = this.newTodo.trim();
+    const text = this.newTodo().trim();
     if (!text) return;
     super.addTodo(text);
-    this.newTodo = "";
+    this.newTodo("");
   }
 
   visibleTodos = computed(() =>
@@ -122,7 +121,7 @@ class TodoApp extends TodoState {
             placeholder="What needs to be done?"
             value={this.newTodo}
             on:input={(e: Event) =>
-              (this.newTodo = (e.target as HTMLInputElement).value)
+              this.newTodo((e.target as HTMLInputElement).value)
             }
           />
           <button type="submit">Add</button>
