@@ -3,7 +3,9 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "jsxImportSource": "elements-kit",
-    "noEmit": true
+    "composite": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/index.ts"],
+  "references": [{ "path": "./tsconfig.worker.json" }]
 }

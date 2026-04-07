@@ -24,34 +24,42 @@
   ],
   "exports": {
     ".": {
+      "source": "./src/index.ts",
       "import": "./dist/index.mjs",
       "types": "./dist/index.d.ts"
     },
     "./signals": {
+      "source": "./src/signals.ts",
       "import": "./dist/signals.mjs",
       "types": "./dist/signals.d.ts"
     },
     "./slot": {
+      "source": "./src/slot.ts",
       "import": "./dist/slot.mjs",
       "types": "./dist/slot.d.ts"
     },
     "./attributes": {
+      "source": "./src/attributes.ts",
       "import": "./dist/attributes.mjs",
       "types": "./dist/attributes.d.ts"
     },
     "./builder": {
+      "source": "./src/builder/index.ts",
       "import": "./dist/builder/index.mjs",
       "types": "./dist/builder/index.d.ts"
     },
     "./builder/dom": {
+      "source": "./src/builder/dom.ts",
       "import": "./dist/builder/dom.mjs",
       "types": "./dist/builder/dom.d.ts"
     },
     "./jsx-runtime": {
+      "source": "./src/jsx-runtime/index.ts",
       "import": "./dist/jsx-runtime/index.mjs",
       "types": "./dist/jsx-runtime/index.d.ts"
     },
     "./jsx-dev-runtime": {
+      "source": "./src/jsx-runtime/index.ts",
       "import": "./dist/jsx-runtime/index.mjs",
       "types": "./dist/jsx-runtime/index.d.ts"
     }
