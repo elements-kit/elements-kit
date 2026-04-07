@@ -18,6 +18,6 @@
     "wrangler": "^4.80.0"
   },
   "dependencies": {
-    "elements-kit": "workspace:.."
+    "elements-kit": "workspace:*"
   }
 }
