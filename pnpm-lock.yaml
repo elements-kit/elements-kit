@@ -31,7 +31,7 @@ importers:
   docs:
     dependencies:
       elements-kit:
-        specifier: workspace:..
+        specifier: workspace:*
         version: link:..
     devDependencies:
       '@cloudflare/vite-plugin':
