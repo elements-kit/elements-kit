@@ -2,7 +2,6 @@ export default {
   fetch(request: Request) {
     const url = new URL(request.url);
 
-    console.log("Received request for:", url.pathname);
     if (url.pathname.startsWith("/api/")) {
       return Response.json({
         name: "api",
