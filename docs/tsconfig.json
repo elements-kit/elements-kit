@@ -6,6 +6,6 @@
     "composite": true
   },
   "include": ["src"],
-  "exclude": ["src/index.ts", "./playground/files/**/*"],
+  "exclude": ["src/index.ts", "src/playground/files/**/*"],
   "references": [{ "path": "./tsconfig.worker.json" }]
 }

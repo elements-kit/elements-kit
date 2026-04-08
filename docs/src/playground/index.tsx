@@ -7,10 +7,10 @@ import {
   SandpackPreview,
   SandpackSetup,
   SandpackFiles,
-  SandpackFileExplorer,
 } from "@codesandbox/sandpack-react";
 
-import COUNTER_CODE from "./files/index.tsx?raw";
+import MAIN from "./files/main.tsx?raw";
+import INDEX from "./files/index.js?raw";
 import VITE_CONFIG from "./files/vite.config.ts?raw";
 import TSCONFIG from "./files/tsconfig.json?raw";
 
@@ -29,14 +29,14 @@ const SHARED_FILES: SandpackFiles = {
   "/tsconfig.json": { code: TSCONFIG, hidden: true },
   "/vite.config.ts": { code: VITE_CONFIG, hidden: true },
   "/index.js": {
-    code: /* tsx */ `import "./main.tsx";`,
+    code: INDEX,
     hidden: true,
     active: false,
   },
 };
 
 const EXAMPLES: SandpackFiles[] = [
-  { "/main.tsx": { code: COUNTER_CODE, active: true } },
+  { "/main.tsx": { code: MAIN, active: true } },
 ];
 
 function SandpackExample({ files }: { files: SandpackFiles }) {
@@ -49,12 +49,7 @@ function SandpackExample({ files }: { files: SandpackFiles }) {
       theme={"auto"}
     >
       <SandpackLayout>
-        <SandpackFileExplorer />
-        <SandpackCodeEditor
-          showTabs={false}
-          showLineNumbers
-          style={{ height: 400 }}
-        />
+        <SandpackCodeEditor showTabs showLineNumbers style={{ height: 400 }} />
         <SandpackPreview
           style={{ height: 400 }}
           showNavigator={false}

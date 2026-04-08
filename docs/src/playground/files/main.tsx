@@ -41,12 +41,8 @@ declare global {
   }
 }
 
-class App {
+export class App {
   render() {
     return (<x-counter count={signal(9)} />) as Element;
   }
 }
-
-// ─ Mount ─────────────────────────────────────────────────────────────────────
-const appRoot = document.getElementById("app")!;
-appRoot.appendChild(new App().render());
