@@ -1,6 +1,7 @@
 import { signal, reactive, computed } from "elements-kit/signals";
 import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
 
+@attributes
 class Counter extends HTMLElement {
   static [attr] = {
     count(this: Counter, value: string | null) {
@@ -10,13 +11,8 @@ class Counter extends HTMLElement {
 
   #count = signal(0);
 
-  get count() {
-    return this.#count();
-  }
-
-  set count(value: number) {
-    this.#count(value);
-  }
+  @reactive((s) => s.#count)
+  count: number = 0;
 
   readonly doubled = computed(() => this.count * 2);
 
