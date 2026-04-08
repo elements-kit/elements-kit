@@ -1,7 +1,7 @@
 import { For } from "elements-kit";
 import { signal, computed, reactive } from "elements-kit/signals";
 import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
-import { mountSandpack } from "./sandpack";
+import { mountSandpack } from "./playground";
 
 // ─ Counter (class component / custom element) ──────────────────────────────
 

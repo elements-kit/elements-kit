@@ -10,53 +10,25 @@ import {
   SandpackFileExplorer,
 } from "@codesandbox/sandpack-react";
 
-// Tell Sandpack's bundler to use elements-kit's JSX runtime instead of React's.
-// Note: TC39 stage-3 decorators (@attributes, @reactive) are not used here because
-// the CodeSandbox bundler ships an old @babel/plugin-proposal-decorators that doesn't
-// support version "2023-11". JSX + signals alone are sufficient for interactive demos.
-const BABEL_RC = JSON.stringify({
-  presets: [
-    [
-      "@babel/preset-react",
-      { runtime: "automatic", importSource: "elements-kit" },
-    ],
-    "@babel/preset-typescript",
-  ],
-});
-
-const COUNTER_CODE = `\
-import { signal, computed } from "elements-kit/signals";
-
-const count = signal(0);
-const doubled = computed(() => count() * 2);
-
-const app = (
-  <section>
-    <h2>Counter</h2>
-    <p>
-      Count: <strong>{count}</strong> — Doubled:{" "}
-      <strong>{doubled}</strong>
-    </p>
-    <button onClick={() => count(count() + 1)}>+1</button>{" "}
-    <button onClick={() => count(count() - 1)}>−1</button>{" "}
-    <button onClick={() => count(0)}>Reset</button>
-  </section>
-) as Element;
-
-document.getElementById("app")!.appendChild(app);
-`;
+import COUNTER_CODE from "./files/index.tsx?raw";
+import VITE_CONFIG from "./files/vite.config.ts?raw";
+import TSCONFIG from "./files/tsconfig.json?raw";
 
 const SHARED_SETUP: SandpackSetup = {
   dependencies: {
     "elements-kit": "latest",
-    "@babel/preset-react": "^7.24.0",
-    "@babel/preset-typescript": "^7.24.0",
+  },
+  devDependencies: {
+    typescript: "^6",
+    "esbuild-wasm": "^0.28.0",
+    vite: "4.5.5",
   },
 };
 
 const SHARED_FILES: SandpackFiles = {
-  "/.babelrc": { code: BABEL_RC, hidden: true },
-  "/index.ts": {
+  "/tsconfig.json": { code: TSCONFIG, hidden: true },
+  "/vite.config.ts": { code: VITE_CONFIG, hidden: true },
+  "/index.js": {
     code: /* tsx */ `import "./main.tsx";`,
     hidden: true,
     active: false,
@@ -70,13 +42,14 @@ const EXAMPLES: SandpackFiles[] = [
 function SandpackExample({ files }: { files: SandpackFiles }) {
   return (
     <SandpackProvider
-      template="vanilla-ts"
+      template="vite"
       files={{ ...SHARED_FILES, ...files }}
       customSetup={SHARED_SETUP}
       options={{ autorun: true }}
       theme={"auto"}
     >
       <SandpackLayout>
+        <SandpackFileExplorer />
         <SandpackCodeEditor
           showTabs={false}
           showLineNumbers
