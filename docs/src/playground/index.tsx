@@ -10,6 +10,7 @@ import {
 } from "@codesandbox/sandpack-react";
 
 import MAIN from "./files/main.tsx?raw";
+import TODO_APP from "./files/todo.tsx?raw";
 import INDEX from "./files/index.js?raw";
 import VITE_CONFIG from "./files/vite.config.ts?raw";
 import TSCONFIG from "./files/tsconfig.json?raw";
@@ -37,6 +38,7 @@ const SHARED_FILES: SandpackFiles = {
 
 const EXAMPLES: SandpackFiles[] = [
   { "/main.tsx": { code: MAIN, active: true } },
+  { "/main.tsx": { code: TODO_APP, active: true } },
 ];
 
 function SandpackExample({ files }: { files: SandpackFiles }) {
@@ -61,24 +63,11 @@ function SandpackExample({ files }: { files: SandpackFiles }) {
 }
 
 function SandpackSection() {
-  return (
-    <div
-      style={{
-        fontFamily: "system-ui, sans-serif",
-        maxWidth: 960,
-        margin: "0 auto",
-        padding: "0 16px 40px",
-      }}
-    >
-      <h2>Interactive Examples</h2>
-      <p style={{ color: "#555", marginBottom: 24 }}>
-        Edit the code and see changes live — powered by{" "}
-        <a href="https://github.com/waelbettayeb/elements-kit">elements-kit</a>.
-      </p>
-
-      <SandpackExample files={EXAMPLES[0]} />
+  return EXAMPLES.map((files, i) => (
+    <div key={i} style={{ marginBottom: 48 }}>
+      <SandpackExample files={files} />
     </div>
-  );
+  ));
 }
 
 export function mountSandpack(container: HTMLElement) {
