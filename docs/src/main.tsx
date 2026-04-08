@@ -1,6 +1,7 @@
 import { For } from "elements-kit";
 import { signal, computed, reactive } from "elements-kit/signals";
 import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
+import { mountSandpack } from "./sandpack";
 
 // ─ Counter (class component / custom element) ──────────────────────────────
 
@@ -188,4 +189,9 @@ class App {
 }
 
 // ─ Mount ─────────────────────────────────────────────────────────────────────
-document.getElementById("app")!.appendChild(new App().render());
+const appRoot = document.getElementById("app")!;
+appRoot.appendChild(new App().render());
+
+const sandpackContainer = document.createElement("div");
+appRoot.appendChild(sandpackContainer);
+mountSandpack(sandpackContainer);
