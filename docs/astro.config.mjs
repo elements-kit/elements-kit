@@ -9,9 +9,6 @@ export default defineConfig({
   integrations: [
     react(),
     starlight({
-      expressiveCode: {
-        themes: ["github-dark"],
-      },
       title: "ElementsKit",
       description: "A signal-based reactive UI library for the web.",
       social: {
@@ -22,6 +19,11 @@ export default defineConfig({
         { label: "Signals", slug: "signals" },
         { label: "Components", slug: "components" },
       ],
+
+      expressiveCode: {
+        themes: ["github-dark"],
+      },
+      customCss: ["./src/styles/custom.css"],
     }),
   ],
 });

@@ -1,0 +1,6 @@
+@import "shiki-magic-move/dist/style.css";
+
+.shiki-magic-move-container {
+  font-family: var(--__sl-font-mono);
+  font-size: var(--sl-text-code);
+}

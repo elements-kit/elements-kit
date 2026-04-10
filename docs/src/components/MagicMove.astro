@@ -8,12 +8,12 @@ const { steps, lang = "tsx", theme = "github-dark" } = Astro.props;
 ---
 
 <div
-  class="magic-move-wrapper"
+  class="magic-move-wrapper not-content"
   data-steps={JSON.stringify(steps)}
   data-lang={lang}
   data-theme={theme}
 >
-  <div class="magic-move-code"></div>
+  <div class="magic-move-code shiki-magic-move-container"></div>
   <div class="magic-move-nav">
     <button class="prev">← Prev</button>
     <button class="next">Next →</button>
@@ -25,13 +25,10 @@ const { steps, lang = "tsx", theme = "github-dark" } = Astro.props;
   import { getSingletonHighlighter } from "shiki";
   import { codeToKeyedTokens } from "shiki-magic-move/core";
   import { MagicMoveRenderer } from "shiki-magic-move/renderer";
-  import "shiki-magic-move/style.css";
-
-  const THEMES = { light: "github-light", dark: "github-dark" };
-
   for (const wrapper of document.querySelectorAll(".magic-move-wrapper")) {
     const steps = JSON.parse(wrapper.dataset.steps ?? "[]");
     const lang = wrapper.dataset.lang ?? "tsx";
+    const theme = wrapper.dataset.theme ?? "github-dark";
     const codeEl = wrapper.querySelector(".magic-move-code");
     const prev = wrapper.querySelector(".prev");
     const next = wrapper.querySelector(".next");
@@ -40,15 +37,11 @@ const { steps, lang = "tsx", theme = "github-dark" } = Astro.props;
 
     getSingletonHighlighter({
       langs: [lang],
-      themes: Object.values(THEMES),
+      themes: [theme],
     }).then((hl) => {
       const renderer = new MagicMoveRenderer(codeEl);
       const tokens = steps.map((s) =>
-        codeToKeyedTokens(hl, s, {
-          lang,
-          themes: THEMES,
-          defaultColor: false,
-        })
+        codeToKeyedTokens(hl, s, { lang, theme })
       );
       renderer.render(tokens[0]);
 
