@@ -1,18 +1,30 @@
 ---
-import type { PlaygroundProps } from '.';
+import type { PlaygroundProps } from ".";
 
 interface Props extends PlaygroundProps {}
-const { editor, preview, provider } = Astro.props;
+const props = Astro.props;
+const id = Math.random().toString(16).slice(2, 8);
 ---
 
-<x-playground class="not-content" 
- editor={editor}
- preview={preview}
- provider={provider}
- style={{
-  paddingBlock: "1rem"
- }}
-/>
+<x-playground
+  id={id}
+  class="not-content"
+  style={{
+    paddingBlock: "1rem",
+  }}></x-playground>
+
 <script>
-  import "./index"
+  import "./index";
+</script>
+
+<script define:vars={{ id, props }}>
+  customElements.whenDefined("x-playground").then(() => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    Object.entries(props).forEach(([key, value]) => {
+      if (value !== undefined) {
+        el[key] = value;
+      }
+    });
+  });
 </script>

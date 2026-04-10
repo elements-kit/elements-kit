@@ -1,5 +1,7 @@
 /* @jsxImportSource react */
 import { createRoot } from "react-dom/client";
+import { signal, type Signal } from "elements-kit/signals";
+import { useSignalValue as use$ } from "elements-kit/signals/react";
 import {
   SandpackProvider,
   SandpackLayout,
@@ -7,6 +9,7 @@ import {
   SandpackPreview,
   type SandpackSetup,
   type SandpackFiles,
+  SandpackTests,
 } from "@codesandbox/sandpack-react";
 
 import MAIN from "./files/main.tsx?raw";
@@ -44,10 +47,26 @@ const EXAMPLES: SandpackFiles[] = [
 export interface PlaygroundProps {
   provider: React.ComponentProps<typeof SandpackProvider>;
   editor: React.ComponentProps<typeof SandpackCodeEditor>;
-  preview: React.ComponentProps<typeof SandpackPreview>;
+  preview?: React.ComponentProps<typeof SandpackPreview>;
+  tests?: React.ComponentProps<typeof SandpackTests>;
 }
 
-function Playground({ provider, editor, preview }: PlaygroundProps) {
+function Playground({
+  provider: $provider,
+  editor: $editor,
+  preview: $preview,
+  tests: $tests,
+}: {
+  provider: Signal<PlaygroundProps["provider"]>;
+  editor: Signal<PlaygroundProps["editor"]>;
+  preview: Signal<PlaygroundProps["preview"]>;
+  tests: Signal<PlaygroundProps["tests"]>;
+}) {
+  const provider = use$($provider);
+  const editor = use$($editor);
+  const preview = use$($preview);
+  const tests = use$($tests);
+
   return (
     <SandpackProvider
       template="vite"
@@ -64,12 +83,15 @@ function Playground({ provider, editor, preview }: PlaygroundProps) {
           style={{ height: 400 }}
           {...editor}
         />
-        <SandpackPreview
-          style={{ height: 400 }}
-          showNavigator={false}
-          showOpenInCodeSandbox={false}
-          {...preview}
-        />
+        {preview && (
+          <SandpackPreview
+            style={{ height: 400 }}
+            showNavigator={false}
+            showOpenInCodeSandbox={false}
+            {...preview}
+          />
+        )}
+        {tests && <SandpackTests />}
       </SandpackLayout>
     </SandpackProvider>
   );
@@ -78,11 +100,40 @@ function Playground({ provider, editor, preview }: PlaygroundProps) {
 class PlaygroundElement extends HTMLElement {
   #root: ReturnType<typeof createRoot> | null = null;
 
-  provider: PlaygroundProps["provider"] = {
+  #provider = signal<PlaygroundProps["provider"]>({
     files: EXAMPLES[0],
-  };
-  editor: PlaygroundProps["editor"] = {};
-  preview: PlaygroundProps["preview"] = {};
+  });
+
+  get provider() {
+    return this.#provider();
+  }
+  set provider(value: PlaygroundProps["provider"]) {
+    this.#provider(value);
+  }
+
+  #editor = signal<PlaygroundProps["editor"]>({});
+  get editor() {
+    return this.#editor();
+  }
+  set editor(value: PlaygroundProps["editor"]) {
+    this.#editor(value);
+  }
+
+  #preview = signal<PlaygroundProps["preview"]>();
+  set preview(value: PlaygroundProps["preview"]) {
+    this.#preview(value);
+  }
+  get preview() {
+    return this.#preview();
+  }
+
+  #tests = signal<PlaygroundProps["tests"]>();
+  set tests(value: PlaygroundProps["tests"]) {
+    this.#tests(value);
+  }
+  get tests() {
+    return this.#tests();
+  }
 
   connectedCallback() {
     this.style.display = "block";
@@ -91,9 +142,10 @@ class PlaygroundElement extends HTMLElement {
     this.#root = createRoot(div);
     this.#root.render(
       <Playground
-        provider={this.provider}
-        editor={this.editor}
-        preview={this.preview}
+        provider={this.#provider}
+        editor={this.#editor}
+        preview={this.#preview}
+        tests={this.#tests}
       />,
     );
   }
