@@ -15,9 +15,21 @@ importers:
         specifier: ^0.40.6
         version: 0.40.6(csstype@3.2.3)(seroval-plugins@1.5.2(seroval@1.5.2))(seroval@1.5.2)
     devDependencies:
+      '@types/react':
+        specifier: ^19.2.14
+        version: 19.2.14
+      '@types/react-dom':
+        specifier: ^19.2.3
+        version: 19.2.3(@types/react@19.2.14)
       happy-dom:
         specifier: ^20.8.9
         version: 20.8.9
+      react:
+        specifier: ^19.2.5
+        version: 19.2.5
+      react-dom:
+        specifier: ^19.2.5
+        version: 19.2.5(react@19.2.5)
       tsdown:
         specifier: 0.21.7
         version: 0.21.7(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)(typescript@6.0.2)
@@ -27,19 +39,6 @@ importers:
       vitest:
         specifier: ^4.1.2
         version: 4.1.3(@types/node@25.5.2)(happy-dom@20.8.9)(vite@7.3.2(@types/node@25.5.2))
-    optionalDependencies:
-      '@types/react':
-        specifier: ^19.2.14
-        version: 19.2.14
-      '@types/react-dom':
-        specifier: ^19.2.3
-        version: 19.2.3(@types/react@19.2.14)
-      react:
-        specifier: ^19.2.5
-        version: 19.2.5
-      react-dom:
-        specifier: ^19.2.5
-        version: 19.2.5(react@19.2.5)
 
   docs:
     dependencies:

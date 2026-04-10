@@ -33,10 +33,10 @@
       "import": "./dist/signals.mjs",
       "types": "./dist/signals.d.ts"
     },
-    "./signals/react": {
-      "source": "./src/signals/react.ts",
-      "import": "./dist/signals/react.mjs",
-      "types": "./dist/signals/react.d.ts"
+    "./signals/*": {
+      "source": "./src/signals/*.ts",
+      "import": "./dist/signals/*.mjs",
+      "types": "./dist/signals/*.d.ts"
     },
     "./slot": {
       "source": "./src/slot.ts",
@@ -96,7 +96,11 @@
     "react-dom": "^19.0.0"
   },
   "peerDependenciesMeta": {
-    "react": { "optional": true },
-    "react-dom": { "optional": true }
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
   }
 }

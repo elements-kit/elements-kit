@@ -10,7 +10,7 @@ export default defineConfig({
     "src/jsx-runtime/index.ts",
     "src/builder/index.ts",
     "src/builder/dom.ts",
-    "src/signals/react.ts",
+    "src/signals/*.ts",
   ],
   deps: {
     neverBundle: ["react", "react-dom"],

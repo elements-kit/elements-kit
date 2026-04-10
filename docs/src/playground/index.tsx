@@ -1,7 +1,8 @@
 /* @jsxImportSource react */
 import { createRoot } from "react-dom/client";
 import { signal, type Signal } from "elements-kit/signals";
-import { useSignalValue as use$ } from "elements-kit/signals/react";
+import { createMediaSignal } from "elements-kit/signals/media";
+import { useSignalValue as use$, useScoped } from "elements-kit/signals/react";
 import {
   SandpackProvider,
   SandpackLayout,
@@ -17,6 +18,7 @@ import TODO_APP from "./files/todo.tsx?raw";
 import INDEX from "./files/index.js?raw";
 import VITE_CONFIG from "./files/vite.config.ts?raw";
 import TSCONFIG from "./files/tsconfig.json?raw";
+import { githubDark, githubLight } from "./theme";
 
 const SHARED_SETUP: SandpackSetup = {
   dependencies: {
@@ -51,6 +53,10 @@ export interface PlaygroundProps {
   tests?: React.ComponentProps<typeof SandpackTests>;
 }
 
+const isDarkSignal = createMediaSignal.bind(
+  null,
+  "(prefers-color-scheme: dark)",
+);
 function Playground({
   provider: $provider,
   editor: $editor,
@@ -66,13 +72,14 @@ function Playground({
   const editor = use$($editor);
   const preview = use$($preview);
   const tests = use$($tests);
-
+  const [isDark, cleanup] = useScoped(isDarkSignal);
+  console.log("isDark", isDark);
   return (
     <SandpackProvider
       template="vite"
       customSetup={SHARED_SETUP}
       options={{ autorun: true }}
-      theme={"auto"}
+      theme={isDark ? githubDark : githubLight}
       {...provider}
       files={{ ...SHARED_FILES, ...provider.files }}
     >

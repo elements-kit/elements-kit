@@ -1,5 +1,19 @@
-import { Computed, Signal, effect, effectScope, computed } from "../signals";
-import { useEffect, useMemo, useSyncExternalStore, useCallback } from "react";
+import {
+  Computed,
+  Signal,
+  effect,
+  effectScope,
+  computed,
+  signal,
+  batch,
+} from "../signals";
+import {
+  useEffect,
+  useMemo,
+  useSyncExternalStore,
+  useCallback,
+  useRef,
+} from "react";
 
 /**
  * A functional updater — receives the previous value and returns the next.
@@ -137,36 +151,66 @@ export function useSignalEffect(fn: () => void | (() => void)): void {
 }
 
 /**
- * Create a signal effect scope tied to a component's lifetime.
+ * Create a signal effect scope tied to a React component's lifetime.
  *
- * All effects registered inside `callback` are grouped into a single scope.
- * The scope — and every effect within it — is automatically stopped when the
- * component unmounts. The returned `stop` function lets you tear it down
- * earlier if needed.
+ * All effects registered inside `callback` are grouped into a single scope. The scope — and every effect within it — is automatically stopped when the component unmounts. The returned `stop` function lets you tear it down earlier if needed.
  *
- * Use this when you want to create multiple related effects at once without
- * individually managing each one's lifecycle.
+ * If your callback returns a `Computed<T>` signal, the hook will always return its current value, updating reactively as dependencies change. If your callback returns `void`, the value will be `undefined`.
  *
- * @template T - The return type of `callback` (usually ignored).
- * @param callback - A function that registers one or more signal effects.
- * @returns A `stop()` function that cancels all effects in the scope.
+ * Returns a tuple: `[value, stop]`, where `value` is the current value of the returned `Computed` (if any), and `stop` is a function that disposes all effects in the scope immediately.
+ *
+ * Use this when you want to create multiple related effects at once without individually managing each one's lifecycle. All effects and cleanups inside the callback are automatically cleaned up on unmount or when `stop()` is called.
+ *
+ * @template T - The type of the computed value (if any).
+ * @param callback - A function that registers one or more signal effects, optionally returning a `Computed<T>`.
+ * @returns `[value, stop]` — the current value of the computed signal (or `undefined`), and a function to stop all effects in the scope.
  *
  * @example
  * ```tsx
  * function Analytics() {
- *   useSignalScope(() => {
+ *   useScoped(() => {
  *     effect(() => console.log("page:", currentPage()));
  *     effect(() => console.log("user:", currentUser()));
  *   });
  *   return null;
  * }
+ *
+ * // With computed value:
+ * function DoubleCounter() {
+ *   const [double] = useScoped(() => computed(() => count() * 2));
+ *   return <div>{double}</div>;
+ * }
  * ```
  */
-export function useSignalScope<T>(callback: () => T): () => void {
-  const stopScope = useMemo(() => effectScope(callback), [callback]);
-  useEffect(() => () => stopScope(), [stopScope]);
-  return stopScope;
+export function useScoped<T>(
+  callback: () => Computed<T> | void,
+): [T | void, () => void] {
+  const computedRef = useRef<Computed<T> | void>(undefined);
+
+  // Create/recreate the effect scope when callback changes
+  const stopScope = useMemo(() => {
+    return effectScope(() => {
+      effect(() => {
+        computedRef.current = callback();
+      });
+    });
+  }, [callback]);
+  console.log("computedRef.current", computedRef.current, stopScope);
+  // Subscribe to the computed signal using useSyncExternalStore
+  const value = useSignalValue<T | undefined>(
+    computedRef.current ?? fallbackSignal,
+  );
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopScope();
+    };
+  }, [stopScope]);
+
+  return [value, stopScope];
 }
+const fallbackSignal = signal<undefined>(undefined);
 
 /**
  * Derive a computed value inside a component and subscribe to it.
