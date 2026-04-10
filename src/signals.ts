@@ -16,6 +16,7 @@ import {
   setActiveSub,
   startBatch,
   endBatch,
+  computed,
 } from "alien-signals";
 import type { ValueOrReactive } from "./builder";
 
@@ -24,6 +25,7 @@ export function isReactive<T>(value: ValueOrReactive<T>): value is () => T {
 }
 
 export type Signal<T> = ReturnType<typeof signal<T>>;
+export type Computed<T> = ReturnType<typeof computed<T>>;
 
 export const batch = (fn: () => void): void => {
   startBatch();

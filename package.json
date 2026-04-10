@@ -33,6 +33,11 @@
       "import": "./dist/signals.mjs",
       "types": "./dist/signals.d.ts"
     },
+    "./signals/react": {
+      "source": "./src/signals/react.ts",
+      "import": "./dist/signals/react.mjs",
+      "types": "./dist/signals/react.d.ts"
+    },
     "./slot": {
       "source": "./src/slot.ts",
       "import": "./dist/slot.mjs",
@@ -73,7 +78,11 @@
   },
   "packageManager": "pnpm@10.33.0",
   "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "happy-dom": "^20.8.9",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
     "tsdown": "0.21.7",
     "typescript": "^6.0.2",
     "vitest": "^4.1.2"
@@ -81,5 +90,13 @@
   "dependencies": {
     "alien-signals": "^3.1.2",
     "dom-expressions": "^0.40.6"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": { "optional": true },
+    "react-dom": { "optional": true }
   }
 }
