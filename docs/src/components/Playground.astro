@@ -1,0 +1,12 @@
+---
+---
+
+<div class="playground-root"></div>
+
+<script>
+  import { mountSandpack } from "./playground/index";
+
+  for (const el of document.querySelectorAll<HTMLElement>(".playground-root")) {
+    mountSandpack(el);
+  }
+</script>

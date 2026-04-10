@@ -1,0 +1,67 @@
+---
+title: Signals
+description: Fine-grained reactivity with signal, computed, and effect.
+---
+
+Reactivity in ElementsKit is built on [alien-signals](https://github.com/stackblitz/alien-signals).
+
+## signal
+
+Creates a reactive value. Call it with no arguments to read, with an argument to write.
+
+```ts
+import { signal } from "elements-kit/signals";
+
+const count = signal(0);
+count();    // read → 0
+count(1);   // write
+count();    // read → 1
+```
+
+## computed
+
+Derives a value from other signals. Lazily evaluated and cached.
+
+```ts
+import { signal, computed } from "elements-kit/signals";
+
+const count = signal(0);
+const doubled = computed(() => count() * 2);
+
+count(3);
+doubled(); // → 6
+```
+
+## effect
+
+Runs a side effect whenever its signal dependencies change.
+
+```ts
+import { signal, effect } from "elements-kit/signals";
+
+const count = signal(0);
+
+effect(() => {
+  console.log("count changed:", count());
+});
+
+count(1); // logs: count changed: 1
+count(2); // logs: count changed: 2
+```
+
+## @reactive decorator
+
+Use on class fields to transparently back them with a signal. The field reads/writes naturally — no `()` needed.
+
+```ts
+import { reactive, computed } from "elements-kit/signals";
+
+class Counter {
+  @reactive() count = 0;
+  doubled = computed(() => this.count * 2);
+}
+
+const c = new Counter();
+c.count = 5;
+c.doubled(); // → 10
+```

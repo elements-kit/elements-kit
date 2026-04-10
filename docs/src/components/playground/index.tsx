@@ -5,8 +5,8 @@ import {
   SandpackLayout,
   SandpackCodeEditor,
   SandpackPreview,
-  SandpackSetup,
-  SandpackFiles,
+  type SandpackSetup,
+  type SandpackFiles,
 } from "@codesandbox/sandpack-react";
 
 import MAIN from "./files/main.tsx?raw";

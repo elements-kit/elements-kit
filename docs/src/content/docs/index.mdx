@@ -1,0 +1,32 @@
+---
+title: Introduction
+description: What is ElementsKit and how to install it.
+---
+
+ElementsKit is a signal-based reactive JSX framework for the browser. It uses direct DOM manipulation — no virtual DOM, no diffing.
+
+## Installation
+
+```sh
+npm install elements-kit
+```
+
+## How it works
+
+ElementsKit has three core building blocks:
+
+- **Signals** — reactive values that automatically track dependencies
+- **JSX components** — class-based components with a `render()` method
+- **Direct DOM** — `render()` returns a real `Element`, mounted once
+
+```tsx
+import { signal } from "elements-kit/signals";
+
+const count = signal(0);
+
+document.body.appendChild(
+  <button on:click={() => count(count() + 1)}>
+    Count: {count}
+  </button> as Element
+);
+```

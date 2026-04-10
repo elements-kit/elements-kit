@@ -1,10 +1,9 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "elements-kit",
-  "compatibility_date": "2026-04-06", // Set this to today's date
-  "main": "./src/index.ts",
+  "compatibility_date": "2026-04-10",
+  "main": "./dist/_worker.js",
   "assets": {
-    "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"],
-  },
+    "directory": "./dist"
+  }
 }

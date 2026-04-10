@@ -1,0 +1,66 @@
+---
+interface Props {
+  steps: string[];
+  lang?: string;
+  theme?: string;
+}
+const { steps, lang = "tsx", theme = "github-dark" } = Astro.props;
+---
+
+<div
+  class="magic-move-wrapper"
+  data-steps={JSON.stringify(steps)}
+  data-lang={lang}
+  data-theme={theme}
+>
+  <div class="magic-move-code"></div>
+  <div class="magic-move-nav">
+    <button class="prev">← Prev</button>
+    <button class="next">Next →</button>
+  </div>
+</div>
+
+<script>
+  // @ts-nocheck — shiki types not available in Astro script context
+  import { getSingletonHighlighter } from "shiki";
+  import { codeToKeyedTokens } from "shiki-magic-move/core";
+  import { MagicMoveRenderer } from "shiki-magic-move/renderer";
+  import "shiki-magic-move/style.css";
+
+  const THEMES = { light: "github-light", dark: "github-dark" };
+
+  for (const wrapper of document.querySelectorAll(".magic-move-wrapper")) {
+    const steps = JSON.parse(wrapper.dataset.steps ?? "[]");
+    const lang = wrapper.dataset.lang ?? "tsx";
+    const codeEl = wrapper.querySelector(".magic-move-code");
+    const prev = wrapper.querySelector(".prev");
+    const next = wrapper.querySelector(".next");
+
+    let stepIdx = 0;
+
+    getSingletonHighlighter({
+      langs: [lang],
+      themes: Object.values(THEMES),
+    }).then((hl) => {
+      const renderer = new MagicMoveRenderer(codeEl);
+      const tokens = steps.map((s) =>
+        codeToKeyedTokens(hl, s, {
+          lang,
+          themes: THEMES,
+          defaultColor: false,
+        })
+      );
+      renderer.render(tokens[0]);
+
+      prev.addEventListener("click", () => {
+        stepIdx = Math.max(0, stepIdx - 1);
+        renderer.render(tokens[stepIdx]);
+      });
+
+      next.addEventListener("click", () => {
+        stepIdx = Math.min(steps.length - 1, stepIdx + 1);
+        renderer.render(tokens[stepIdx]);
+      });
+    });
+  }
+</script>
