@@ -1,6 +1,6 @@
 # ElementsKit
 
-A lightweight reactive UI library built on JSX and native DOM APIs. No virtual DOM, no diffing — fine-grained reactivity that updates only what changes.
+ElementsKit is a set of tools for building reactive web UI.
 
 ```tsx
 import { signal, computed } from "elements-kit/signals";
