@@ -11,6 +11,7 @@ export default defineConfig({
     starlight({
       title: "ElementsKit",
       description: "A signal-based reactive UI library for the web.",
+
       social: {
         github: "https://github.com/waelbettayeb/elements-kit",
       },
@@ -21,7 +22,10 @@ export default defineConfig({
       ],
 
       expressiveCode: {
-        themes: ["github-dark"],
+        themes: ["github-light-default", "github-dark-default"],
+        styleOverrides: { borderRadius: "0.25rem" },
+        useDarkModeMediaQuery: true,
+        frames: {},
       },
       customCss: ["./src/styles/custom.css"],
     }),

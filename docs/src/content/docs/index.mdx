@@ -7,7 +7,7 @@ ElementsKit is a set of tools for building reactive web UI.
 
 ## Installation
 
-```sh
+```sh title="Installing dependencies…"
 npm install elements-kit
 ```
 
@@ -16,10 +16,10 @@ npm install elements-kit
 ElementsKit has three core building blocks:
 
 - **Signals** — reactive values that automatically track dependencies
-- **JSX components** — class-based components with a `render()` method
-- **Direct DOM** — `render()` returns a real `Element`, mounted once
+- **JSX elements** — build DOM trees with standard JSX syntax, no plugin required
+- **Custom Elements** — Helper functions and decorators for building reactive web components
 
-```tsx
+```tsx {3-3} "count"
 import { signal } from "elements-kit/signals";
 
 const count = signal(0);
