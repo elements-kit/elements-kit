@@ -1,0 +1,18 @@
+---
+import type { PlaygroundProps } from '.';
+
+interface Props extends PlaygroundProps {}
+const { editor, preview, provider } = Astro.props;
+---
+
+<x-playground class="not-content" 
+ editor={editor}
+ preview={preview}
+ provider={provider}
+ style={{
+  paddingBlock: "1rem"
+ }}
+/>
+<script>
+  import "./index"
+</script>

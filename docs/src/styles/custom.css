@@ -4,3 +4,8 @@
   font-family: var(--__sl-font-mono);
   font-size: var(--sl-text-code);
 }
+
+:root {
+  --sl-content-width: 60rem;
+  --sl-sidebar-width: 16rem;
+}

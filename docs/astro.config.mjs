@@ -23,7 +23,12 @@ export default defineConfig({
 
       expressiveCode: {
         themes: ["github-light-default", "github-dark-default"],
-        styleOverrides: { borderRadius: "0.25rem" },
+        styleOverrides: {
+          borderRadius: "0.25rem",
+          frames: {
+            shadowColor: "#0000",
+          },
+        },
         useDarkModeMediaQuery: true,
         frames: {},
       },
