@@ -33,6 +33,7 @@
  * required.
  */
 
+import type { Computed, Updater } from "./index.ts";
 import {
   createReactiveSystem,
   ReactiveFlags,
@@ -288,14 +289,8 @@ export function isEffectScope(fn: () => void): boolean {
  * count();        // → 1
  * ```
  */
-export function signal<T>(): {
-  (): T | undefined;
-  (value: T | undefined): void;
-};
-export function signal<T>(initialValue: T): {
-  (): T;
-  (value: T): void;
-};
+export function signal<T>(): Updater<T> & Computed<T>;
+export function signal<T>(initialValue: T): Updater<T> & Computed<T>;
 export function signal<T>(initialValue?: T): {
   (): T | undefined;
   (value: T | undefined): void;
@@ -524,11 +519,11 @@ export function batch(fn: () => void): void {
  * const logCount = effect(() => {
  *   console.log('triggered by a:', a());
  *   // read b without subscribing – effect won't re-run when b changes
- *   console.log('current b:', untracked(() => b()));
+ *   console.log('current b:', untracked(b));
  * });
  * ```
  */
-export function untracked<T>(fn: () => T): T {
+export function untracked<T>(fn: Computed<T>): T {
   const prev = setActiveSub(undefined);
   try {
     return fn();
@@ -551,10 +546,10 @@ export function untracked<T>(fn: () => T): T {
  *
  * // Mutate in place (referential equality won't detect the change):
  * items().push(4);
- * trigger(() => items()); // manually notify subscribers
+ * trigger(items); // manually notify subscribers
  * ```
  */
-export function trigger(fn: () => void) {
+export function trigger<T = void>(fn: Computed<T>) {
   const sub: ReactiveNode = {
     deps: undefined,
     depsTail: undefined,

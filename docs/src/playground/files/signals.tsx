@@ -6,6 +6,7 @@ import {
   onCleanup,
   effectScope,
   untracked,
+  trigger,
 } from "elements-kit/signals";
 import { For } from "elements-kit";
 
@@ -21,10 +22,10 @@ effect(() => {
 // ============ Demo 2: Batch ============
 const x = signal(1);
 const y = signal(2);
-const batchLogs: string[] = [];
-
+const batchLogs = signal<string[]>([]);
 effect(() => {
-  batchLogs.push(`x: ${x()}, y: ${y()}`);
+  untracked(batchLogs).push(`x: ${x()}, y: ${y()}`);
+  trigger(batchLogs);
 });
 
 // ============ Demo 3: Cleanup (simulated) ============
@@ -42,24 +43,16 @@ effect(() => {
   });
 });
 
-// ============ Demo 4: Effect Scope ============
-const scopeLogs: string[] = [];
-const user = signal("Alice");
-const theme = signal("light");
-
-effectScope(() => {
-  effect(() => scopeLogs.push(`user: ${user()}`));
-  effect(() => scopeLogs.push(`theme: ${theme()}`));
-});
-
 // ============ Demo 5: Untracked ============
 const count2 = signal(0);
 const secret = signal("hidden");
-const untrackedLogs: string[] = [];
+const untrackedLogs = signal<string[]>([]);
 
 effect(() => {
-  untrackedLogs.push(`count: ${count2()} (tracked)`);
-  untrackedLogs.push(`secret: ${untracked(() => secret())} (untracked)`);
+  untracked(untrackedLogs).push(`count: ${count2()} (tracked)`);
+  untracked(untrackedLogs).push(
+    `secret: ${untracked(() => secret())} (untracked)`,
+  );
 });
 
 // ============ App with Tabs ============
@@ -173,7 +166,7 @@ function DemoBatch() {
         </button>
         <button
           onClick={() => {
-            batchLogs.length = 0;
+            batchLogs([]);
           }}
         >
           Clear logs
@@ -192,7 +185,7 @@ function DemoBatch() {
             "font-size": "0.85em",
           }}
         >
-          <For each={batchLogs} by={(log: string, i: number) => i}>
+          <For each={batchLogs} by={(log: string) => log}>
             {(log: string) => <div>{log}</div>}
           </For>
         </div>
@@ -237,17 +230,15 @@ function DemoCleanup() {
   );
 }
 
+const scopeLogs = signal<string[]>([]);
+const user = signal("Alice");
+const theme = signal("light");
+
+const stop: () => void = effectScope(() => {
+  effect(() => untracked(scopeLogs).push(`user: ${user()}`));
+  effect(() => untracked(scopeLogs).push(`theme: ${theme()}`));
+});
 function DemoEffectScope() {
-  let scope: (() => void) | null = null;
-  let scopeActive = signal(true);
-
-  if (scopeActive()) {
-    scope = effectScope(() => {
-      effect(() => scopeLogs.push(`user: ${user()}`));
-      effect(() => scopeLogs.push(`theme: ${theme()}`));
-    });
-  }
-
   return (
     <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem;">
       <h3 style="margin-top: 0;">effectScope (grouped effects)</h3>
@@ -263,8 +254,8 @@ function DemoEffectScope() {
         <button onClick={() => theme(theme() === "light" ? "dark" : "light")}>
           Toggle theme
         </button>
-        <button onClick={() => scope?.()}>Stop all effects</button>
-        <button onClick={() => (scopeLogs.length = 0)}>Clear logs</button>
+        <button onClick={() => stop()}>Stop all effects</button>
+        <button onClick={() => scopeLogs([])}>Clear logs</button>
       </div>
       <div style="margin-top: 1rem;">
         <strong>Scope logs (stop = silence):</strong>
@@ -304,7 +295,7 @@ function DemoUntracked() {
         >
           Toggle secret
         </button>
-        <button onClick={() => (untrackedLogs.length = 0)}>Clear logs</button>
+        <button onClick={() => untrackedLogs([])}>Clear logs</button>
       </div>
       <div style="margin-top: 1rem;">
         <strong>Logs (secret changes don't trigger re-run):</strong>
