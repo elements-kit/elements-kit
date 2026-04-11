@@ -2,7 +2,7 @@
 import { createRoot } from "react-dom/client";
 import { signal, type Signal } from "elements-kit/signals";
 import { createMediaSignal } from "elements-kit/signals/media";
-import { useSignalValue as use$, useScoped } from "elements-kit/signals/react";
+import { useSignalValue as use$, useScope } from "elements-kit/signals/react";
 import {
   SandpackProvider,
   SandpackLayout,
@@ -72,7 +72,7 @@ function Playground({
   const editor = use$($editor);
   const preview = use$($preview);
   const tests = use$($tests);
-  const isDark = useScoped(isDarkSignal);
+  const isDark = useScope(isDarkSignal);
 
   return (
     <SandpackProvider

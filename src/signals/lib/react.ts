@@ -168,7 +168,7 @@ export function useSignalEffect(fn: () => void | (() => void)): void {
  * @example
  * ```tsx
  * function Analytics() {
- *   useScoped(() => {
+ *   useScope(() => {
  *     effect(() => console.log("page:", currentPage()));
  *     effect(() => console.log("user:", currentUser()));
  *   });
@@ -177,12 +177,12 @@ export function useSignalEffect(fn: () => void | (() => void)): void {
  *
  * // With computed value:
  * function DoubleCounter() {
- *   const double = useScoped(() => computed(() => count() * 2));
+ *   const double = useScope(() => computed(() => count() * 2));
  *   return <div>{double}</div>;
  * }
  * ```
  */
-export function useScoped<T>(callback: () => Computed<T> | void): T | void {
+export function useScope<T>(callback: () => Computed<T> | void): T | void {
   const computedRef = useRef<Computed<T> | void>(undefined);
 
   // Create/recreate the effect scope when callback changes.
