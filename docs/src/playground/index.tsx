@@ -2,7 +2,7 @@
 import { createRoot } from "react-dom/client";
 import { signal, type Signal } from "elements-kit/signals";
 import { createMediaSignal } from "elements-kit/signals/media";
-import { useSignalValue as use$, useScope } from "elements-kit/signals/react";
+import { useSignal as use$, useScope } from "elements-kit/signals/react";
 import {
   SandpackProvider,
   SandpackLayout,
