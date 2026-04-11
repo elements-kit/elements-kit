@@ -1,0 +1,148 @@
+---
+title: Helpers
+description: Pre-built signal factories for common reactive patterns.
+---
+
+import Playground from "@/playground/Playground.astro";
+import MagicMove from "@/components/MagicMove.astro";
+
+Signal helpers are pre-built factories that wrap common browser APIs in signals — similar in spirit to [react-use](https://github.com/streamich/react-use) hooks or [Svelte runes](https://svelte.dev/docs/svelte/what-are-runes), but **framework-agnostic**. They return a `Computed<T>` you can read anywhere signals work.
+
+```ts
+import { createMediaSignal } from "elements-kit/signals/media";
+```
+
+---
+
+## createMediaSignal
+
+Creates a `Computed<boolean>` that tracks a [CSS media query](https://developer.mozilla.org/en-US/docs/Web/API/Window/matchMedia). Returns `true` when the query matches, `false` otherwise.
+
+```ts
+import { createMediaSignal } from "elements-kit/signals/media";
+
+const isDark = createMediaSignal("(prefers-color-scheme: dark)");
+
+isDark(); // true or false — live, updates on OS change
+```
+
+### Signature
+
+```ts
+function createMediaSignal(
+  query: string,
+  defaultState?: boolean,
+): Computed<boolean>
+```
+
+| Parameter | Description |
+|-----------|-------------|
+| `query` | Any valid CSS media query string |
+| `defaultState` | Value returned during SSR (where `window` is unavailable). Defaults to `false`. |
+
+### Examples
+
+**Dark mode toggle**
+
+```ts
+import { effect } from "elements-kit/signals";
+import { createMediaSignal } from "elements-kit/signals/media";
+
+const isDark = createMediaSignal("(prefers-color-scheme: dark)");
+
+effect(() => {
+  document.documentElement.classList.toggle("dark", isDark());
+});
+```
+
+**Responsive layout**
+
+```ts
+const isMobile  = createMediaSignal("(max-width: 640px)");
+const isTablet  = createMediaSignal("(max-width: 1024px)");
+const prefersReducedMotion = createMediaSignal("(prefers-reduced-motion: reduce)");
+
+effect(() => {
+  if (isMobile()) {
+    // render compact layout
+  } else if (isTablet()) {
+    // render medium layout
+  }
+});
+```
+
+**SSR / hydration**
+
+Pass `defaultState` to control the value returned on the server before the browser environment is available:
+
+```ts
+// Server renders as if dark mode is off
+const isDark = createMediaSignal("(prefers-color-scheme: dark)", false);
+```
+
+### Cleanup
+
+The underlying `MediaQueryList` event listener is automatically removed when the signal goes out of scope — via `onCleanup` if created inside an effect, or `Symbol.dispose` for explicit resource management:
+
+```ts
+// Inside an effect or effectScope — cleanup is automatic
+effectScope(() => {
+  const isDark = createMediaSignal("(prefers-color-scheme: dark)");
+  effect(() => document.body.classList.toggle("dark", isDark()));
+});
+// ↑ stop() cleans up the MediaQueryList listener too
+
+// Explicit disposal
+using isDark = createMediaSignal("(prefers-color-scheme: dark)");
+// ↑ listener removed when `isDark` goes out of scope (TC39 `using` keyword)
+```
+
+---
+
+## More helpers coming
+
+Additional framework-agnostic signal helpers are planned, including reactive wrappers for:
+
+- `localStorage` / `sessionStorage`
+- `IntersectionObserver`
+- `ResizeObserver`
+- Network status
+- Geolocation
+
+---
+
+## Playground
+
+<Playground
+  provider={{
+    files: {
+      "/main.tsx": {
+        code: `import { effect, effectScope } from "elements-kit/signals";
+import { createMediaSignal } from "elements-kit/signals/media";
+
+// Live media query signals
+const isDark       = createMediaSignal("(prefers-color-scheme: dark)");
+const isMobile     = createMediaSignal("(max-width: 640px)");
+const prefersNoAnim = createMediaSignal("(prefers-reduced-motion: reduce)");
+
+export class App {
+  render() {
+    return (
+      <section style="padding: 1.5rem; font-family: sans-serif">
+        <h2>Media Signals</h2>
+        <p>Resize the preview panel or change your OS settings to see live updates.</p>
+        <ul>
+          <li>Dark mode: <strong>{isDark}</strong></li>
+          <li>Mobile (&lt;640px): <strong>{isMobile}</strong></li>
+          <li>Reduced motion: <strong>{prefersNoAnim}</strong></li>
+        </ul>
+      </section>
+    ) as Element;
+  }
+}`,
+        active: true,
+      },
+    },
+  }}
+  preview={{}}
+/>

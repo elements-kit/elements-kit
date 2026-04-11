@@ -17,7 +17,19 @@ export default defineConfig({
       },
       sidebar: [
         { label: "Introduction", slug: "index" },
-        { label: "Signals", slug: "signals" },
+        {
+          label: "Signals",
+          items: [
+            { label: "Primitives", slug: "signals" },
+            { label: "Helpers", slug: "signals/helpers" },
+          ],
+        },
+        {
+          label: "Integrations",
+          items: [
+            { label: "React", slug: "integrations/react" },
+          ],
+        },
         { label: "Components", slug: "components" },
       ],
 

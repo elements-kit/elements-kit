@@ -1,11 +1,12 @@
-import { Computed, effect, effectScope, signal } from "..";
+import { type Computed, effect, effectScope, signal } from "..";
 import { useEffect, useMemo, useSyncExternalStore, useRef } from "react";
 
 /**
  * Subscribe to any readable signal — writable or computed — returning its current value.
  *
- * Prefer this over `useSignal` when you only need to read a signal and have no
- * intention of writing to it (e.g. a `Computed<T>` derived from other signals).
+ * Accepts any zero-argument callable `() => T`, which includes both `Signal<T>` and
+ * `Computed<T>`. Using `() => T` instead of `Computed<T>` prevents TypeScript from
+ * picking the write overload of `Signal<T>` during type inference.
  *
  * @template T - The type of the signal value.
  * @param value - A writable `Signal<T>` or a derived `Computed<T>`.
@@ -23,7 +24,7 @@ import { useEffect, useMemo, useSyncExternalStore, useRef } from "react";
  * }
  * ```
  */
-export function useSignal<T>(value: Computed<T>): T {
+export function useSignal<T>(value: () => T): T {
   return useSyncExternalStore(
     (callback) =>
       effect(() => {

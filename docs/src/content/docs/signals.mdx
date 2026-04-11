@@ -1,64 +1,287 @@
 ---
-title: Signals
-description: Fine-grained reactivity with signal, computed, and effect.
+title: Primitives
+description: Fine-grained reactivity with signal, computed, effect, and more.
 ---
-import Playground from "@/playground/Playground.astro";
 
-Reactivity in ElementsKit is built on signals.
+import Playground from "@/playground/Playground.astro";
+import MagicMove from "@/components/MagicMove.astro";
+
+Signals are the reactive core of ElementsKit. Every UI update, derived value, and side effect is driven by three primitives: `signal`, `computed`, and `effect`.
+
+export const signalSteps = [
+  `import { signal } from "elements-kit/signals";
+
+// Create a reactive value with an initial state
+const count = signal(0);`,
+
+  `import { signal } from "elements-kit/signals";
+
+const count = signal(0);
+
+count();    // Read → 0`,
+
+  `import { signal } from "elements-kit/signals";
+
+const count = signal(0);
+
+count();    // Read → 0
+count(5);   // Write — notify all dependents`,
+
+  `import { signal } from "elements-kit/signals";
+
+const count = signal(0);
+
+count();    // Read → 0
+count(5);   // Write — notify all dependents
+count();    // Read → 5`,
+];
 
 ## signal
 
-Creates a reactive value. Call it with no arguments to read, with an argument to write.
+A `signal` holds a single reactive value. Call it with no arguments to **read**, with an argument to **write**.
+
+<MagicMove steps={signalSteps} lang="ts" />
 
 ```ts
 import { signal } from "elements-kit/signals";
 
-const count = signal(0);
-count();    // read → 0
-count(1);   // write
-count();    // read → 1
+const name = signal("Alice");
+name();          // "Alice"
+name("Bob");     // write
+name();          // "Bob"
 ```
+
+Signals are synchronous — every write immediately notifies dependents.
+
+---
+
+export const computedSteps = [
+  `import { signal, computed } from "elements-kit/signals";
+
+const price = signal(10);
+const qty   = signal(3);`,
+
+  `import { signal, computed } from "elements-kit/signals";
+
+const price = signal(10);
+const qty   = signal(3);
+
+// Lazily evaluates — only runs when read after a dependency changes
+const total = computed(() => price() * qty());
+total(); // → 30`,
+
+  `import { signal, computed } from "elements-kit/signals";
+
+const price = signal(10);
+const qty   = signal(3);
+
+const total = computed(() => price() * qty());
+total(); // → 30
+
+price(20);
+total(); // → 60  (recomputed — price changed)
+qty(1);
+total(); // → 20  (recomputed again)`,
+];
 
 ## computed
 
-Derives a value from other signals. Lazily evaluated and cached.
+A `computed` derives a value from one or more signals. It is **lazy** — only re-evaluates when a dependency has changed and the value is read again. Results are cached between reads.
+
+<MagicMove steps={computedSteps} lang="ts" />
 
 ```ts
 import { signal, computed } from "elements-kit/signals";
 
-const count = signal(0);
-const doubled = computed(() => count() * 2);
+const firstName = signal("Ada");
+const lastName  = signal("Lovelace");
 
-count(3);
-doubled(); // → 6
+const fullName = computed(() => `${firstName()} ${lastName()}`);
+fullName(); // "Ada Lovelace"
+
+firstName("Grace");
+fullName(); // "Grace Lovelace"
 ```
+
+A `computed` is read-only — you can only call it with no arguments.
+
+---
+
+export const effectSteps = [
+  `import { signal, effect } from "elements-kit/signals";
+
+const count = signal(0);`,
+
+  `import { signal, effect } from "elements-kit/signals";
+
+const count = signal(0);
+
+// Runs immediately, then again whenever count changes
+const stop = effect(() => {
+  console.log("count:", count()); // count: 0
+});`,
+
+  `import { signal, effect } from "elements-kit/signals";
+
+const count = signal(0);
+
+const stop = effect(() => {
+  console.log("count:", count()); // count: 0
+});
+
+count(1); // → count: 1
+count(2); // → count: 2`,
+
+  `import { signal, effect } from "elements-kit/signals";
+
+const count = signal(0);
+
+const stop = effect(() => {
+  console.log("count:", count()); // count: 0
+});
+
+count(1); // → count: 1
+count(2); // → count: 2
+
+stop();   // Dispose — no more logs`,
+];
 
 ## effect
 
-Runs a side effect whenever its signal dependencies change.
+An `effect` runs a side effect whenever its signal dependencies change. It runs **immediately** on creation to collect dependencies, then re-runs on every change. Returns a stop function.
+
+<MagicMove steps={effectSteps} lang="ts" />
 
 ```ts
 import { signal, effect } from "elements-kit/signals";
 
-const count = signal(0);
+const theme = signal("light");
 
-effect(() => {
-  console.log("count changed:", count());
+const stop = effect(() => {
+  // Reads theme — becomes a dependency automatically
+  document.body.dataset.theme = theme();
 });
 
-count(1); // logs: count changed: 1
-count(2); // logs: count changed: 2
+theme("dark"); // body.dataset.theme = "dark"
+
+stop();        // Unsubscribe — no more updates
 ```
+
+Effects track dependencies **dynamically** — only the signals actually read during the last run are tracked.
+
+---
+
+## effectScope
+
+Groups multiple effects under a single lifecycle. Calling the returned stop function disposes **all** effects at once.
+
+```ts
+import { signal, effect, effectScope } from "elements-kit/signals";
+
+const user  = signal("Alice");
+const page  = signal("/home");
+
+// All effects inside are grouped together
+const stop = effectScope(() => {
+  effect(() => console.log("user:", user()));
+  effect(() => console.log("page:", page()));
+});
+
+user("Bob");   // → user: Bob
+page("/about"); // → page: /about
+
+stop(); // Both effects disposed — silence
+```
+
+Use `effectScope` when you want to start and stop a group of related effects together — e.g. tied to a component's lifetime.
+
+---
+
+## onCleanup
+
+Registers a cleanup callback inside the currently running `effect` or `effectScope`. The callback runs **before the effect re-runs** and **when the effect is disposed**.
+
+```ts
+import { signal, effect, onCleanup } from "elements-kit/signals";
+
+const url = signal("/api/data");
+
+effect(() => {
+  const controller = new AbortController();
+
+  fetch(url(), { signal: controller.signal })
+    .then((r) => r.json())
+    .then(console.log);
+
+  // Runs before the next fetch (url changed) or on stop()
+  onCleanup(() => controller.abort());
+});
+
+url("/api/other"); // previous fetch aborted, new one starts
+```
+
+`onCleanup` works at **any call depth** inside the effect — you can call it from helpers without passing anything down.
+
+---
+
+## batch
+
+Defers all signal notifications until the batch completes. Use it to group multiple writes into a single update pass — avoids intermediate re-renders.
+
+```ts
+import { signal, effect, batch } from "elements-kit/signals";
+
+const x = signal(1);
+const y = signal(2);
+
+effect(() => console.log(x(), y()));
+// → 1 2  (initial run)
+
+// Without batch: effect would run twice (once per write)
+batch(() => {
+  x(10);
+  y(20);
+});
+// → 10 20  (single run)
+```
+
+---
+
+## untracked
+
+Reads a signal **without** creating a dependency. The current effect will not re-run when that signal changes.
+
+```ts
+import { signal, effect, untracked } from "elements-kit/signals";
+
+const count  = signal(0);
+const secret = signal("hidden");
+
+effect(() => {
+  // Tracked — effect reruns when count changes
+  console.log("count:", count());
+
+  // Untracked — effect does NOT rerun when secret changes
+  console.log("secret:", untracked(() => secret()));
+});
+
+count(1);    // triggers re-run
+secret("x"); // silent — not a dependency
+```
+
+---
 
 ## @reactive decorator
 
-Use on class fields to transparently back them with a signal. The field reads/writes naturally — no `()` needed.
+Backs a class field with a signal transparently. The field reads and writes naturally — no `()` needed on the consumer side.
 
 ```ts
 import { reactive, computed } from "elements-kit/signals";
 
 class Counter {
-  @reactive() count = 0;
+  @reactive()
+  count = 0;
+
   doubled = computed(() => this.count * 2);
 }
 
@@ -67,8 +290,118 @@ c.count = 5;
 c.doubled(); // → 10
 ```
 
-<Playground preview={{
-  files: {
-    "/App.tsx": `import { signal, computed, effect } from "elements-kit/signals";`,
-  },
-}} />
+`@reactive` is equivalent to a private `signal` + `get`/`set` accessor — it just removes the boilerplate. Works with `computed` too: pass the signal source to make a field read-only.
+
+```ts
+class Store {
+  #items = signal<string[]>([]);
+
+  // Read-only reactive field backed by a computed
+  @reactive((s) => computed(() => s.#items().length))
+  count = 0;
+}
+```
+
+---
+
+## Store
+
+A **store** is a plain class whose fields are made reactive with `@reactive`. It holds state — no `render()`, no DOM. Any component or subscriber that reads a store field automatically tracks it as a dependency.
+
+```ts
+import { reactive, computed } from "elements-kit/signals";
+
+export class CartStore {
+  @reactive() items: { name: string; price: number }[] = [];
+  @reactive() discount = 0;
+
+  subtotal = computed(() =>
+    this.items.reduce((sum, item) => sum + item.price, 0),
+  );
+  total = computed(() => this.subtotal() * (1 - this.discount));
+
+  add(item: { name: string; price: number }) {
+    this.items = [...this.items, item];
+  }
+
+  remove(name: string) {
+    this.items = this.items.filter((i) => i.name !== name);
+  }
+}
+
+// Export a singleton — or create instances as needed
+export const cart = new CartStore();
+```
+
+Reading from a store is the same as reading any reactive value. Use `() => store.field` anywhere a zero-argument getter is accepted — elements, `useSignal`, `computed`, or `effect`:
+
+```ts
+import { effect, computed } from "elements-kit/signals";
+import { cart } from "./cart-store";
+
+// Effect — reruns when cart.items or cart.discount changes
+effect(() => {
+  console.log("items:", cart.items.length, "total:", cart.total());
+});
+
+// Inside a component's render — live element binding
+<p>Total: {() => cart.total()}</p>
+
+// Compose into another computed
+const isEmpty = computed(() => cart.items.length === 0);
+```
+
+Stores are **framework-agnostic** — the same `cart` instance drives a custom element, a React component, and a plain script simultaneously. See [React integration](/integrations/react#store) for how to connect a store to React.
+
+---
+
+## Playground
+
+<Playground
+  provider={{
+    files: {
+      "/main.tsx": {
+        code: `import { signal, computed, effect, batch } from "elements-kit/signals";
+
+const count = signal(0);
+const doubled = computed(() => count() * 2);
+
+// Log every change
+effect(() => {
+  console.log(\`count: \${count()}, doubled: \${doubled()}\`);
+});
+
+export class App {
+  render() {
+    return (
+      <section style="padding: 1.5rem; font-family: sans-serif">
+        <h2>Signal Counter</h2>
+        <p>
+          Count: <strong>{count}</strong>
+          {" — "}
+          Doubled: <strong>{doubled}</strong>
+        </p>
+        <button onClick={() => count(count() + 1)}>+1</button>{" "}
+        <button onClick={() => count(count() - 1)}>−1</button>{" "}
+        <button
+          onClick={() =>
+            batch(() => {
+              count(0);
+            })
+          }
+        >
+          Reset
+        </button>
+        <p style="font-size: 0.8em; color: #888; margin-top: 1rem">
+          Open the console to see effect logs.
+        </p>
+      </section>
+    ) as Element;
+  }
+}`,
+        active: true,
+      },
+    },
+  }}
+  preview={{}}
+/>

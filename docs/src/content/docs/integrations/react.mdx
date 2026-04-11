@@ -1,0 +1,319 @@
+---
+title: React
+description: Use signals in React components with useSignal and useScope.
+---
+
+import Playground from "@/playground/Playground.astro";
+import MagicMove from "@/components/MagicMove.astro";
+
+Signals are framework-agnostic — they work the same whether you're in a custom element, a vanilla script, or a React tree. These two hooks connect them to React's rendering model via [`useSyncExternalStore`](https://react.dev/reference/react/useSyncExternalStore), so React only re-renders components that actually depend on a changed signal.
+
+```sh
+# signals/react is included with elements-kit — no extra install needed
+import { useSignal, useScope } from "elements-kit/signals/react";
+```
+
+---
+
+export const useSignalSteps = [
+  `import { signal, computed } from "elements-kit/signals";
+import { useSignal } from "elements-kit/signals/react";
+
+const count = signal(0);`,
+
+  `import { signal, computed } from "elements-kit/signals";
+import { useSignal } from "elements-kit/signals/react";
+
+const count = signal(0);
+
+function Counter() {
+  // Subscribe — re-renders when count changes
+  const value = useSignal(count);
+  return <p>Count: {value}</p>;
+}`,
+
+  `import { signal, computed } from "elements-kit/signals";
+import { useSignal } from "elements-kit/signals/react";
+
+const count = signal(0);
+const doubled = computed(() => count() * 2);
+
+function Counter() {
+  const value = useSignal(count);
+  const doubleValue = useSignal(doubled);
+  return <p>{value} × 2 = {doubleValue}</p>;
+}`,
+
+  `import { signal, computed } from "elements-kit/signals";
+import { useSignal } from "elements-kit/signals/react";
+
+const count = signal(0);
+const doubled = computed(() => count() * 2);
+
+function Counter() {
+  const value = useSignal(count);
+  const doubleValue = useSignal(doubled);
+  return <p>{value} × 2 = {doubleValue}</p>;
+}
+
+// Signals live outside React — writing from anywhere triggers a re-render
+setInterval(() => count(count() + 1), 1000);`,
+];
+
+## useSignal
+
+Subscribe a React component to any signal or computed value. Returns the current value and re-renders the component whenever it changes.
+
+<MagicMove steps={useSignalSteps} lang="tsx" />
+
+```tsx
+import { signal, computed } from "elements-kit/signals";
+import { useSignal } from "elements-kit/signals/react";
+
+// Defined outside any component — shared reactive state
+const theme = signal<"light" | "dark">("light");
+const isDark = computed(() => theme() === "dark");
+
+function ThemeToggle() {
+  const dark = useSignal(isDark);
+
+  return (
+    <button onClick={() => theme(dark ? "light" : "dark")}>
+      Switch to {dark ? "light" : "dark"} mode
+    </button>
+  );
+}
+```
+
+### How it works
+
+`useSignal` wraps `useSyncExternalStore`. It creates a signal `effect` that reads the value and calls React's `onStoreChange` callback whenever the signal updates. This is concurrent-mode safe — React can interrupt renders without missing updates.
+
+```tsx
+// Accepts any () => T — both Signal<T> and Computed<T>
+useSignal(count)          // Signal<number>
+useSignal(doubled)        // Computed<number>
+useSignal(() => items().length) // inline expression
+```
+
+Components only re-render when **their** signal dependencies change — not on every signal write in the app.
+
+---
+
+export const useScopeSteps = [
+  `import { effect } from "elements-kit/signals";
+import { useScope } from "elements-kit/signals/react";
+
+function Analytics() {
+  // Effects run when the component mounts
+  useScope(() => {
+    effect(() => console.log("page:", currentPage()));
+    effect(() => console.log("user:", currentUser()));
+  });
+}`,
+
+  `import { computed, effect } from "elements-kit/signals";
+import { useScope } from "elements-kit/signals/react";
+
+function DoubleCounter() {
+  // Return a Computed — useScope subscribes and returns its value
+  const double = useScope(() =>
+    computed(() => count() * 2)
+  );
+
+  return <p>Double: {double}</p>;
+}`,
+
+  `import { computed, effect, onCleanup } from "elements-kit/signals";
+import { useScope } from "elements-kit/signals/react";
+
+function Tracker() {
+  useScope(() => {
+    effect(() => {
+      const id = setInterval(() => tick(), 1000);
+      // onCleanup works inside useScope — cleared on unmount
+      onCleanup(() => clearInterval(id));
+    });
+  });
+}`,
+];
+
+## useScope
+
+Creates a signal effect scope tied to the component's lifetime. All effects registered inside the callback are stopped automatically when the component unmounts.
+
+If the callback returns a `Computed<T>`, `useScope` subscribes to it and returns the current value — like `useSignal` but with its own scope for side effects.
+
+<MagicMove steps={useScopeSteps} lang="tsx" />
+
+```tsx
+import { effect, onCleanup } from "elements-kit/signals";
+import { useScope } from "elements-kit/signals/react";
+
+function Logger() {
+  useScope(() => {
+    // All effects here are cleaned up on unmount
+    effect(() => console.log("count:", count()));
+    effect(() => console.log("user:", user()));
+
+    // onCleanup composes naturally inside the scope
+    effect(() => {
+      const ws = new WebSocket(endpoint());
+      onCleanup(() => ws.close());
+    });
+  });
+
+  return null;
+}
+```
+
+### Returning a computed value
+
+```tsx
+import { computed } from "elements-kit/signals";
+import { useScope } from "elements-kit/signals/react";
+
+function ExpensiveMetrics() {
+  // Compute inside the scope — lifecycle managed by the component
+  const metrics = useScope(() =>
+    computed(() => ({
+      total: items().reduce((s, i) => s + i.value, 0),
+      count: items().length,
+    }))
+  );
+
+  return (
+    <dl>
+      <dt>Total</dt><dd>{metrics?.total}</dd>
+      <dt>Count</dt><dd>{metrics?.count}</dd>
+    </dl>
+  );
+}
+```
+
+### When to use each hook
+
+| | `useSignal` | `useScope` |
+|---|---|---|
+| Read a signal / computed | ✓ | ✓ (return computed) |
+| Run side effects | — | ✓ |
+| Group multiple effects | — | ✓ |
+| Cleanup on unmount | automatic | automatic |
+
+---
+
+## Store {#store}
+
+A [store](/signals#store) is a plain class with `@reactive` fields — framework-agnostic reactive state. Reading from a store inside `useSignal` or `useScope` creates a live subscription exactly like reading a signal directly.
+
+```ts
+// store.ts
+import { reactive, computed } from "elements-kit/signals";
+
+export class CounterStore {
+  @reactive() count = 0;
+  doubled = computed(() => this.count * 2);
+
+  increment() { this.count++; }
+  decrement() { this.count--; }
+  reset()     { this.count = 0; }
+}
+
+// Singleton shared across the whole app — or per-tree instances
+export const counter = new CounterStore();
+```
+
+```tsx
+// Counter.tsx
+import { useSignal } from "elements-kit/signals/react";
+import { counter } from "./store";
+
+export function Counter() {
+  // () => store.field — the getter reads the signal, creating a subscription
+  const count = useSignal(() => counter.count);
+  const doubled = useSignal(counter.doubled); // Computed<T> works directly
+
+  return (
+    <div>
+      <p>{count} × 2 = {doubled}</p>
+      <button onClick={() => counter.increment()}>+1</button>{" "}
+      <button onClick={() => counter.decrement()}>−1</button>{" "}
+      <button onClick={() => counter.reset()}>Reset</button>
+    </div>
+  );
+}
+```
+
+The store doesn't know about React. The same `counter` instance can drive a custom element, a React component, and a plain `effect` — all sharing the same reactive state and updating in sync.
+
+---
+
+## Playground
+
+export const REACT_COUNTER_CODE = `import { signal, computed, effect } from "elements-kit/signals";
+import { useSignal, useScope } from "elements-kit/signals/react";
+
+// Signals are defined outside React — global reactive state.
+// Any component that reads them re-renders when they change.
+const count = signal(0);
+const doubled = computed(() => count() * 2);
+
+export default function App() {
+  // Subscribe — re-renders only when count or doubled change
+  const value = useSignal(count);
+  const doubleValue = useSignal(doubled);
+
+  // Scope: effects tied to this component's lifetime
+  useScope(() => {
+    effect(() => {
+      console.log("count changed:", count());
+    });
+  });
+
+  return (
+    <div style={{ fontFamily: "sans-serif", padding: "2rem" }}>
+      <h2>Signal Counter</h2>
+      <p>
+        Count: <strong>{value}</strong>
+        {" — "}
+        Doubled: <strong>{doubleValue}</strong>
+      </p>
+      <button onClick={() => count(count() + 1)}>+1</button>{" "}
+      <button onClick={() => count(count() - 1)}>−1</button>{" "}
+      <button onClick={() => count(0)}>Reset</button>
+      <p style={{ fontSize: "0.8em", color: "#888", marginTop: "1rem" }}>
+        Open the console to see effect logs.
+      </p>
+    </div>
+  );
+}`;
+
+export const REACT_TSCONFIG = `{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "strict": true,
+    "skipLibCheck": true
+  }
+}`;
+
+<Playground
+  provider={{
+    template: "react-ts",
+    customSetup: {
+      dependencies: {
+        "elements-kit": "latest",
+        "react": "^19",
+        "react-dom": "^19",
+      },
+    },
+    files: {
+      "/App.tsx": { code: REACT_COUNTER_CODE, active: true },
+      "/tsconfig.json": { code: REACT_TSCONFIG, hidden: true },
+    },
+  }}
+  preview={{}}
+/>
