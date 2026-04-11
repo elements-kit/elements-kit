@@ -136,11 +136,10 @@ The pieces are independent and composable — not a strict hierarchy. Signals ar
     CE -->|"native HTML tag"| FW
     S -->|"useSignal / useScope"| FW`} />
 
-**Signals** power live DOM bindings in JSX and reactive properties in custom elements. They can also be subscribed to directly from any framework.
-
-**Custom elements** are a native browser standard. React, Vue, and plain HTML can all use `<x-counter />` as a regular HTML tag — no adapter, no wrapper.
-
-**Framework integrations** get both sides: shared signal state via `useSignal`/`useScope`, and any custom element as a native HTML tag.
+- **Signals** power live DOM bindings in JSX and reactive properties in custom elements. They can also be subscribed to directly from any framework.
+- **Elements** are a pattern built on top of signals and JSX. the result is a reactive DOM.
+- **Custom elements** are a native browser standard. React, Vue, and plain HTML can all use `<x-counter />` as a regular HTML tag — no adapter, no wrapper.
+- **Framework integrations** get both sides: shared signal state via `useSignal`/`useScope`, and any custom element as a native HTML tag.
 
 Use only what you need — each piece is independent:
 

@@ -1,6 +1,6 @@
 ---
 title: Custom Elements
-description: Native HTMLElement subclasses, enhanced gradually with signals, JSX, and decorators.
+description: Native HTMLElement authoring, enhanced gradually with signals, JSX, and decorators.
 ---
 
 import MagicMove from "@/components/MagicMove.astro";
@@ -8,7 +8,7 @@ import Playground from "@/playground/Playground.astro";
 
 Custom elements are a native browser standard — a class that extends `HTMLElement` and registers under a hyphenated tag name. Once defined, they behave like built-in elements: usable in HTML, React, Vue, or any other context without adapters.
 
-ElementsKit enhances them **gradually**. Start with the platform and add only what you need.
+ElementsKit enhances custom elements authoring with signals, JSX, and decorators — but these are optional. You can use the native API alone, then add features gradually as needed.
 
 ---
 
@@ -39,7 +39,7 @@ customElements.define("x-greeting", GreetingElement);
 
 ---
 
-## Gradual enhancement
+## Gradual ElementsKit adoption
 
 export const STEPS = [
   `// Step 1 — bare custom element, native API only
