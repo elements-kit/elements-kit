@@ -1,6 +1,6 @@
 export const isBrowser = typeof window !== "undefined";
 
-import { type Computed, computed, onCleanup, signal } from "..";
+import { type Computed, onCleanup, signal } from "..";
 
 /**
  * Creates a signal that tracks a CSS media query.
@@ -13,10 +13,12 @@ export function createMediaSignal(
   query: string,
   defaultState?: boolean,
 ): Computed<boolean> {
-  if (!isBrowser) return computed(() => defaultState ?? false);
+  if (!isBrowser) return signal(defaultState ?? false);
   const mql = window.matchMedia(query);
   const state = signal<boolean>(mql.matches);
-  const handler = state.bind(null, mql.matches);
+  const handler = () => {
+    state(mql.matches);
+  };
 
   mql.addEventListener("change", handler);
   const cleanup = () => {
