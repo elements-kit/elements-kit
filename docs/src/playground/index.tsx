@@ -13,8 +13,6 @@ import {
   SandpackTests,
 } from "@codesandbox/sandpack-react";
 
-import MAIN from "./files/main.tsx?raw";
-import TODO_APP from "./files/todo.tsx?raw";
 import INDEX from "./files/index.js?raw";
 import VITE_CONFIG from "./files/vite.config.ts?raw";
 import TSCONFIG from "./files/tsconfig.json?raw";
@@ -40,11 +38,6 @@ const SHARED_FILES: SandpackFiles = {
     active: false,
   },
 };
-
-const EXAMPLES: SandpackFiles[] = [
-  { "/main.tsx": { code: MAIN, active: true } },
-  { "/main.tsx": { code: TODO_APP, active: true } },
-];
 
 export interface PlaygroundProps {
   provider: React.ComponentProps<typeof SandpackProvider>;
@@ -107,9 +100,7 @@ function Playground({
 class PlaygroundElement extends HTMLElement {
   #root: ReturnType<typeof createRoot> | null = null;
 
-  #provider = signal<PlaygroundProps["provider"]>({
-    files: EXAMPLES[0],
-  });
+  #provider = signal<PlaygroundProps["provider"]>({});
 
   get provider() {
     return this.#provider();

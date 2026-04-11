@@ -35,28 +35,24 @@ class TodoStore {
   }
 }
 
-const store = new TodoStore();
-
 // ── Component ─────────────────────────────────────────────────────────────────
-export class App {
+export class App extends TodoStore {
   render() {
-    let input!: HTMLInputElement;
-
     return (
       <section style="padding: 1.5rem; font-family: sans-serif; max-width: 480px">
         <h2>Todo</h2>
 
         <form
-          on:submit={(e: Event) => {
+          on:submit={(e) => {
             e.preventDefault();
-            store.add(input.value);
-            input.value = "";
+            const input = e.currentTarget.elements.namedItem(
+              "value",
+            ) as HTMLInputElement;
+            this.add(input.value);
+            e.currentTarget.reset();
           }}
         >
-          <input
-            ref={(el) => (input = el as HTMLInputElement)}
-            placeholder="New todo…"
-          />
+          <input name="value" placeholder="New todo…" />
           <button type="submit">Add</button>
         </form>
 
@@ -64,9 +60,9 @@ export class App {
           {(["all", "active", "done"] as const).map((f) => (
             <button
               style:font-weight={computed(() =>
-                store.filter === f ? "bold" : "normal",
+                this.filter === f ? "bold" : "normal",
               )}
-              onClick={() => (store.filter = f)}
+              onClick={() => (this.filter = f)}
             >
               {f}
             </button>
@@ -74,7 +70,7 @@ export class App {
         </div>
 
         <ul style="padding: 0; list-style: none">
-          <For each={store.visible} by={(t: Todo) => t.id}>
+          <For each={this.visible} by={(t: Todo) => t.id}>
             {(todo: Todo) => (
               <li style="display: flex; gap: 8px; align-items: center; padding: 4px 0">
                 <input
@@ -89,14 +85,14 @@ export class App {
                 >
                   {todo.text}
                 </span>
-                <button onClick={() => store.remove(todo.id)}>✕</button>
+                <button onClick={() => this.remove(todo.id)}>✕</button>
               </li>
             )}
           </For>
         </ul>
 
         <p style="font-size: 0.8em; color: #888">
-          {() => store.todos.filter((t) => !t.done).length} remaining
+          {() => this.todos.filter((t) => !t.done).length} remaining
         </p>
       </section>
     );
