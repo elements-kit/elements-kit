@@ -99,9 +99,9 @@ function getTheme() {
   return document.documentElement.getAttribute("data-theme") === "light" ? LIGHT : DARK;
 }
 
-// Encode newlines for expressive-code's copy button format
+// Encode newlines as DEL (U+007F) — matches what EC's copy handler decodes
 function encodeForCopy(code) {
-  return code.replace(/\\n/g, "\\\\u007f");
+  return code.replace(/\\n/g, "\\u007f");
 }
 
 function init(wrapper) {
@@ -148,8 +148,9 @@ function init(wrapper) {
 
     let tokens = buildAllTokens();
 
-    // Initial render (no animation)
-    renderer.replace(tokens[0]);
+    // Initial render — use render() (not replace()) to clear isFirstRender flag
+    // so the first Next click animates instead of jumping
+    renderer.render(tokens[0]);
     updateUi();
 
     // Forward — smooth animation (tokens[N] keys consistent with tokens[N-1])
