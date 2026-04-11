@@ -143,25 +143,31 @@ The pieces are independent and composable — not a strict hierarchy. Signals ar
 
 Use only what you need — each piece is independent:
 
-```ts
-// Just signals — works in Node, Deno, any browser JS
-import { signal, computed, effect } from "elements-kit/signals";
-```
+---
+
+## Which pattern should I use?
+
+| Pattern | When to use it |
+|---------|---------------|
+| **Plain signals** | Pure logic, no UI. Node.js scripts, workers, utilities that need reactive state. |
+| **Elements / JSX** | Inline reactive UI in scripts. Quick components appended directly to the DOM. |
+| **Components** | Class-based UI with `render()`. Share state across multiple elements via stores. |
+| **Custom elements** | Reusable across frameworks. Native HTML integration, Shadow DOM, framework-agnostic distribution. |
+
+Start with the simplest option that fits your needs — you can always combine patterns:
 
 ```tsx
-// Signals + JSX — reactive DOM, no custom elements needed
+// Just need reactive state? Use signals standalone
+const count = signal(0);
+
+// Building UI? Add JSX for declarative DOM
 document.body.appendChild(<button onClick={() => count(count() + 1)}>{count}</button> as Element);
-```
 
-```tsx
-// Signals + JSX + custom elements — full component model
-@attributes
-class MyElement extends HTMLElement { /* ... */ }
-```
+// Need reusable components? Add class components
+class Counter { @reactive() count = 0; render() { return <button onClick={() => this.count++}>{this.count}</button>; } }
 
-```tsx
-// From React — subscribe to a shared signal store
-const count = useSignal(() => cart.items.length);
+// Sharing across pages/frameworks? Package as custom elements
+@attributes class MyElement extends HTMLElement { ... }
 ```
 
 ---

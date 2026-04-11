@@ -1,11 +1,23 @@
 ---
-title: Primitives
+title: Signals
 description: Fine-grained reactivity with signal, computed, effect, and more.
 ---
 import Playground from "@/playground/Playground.astro";
 import PLAYGROUND_FILE from "@/playground/files/signals.tsx?raw";
 
 Signals are the reactive core of ElementsKit. Every UI update, derived value, and side effect is driven by three primitives: `signal`, `computed`, and `effect`.
+
+<Playground
+  provider={{
+    files: {
+      "/main.tsx": {
+        code: PLAYGROUND_FILE,
+        active: true,
+      },
+    },
+  }}
+  preview={{}}
+/>
 
 ## signal
 
@@ -50,7 +62,17 @@ name();          // "Bob"
 
 Signals are synchronous — every write immediately notifies dependents.
 
----
+:::caution[Reactive children need `() =>`]
+In JSX, signal/computed values must be wrapped in a function:
+
+```tsx
+// ❌ Wrong — reads once, never updates
+<p>{count()}</p>
+
+// ✅ Correct — reads on every change
+<p>{() => count()}</p>
+```
+:::
 
 ## computed
 
@@ -162,7 +184,19 @@ stop();        // Unsubscribe — no more updates
 
 Effects track dependencies **dynamically** — only the signals actually read during the last run are tracked.
 
----
+:::caution[Reading signals outside effects]
+Signals only trigger updates when read inside a reactive context (effect, computed, or reactive JSX). Reading outside gives you the current value but won't re-run:
+
+```ts
+const name = signal("Alice");
+
+// Logs once — not reactive
+console.log(name());
+
+// Re-runs whenever name changes
+effect(() => console.log(name()));
+```
+:::
 
 ## effectScope
 
@@ -262,6 +296,31 @@ count(1);    // triggers re-run
 secret("x"); // silent — not a dependency
 ```
 
+:::caution[Mutating vs. reassigning]
+Arrays and objects are passed by reference. Mutating them (`push`, `pop`, `arr[0] = x`) doesn't notify subscribers — you must reassign:
+
+```ts
+const items = signal<string[]>([]);
+
+// ❌ Won't trigger updates
+items().push("hello");
+
+// ✅ Correct — creates a new array
+items([...items(), "hello"]);
+```
+
+Same for object properties:
+```ts
+const user = signal({ name: "Alice" });
+
+// ❌ Won't trigger
+user().name = "Bob";
+
+// ✅ Correct
+user({ ...user(), name: "Bob" });
+```
+:::
+
 ---
 
 ## @reactive decorator
@@ -299,65 +358,5 @@ class Store {
 
 ## Store
 
-A **store** is a plain class whose fields are made reactive with `@reactive`. It holds state — no `render()`, no DOM. Any component or subscriber that reads a store field automatically tracks it as a dependency.
+A **store** is a class with `@reactive` fields. It holds state — no `render()`, no DOM. See [Store](/stores) for full documentation.
 
-```ts
-import { reactive, computed } from "elements-kit/signals";
-
-export class CartStore {
-  @reactive() items: { name: string; price: number }[] = [];
-  @reactive() discount = 0;
-
-  subtotal = computed(() =>
-    this.items.reduce((sum, item) => sum + item.price, 0),
-  );
-  total = computed(() => this.subtotal() * (1 - this.discount));
-
-  add(item: { name: string; price: number }) {
-    this.items = [...this.items, item];
-  }
-
-  remove(name: string) {
-    this.items = this.items.filter((i) => i.name !== name);
-  }
-}
-
-// Export a singleton — or create instances as needed
-export const cart = new CartStore();
-```
-
-Reading from a store is the same as reading any reactive value. Use `() => store.field` anywhere a zero-argument getter is accepted — elements, `useSignal`, `computed`, or `effect`:
-
-```ts
-import { effect, computed } from "elements-kit/signals";
-import { cart } from "./cart-store";
-
-// Effect — reruns when cart.items or cart.discount changes
-effect(() => {
-  console.log("items:", cart.items.length, "total:", cart.total());
-});
-
-// Inside a component's render — live element binding
-<p>Total: {() => cart.total()}</p>
-
-// Compose into another computed
-const isEmpty = computed(() => cart.items.length === 0);
-```
-
-Stores are **framework-agnostic** — the same `cart` instance drives a custom element, a React component, and a plain script simultaneously. See [React integration](/integrations/react#store) for how to connect a store to React.
-
----
-
-## Playground
-
-<Playground
-  provider={{
-    files: {
-      "/main.tsx": {
-        code: PLAYGROUND_FILE,
-        active: true,
-      },
-    },
-  }}
-  preview={{}}
-/>
