@@ -8,7 +8,7 @@ import { useEffect, useMemo, useSyncExternalStore, useRef } from "react";
  * intention of writing to it (e.g. a `Computed<T>` derived from other signals).
  *
  * @template T - The type of the signal value.
- * @param signal - A writable `Signal<T>` or a derived `Computed<T>`.
+ * @param value - A writable `Signal<T>` or a derived `Computed<T>`.
  * @returns The current value, updated on every signal change.
  *
  * @example
@@ -23,15 +23,15 @@ import { useEffect, useMemo, useSyncExternalStore, useRef } from "react";
  * }
  * ```
  */
-export function useSignal<T>(signal: Computed<T>): T {
+export function useSignal<T>(value: Computed<T>): T {
   return useSyncExternalStore(
     (callback) =>
       effect(() => {
-        signal(); // read to track dependency
+        value(); // read to track dependency
         callback(); // tell React to re-render
       }),
-    () => signal(), // getSnapshot (client)
-    () => signal(), // getServerSnapshot (SSR)
+    () => value(), // getSnapshot (client)
+    () => value(), // getServerSnapshot (SSR)
   );
 }
 
