@@ -1,4 +1,12 @@
-import { Computed, Signal, effect, effectScope, computed, signal } from "..";
+import {
+  Computed,
+  Signal,
+  effect,
+  effectScope,
+  computed,
+  signal,
+  untracked,
+} from "..";
 import {
   useEffect,
   useMemo,
@@ -131,15 +139,15 @@ export function useSignalEffect(fn: () => void | (() => void)): void {
   useEffect(() => {
     let cleanup: void | (() => void);
     const stop = effect(() => {
-      if (cleanup) cleanup();
+      if (cleanup) untracked(() => cleanup!());
       cleanup = fn();
     });
 
     return () => {
-      if (cleanup) cleanup();
+      if (cleanup) untracked(() => cleanup!());
       stop();
     };
-  }, [fn]);
+  }, [fn]); // re-creates signal effect (with cleanup) when fn changes identity
 }
 
 /**
@@ -177,12 +185,13 @@ export function useSignalEffect(fn: () => void | (() => void)): void {
 export function useScoped<T>(callback: () => Computed<T> | void): T | void {
   const computedRef = useRef<Computed<T> | void>(undefined);
 
-  // Create/recreate the effect scope when callback changes
+  // Create/recreate the effect scope when callback changes.
+  // callback() runs directly inside effectScope — no inner effect wrapper —
+  // so computedRef is set synchronously and is available to useSignalValue
+  // on the same render without relying on effect scheduling order.
   const stopScope = useMemo(() => {
     return effectScope(() => {
-      effect(() => {
-        computedRef.current = callback();
-      });
+      computedRef.current = callback();
     });
   }, [callback]);
 
