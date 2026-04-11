@@ -1,12 +1,4 @@
-import {
-  Computed,
-  Signal,
-  effect,
-  effectScope,
-  computed,
-  signal,
-  batch,
-} from "../signals";
+import { Computed, Signal, effect, effectScope, computed, signal } from "..";
 import {
   useEffect,
   useMemo,
@@ -177,14 +169,12 @@ export function useSignalEffect(fn: () => void | (() => void)): void {
  *
  * // With computed value:
  * function DoubleCounter() {
- *   const [double] = useScoped(() => computed(() => count() * 2));
+ *   const double = useScoped(() => computed(() => count() * 2));
  *   return <div>{double}</div>;
  * }
  * ```
  */
-export function useScoped<T>(
-  callback: () => Computed<T> | void,
-): [T | void, () => void] {
+export function useScoped<T>(callback: () => Computed<T> | void): T | void {
   const computedRef = useRef<Computed<T> | void>(undefined);
 
   // Create/recreate the effect scope when callback changes
@@ -195,7 +185,7 @@ export function useScoped<T>(
       });
     });
   }, [callback]);
-  console.log("computedRef.current", computedRef.current, stopScope);
+
   // Subscribe to the computed signal using useSyncExternalStore
   const value = useSignalValue<T | undefined>(
     computedRef.current ?? fallbackSignal,
@@ -208,7 +198,7 @@ export function useScoped<T>(
     };
   }, [stopScope]);
 
-  return [value, stopScope];
+  return value;
 }
 const fallbackSignal = signal<undefined>(undefined);
 

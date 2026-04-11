@@ -72,8 +72,8 @@ function Playground({
   const editor = use$($editor);
   const preview = use$($preview);
   const tests = use$($tests);
-  const [isDark, cleanup] = useScoped(isDarkSignal);
-  console.log("isDark", isDark);
+  const isDark = useScoped(isDarkSignal);
+
   return (
     <SandpackProvider
       template="vite"

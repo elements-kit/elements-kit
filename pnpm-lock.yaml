@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      alien-signals:
-        specifier: ^3.1.2
-        version: 3.1.2
       dom-expressions:
         specifier: ^0.40.6
         version: 0.40.6(csstype@3.2.3)(seroval-plugins@1.5.2(seroval@1.5.2))(seroval@1.5.2)
@@ -1857,9 +1854,6 @@ packages:
     resolution: {integrity: sha512-UVJyE9MttOsBQIDKw1skb9nAwQuR5wuGD3+82K6JgJlm/Y+KI92oNsMNGZCYdDsVtRHSak0pcV5Dno5+4jh9sw==}
     engines: {node: '>=0.4.0'}
     hasBin: true
-
-  alien-signals@3.1.2:
-    resolution: {integrity: sha512-d9dYqZTS90WLiU0I5c6DHj/HcKkF8ZyGN3G5x8wSbslulz70KOxaqCT0hQCo9KOyhVqzqGojvNdJXoTumZOtcw==}
 
   anser@2.3.5:
     resolution: {integrity: sha512-vcZjxvvVoxTeR5XBNJB38oTu/7eDCZlwdz32N1eNgpyPF7j/Z7Idf+CUwQOkKKpJ7RJyjxgLHCM7vdIK0iCNMQ==}
@@ -5196,8 +5190,6 @@ snapshots:
       acorn: 8.16.0
 
   acorn@8.16.0: {}
-
-  alien-signals@3.1.2: {}
 
   anser@2.3.5: {}
 

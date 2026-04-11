@@ -8,41 +8,22 @@ export {
   effectScope,
   isEffectScope,
   trigger,
-} from "alien-signals";
-import {
-  isSignal,
-  isComputed,
-  signal,
-  setActiveSub,
-  startBatch,
-  endBatch,
-  computed,
-} from "alien-signals";
-import type { ValueOrReactive } from "./builder";
-
+  batch,
+  onCleanup,
+  untracked,
+} from "./lib";
+import { isSignal, isComputed, signal } from "./lib";
+import type { ValueOrReactive } from "../builder";
+import "../polyfill";
 export function isReactive<T>(value: ValueOrReactive<T>): value is () => T {
   return isSignal(value as () => T) || isComputed(value as () => T);
 }
 
-export type Signal<T> = ReturnType<typeof signal<T>>;
-export type Computed<T> = ReturnType<typeof computed<T>>;
-
-export const batch = (fn: () => void): void => {
-  startBatch();
-  try {
-    fn();
-  } finally {
-    endBatch();
-  }
-};
-
-export const untracked = <T>(fn: () => T): T => {
-  const sub = setActiveSub(void 0);
-  try {
-    return fn();
-  } finally {
-    setActiveSub(sub);
-  }
+export type Writable<T> = (value: T) => void;
+export type Computed<T> = () => T;
+export type Signal<T> = {
+  (): T;
+  (value: T): void;
 };
 
 /**

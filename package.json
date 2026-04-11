@@ -29,14 +29,14 @@
       "types": "./dist/index.d.ts"
     },
     "./signals": {
-      "source": "./src/signals.ts",
-      "import": "./dist/signals.mjs",
-      "types": "./dist/signals.d.ts"
+      "source": "./src/signals/index.ts",
+      "import": "./dist/signals/index.mjs",
+      "types": "./dist/signals/index.d.ts"
     },
     "./signals/*": {
-      "source": "./src/signals/*.ts",
-      "import": "./dist/signals/*.mjs",
-      "types": "./dist/signals/*.d.ts"
+      "source": "./src/signals/lib/*.ts",
+      "import": "./dist/signals/lib/*.mjs",
+      "types": "./dist/signals/lib/*.d.ts"
     },
     "./slot": {
       "source": "./src/slot.ts",
@@ -88,7 +88,6 @@
     "vitest": "^4.1.2"
   },
   "dependencies": {
-    "alien-signals": "^3.1.2",
     "dom-expressions": "^0.40.6"
   },
   "peerDependencies": {
