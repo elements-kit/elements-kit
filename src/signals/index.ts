@@ -19,12 +19,9 @@ export function isReactive<T>(value: ValueOrReactive<T>): value is () => T {
   return isSignal(value as () => T) || isComputed(value as () => T);
 }
 
-export type Writable<T> = (value: T) => void;
+export type Updater<T> = (value: T) => void;
 export type Computed<T> = () => T;
-export type Signal<T> = {
-  (): T;
-  (value: T): void;
-};
+export type Signal<T> = Updater<T> & Computed<T>;
 
 /**
  * A decorator that makes a class field reactive by automatically wrapping its value in a signal.
