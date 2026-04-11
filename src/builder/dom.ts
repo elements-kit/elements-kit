@@ -1,6 +1,6 @@
 // Auto-generated file
 
-import { builder } from ".";
+import { builder } from "./index.ts";
 
 export interface Lifecycle {
   connectedCallback?(): void;

@@ -3,6 +3,7 @@
   "compilerOptions": {
     "target": "es2022",
     "lib": ["ES2022", "DOM"],
+    "module": "preserve",
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "emitDeclarationOnly": true,

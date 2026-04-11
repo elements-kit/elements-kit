@@ -1,4 +1,4 @@
-import { type Computed, effect, effectScope, signal } from "..";
+import { type Computed, effect, effectScope, signal } from "../index.ts";
 import { useEffect, useMemo, useSyncExternalStore, useRef } from "react";
 
 /**
@@ -82,7 +82,9 @@ export function useScope<T>(callback: () => Computed<T> | void): T | void {
   }, [callback]);
 
   // Subscribe to the computed signal using useSyncExternalStore
-  const value = useSignal<T | undefined>(computedRef.current ?? fallbackSignal);
+  const value = useSignal<T | undefined>(
+    (computedRef.current ?? fallbackSignal) as () => T | undefined,
+  );
 
   // Cleanup on unmount
   useEffect(() => {

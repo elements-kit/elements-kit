@@ -1,6 +1,6 @@
 export const isBrowser = typeof window !== "undefined";
 
-import { type Computed, onCleanup, signal } from "..";
+import { type Computed, onCleanup, signal } from "../index.ts";
 
 /**
  * Creates a signal that tracks a CSS media query.
