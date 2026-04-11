@@ -297,27 +297,43 @@ secret("x"); // silent — not a dependency
 ```
 
 :::caution[Mutating vs. reassigning]
-Arrays and objects are passed by reference. Mutating them (`push`, `pop`, `arr[0] = x`) doesn't notify subscribers — you must reassign:
+Arrays and objects are passed by reference. Mutating them (`push`, `pop`, `arr[0] = x`) doesn't notify subscribers — the signal value (reference) hasn't changed.
 
 ```ts
 const items = signal<string[]>([]);
 
-// ❌ Won't trigger updates
-items().push("hello");
-
-// ✅ Correct — creates a new array
-items([...items(), "hello"]);
+// ❌ Won't trigger
+items().push("Hello");
 ```
 
-Same for object properties:
+**Option 1 — Mutation + trigger** (for expensive data):
+```ts
+const items = signal<string[]>([]);
+
+items().push("hello");
+trigger(items);  // ✅ Mutate in place, then notify
+```
+
+**Option 2 — Reassignment**:
+```ts
+const items = signal<string[]>([]);
+
+items([...items(), "hello"]);  // ✅ Creates new array
+```
+
+The same applies to objects:
 ```ts
 const user = signal({ name: "Alice" });
 
 // ❌ Won't trigger
 user().name = "Bob";
 
-// ✅ Correct
+// ✅ Reassignment
 user({ ...user(), name: "Bob" });
+
+// ✅ Or mutation + trigger
+user().name = "Bob";
+trigger(user);
 ```
 :::
 
