@@ -8,8 +8,8 @@ import MagicMove from "@/components/MagicMove.astro";
 
 Signals are framework-agnostic — they work the same whether you're in a custom element, a vanilla script, or a React tree. These two hooks connect them to React's rendering model via [`useSyncExternalStore`](https://react.dev/reference/react/useSyncExternalStore), so React only re-renders components that actually depend on a changed signal.
 
-```sh
-# signals/react is included with elements-kit — no extra install needed
+```jsx
+// signals/react is included with elements-kit — no extra install needed
 import { useSignal, useScope } from "elements-kit/signals/react";
 ```
 
@@ -204,7 +204,7 @@ function ExpensiveMetrics() {
 
 ## Store
 
-A [store](/signals#store) is a plain class with `@reactive` fields — framework-agnostic reactive state. Reading from a store inside `useSignal` or `useScope` creates a live subscription exactly like reading a signal directly.
+A [store](/stores) is a plain class with `@reactive` fields — framework-agnostic reactive state. Reading from a store inside `useSignal` or `useScope` creates a live subscription exactly like reading a signal directly.
 
 ```ts
 // store.ts

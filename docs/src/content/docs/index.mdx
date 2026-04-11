@@ -3,13 +3,46 @@ title: Introduction
 description: What is ElementsKit and how to install it.
 ---
 
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+
 ElementsKit is a set of tools for building reactive web UI.
 
 ## Installation
 
-```sh title="Installing dependencies…"
-npm install elements-kit
-```
+<Tabs>
+  <TabItem label="pnpm">
+    ```sh
+    pnpm add elements-kit
+    ```
+  </TabItem>
+  <TabItem label="CDN">
+    ```html title="index.html"
+    <script type="module">
+      import {signal} from "https://esm.sh/elements-kit";
+    </script>
+    ```
+  </TabItem>
+  <TabItem label="npm">
+    ```sh
+    npm install elements-kit 
+    ```
+  </TabItem>
+  <TabItem label="yarn">
+    ```sh
+    yarn add elements-kit
+    ```
+  </TabItem>
+  <TabItem label="deno">
+    ```sh
+    deno add npm:elements-kit 
+    ```
+  </TabItem>
+  <TabItem label="bun">
+    ```sh
+    bun add elements-kit
+    ```
+  </TabItem>
+</Tabs>
 
 ## How it works
 
@@ -25,8 +58,8 @@ import { signal } from "elements-kit/signals";
 const count = signal(0);
 
 document.body.appendChild(
-  <button on:click={() => count(count() + 1)}>
-    Count: {count}
-  </button> as Element
+  (
+    <button on:click={() => count(count() + 1)}>Count: {count}</button>
+  ) as Element,
 );
 ```
