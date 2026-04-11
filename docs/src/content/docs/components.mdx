@@ -12,7 +12,7 @@ class Greeting {
   name = "world";
 
   render() {
-    return <h1>Hello, {this.name}!</h1> as Element;
+    return <h1>Hello, {this.name}!</h1>;
   }
 }
 
@@ -37,27 +37,25 @@ import { signal, computed } from "elements-kit/signals";
 const count = signal(0);
 const doubled = computed(() => count() * 2);
 ---
-// Lift into a class — state + render together
+// Use accessor for natural property access (no () on reads)
+import { signal, computed } from "elements-kit/signals";
+
+class CounterStore {
+  #count = signal(0);
+  get count() { return this.#count() }
+  set count(value: number) { this.#count(value) }
+  
+  doubled = computed(() => this.count * 2);
+}
+---
+// Full component — state, derived values, and actions
 import { signal, computed } from "elements-kit/signals";
 
 class Counter {
-  count = signal(0);
-  doubled = computed(() => this.count() * 2);
-
-  render() {
-    return (
-      <div>
-        <p>Count: {this.count} — Doubled: {this.doubled}</p>
-      </div>
-    ) as Element;
-  }
-}
----
-// Use @reactive for natural property access (no () on reads)
-import { reactive, computed } from "elements-kit/signals";
-
-class Counter {
-  @reactive() count = 0;
+  #count = signal(0);
+  get count() { return this.#count() }
+  set count(value: number) { this.#count(value) }
+  
   doubled = computed(() => this.count * 2);
 
   render() {
@@ -66,11 +64,11 @@ class Counter {
         <p>Count: {() => this.count} — Doubled: {this.doubled}</p>
         <button onClick={() => this.count++}>+1</button>
       </div>
-    ) as Element;
+    );
   }
 }
 ---
-// Full component — state, derived values, and actions
+// use @reactive decorator for natural property access (no () on reads)
 import { reactive, computed } from "elements-kit/signals";
 
 class Counter {
@@ -85,7 +83,7 @@ class Counter {
         <button onClick={() => this.count--}>−1</button>
         <button onClick={() => (this.count = 0)}>Reset</button>
       </div>
-    ) as Element;
+    );
   }
 }
 
@@ -119,7 +117,7 @@ class CounterDisplay {
   render() {
     return (
       <p>{() => counter.count} × 2 = {counter.doubled}</p>
-    ) as Element;
+    );
   }
 }
 
@@ -130,7 +128,7 @@ class CounterControls {
         <button onClick={() => counter.increment()}>+1</button>
         <button onClick={() => counter.reset()}>Reset</button>
       </div>
-    ) as Element;
+    );
   }
 }
 ```
@@ -267,7 +265,7 @@ export class App {
           {() => store.todos.filter((t) => !t.done).length} remaining
         </p>
       </section>
-    ) as Element;
+    );
   }
 }`,
         active: true,

@@ -33,8 +33,6 @@ input.value = "bye"; // sets the JS property directly
 input.disabled;     // true (boolean, not "disabled")
 ```
 
-### They are not the same thing
-
 For many built-in elements, attributes and properties start in sync, then diverge:
 
 ```ts
@@ -47,8 +45,7 @@ input.getAttribute("value"); // still "initial" — attribute unchanged
 ```
 
 The `value` attribute is the **initial/default value**. The `value` property is the **current live value**. Changing one does not automatically change the other (for most built-ins).
-
-### The difference in a table
+Here's a quick comparison:
 
 | | Attribute | Property |
 |---|---|---|

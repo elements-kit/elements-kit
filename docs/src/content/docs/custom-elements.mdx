@@ -38,9 +38,9 @@ customElements.define("x-greeting", GreetingElement);
 
 ---
 
-## Gradual ElementsKit adoption
+## Adopt ElementsKit progressively
 
-```ts magic-move
+```tsx magic-move
 // Step 1 — bare custom element, native API only
 class CounterElement extends HTMLElement {
   #count = 0;
@@ -151,13 +151,13 @@ customElements.define("x-counter", CounterElement);
 // <x-counter count="5" />  or  <x-counter count={signal(9)} />
 ```
 
-| Step | Added | Benefit |
-|------|-------|---------|
-| 1 | Native `HTMLElement` | Zero deps, runs anywhere |
-| 2 | `signal` + `effect` | Reactive state, no manual DOM queries |
-| 3 | JSX | Declarative structure, live bindings |
-| 4 | `@reactive` | Natural `this.field` access, derived values |
-| 5 | `@attributes` | Usable from HTML and JSX with reactive attributes |
+| Step | ElementsKit | What you gain |
+|------|-------------|---------------|
+| 1 | — (plain browser API) | Zero deps, runs anywhere |
+| 2 | `elements-kit/signals` — `signal` + `effect` | Reactive state, no manual DOM queries |
+| 3 | `elements-kit` JSX runtime | Declarative DOM, live text and attribute bindings |
+| 4 | `@reactive` decorator | Natural class-field syntax, derived values with `computed` |
+| 5 | `elements-kit/attributes` — `@attributes` | HTML attribute ↔ reactive property wiring |
 
 ---
 
