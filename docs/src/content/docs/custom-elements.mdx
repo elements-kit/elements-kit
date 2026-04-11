@@ -3,7 +3,6 @@ title: Custom Elements
 description: Native HTMLElement authoring, enhanced gradually with signals, JSX, and decorators.
 ---
 
-import MagicMove from "@/components/MagicMove.astro";
 import Playground from "@/playground/Playground.astro";
 
 Custom elements are a native browser standard — a class that extends `HTMLElement` and registers under a hyphenated tag name. Once defined, they behave like built-in elements: usable in HTML, React, Vue, or any other context without adapters.
@@ -41,16 +40,16 @@ customElements.define("x-greeting", GreetingElement);
 
 ## Gradual ElementsKit adoption
 
-export const STEPS = [
-  `// Step 1 — bare custom element, native API only
+```ts magic-move
+// Step 1 — bare custom element, native API only
 class CounterElement extends HTMLElement {
   #count = 0;
 
   connectedCallback() {
-    this.innerHTML = \`
+    this.innerHTML = `
       <p>Count: <strong id="val">0</strong></p>
       <button>+1</button>
-    \`;
+    `;
     this.querySelector("button")!.addEventListener("click", () => {
       this.#count++;
       this.querySelector("#val")!.textContent = String(this.#count);
@@ -58,19 +57,19 @@ class CounterElement extends HTMLElement {
   }
 }
 
-customElements.define("x-counter", CounterElement);`,
-
-  `// Step 2 — signal: reactive state, automatic DOM sync
+customElements.define("x-counter", CounterElement);
+---
+// Step 2 — signal: reactive state, automatic DOM sync
 import { signal, effect } from "elements-kit/signals";
 
 class CounterElement extends HTMLElement {
   #count = signal(0);
 
   connectedCallback() {
-    this.innerHTML = \`
+    this.innerHTML = `
       <p>Count: <strong id="val"></strong></p>
       <button>+1</button>
-    \`;
+    `;
     effect(() => {
       this.querySelector("#val")!.textContent = String(this.#count());
     });
@@ -78,9 +77,9 @@ class CounterElement extends HTMLElement {
       this.#count(this.#count() + 1);
     });
   }
-}`,
-
-  `// Step 3 — JSX: declarative DOM, live bindings
+}
+---
+// Step 3 — JSX: declarative DOM, live bindings
 import { signal } from "elements-kit/signals";
 
 class CounterElement extends HTMLElement {
@@ -94,9 +93,9 @@ class CounterElement extends HTMLElement {
       </section> as Element,
     );
   }
-}`,
-
-  `// Step 4 — @reactive: natural property access + computed
+}
+---
+// Step 4 — @reactive: natural property access + computed
 import { computed, reactive } from "elements-kit/signals";
 
 class CounterElement extends HTMLElement {
@@ -116,9 +115,9 @@ class CounterElement extends HTMLElement {
       </section> as Element,
     );
   }
-}`,
-
-  `// Step 5 — @attributes: HTML attributes ↔ reactive properties
+}
+---
+// Step 5 — @attributes: HTML attributes ↔ reactive properties
 import { computed, reactive } from "elements-kit/signals";
 import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
 
@@ -149,10 +148,8 @@ class CounterElement extends HTMLElement {
 }
 
 customElements.define("x-counter", CounterElement);
-// <x-counter count="5" />  or  <x-counter count={signal(9)} />`,
-];
-
-<MagicMove steps={STEPS} lang="ts" />
+// <x-counter count="5" />  or  <x-counter count={signal(9)} />
+```
 
 | Step | Added | Benefit |
 |------|-------|---------|

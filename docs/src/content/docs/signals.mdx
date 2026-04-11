@@ -4,43 +4,40 @@ description: Fine-grained reactivity with signal, computed, effect, and more.
 ---
 
 import Playground from "@/playground/Playground.astro";
-import MagicMove from "@/components/MagicMove.astro";
 
 Signals are the reactive core of ElementsKit. Every UI update, derived value, and side effect is driven by three primitives: `signal`, `computed`, and `effect`.
-
-export const signalSteps = [
-  `import { signal } from "elements-kit/signals";
-
-// Create a reactive value with an initial state
-const count = signal(0);`,
-
-  `import { signal } from "elements-kit/signals";
-
-const count = signal(0);
-
-count();    // Read → 0`,
-
-  `import { signal } from "elements-kit/signals";
-
-const count = signal(0);
-
-count();    // Read → 0
-count(5);   // Write — notify all dependents`,
-
-  `import { signal } from "elements-kit/signals";
-
-const count = signal(0);
-
-count();    // Read → 0
-count(5);   // Write — notify all dependents
-count();    // Read → 5`,
-];
 
 ## signal
 
 A `signal` holds a single reactive value. Call it with no arguments to **read**, with an argument to **write**.
 
-<MagicMove steps={signalSteps} lang="ts" />
+```ts magic-move
+import { signal } from "elements-kit/signals";
+
+// Create a reactive value with an initial state
+const count = signal(0);
+---
+import { signal } from "elements-kit/signals";
+
+const count = signal(0);
+
+count();    // Read → 0
+---
+import { signal } from "elements-kit/signals";
+
+const count = signal(0);
+
+count();    // Read → 0
+count(5);   // Write — notify all dependents
+---
+import { signal } from "elements-kit/signals";
+
+const count = signal(0);
+
+count();    // Read → 0
+count(5);   // Write — notify all dependents
+count();    // Read → 5
+```
 
 ```ts
 import { signal } from "elements-kit/signals";
@@ -55,22 +52,26 @@ Signals are synchronous — every write immediately notifies dependents.
 
 ---
 
-export const computedSteps = [
-  `import { signal, computed } from "elements-kit/signals";
+## computed
+
+A `computed` derives a value from one or more signals. It is **lazy** — only re-evaluates when a dependency has changed and the value is read again. Results are cached between reads.
+
+```ts magic-move
+import { signal, computed } from "elements-kit/signals";
 
 const price = signal(10);
-const qty   = signal(3);`,
-
-  `import { signal, computed } from "elements-kit/signals";
+const qty   = signal(3);
+---
+import { signal, computed } from "elements-kit/signals";
 
 const price = signal(10);
 const qty   = signal(3);
 
 // Lazily evaluates — only runs when read after a dependency changes
 const total = computed(() => price() * qty());
-total(); // → 30`,
-
-  `import { signal, computed } from "elements-kit/signals";
+total(); // → 30
+---
+import { signal, computed } from "elements-kit/signals";
 
 const price = signal(10);
 const qty   = signal(3);
@@ -81,14 +82,8 @@ total(); // → 30
 price(20);
 total(); // → 60  (recomputed — price changed)
 qty(1);
-total(); // → 20  (recomputed again)`,
-];
-
-## computed
-
-A `computed` derives a value from one or more signals. It is **lazy** — only re-evaluates when a dependency has changed and the value is read again. Results are cached between reads.
-
-<MagicMove steps={computedSteps} lang="ts" />
+total(); // → 20  (recomputed again)
+```
 
 ```ts
 import { signal, computed } from "elements-kit/signals";
@@ -107,21 +102,25 @@ A `computed` is read-only — you can only call it with no arguments.
 
 ---
 
-export const effectSteps = [
-  `import { signal, effect } from "elements-kit/signals";
+## effect
 
-const count = signal(0);`,
+An `effect` runs a side effect whenever its signal dependencies change. It runs **immediately** on creation to collect dependencies, then re-runs on every change. Returns a stop function.
 
-  `import { signal, effect } from "elements-kit/signals";
+```ts magic-move
+import { signal, effect } from "elements-kit/signals";
+
+const count = signal(0);
+---
+import { signal, effect } from "elements-kit/signals";
 
 const count = signal(0);
 
 // Runs immediately, then again whenever count changes
 const stop = effect(() => {
   console.log("count:", count()); // count: 0
-});`,
-
-  `import { signal, effect } from "elements-kit/signals";
+});
+---
+import { signal, effect } from "elements-kit/signals";
 
 const count = signal(0);
 
@@ -130,9 +129,9 @@ const stop = effect(() => {
 });
 
 count(1); // → count: 1
-count(2); // → count: 2`,
-
-  `import { signal, effect } from "elements-kit/signals";
+count(2); // → count: 2
+---
+import { signal, effect } from "elements-kit/signals";
 
 const count = signal(0);
 
@@ -143,14 +142,8 @@ const stop = effect(() => {
 count(1); // → count: 1
 count(2); // → count: 2
 
-stop();   // Dispose — no more logs`,
-];
-
-## effect
-
-An `effect` runs a side effect whenever its signal dependencies change. It runs **immediately** on creation to collect dependencies, then re-runs on every change. Returns a stop function.
-
-<MagicMove steps={effectSteps} lang="ts" />
+stop();   // Dispose — no more logs
+```
 
 ```ts
 import { signal, effect } from "elements-kit/signals";

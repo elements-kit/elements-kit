@@ -1,10 +1,3 @@
-@import "shiki-magic-move/dist/style.css";
-
-.shiki-magic-move-container {
-  font-family: var(--__sl-font-mono);
-  font-size: var(--sl-text-code);
-}
-
 :root {
   --sl-content-width: 64rem;
   --sl-sidebar-width: 16rem;

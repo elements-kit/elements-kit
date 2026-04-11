@@ -3,7 +3,6 @@ title: Elements
 description: JSX compiles to real DOM elements. Reactive props are effects under the hood.
 ---
 
-import MagicMove from "@/components/MagicMove.astro";
 import Playground from "@/playground/Playground.astro";
 
 An **element** is a real DOM node. JSX in ElementsKit compiles directly to `document.createElement` — there is no virtual DOM, no diffing, no reconciliation. Every expression produces an actual node you can hold in a variable, append to the DOM, or pass to a function.
@@ -74,23 +73,23 @@ Passing a **plain value** (not a signal or function) sets the prop once and neve
 <input placeholder={hint} maxLength={computed(() => limit())} />
 ```
 
-export const REACTIVE_PROP_STEPS = [
-  `// Static prop — set once, no tracking
+```tsx magic-move
+// Static prop — set once, no tracking
 const el = <input placeholder="Search…" />;
 
 // Equivalent:
 const el = document.createElement("input");
-el.setAttribute("placeholder", "Search…");`,
-
-  `// Reactive prop — signal passed as value
+el.setAttribute("placeholder", "Search…");
+---
+// Reactive prop — signal passed as value
 const query = signal("");
 const el = <input placeholder={query} />;
 
 // Equivalent:
 const el = document.createElement("input");
-effect(() => { el.setAttribute("placeholder", query()); });`,
-
-  `// Multiple reactive props — each gets its own effect
+effect(() => { el.setAttribute("placeholder", query()); });
+---
+// Multiple reactive props — each gets its own effect
 const value = signal("");
 const maxLen = computed(() => settings.maxLength);
 
@@ -99,9 +98,9 @@ const el = <input value={value} maxLength={maxLen} />;
 // Equivalent:
 const el = document.createElement("input");
 effect(() => { el.value = value(); });
-effect(() => { el.maxLength = maxLen(); });`,
-
-  `// Reactive children — live text node
+effect(() => { el.maxLength = maxLen(); });
+---
+// Reactive children — live text node
 const count = signal(0);
 const el = <p>Count: {count}</p>;
 
@@ -110,10 +109,8 @@ const el = document.createElement("p");
 el.append("Count: ");
 const text = document.createTextNode(String(count()));
 effect(() => { text.data = String(count()); });
-el.append(text);`,
-];
-
-<MagicMove steps={REACTIVE_PROP_STEPS} lang="tsx" />
+el.append(text);
+```
 
 ---
 

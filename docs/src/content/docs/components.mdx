@@ -3,7 +3,6 @@ title: Components
 description: Class components — reactive state and element rendering in one place.
 ---
 
-import MagicMove from "@/components/MagicMove.astro";
 import Playground from "@/playground/Playground.astro";
 
 A **component** is a class with a `render()` method that returns an `Element`. It combines a [store](/store) (reactive state) with element construction (JSX). The simplest possible component:
@@ -26,19 +25,19 @@ document.getElementById("app")!.appendChild(new Greeting().render());
 
 A typical component owns its state and produces elements from it. `@reactive` turns class fields into signals; JSX reads them as live bindings.
 
-export const STEPS = [
-  `// State only — a plain signal
+```tsx magic-move
+// State only — a plain signal
 import { signal } from "elements-kit/signals";
 
-const count = signal(0);`,
-
-  `// Add a derived value
+const count = signal(0);
+---
+// Add a derived value
 import { signal, computed } from "elements-kit/signals";
 
 const count = signal(0);
-const doubled = computed(() => count() * 2);`,
-
-  `// Lift into a class — state + render together
+const doubled = computed(() => count() * 2);
+---
+// Lift into a class — state + render together
 import { signal, computed } from "elements-kit/signals";
 
 class Counter {
@@ -52,9 +51,9 @@ class Counter {
       </div>
     ) as Element;
   }
-}`,
-
-  `// Use @reactive for natural property access (no () on reads)
+}
+---
+// Use @reactive for natural property access (no () on reads)
 import { reactive, computed } from "elements-kit/signals";
 
 class Counter {
@@ -69,9 +68,9 @@ class Counter {
       </div>
     ) as Element;
   }
-}`,
-
-  `// Full component — state, derived values, and actions
+}
+---
+// Full component — state, derived values, and actions
 import { reactive, computed } from "elements-kit/signals";
 
 class Counter {
@@ -90,10 +89,8 @@ class Counter {
   }
 }
 
-document.getElementById("app")!.appendChild(new Counter().render());`,
-];
-
-<MagicMove steps={STEPS} lang="tsx" />
+document.getElementById("app")!.appendChild(new Counter().render());
+```
 
 ---
 

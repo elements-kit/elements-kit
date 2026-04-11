@@ -4,7 +4,6 @@ description: Use signals in React components with useSignal and useScope.
 ---
 
 import Playground from "@/playground/Playground.astro";
-import MagicMove from "@/components/MagicMove.astro";
 
 Signals are framework-agnostic — they work the same whether you're in a custom element, a vanilla script, or a React tree. These two hooks connect them to React's rendering model via [`useSyncExternalStore`](https://react.dev/reference/react/useSyncExternalStore), so React only re-renders components that actually depend on a changed signal.
 
@@ -15,13 +14,17 @@ import { useSignal, useScope } from "elements-kit/signals/react";
 
 ---
 
-export const useSignalSteps = [
-  `import { signal, computed } from "elements-kit/signals";
+## useSignal
+
+Subscribe a React component to any signal or computed value. Returns the current value and re-renders the component whenever it changes.
+
+```tsx magic-move 
+import { signal, computed } from "elements-kit/signals";
 import { useSignal } from "elements-kit/signals/react";
 
-const count = signal(0);`,
-
-  `import { signal, computed } from "elements-kit/signals";
+const count = signal(0);
+---
+import { signal, computed } from "elements-kit/signals";
 import { useSignal } from "elements-kit/signals/react";
 
 const count = signal(0);
@@ -30,9 +33,9 @@ function Counter() {
   // Subscribe — re-renders when count changes
   const value = useSignal(count);
   return <p>Count: {value}</p>;
-}`,
-
-  `import { signal, computed } from "elements-kit/signals";
+}
+---
+import { signal, computed } from "elements-kit/signals";
 import { useSignal } from "elements-kit/signals/react";
 
 const count = signal(0);
@@ -42,9 +45,9 @@ function Counter() {
   const value = useSignal(count);
   const doubleValue = useSignal(doubled);
   return <p>{value} × 2 = {doubleValue}</p>;
-}`,
-
-  `import { signal, computed } from "elements-kit/signals";
+}
+---
+import { signal, computed } from "elements-kit/signals";
 import { useSignal } from "elements-kit/signals/react";
 
 const count = signal(0);
@@ -57,14 +60,8 @@ function Counter() {
 }
 
 // Signals live outside React — writing from anywhere triggers a re-render
-setInterval(() => count(count() + 1), 1000);`,
-];
-
-## useSignal
-
-Subscribe a React component to any signal or computed value. Returns the current value and re-renders the component whenever it changes.
-
-<MagicMove steps={useSignalSteps} lang="tsx" />
+setInterval(() => count(count() + 1), 1000);
+```
 
 ```tsx
 import { signal, computed } from "elements-kit/signals";
@@ -100,8 +97,14 @@ Components only re-render when **their** signal dependencies change — not on e
 
 ---
 
-export const useScopeSteps = [
-  `import { effect } from "elements-kit/signals";
+## useScope
+
+Creates a signal effect scope tied to the component's lifetime. All effects registered inside the callback are stopped automatically when the component unmounts.
+
+If the callback returns a `Computed<T>`, `useScope` subscribes to it and returns the current value — like `useSignal` but with its own scope for side effects.
+
+```tsx magic-move
+import { effect } from "elements-kit/signals";
 import { useScope } from "elements-kit/signals/react";
 
 function Analytics() {
@@ -110,9 +113,9 @@ function Analytics() {
     effect(() => console.log("page:", currentPage()));
     effect(() => console.log("user:", currentUser()));
   });
-}`,
-
-  `import { computed, effect } from "elements-kit/signals";
+}
+---
+import { computed, effect } from "elements-kit/signals";
 import { useScope } from "elements-kit/signals/react";
 
 function DoubleCounter() {
@@ -122,9 +125,9 @@ function DoubleCounter() {
   );
 
   return <p>Double: {double}</p>;
-}`,
-
-  `import { computed, effect, onCleanup } from "elements-kit/signals";
+}
+---
+import { computed, effect, onCleanup } from "elements-kit/signals";
 import { useScope } from "elements-kit/signals/react";
 
 function Tracker() {
@@ -135,16 +138,8 @@ function Tracker() {
       onCleanup(() => clearInterval(id));
     });
   });
-}`,
-];
-
-## useScope
-
-Creates a signal effect scope tied to the component's lifetime. All effects registered inside the callback are stopped automatically when the component unmounts.
-
-If the callback returns a `Computed<T>`, `useScope` subscribes to it and returns the current value — like `useSignal` but with its own scope for side effects.
-
-<MagicMove steps={useScopeSteps} lang="tsx" />
+}
+```
 
 ```tsx
 import { effect, onCleanup } from "elements-kit/signals";

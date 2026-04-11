@@ -2,6 +2,7 @@ import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 import cloudflare from "@astrojs/cloudflare";
 import react from "@astrojs/react";
+import { pluginMagicMove } from "./src/expressive-code/magicMove.ts";
 
 export default defineConfig({
   output: "server",
@@ -49,6 +50,7 @@ export default defineConfig({
 
       expressiveCode: {
         themes: ["github-light-default", "github-dark-default"],
+        plugins: [pluginMagicMove()],
         styleOverrides: {
           borderRadius: "0.25rem",
           frames: {
@@ -56,7 +58,6 @@ export default defineConfig({
           },
         },
         useDarkModeMediaQuery: true,
-        frames: {},
       },
       customCss: ["./src/styles/custom.css"],
     }),
