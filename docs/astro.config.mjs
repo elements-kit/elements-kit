@@ -30,7 +30,15 @@ export default defineConfig({
           items: [
             { label: "Elements", slug: "elements" },
             { label: "Components", slug: "components" },
-            { label: "Custom Elements", slug: "custom-elements" },
+          ],
+        },
+        {
+          label: "Custom Elements",
+          items: [
+            { label: "Overview", slug: "custom-elements" },
+            { label: "Attributes", slug: "custom-elements/attributes" },
+            { label: "Styling", slug: "custom-elements/styling" },
+            { label: "Slots", slug: "custom-elements/slots" },
           ],
         },
         {

@@ -1,0 +1,310 @@
+---
+title: Styling
+description: Style custom elements efficiently with Constructable Stylesheets and raw CSS imports.
+---
+
+import MagicMove from "@/components/MagicMove.astro";
+import Playground from "@/playground/Playground.astro";
+
+Custom elements can be styled two ways: with **global CSS** (light DOM) or **scoped CSS** inside a Shadow DOM. In both cases, using a `CSSStyleSheet` object avoids parsing the same CSS for every element instance.
+
+---
+
+## The problem with per-instance `<style>`
+
+A naive approach injects a `<style>` tag into every shadow root:
+
+```ts
+class MyElement extends HTMLElement {
+  connectedCallback() {
+    const shadow = this.attachShadow({ mode: "open" });
+    // ❌ Each instance parses this string independently
+    shadow.innerHTML = `
+      <style>:host { display: block } button { padding: 4px }</style>
+      <button>Click</button>
+    `;
+  }
+}
+```
+
+100 instances → 100 parse operations, 100 `CSSStyleDeclaration` objects in memory. With large stylesheets this adds up.
+
+---
+
+## Constructable Stylesheets
+
+`CSSStyleSheet` is a first-class object. Create it **once at module level**, share it across every instance by reference via `adoptedStyleSheets`. The browser parses the CSS once.
+
+```ts
+// Parsed once when the module loads
+const sheet = new CSSStyleSheet();
+sheet.replaceSync(`
+  :host {
+    display: block;
+    font-family: sans-serif;
+  }
+  button {
+    padding: 4px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+`);
+```
+
+Adopt it in Shadow DOM:
+
+```tsx
+class CounterElement extends HTMLElement {
+  connectedCallback() {
+    const shadow = this.attachShadow({ mode: "open" });
+
+    // All instances share the same parsed sheet — zero extra parsing
+    shadow.adoptedStyleSheets = [sheet];
+
+    shadow.appendChild(
+      <section>
+        <p>Count: <strong>{this.#count}</strong></p>
+        <button onClick={() => this.#count(this.#count() + 1)}>+1</button>
+      </section> as Element,
+    );
+  }
+}
+```
+
+`adoptedStyleSheets` is an array — you can compose multiple sheets:
+
+```ts
+shadow.adoptedStyleSheets = [baseSheet, tokenSheet, componentSheet];
+```
+
+---
+
+## `?raw` CSS import
+
+When using **Vite**, **esbuild**, or most modern bundlers, append `?raw` to a CSS import to receive the file contents as a plain string. This keeps CSS in proper `.css` files (IDE support, linting, source maps) while inlining it at build time.
+
+```ts
+// counter.css stays a real file — bundler inlines it as a string
+import styles from "./counter.css?raw";
+
+const sheet = new CSSStyleSheet();
+sheet.replaceSync(styles);
+```
+
+```css
+/* counter.css */
+:host {
+  display: block;
+}
+
+button {
+  padding: 4px 12px;
+  border-radius: 4px;
+}
+```
+
+### Singleton sheet module
+
+The standard pattern: one module exports the shared sheet, the element imports it.
+
+```ts
+// counter.styles.ts
+import css from "./counter.css?raw";
+
+export const counterSheet = new CSSStyleSheet();
+counterSheet.replaceSync(css);
+```
+
+```tsx
+// counter.ts
+import { reactive, computed } from "elements-kit/signals";
+import { counterSheet } from "./counter.styles";
+
+class CounterElement extends HTMLElement {
+  @reactive() count = 0;
+
+  connectedCallback() {
+    const shadow = this.attachShadow({ mode: "open" });
+    shadow.adoptedStyleSheets = [counterSheet];
+
+    shadow.appendChild(
+      <section>
+        <p>Count: <strong>{() => this.count}</strong></p>
+        <button onClick={() => this.count++}>+1</button>
+      </section> as Element,
+    );
+  }
+}
+```
+
+---
+
+## Light DOM (no Shadow DOM)
+
+Without a shadow root, there is no style encapsulation — your element's styles are global. Two clean options:
+
+### Option 1 — `document.adoptedStyleSheets`
+
+Adopt the sheet on the document once. All instances benefit, and it is still parsed only once.
+
+```ts
+import css from "./counter.css?raw";
+
+const sheet = new CSSStyleSheet();
+sheet.replaceSync(css);
+
+let adopted = false;
+
+class CounterElement extends HTMLElement {
+  connectedCallback() {
+    if (!adopted) {
+      document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+      adopted = true;
+    }
+    this.appendChild(/* render */ as Element);
+  }
+}
+```
+
+### Option 2 — inject `<style>` once into `<head>`
+
+```ts
+const STYLE_ID = "x-counter-styles";
+
+function injectStyles() {
+  if (document.getElementById(STYLE_ID)) return;
+  const style = document.createElement("style");
+  style.id = STYLE_ID;
+  style.textContent = `
+    x-counter { display: block; font-family: sans-serif; }
+    x-counter button { padding: 4px 8px; }
+  `;
+  document.head.appendChild(style);
+}
+
+class CounterElement extends HTMLElement {
+  connectedCallback() {
+    injectStyles();
+    this.appendChild(/* render */ as Element);
+  }
+}
+```
+
+---
+
+## Shadow DOM with JSX
+
+JSX renders into a shadow root the same way it renders into a regular element — pass the shadow root as the append target:
+
+```tsx
+import { reactive } from "elements-kit/signals";
+import { counterSheet } from "./counter.styles";
+
+class CounterElement extends HTMLElement {
+  @reactive() count = 0;
+
+  connectedCallback() {
+    const shadow = this.attachShadow({ mode: "open" });
+    shadow.adoptedStyleSheets = [counterSheet];
+
+    // Append JSX directly into the shadow root
+    shadow.appendChild(
+      <div>
+        <p>Count: <strong>{() => this.count}</strong></p>
+        <button onClick={() => this.count++}>+1</button>
+      </div> as Element,
+    );
+  }
+}
+```
+
+Note: with Shadow DOM, styles scoped to `:host` and descendant selectors are fully encapsulated — consumer CSS cannot accidentally override them.
+
+---
+
+## Playground
+
+<Playground
+  provider={{
+    files: {
+      "/main.tsx": {
+        code: `import { reactive, computed } from "elements-kit/signals";
+
+// ── Stylesheet — created once, shared by all instances ────────────────────────
+const sheet = new CSSStyleSheet();
+sheet.replaceSync(\`
+  :host {
+    display: block;
+    font-family: sans-serif;
+    padding: 1.5rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    max-width: 240px;
+  }
+  p { margin: 0 0 0.75rem; font-size: 1.25rem; }
+  .controls { display: flex; gap: 8px; }
+  button {
+    padding: 4px 12px;
+    border: 1px solid #cbd5e0;
+    border-radius: 4px;
+    cursor: pointer;
+    background: #fff;
+  }
+  button:hover { background: #f7fafc; }
+\`);
+
+// ── Element ───────────────────────────────────────────────────────────────────
+class CounterElement extends HTMLElement {
+  @reactive() count = 0;
+  doubled = computed(() => this.count * 2);
+
+  connectedCallback() {
+    // Shadow DOM — styles are scoped, sheet is shared
+    const shadow = this.attachShadow({ mode: "open" });
+    shadow.adoptedStyleSheets = [sheet];
+
+    shadow.appendChild(
+      <div>
+        <p>
+          <strong>{() => this.count}</strong>
+          {" × 2 = "}
+          <strong>{this.doubled}</strong>
+        </p>
+        <div class="controls">
+          <button onClick={() => this.count++}>+1</button>
+          <button onClick={() => this.count--}>−1</button>
+          <button onClick={() => (this.count = 0)}>Reset</button>
+        </div>
+      </div> as Element,
+    );
+  }
+}
+
+customElements.define("x-counter", CounterElement);
+
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      "x-counter": Record<string, unknown>;
+    }
+  }
+}
+
+// Mount three instances — all share the same parsed stylesheet
+export class App {
+  render() {
+    return (
+      <div style="display: flex; gap: 1rem; flex-wrap: wrap; padding: 1rem">
+        <x-counter />
+        <x-counter />
+        <x-counter />
+      </div>
+    ) as Element;
+  }
+}`,
+        active: true,
+      },
+    },
+  }}
+  preview={{}}
+/>

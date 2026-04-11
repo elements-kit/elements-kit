@@ -1,0 +1,275 @@
+---
+title: Attributes
+description: Attributes vs properties — and how @attributes wires them to reactive state.
+---
+
+import MagicMove from "@/components/MagicMove.astro";
+import Playground from "@/playground/Playground.astro";
+
+HTML elements have two distinct ways to receive data: **attributes** and **properties**. Understanding the difference is essential before using `@attributes` — which bridges the two for custom elements.
+
+---
+
+## Attributes vs Properties
+
+**Attributes** live in the HTML markup. They are always strings (or absent). The browser parses them from the HTML source and exposes them via `setAttribute` / `getAttribute`.
+
+**Properties** are JavaScript object members. They can be any type — numbers, booleans, arrays, objects.
+
+```html
+<!-- Attribute — string in the HTML source -->
+<input type="text" value="hello" disabled />
+```
+
+```ts
+const input = document.querySelector("input")!;
+
+// Attribute API — always strings
+input.getAttribute("value");        // "hello"
+input.setAttribute("value", "bye"); // sets the HTML attribute
+
+// Property API — typed JavaScript values
+input.value;        // "hello" (synced from attribute initially)
+input.value = "bye"; // sets the JS property directly
+input.disabled;     // true (boolean, not "disabled")
+```
+
+### They are not the same thing
+
+For many built-in elements, attributes and properties start in sync, then diverge:
+
+```ts
+const input = document.createElement("input");
+input.setAttribute("value", "initial");
+
+input.value;               // "initial" — synced on creation
+input.value = "typed";     // user types or JS sets property
+input.getAttribute("value"); // still "initial" — attribute unchanged
+```
+
+The `value` attribute is the **initial/default value**. The `value` property is the **current live value**. Changing one does not automatically change the other (for most built-ins).
+
+### The difference in a table
+
+| | Attribute | Property |
+|---|---|---|
+| Location | HTML markup / `data-*` | JavaScript object |
+| Type | Always `string \| null` | Any — `number`, `boolean`, `object`… |
+| API | `getAttribute` / `setAttribute` | Direct assignment |
+| Observed changes | `attributeChangedCallback` | Getter/setter |
+| Serialisable to HTML | Yes | Not automatically |
+| Available before JS runs | Yes | No |
+
+---
+
+## Custom element attributes
+
+For built-in elements the browser manages the attribute↔property relationship. For **custom elements** you manage it yourself via `observedAttributes` and `attributeChangedCallback`.
+
+```ts
+class CounterElement extends HTMLElement {
+  // Must declare which attributes to observe
+  static observedAttributes = ["count", "step"];
+
+  // Called whenever a listed attribute changes
+  attributeChangedCallback(name: string, _old: string | null, next: string | null) {
+    if (name === "count") this.#count = Number(next ?? 0);
+    if (name === "step")  this.#step  = Number(next ?? 1);
+    this.#render();
+  }
+
+  #count = 0;
+  #step  = 1;
+
+  #render() {
+    // ...
+  }
+}
+```
+
+This is repetitive. Every attribute needs a manual type conversion, a branch in `attributeChangedCallback`, and a `#render()` call. The `@attributes` decorator automates all of it.
+
+---
+
+## `@attributes` decorator
+
+`@attributes` reads a static `[ATTRIBUTES]` map on the class and wires up `observedAttributes` and `attributeChangedCallback` automatically. Each key in the map is an observed attribute name; the value is a handler called with `this` bound to the element instance.
+
+```ts
+import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
+import { reactive } from "elements-kit/signals";
+
+@attributes
+class CounterElement extends HTMLElement {
+  static [attr] = {
+    // Called whenever the HTML "count" attribute changes
+    count(this: CounterElement, value: string | null) {
+      this.count = Number(value ?? 0);  // string → number, write to reactive property
+    },
+    step(this: CounterElement, value: string | null) {
+      this.step = Number(value ?? 1);
+    },
+  };
+
+  @reactive() count = 0;
+  @reactive() step  = 1;
+}
+
+customElements.define("x-counter", CounterElement);
+```
+
+The handler is your type conversion layer — `value` is always `string | null` (the raw HTML attribute), and you decide what to do with it.
+
+### What `@attributes` generates
+
+```ts
+// Before @attributes — manual boilerplate:
+class CounterElement extends HTMLElement {
+  static observedAttributes = ["count", "step"];
+
+  attributeChangedCallback(name, _old, next) {
+    if (name === "count") /* handler */;
+    if (name === "step")  /* handler */;
+  }
+}
+
+// After @attributes — generated automatically:
+// static observedAttributes = ["count", "step"]  ← from [ATTRIBUTES] keys
+// attributeChangedCallback(...)                   ← dispatches to handlers
+```
+
+---
+
+## Inheriting attributes
+
+`@attributes` walks the **prototype chain** — subclasses inherit parent attribute handlers automatically:
+
+```ts
+@attributes
+class BaseInput extends HTMLElement {
+  static [attr] = {
+    disabled(this: BaseInput, value: string | null) {
+      this.disabled = value !== null;
+    },
+    name(this: BaseInput, value: string | null) {
+      this.name = value ?? "";
+    },
+  };
+
+  @reactive() disabled = false;
+  @reactive() name = "";
+}
+
+@attributes
+class TextInput extends BaseInput {
+  static [attr] = {
+    // Adds "value" on top of inherited "disabled" + "name"
+    value(this: TextInput, value: string | null) {
+      this.value = value ?? "";
+    },
+  };
+
+  @reactive() value = "";
+}
+
+// TextInput.observedAttributes = ["disabled", "name", "value"]
+```
+
+---
+
+## Playground
+
+<Playground
+  provider={{
+    files: {
+      "/main.tsx": {
+        code: `import { reactive, computed } from "elements-kit/signals";
+import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
+
+@attributes
+class RangeDisplay extends HTMLElement {
+  static [attr] = {
+    // Each handler converts the raw string attribute to a typed reactive property
+    min(this: RangeDisplay, v: string | null)   { this.min   = Number(v ?? 0);   },
+    max(this: RangeDisplay, v: string | null)   { this.max   = Number(v ?? 100); },
+    value(this: RangeDisplay, v: string | null) { this.value = Number(v ?? 50);  },
+    label(this: RangeDisplay, v: string | null) { this.label = v ?? "";          },
+  };
+
+  @reactive() min   = 0;
+  @reactive() max   = 100;
+  @reactive() value = 50;
+  @reactive() label = "";
+
+  // Derived from reactive properties
+  percent = computed(() =>
+    Math.round(((this.value - this.min) / (this.max - this.min)) * 100),
+  );
+
+  connectedCallback() {
+    this.style.display = "block";
+    this.style.fontFamily = "sans-serif";
+    this.style.padding = "1rem";
+
+    this.appendChild(
+      <div>
+        <label style="display: block; margin-bottom: 0.5rem">
+          {() => this.label || "Value"}: <strong>{() => this.value}</strong>
+          {" "}({() => this.percent}%)
+        </label>
+        <input
+          type="range"
+          min={computed(() => String(this.min))}
+          max={computed(() => String(this.max))}
+          value={computed(() => String(this.value))}
+          on:input={(e: Event) =>
+            (this.value = Number((e.target as HTMLInputElement).value))
+          }
+          style="width: 100%"
+        />
+        <div style="display: flex; justify-content: space-between; font-size: 0.8em; color: #888">
+          <span>{() => this.min}</span>
+          <span>{() => this.max}</span>
+        </div>
+      </div> as Element,
+    );
+  }
+}
+
+customElements.define("x-range", RangeDisplay);
+
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      "x-range": {
+        min?: number | string;
+        max?: number | string;
+        value?: number | string;
+        label?: string;
+      };
+    }
+  }
+}
+
+export class App {
+  render() {
+    return (
+      <div style="padding: 1.5rem; max-width: 400px">
+        <h2>Attribute demo</h2>
+        <p style="font-size: 0.85em; color: #555">
+          Attributes are HTML strings. <code>@attributes</code> converts them
+          to typed reactive properties.
+        </p>
+        <x-range label="Volume"      min={0}   max={100} value={75} />
+        <x-range label="Temperature" min={-20} max={40}  value={22} />
+        <x-range label="Brightness"  min={0}   max={255} value={128} />
+      </div>
+    ) as Element;
+  }
+}`,
+        active: true,
+      },
+    },
+  }}
+  preview={{}}
+/>

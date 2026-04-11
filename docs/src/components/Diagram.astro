@@ -1,0 +1,79 @@
+---
+interface Props {
+  code: string;
+}
+const { code } = Astro.props;
+---
+
+<div class="diagram-wrapper not-content" data-code={code}>
+  <div class="diagram-inner">
+    <span class="diagram-loading">Loading diagram…</span>
+  </div>
+</div>
+
+<script>
+  async function renderDiagrams() {
+    const { default: mermaid } = await import("mermaid");
+
+    function run() {
+      const theme =
+        document.documentElement.getAttribute("data-theme") === "light"
+          ? "default"
+          : "dark";
+
+      mermaid.initialize({ startOnLoad: false, theme, fontFamily: "inherit" });
+
+      for (const wrapper of document.querySelectorAll<HTMLElement>(
+        ".diagram-wrapper",
+      )) {
+        const code = wrapper.dataset.code;
+        if (!code) continue;
+        const inner = wrapper.querySelector(".diagram-inner")!;
+        const id = "diagram-" + Math.random().toString(36).slice(2);
+        mermaid
+          .render(id, code)
+          .then(({ svg }) => {
+            inner.innerHTML = svg;
+          })
+          .catch((err) => {
+            inner.textContent = String(err);
+          });
+      }
+    }
+
+    run();
+
+    new MutationObserver(run).observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+  }
+
+  renderDiagrams();
+</script>
+
+<style>
+  .diagram-wrapper {
+    margin: 1.5rem 0;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.25rem;
+    overflow: hidden;
+    background: var(--sl-color-black);
+  }
+
+  .diagram-inner {
+    display: flex;
+    justify-content: center;
+    padding: 1.5rem;
+  }
+
+  .diagram-inner svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .diagram-loading {
+    color: var(--sl-color-gray-3);
+    font-size: var(--sl-text-sm);
+  }
+</style>

@@ -1,0 +1,278 @@
+---
+title: Slots
+description: Pass content into components — native slots with Shadow DOM, and ElementsKit Slots without it.
+---
+
+import MagicMove from "@/components/MagicMove.astro";
+import Playground from "@/playground/Playground.astro";
+
+Slots let consumers inject content into a component's layout. ElementsKit supports two approaches: **native `<slot>`** (browser-managed, Shadow DOM only) and **`Slot`** (ElementsKit-managed, works with or without Shadow DOM).
+
+---
+
+## Native slots — Shadow DOM
+
+When an element uses a shadow root, the browser projects slotted children into named `<slot>` placeholders automatically. The children stay in the light DOM — they are only visually projected.
+
+```tsx
+class CardElement extends HTMLElement {
+  connectedCallback() {
+    const shadow = this.attachShadow({ mode: "open" });
+
+    // Three slots: named "header", unnamed default, named "footer"
+    shadow.innerHTML = `
+      <article>
+        <header><slot name="header">Untitled</slot></header>
+        <main><slot></slot></main>
+        <footer><slot name="footer"></slot></footer>
+      </article>
+    `;
+  }
+}
+
+customElements.define("x-card", CardElement);
+```
+
+Consumer HTML:
+
+```html
+<x-card>
+  <h2 slot="header">My Card</h2>
+  <p>This goes in the default slot.</p>
+  <button slot="footer">Close</button>
+</x-card>
+```
+
+Consumer JSX (ElementsKit):
+
+```tsx
+<x-card>
+  <h2 slot="header">My Card</h2>
+  <p>This goes in the default slot.</p>
+  <button slot="footer">Close</button>
+</x-card>
+```
+
+The standard `slot` HTML attribute routes each child into the matching named slot. The browser handles projection with no extra JavaScript.
+
+### Shadow DOM slot with JSX template
+
+Use JSX instead of `innerHTML` to build the shadow tree — the `<slot>` elements work the same:
+
+```ts
+import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
+
+@attributes
+class CardElement extends HTMLElement {
+  static [attr] = {
+    title(this: CardElement, value: string | null) {
+      this.title = value ?? "";
+    },
+  };
+
+  connectedCallback() {
+    const shadow = this.attachShadow({ mode: "open" });
+    shadow.adoptedStyleSheets = [cardSheet];
+
+    shadow.appendChild(
+      <article>
+        {/* Named slot — consumer fills with slot="header" */}
+        <header>
+          <slot name="header" />
+        </header>
+        <main>
+          {/* Default slot — consumer children with no slot attribute */}
+          <slot />
+        </main>
+        <footer>
+          <slot name="footer" />
+        </footer>
+      </article> as Element,
+    );
+  }
+}
+```
+
+---
+
+## ElementsKit `Slot` — Light DOM
+
+Without Shadow DOM, the browser does not project children. ElementsKit's `Slot` primitive fills this gap: a pair of **comment markers** that reserve a region in the DOM. Content between them can be replaced reactively, with no wrapper element.
+
+```tsx
+import { Slot } from "elements-kit/slot";
+
+const slot = Slot.new();
+
+// Mounts the comment markers + optional default content
+const section = <section>{slot("Loading…")}</section> as Element;
+
+// Later — replace content in place
+slot.set(<p>Content loaded!</p>);
+
+slot.isMounted(); // true
+slot.parent();    // the <section> element
+```
+
+### Named slots with `Slots<K>`
+
+For components with multiple named regions, use `Slots<K>` — a typed keyed collection of `Slot` instances. Attach it to your component instance via the `$slots` symbol so JSX's `slot:name` prop wiring works automatically.
+
+```tsx
+import { Slot, Slots, $slots } from "elements-kit/slot";
+
+class CardComponent {
+  // Declare named slots — keys become typed JSX props
+  [$slots] = Slots.new(["header", "footer"] as const);
+
+  render() {
+    return (
+      <article>
+        <header>
+          {/* Mount slot — "Default header" renders until filled */}
+          {this[$slots].header("Default header")}
+        </header>
+        <main>
+          {/* Children passed directly as default slot */}
+          <slot />
+        </main>
+        <footer>
+          {this[$slots].footer()}
+        </footer>
+      </article>
+    ) as Element;
+  }
+}
+```
+
+Consumer JSX — fill slots via `slot:name` props:
+
+```tsx
+<CardComponent
+  slot:header={<h2>My Title</h2>}
+  slot:footer={<button>Confirm</button>}
+>
+  <p>Main body content.</p>
+</CardComponent>
+```
+
+ElementsKit's JSX runtime reads `slot:header` and calls `slot.set(<h2>My Title</h2>)` on the matching `SlotInstance`.
+
+### Reactive slot content
+
+Pass a signal or `() => T` as slot content — the region updates in place when it changes:
+
+```tsx
+const title = signal("Initial Title");
+
+<CardComponent slot:header={() => <h2>{title}</h2>}>
+  Body content
+</CardComponent>
+
+// Slot content updates reactively — no re-render of surrounding tree
+title("Updated Title");
+```
+
+### `SlotProps` type helper
+
+Use `SlotProps<K>` from the JSX runtime to type `slot:name` props on function or class components:
+
+```tsx
+import type { SlotProps } from "elements-kit/jsx-runtime";
+
+// Declare which slot names are accepted
+interface CardProps extends SlotProps<"header" | "footer"> {
+  title?: string;
+}
+
+// TypeScript now knows slot:header and slot:footer are valid
+<CardComponent title="Hello" slot:header={<h1>Hi</h1>} />
+```
+
+---
+
+## Comparison
+
+| | Native `<slot>` | ElementsKit `Slot` |
+|---|---|---|
+| Shadow DOM required | Yes | No |
+| Style encapsulation | Yes | No (global CSS) |
+| Browser-native projection | Yes | No (comment markers) |
+| Reactive content updates | Requires JS re-render | Yes — `slot.set()` |
+| No wrapper element | Yes | Yes |
+| Named slots | Yes (`name` attribute) | Yes (`Slots<K>`) |
+| TypeScript `slot:name` prop | Via `IntrinsicElements` | Via `SlotProps<K>` |
+
+Choose native `<slot>` when you need style encapsulation or are building a reusable web component for external consumers. Choose ElementsKit `Slot` when you want reactive content swapping in a light DOM component without Shadow DOM overhead.
+
+---
+
+## Playground
+
+<Playground
+  provider={{
+    files: {
+      "/main.tsx": {
+        code: `import { reactive, signal } from "elements-kit/signals";
+import { Slot, Slots, $slots } from "elements-kit/slot";
+import type { SlotProps } from "elements-kit/jsx-runtime";
+
+// ── Card Component with named slots ───────────────────────────────────────────
+class CardComponent {
+  [$slots] = Slots.new(["header", "actions"] as const);
+
+  render() {
+    return (
+      <article
+        style="
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          overflow: hidden;
+          max-width: 320px;
+          font-family: sans-serif;
+        "
+      >
+        <header style="padding: 1rem; border-bottom: 1px solid #e2e8f0; background: #f7fafc">
+          {this[$slots].header("Untitled")}
+        </header>
+        <main style="padding: 1rem">
+          <slot />
+        </main>
+        <footer style="padding: 0.75rem 1rem; border-top: 1px solid #e2e8f0; display: flex; gap: 8px">
+          {this[$slots].actions()}
+        </footer>
+      </article>
+    ) as Element;
+  }
+}
+
+// ── App ───────────────────────────────────────────────────────────────────────
+const cardTitle = signal("My Card");
+
+export class App {
+  render() {
+    return (
+      <div style="padding: 2rem; display: flex; flex-direction: column; gap: 1rem">
+        {/* Static slot content */}
+        <CardComponent
+          slot:header={<h2 style="margin: 0">{cardTitle}</h2>}
+          slot:actions={
+            <>
+              <button onClick={() => cardTitle("Updated!")}>Update title</button>
+              <button onClick={() => cardTitle("My Card")}>Reset</button>
+            </>
+          }
+        >
+          <p style="margin: 0">This content goes in the default slot.</p>
+          <p style="margin: 0.5rem 0 0">The header slot reacts to signal changes.</p>
+        </CardComponent>
+      </div>
+    ) as Element;
+  }
+}`,
+        active: true,
+      },
+    },
+  }}
+  preview={{}}
+/>
