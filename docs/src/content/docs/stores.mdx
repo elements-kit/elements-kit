@@ -1,0 +1,155 @@
+---
+title: Store
+description: Framework-agnostic reactive state with @reactive class fields.
+---
+
+import MagicMove from "@/components/MagicMove.astro";
+import Playground from "@/playground/Playground.astro";
+import STORES_FILE from "@/playground/files/stores.tsx?raw";
+
+A **store** is a plain class whose fields are made reactive with `@reactive`. It holds state — no `render()`, no DOM. Any component, effect, or framework integration that reads a store field tracks it as a signal dependency and re-runs when it changes.
+
+```ts
+import { reactive, computed } from "elements-kit/signals";
+
+export class CartStore {
+  @reactive() items: { name: string; price: number }[] = [];
+  @reactive() discount = 0;
+
+  subtotal = computed(() =>
+    this.items.reduce((sum, i) => sum + i.price, 0),
+  );
+  total = computed(() => this.subtotal() * (1 - this.discount));
+
+  add(item: { name: string; price: number }) {
+    this.items = [...this.items, item];
+  }
+  remove(name: string) {
+    this.items = this.items.filter((i) => i.name !== name);
+  }
+}
+
+export const cart = new CartStore();
+```
+
+Stores are **framework-agnostic** — the same instance drives a custom element, a React component, and a plain effect, all in sync.
+
+---
+
+## Reading from a store
+
+`@reactive()` installs a `get` / `set` accessor on the class field. Reading the field calls the signal's read function — so anywhere you pass `() => store.field`, you create a live subscription.
+
+```tsx
+import { effect, computed } from "elements-kit/signals";
+import { cart } from "./cart-store";
+
+// Effect — reruns when cart.items or cart.discount changes
+effect(() => {
+  console.log(cart.items.length, "items, total:", cart.total());
+});
+
+// In an element — live text binding
+<p>Total: {() => cart.total()}</p>
+
+// Compose into another computed
+const isEmpty = computed(() => cart.items.length === 0);
+
+// In React (via useSignal)
+const items = useSignal(() => cart.items);
+const total = useSignal(cart.total); // Computed<T> directly
+```
+
+
+
+## Singleton vs. instance
+
+**Singleton** — one shared instance for the whole app or a module:
+
+```ts
+// cart-store.ts
+export const cart = new CartStore();
+
+// anywhere.ts
+import { cart } from "./cart-store";
+cart.add({ name: "Widget", price: 9.99 });
+```
+
+**Instance** — a new store per component or subtree:
+
+```tsx
+class TodoComponent {
+  store = new TodoStore(); // private, scoped to this component
+
+  render() {
+    return <ul>{() => this.store.todos.map(...)}</ul> as Element;
+  }
+}
+```
+
+---
+
+## Store with actions
+
+Group mutations as methods. Methods are plain functions — they write to `@reactive` fields and the reactivity system handles the rest.
+
+```ts
+import { reactive, computed } from "elements-kit/signals";
+
+export class AuthStore {
+  @reactive() user: { name: string; role: string } | null = null;
+  @reactive() loading = false;
+
+  isAdmin = computed(() => this.user?.role === "admin");
+
+  async login(email: string, password: string) {
+    this.loading = true;
+    try {
+      this.user = await api.login(email, password);
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  logout() {
+    this.user = null;
+  }
+}
+
+export const auth = new AuthStore();
+```
+
+---
+
+## Composing stores
+
+Stores can read from each other — just access their fields inside a `computed`:
+
+```ts
+export class UIStore {
+  @reactive() sidebarOpen = true;
+
+  // Derived from another store
+  pageTitle = computed(() =>
+    auth.user ? `Welcome, ${auth.user.name}` : "Sign in",
+  );
+}
+
+export const ui = new UIStore();
+```
+
+---
+
+## Playground
+
+<Playground
+  provider={{
+    files: {
+      "/main.tsx": {
+        code: STORES_FILE,
+        active: true,
+      },
+    },
+  }}
+  preview={{}}
+/>

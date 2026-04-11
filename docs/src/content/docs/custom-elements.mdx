@@ -1,0 +1,346 @@
+---
+title: Custom Elements
+description: Build native HTMLElement subclasses — then enhance with signals, JSX, and decorators.
+---
+
+import MagicMove from "@/components/MagicMove.astro";
+import Playground from "@/playground/Playground.astro";
+
+Custom elements are native browser components — a class that extends `HTMLElement` and registers under a hyphenated tag name. They work in every HTML context: plain HTML files, React trees, Vue templates, server-rendered pages.
+
+ElementsKit enhances them **gradually**. Start with the platform, add only what you need.
+
+---
+
+## The native API
+
+No dependencies. A minimal custom element looks exactly like this:
+
+```ts
+class GreetingElement extends HTMLElement {
+  connectedCallback() {
+    this.textContent = `Hello, ${this.getAttribute("name") ?? "world"}!`;
+  }
+}
+
+customElements.define("x-greeting", GreetingElement);
+```
+
+```html
+<x-greeting name="Alice"></x-greeting>
+<!-- renders: Hello, Alice! -->
+```
+
+`connectedCallback` fires when the element is attached to the DOM. `disconnectedCallback` fires when it's removed. `attributeChangedCallback` fires when a listed attribute changes.
+
+```ts
+class CounterElement extends HTMLElement {
+  // Declare which attributes to observe
+  static observedAttributes = ["count"];
+
+  attributeChangedCallback(name: string, _old: string, next: string) {
+    if (name === "count") this.#render(Number(next));
+  }
+
+  connectedCallback() {
+    this.#render(Number(this.getAttribute("count") ?? 0));
+  }
+
+  #render(count: number) {
+    this.innerHTML = `<p>Count: <strong>${count}</strong></p>`;
+  }
+}
+
+customElements.define("x-counter", CounterElement);
+```
+
+This works, but every state change requires a full `innerHTML` rewrite and manual attribute bookkeeping.
+
+---
+
+## Gradual enhancement
+
+export const STEPS = [
+  `// Step 1 — bare custom element, native API only
+class CounterElement extends HTMLElement {
+  #count = 0;
+
+  connectedCallback() {
+    this.innerHTML = \`
+      <p>Count: <strong id="val">0</strong></p>
+      <button>+1</button>
+    \`;
+    this.querySelector("button")!.addEventListener("click", () => {
+      this.#count++;
+      this.querySelector("#val")!.textContent = String(this.#count);
+    });
+  }
+}
+
+customElements.define("x-counter", CounterElement);`,
+
+  `// Step 2 — add a signal: reactive state, no manual DOM sync
+import { signal, effect } from "elements-kit/signals";
+
+class CounterElement extends HTMLElement {
+  #count = signal(0);
+
+  connectedCallback() {
+    this.innerHTML = \`
+      <p>Count: <strong id="val"></strong></p>
+      <button>+1</button>
+    \`;
+
+    // effect keeps the strong element in sync automatically
+    effect(() => {
+      this.querySelector("#val")!.textContent = String(this.#count());
+    });
+
+    this.querySelector("button")!.addEventListener("click", () => {
+      this.#count(this.#count() + 1);
+    });
+  }
+}`,
+
+  `// Step 3 — add JSX: declarative element construction, live bindings
+import { signal } from "elements-kit/signals";
+
+class CounterElement extends HTMLElement {
+  #count = signal(0);
+
+  connectedCallback() {
+    // JSX builds real DOM with signal bindings — no more innerHTML or queries
+    this.appendChild(
+      <section>
+        <p>Count: <strong>{this.#count}</strong></p>
+        <button onClick={() => this.#count(this.#count() + 1)}>+1</button>
+      </section> as Element,
+    );
+  }
+}`,
+
+  `// Step 4 — @reactive: natural property access, no () boilerplate
+import { computed, reactive } from "elements-kit/signals";
+
+class CounterElement extends HTMLElement {
+  @reactive() count = 0;
+  doubled = computed(() => this.count * 2);
+
+  connectedCallback() {
+    this.appendChild(
+      <section>
+        <p>
+          Count: <strong>{() => this.count}</strong>
+          {" — Doubled: "}<strong>{this.doubled}</strong>
+        </p>
+        <button onClick={() => this.count++}>+1</button>{" "}
+        <button onClick={() => this.count--}>−1</button>
+      </section> as Element,
+    );
+  }
+}`,
+
+  `// Step 5 — @attributes: HTML attributes ↔ reactive properties
+import { computed, reactive } from "elements-kit/signals";
+import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
+
+@attributes
+class CounterElement extends HTMLElement {
+  // Maps observed attributes to reactive property setters
+  static [attr] = {
+    count(this: CounterElement, value: string | null) {
+      this.count = Number(value ?? 0);
+    },
+  };
+
+  @reactive() count = 0;
+  doubled = computed(() => this.count * 2);
+
+  connectedCallback() {
+    this.appendChild(
+      <section>
+        <p>
+          Count: <strong>{() => this.count}</strong>
+          {" — Doubled: "}<strong>{this.doubled}</strong>
+        </p>
+        <button onClick={() => this.count++}>+1</button>{" "}
+        <button onClick={() => this.count--}>−1</button>
+      </section> as Element,
+    );
+  }
+}
+
+customElements.define("x-counter", CounterElement);
+// Now works: <x-counter count="5" />
+// And from JSX: <x-counter count={signal(9)} />`,
+];
+
+Step through the full progression — from bare `innerHTML` to a fully reactive custom element:
+
+<MagicMove steps={STEPS} lang="ts" />
+
+Each step adds a single concept:
+
+| Step | What's added | Benefit |
+|------|--------------|---------|
+| 1 | Native `HTMLElement` | No dependencies, works everywhere |
+| 2 | `signal` + `effect` | Reactive state, DOM sync without manual queries |
+| 3 | JSX | Declarative DOM construction, live bindings |
+| 4 | `@reactive` | Natural `this.field` access, `computed` derivations |
+| 5 | `@attributes` | Attribute binding, usable from HTML and JSX |
+
+---
+
+## `@attributes`
+
+`@attributes` is a class decorator that wires `observedAttributes` and `attributeChangedCallback` automatically from a static `[ATTRIBUTES]` map.
+
+```ts
+import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
+import { reactive } from "elements-kit/signals";
+
+@attributes
+class InputElement extends HTMLElement {
+  static [attr] = {
+    // Called whenever the "value" attribute changes
+    value(this: InputElement, next: string | null) {
+      this.value = next ?? "";
+    },
+    // Called whenever the "disabled" attribute changes
+    disabled(this: InputElement, next: string | null) {
+      this.disabled = next !== null;
+    },
+  };
+
+  @reactive() value = "";
+  @reactive() disabled = false;
+
+  connectedCallback() {
+    this.appendChild(
+      <input
+        value={computed(() => this.value)}
+        disabled={computed(() => this.disabled)}
+        on:input={(e: Event) =>
+          (this.value = (e.target as HTMLInputElement).value)
+        }
+      /> as Element,
+    );
+  }
+}
+
+customElements.define("x-input", InputElement);
+```
+
+From HTML: `<x-input value="hello" disabled></x-input>`  
+From JSX: `<x-input value={signal("hello")} disabled={isDisabled} />`
+
+---
+
+## Cleanup
+
+Use `disconnectedCallback` to stop effects or free resources when the element is removed. When an `effectScope` is started inside `connectedCallback`, stop it in `disconnectedCallback`:
+
+```ts
+import { signal, effectScope } from "elements-kit/signals";
+
+class ClockElement extends HTMLElement {
+  #time = signal(new Date());
+  #stopScope?: () => void;
+
+  connectedCallback() {
+    this.#stopScope = effectScope(() => {
+      const id = setInterval(() => this.#time(new Date()), 1000);
+      onCleanup(() => clearInterval(id));
+    });
+
+    this.appendChild(<p>{() => this.#time().toLocaleTimeString()}</p> as Element);
+  }
+
+  disconnectedCallback() {
+    this.#stopScope?.();
+  }
+}
+```
+
+---
+
+## Playground
+
+<Playground
+  provider={{
+    files: {
+      "/main.tsx": {
+        code: `import { reactive, computed } from "elements-kit/signals";
+import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
+
+@attributes
+class CounterElement extends HTMLElement {
+  static [attr] = {
+    count(this: CounterElement, value: string | null) {
+      this.count = Number(value ?? 0);
+    },
+    step(this: CounterElement, value: string | null) {
+      this.step = Number(value ?? 1);
+    },
+  };
+
+  @reactive() count = 0;
+  @reactive() step = 1;
+  doubled = computed(() => this.count * 2);
+
+  connectedCallback() {
+    this.style.display = "block";
+    this.style.padding = "1.5rem";
+    this.style.fontFamily = "sans-serif";
+    this.appendChild(
+      <div>
+        <h2>Custom Element Counter</h2>
+        <p>
+          Count: <strong>{() => this.count}</strong>
+          {" — "}
+          Doubled: <strong>{this.doubled}</strong>
+        </p>
+        <button onClick={() => (this.count += this.step)}>
+          +{() => this.step}
+        </button>{" "}
+        <button onClick={() => (this.count -= this.step)}>
+          −{() => this.step}
+        </button>{" "}
+        <button onClick={() => (this.count = 0)}>Reset</button>
+        <p style="margin-top: 1rem">
+          Step:{" "}
+          <input
+            type="number"
+            value={computed(() => String(this.step))}
+            on:input={(e: Event) =>
+              (this.step = Number((e.target as HTMLInputElement).value))
+            }
+            style="width: 60px"
+          />
+        </p>
+      </div> as Element,
+    );
+  }
+}
+
+customElements.define("x-counter", CounterElement);
+
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      "x-counter": { count?: number | string; step?: number | string };
+    }
+  }
+}
+
+export class App {
+  render() {
+    return <x-counter count={5} step={2} /> as Element;
+  }
+}`,
+        active: true,
+      },
+    },
+  }}
+  preview={{}}
+/>

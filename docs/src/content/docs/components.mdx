@@ -1,106 +1,110 @@
 ---
 title: Components
-description: Elements, class components, and custom elements — from bare DOM to fully reactive.
+description: Class components — reactive state and element rendering in one place.
 ---
 
 import MagicMove from "@/components/MagicMove.astro";
 import Playground from "@/playground/Playground.astro";
 
-ElementsKit has two layers for building UI: **elements** (DOM nodes created with JSX) and **components** (classes that produce elements). Both are standard web platform — no virtual DOM, no framework runtime.
-
----
-
-## Elements and JSX
-
-JSX in ElementsKit compiles directly to `document.createElement` calls. There is no virtual DOM or diffing layer — every JSX expression produces a real DOM node immediately.
+A **component** is a class with a `render()` method that returns an `Element`. It combines a [store](/store) (reactive state) with element construction (JSX). The simplest possible component:
 
 ```tsx
-// This JSX:
-const el = <button onClick={() => count(count() + 1)}>Click me</button>;
+class Greeting {
+  name = "world";
 
-// Is equivalent to:
-const el = document.createElement("button");
-el.addEventListener("click", () => count(count() + 1));
-el.append("Click me");
-```
-
-Configure your `tsconfig.json` once and JSX just works:
-
-```json
-{
-  "compilerOptions": {
-    "jsx": "react-jsx",
-    "jsxImportSource": "elements-kit"
+  render() {
+    return <h1>Hello, {this.name}!</h1> as Element;
   }
 }
+
+document.getElementById("app")!.appendChild(new Greeting().render());
 ```
-
-### Live bindings
-
-Passing a signal or a `() => T` function as a child or prop creates a **live binding** — the DOM node updates in place whenever the value changes, with no re-render of the surrounding tree.
-
-```tsx
-const count = signal(0);
-
-// Both create a live text node that updates when count changes
-<p>Count: {count}</p>
-<p>Count: {() => count()}</p>
-
-// Reactive props
-<input value={count} on:input={(e) => count(e.target.value)} />
-
-// Conditional element — replaces the node when show changes
-<div>{() => show() && <strong>Visible</strong>}</div>
-```
-
-### Prop namespaces
-
-| Syntax | Effect |
-|--------|--------|
-| `{signal}` / `{() => fn()}` | Live-bound reactive child |
-| `onClick={fn}` | Event listener (camelCase maps to `onclick`) |
-| `on:click={fn}` | Explicit event namespace |
-| `class:active={bool}` | Reactive `classList.toggle` |
-| `style:color={value}` | Reactive inline style property |
-| `prop:foo={val}` | Force property assignment (skips `setAttribute`) |
 
 ---
 
-## Class Components
+## Store + render
 
-A **component** is a class with a `render()` method that returns an `Element`. It can hold reactive state, computed values, and event handlers — all in one place.
+A typical component owns its state and produces elements from it. `@reactive` turns class fields into signals; JSX reads them as live bindings.
 
-```tsx
+export const STEPS = [
+  `// State only — a plain signal
+import { signal } from "elements-kit/signals";
+
+const count = signal(0);`,
+
+  `// Add a derived value
+import { signal, computed } from "elements-kit/signals";
+
+const count = signal(0);
+const doubled = computed(() => count() * 2);`,
+
+  `// Lift into a class — state + render together
 import { signal, computed } from "elements-kit/signals";
 
 class Counter {
-  // State
-  #count = signal(0);
-  doubled = computed(() => this.#count() * 2);
+  count = signal(0);
+  doubled = computed(() => this.count() * 2);
 
-  // View
   render() {
     return (
-      <section>
-        <p>Count: <strong>{this.#count}</strong> — Doubled: <strong>{this.doubled}</strong></p>
-        <button onClick={() => this.#count(this.#count() + 1)}>+1</button>{" "}
-        <button onClick={() => this.#count(0)}>Reset</button>
-      </section>
+      <div>
+        <p>Count: {this.count} — Doubled: {this.doubled}</p>
+      </div>
+    ) as Element;
+  }
+}`,
+
+  `// Use @reactive for natural property access (no () on reads)
+import { reactive, computed } from "elements-kit/signals";
+
+class Counter {
+  @reactive() count = 0;
+  doubled = computed(() => this.count * 2);
+
+  render() {
+    return (
+      <div>
+        <p>Count: {() => this.count} — Doubled: {this.doubled}</p>
+        <button onClick={() => this.count++}>+1</button>
+      </div>
+    ) as Element;
+  }
+}`,
+
+  `// Full component — state, derived values, and actions
+import { reactive, computed } from "elements-kit/signals";
+
+class Counter {
+  @reactive() count = 0;
+  doubled = computed(() => this.count * 2);
+
+  render() {
+    return (
+      <div>
+        <p>Count: {() => this.count} — Doubled: {this.doubled}</p>
+        <button onClick={() => this.count++}>+1</button>
+        <button onClick={() => this.count--}>−1</button>
+        <button onClick={() => (this.count = 0)}>Reset</button>
+      </div>
     ) as Element;
   }
 }
 
-document.getElementById("app")!.appendChild(new Counter().render());
-```
+document.getElementById("app")!.appendChild(new Counter().render());`,
+];
 
-### Store + render
+<MagicMove steps={STEPS} lang="tsx" />
 
-When state needs to be **shared** across components, split it into a dedicated **store** — a class with `@reactive` fields and no `render()`. Components then read from the store.
+---
 
-```tsx
+## Sharing state
+
+When state needs to be **shared** across components, move it into a standalone [store](/store) — a class with `@reactive` fields and no `render()`. Components read from the store; the store holds no reference to components.
+
+```ts
+// counter-store.ts — state only
 import { reactive, computed } from "elements-kit/signals";
 
-// Store — reactive state, no DOM
 export class CounterStore {
   @reactive() count = 0;
   doubled = computed(() => this.count * 2);
@@ -113,13 +117,11 @@ export const counter = new CounterStore();
 ```
 
 ```tsx
-// Component — reads from the store, renders elements
+// Two components, one store
 class CounterDisplay {
   render() {
     return (
-      <p>
-        {() => counter.count} × 2 = {counter.doubled}
-      </p>
+      <p>{() => counter.count} × 2 = {counter.doubled}</p>
     ) as Element;
   }
 }
@@ -136,172 +138,13 @@ class CounterControls {
 }
 ```
 
-The store is framework-agnostic — you can read from it in a custom element, a React component, or a plain effect — all sharing the same reactive state.
+The same `counter` instance can also drive a React component or a custom element — see [Store](/store) and [React integration](/integrations/react#store).
 
 ---
 
-## Custom Elements
+## `For` — keyed list rendering
 
-Custom elements are native browser components — a class that extends `HTMLElement` and registers under a tag name. ElementsKit enhances them gradually; you start with the platform and add only what you need.
-
-### Step 1 — Bare custom element
-
-The browser's built-in API, no dependencies:
-
-```ts
-class CounterElement extends HTMLElement {
-  #count = 0;
-
-  connectedCallback() {
-    // Manual DOM construction and update
-    this.innerHTML = `
-      <p>Count: <strong id="val">0</strong></p>
-      <button>+1</button>
-    `;
-    this.querySelector("button")!.addEventListener("click", () => {
-      this.#count++;
-      this.querySelector("#val")!.textContent = String(this.#count);
-    });
-  }
-}
-
-customElements.define("x-counter", CounterElement);
-```
-
-It works, but every state change requires manual DOM queries and text updates. Adding more state means more bookkeeping.
-
----
-
-export const CUSTOM_ELEMENT_STEPS = [
-  `// Step 1 — plain class, manual DOM
-class CounterElement extends HTMLElement {
-  #count = 0;
-
-  connectedCallback() {
-    this.innerHTML = \`<p>Count: <strong id="val">0</strong></p>
-      <button>+1</button>\`;
-
-    this.querySelector("button")!.addEventListener("click", () => {
-      this.#count++;
-      this.querySelector("#val")!.textContent = String(this.#count);
-    });
-  }
-}`,
-
-  `// Step 2 — add a signal for reactive state
-import { signal, effect } from "elements-kit/signals";
-
-class CounterElement extends HTMLElement {
-  #count = signal(0);
-
-  connectedCallback() {
-    this.innerHTML = \`<p>Count: <strong id="val"></strong></p>
-      <button>+1</button>\`;
-
-    // Effect keeps the DOM in sync — no manual query on each click
-    effect(() => {
-      this.querySelector("#val")!.textContent = String(this.#count());
-    });
-
-    this.querySelector("button")!.addEventListener("click", () => {
-      this.#count(this.#count() + 1);
-    });
-  }
-}`,
-
-  `// Step 3 — replace innerHTML with JSX (real DOM, live bindings)
-import { signal } from "elements-kit/signals";
-
-class CounterElement extends HTMLElement {
-  #count = signal(0);
-
-  connectedCallback() {
-    // JSX builds real DOM elements with live signal bindings
-    this.appendChild(
-      <section>
-        <p>Count: <strong>{this.#count}</strong></p>
-        <button onClick={() => this.#count(this.#count() + 1)}>+1</button>
-      </section> as Element,
-    );
-  }
-}`,
-
-  `// Step 4 — @reactive for natural property access + computed
-import { computed, reactive } from "elements-kit/signals";
-
-class CounterElement extends HTMLElement {
-  @reactive() count = 0;
-  doubled = computed(() => this.count * 2);
-
-  connectedCallback() {
-    this.appendChild(
-      <section>
-        <p>
-          Count: <strong>{() => this.count}</strong>
-          {" — Doubled: "}<strong>{this.doubled}</strong>
-        </p>
-        <button onClick={() => this.count++}>+1</button>{" "}
-        <button onClick={() => this.count--}>−1</button>
-      </section> as Element,
-    );
-  }
-}`,
-
-  `// Step 5 — @attributes wires HTML attribute ↔ reactive property
-import { computed, reactive } from "elements-kit/signals";
-import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
-
-@attributes
-class CounterElement extends HTMLElement {
-  // Declared observed attributes and their handlers
-  static [attr] = {
-    count(this: CounterElement, value: string | null) {
-      this.count = Number(value ?? 0);
-    },
-  };
-
-  @reactive() count = 0;
-  doubled = computed(() => this.count * 2);
-
-  connectedCallback() {
-    this.appendChild(
-      <section>
-        <p>
-          Count: <strong>{() => this.count}</strong>
-          {" — Doubled: "}<strong>{this.doubled}</strong>
-        </p>
-        <button onClick={() => this.count++}>+1</button>{" "}
-        <button onClick={() => this.count--}>−1</button>
-      </section> as Element,
-    );
-  }
-}
-
-customElements.define("x-counter", CounterElement);
-// Now HTML attributes are reactive: <x-counter count="5" />`,
-];
-
-### Step 2–5 — Gradual enhancement
-
-Step through the progression from bare DOM to a fully reactive custom element:
-
-<MagicMove steps={CUSTOM_ELEMENT_STEPS} lang="ts" />
-
-Each step adds a single concept:
-
-| Step | What changes |
-|------|-------------|
-| 1 | Native `HTMLElement` — no dependencies |
-| 2 | `signal` + `effect` — reactive state, sync-free DOM updates |
-| 3 | JSX — declarative element construction with live bindings |
-| 4 | `@reactive` — natural `this.field` access, `computed` derivations |
-| 5 | `@attributes` — HTML attribute binding, usable from markup |
-
----
-
-## `For` — Keyed list rendering
-
-`For` efficiently reconciles a reactive array into the DOM. Each item is rendered **once** per unique key — no full re-renders on reorder, add, or remove.
+`For` reconciles a reactive array into the DOM. Each item renders **once** per unique key — no full re-renders on reorder, add, or remove.
 
 ```tsx
 import { For } from "elements-kit";
@@ -337,10 +180,9 @@ import { For } from "elements-kit";
     files: {
       "/main.tsx": {
         code: `import { reactive, computed } from "elements-kit/signals";
-import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
 import { For } from "elements-kit";
 
-// ── Store ────────────────────────────────────────────────────────────────────
+// ── Store ─────────────────────────────────────────────────────────────────────
 class Todo {
   static #id = 0;
   id = Todo.#id++;
@@ -351,17 +193,17 @@ class Todo {
 
 class TodoStore {
   @reactive() todos: Todo[] = [
-    new Todo("Learn signals"),
-    new Todo("Build a custom element"),
-    new Todo("Ship something cool"),
+    new Todo("Read the docs"),
+    new Todo("Build something"),
+    new Todo("Ship it"),
   ];
   @reactive() filter: "all" | "active" | "done" = "all";
 
   visible = computed(() =>
     this.todos.filter((t) =>
       this.filter === "all" ? true :
-      this.filter === "done" ? t.done : !t.done
-    )
+      this.filter === "done" ? t.done : !t.done,
+    ),
   );
 
   add(text: string) {
@@ -383,29 +225,47 @@ export class App {
     return (
       <section style="padding: 1.5rem; font-family: sans-serif; max-width: 480px">
         <h2>Todo</h2>
-        <form on:submit={(e: Event) => { e.preventDefault(); store.add(input.value); input.value = ""; }}>
+
+        <form
+          on:submit={(e: Event) => {
+            e.preventDefault();
+            store.add(input.value);
+            input.value = "";
+          }}
+        >
           <input ref={(el) => (input = el as HTMLInputElement)} placeholder="New todo…" />
           <button type="submit">Add</button>
         </form>
-        <div style="margin: 0.5rem 0">
+
+        <div style="margin: 8px 0">
           {(["all", "active", "done"] as const).map((f) => (
             <button
               style:font-weight={computed(() => store.filter === f ? "bold" : "normal")}
               onClick={() => (store.filter = f)}
-            >{f}</button>
+            >
+              {f}
+            </button>
           ))}
         </div>
+
         <ul style="padding: 0; list-style: none">
           <For each={store.visible} by={(t: Todo) => t.id}>
             {(todo: Todo) => (
               <li style="display: flex; gap: 8px; align-items: center; padding: 4px 0">
-                <input type="checkbox" checked={computed(() => todo.done)} on:change={() => (todo.done = !todo.done)} />
-                <span style:text-decoration={computed(() => todo.done ? "line-through" : "none")}>{todo.text}</span>
+                <input
+                  type="checkbox"
+                  checked={computed(() => todo.done)}
+                  on:change={() => (todo.done = !todo.done)}
+                />
+                <span style:text-decoration={computed(() => todo.done ? "line-through" : "none")}>
+                  {todo.text}
+                </span>
                 <button onClick={() => store.remove(todo.id)}>✕</button>
               </li>
             )}
           </For>
         </ul>
+
         <p style="font-size: 0.8em; color: #888">
           {() => store.todos.filter((t) => !t.done).length} remaining
         </p>

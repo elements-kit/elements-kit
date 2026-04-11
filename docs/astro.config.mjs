@@ -10,7 +10,7 @@ export default defineConfig({
     react(),
     starlight({
       title: "ElementsKit",
-      description: "A signal-based reactive UI library for the web.",
+      description: "Universal reactive primitives for the web.",
 
       social: {
         github: "https://github.com/waelbettayeb/elements-kit",
@@ -21,16 +21,22 @@ export default defineConfig({
           label: "Signals",
           items: [
             { label: "Primitives", slug: "signals" },
+            { label: "Stores", slug: "stores" },
             { label: "Helpers", slug: "signals/helpers" },
           ],
         },
         {
-          label: "Integrations",
+          label: "Building UI",
           items: [
-            { label: "React", slug: "integrations/react" },
+            { label: "Elements", slug: "elements" },
+            { label: "Components", slug: "components" },
+            { label: "Custom Elements", slug: "custom-elements" },
           ],
         },
-        { label: "Components", slug: "components" },
+        {
+          label: "Integrations",
+          items: [{ label: "React", slug: "integrations/react" }],
+        },
       ],
 
       expressiveCode: {

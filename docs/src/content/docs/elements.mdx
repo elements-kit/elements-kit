@@ -1,0 +1,233 @@
+---
+title: Elements
+description: JSX compiles to real DOM elements. Reactive props are effects under the hood.
+---
+
+import MagicMove from "@/components/MagicMove.astro";
+import Playground from "@/playground/Playground.astro";
+
+An **element** is a real DOM node. JSX in ElementsKit compiles directly to `document.createElement` — there is no virtual DOM, no diffing, no reconciliation. Every expression produces an actual node you can hold in a variable, append to the DOM, or pass to a function.
+
+Configure JSX once in `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "elements-kit"
+  }
+}
+```
+
+---
+
+## JSX = createElement
+
+Every JSX tag is a `createElement` call. Props become attributes or event listeners, children become appended nodes.
+
+```tsx
+// This JSX:
+const el = (
+  <button class="primary" onClick={() => submit()}>
+    Save
+  </button>
+);
+
+// Compiles to exactly this:
+const el = document.createElement("button");
+el.setAttribute("class", "primary");
+el.addEventListener("click", () => submit());
+el.append("Save");
+```
+
+No framework runtime is involved. The element is a plain `HTMLButtonElement` the moment the expression evaluates.
+
+---
+
+## Reactive props = effects
+
+When you pass a **signal** or a **`() => T` function** as a prop, ElementsKit creates an `effect` behind the scenes that keeps the DOM in sync. Every time the signal changes, the effect re-runs and re-assigns the property — just like writing it manually with `effect`.
+
+```tsx
+import { signal, effect } from "elements-kit/signals";
+
+const label = signal("Save");
+const disabled = signal(false);
+
+// This reactive JSX:
+const el = <button disabled={disabled}>{label}</button>;
+
+// Is equivalent to:
+const el = document.createElement("button");
+effect(() => { el.disabled = disabled(); });
+effect(() => { /* text node updated in place */ });
+// label signal drives a live text node — same principle
+```
+
+Passing a **plain value** (not a signal or function) sets the prop once and never updates it — no effect is created.
+
+```tsx
+// Static — set once at render time
+<input placeholder="Enter text" maxLength={100} />
+
+// Reactive — updates on every change
+<input placeholder={hint} maxLength={computed(() => limit())} />
+```
+
+export const REACTIVE_PROP_STEPS = [
+  `// Static prop — set once, no tracking
+const el = <input placeholder="Search…" />;
+
+// Equivalent:
+const el = document.createElement("input");
+el.setAttribute("placeholder", "Search…");`,
+
+  `// Reactive prop — signal passed as value
+const query = signal("");
+const el = <input placeholder={query} />;
+
+// Equivalent:
+const el = document.createElement("input");
+effect(() => { el.setAttribute("placeholder", query()); });`,
+
+  `// Multiple reactive props — each gets its own effect
+const value = signal("");
+const maxLen = computed(() => settings.maxLength);
+
+const el = <input value={value} maxLength={maxLen} />;
+
+// Equivalent:
+const el = document.createElement("input");
+effect(() => { el.value = value(); });
+effect(() => { el.maxLength = maxLen(); });`,
+
+  `// Reactive children — live text node
+const count = signal(0);
+const el = <p>Count: {count}</p>;
+
+// Equivalent:
+const el = document.createElement("p");
+el.append("Count: ");
+const text = document.createTextNode(String(count()));
+effect(() => { text.data = String(count()); });
+el.append(text);`,
+];
+
+<MagicMove steps={REACTIVE_PROP_STEPS} lang="tsx" />
+
+---
+
+## Children
+
+Any of the following are valid element children:
+
+| Type | Behaviour |
+|------|-----------|
+| `string` / `number` | Static text node, set once |
+| `Signal<T>` | Live text node — updates in place when signal changes |
+| `() => T` | Live thunk — re-evaluated on every dep change |
+| `Element` / `Node` | Appended directly |
+| `null` / `false` / `undefined` | Nothing rendered |
+| `Array` | Each item rendered in order |
+
+```tsx
+const show = signal(true);
+const count = signal(0);
+
+<div>
+  Static text
+  {count}                              // live — updates in place
+  {() => count() * 2}                 // thunk — also live
+  {() => show() && <strong>Hi</strong>} // conditional element
+  {[1, 2, 3].map((n) => <li>{n}</li>)} // array of elements
+</div>
+```
+
+---
+
+## Prop namespaces
+
+ElementsKit extends standard HTML props with namespaced prefixes for common reactive patterns:
+
+| Syntax | Effect | Equivalent |
+|--------|--------|------------|
+| `onClick={fn}` | Event listener | `el.addEventListener("click", fn)` |
+| `on:click={fn}` | Explicit event | `el.addEventListener("click", fn)` |
+| `class:active={bool}` | Reactive class toggle | `effect(() => el.classList.toggle("active", bool()))` |
+| `style:color={value}` | Reactive inline style | `effect(() => el.style.color = value())` |
+| `prop:foo={val}` | Force property assignment | `el.foo = val` (skips `setAttribute`) |
+| `ref={fn}` | Ref callback | `fn(el)` after element is created |
+
+```tsx
+const active = signal(false);
+const color = signal("blue");
+
+<button
+  class:active={active}
+  style:color={color}
+  on:click={() => active(!active())}
+  ref={(el) => console.log("mounted:", el)}
+>
+  Toggle
+</button>
+```
+
+---
+
+## Playground
+
+<Playground
+  provider={{
+    files: {
+      "/main.tsx": {
+        code: `import { signal, computed } from "elements-kit/signals";
+
+const text   = signal("Hello");
+const color  = signal("#0070f3");
+const bold   = signal(false);
+
+export class App {
+  render() {
+    return (
+      <section style="padding: 1.5rem; font-family: sans-serif">
+        <h2>Reactive Props</h2>
+
+        {/* Live text binding */}
+        <p style:color={color} style:font-weight={computed(() => bold() ? "bold" : "normal")}>
+          {text}
+        </p>
+
+        {/* Controls */}
+        <label style="display: block; margin: 8px 0">
+          Text:{" "}
+          <input
+            value={text}
+            on:input={(e: Event) => text((e.target as HTMLInputElement).value)}
+          />
+        </label>
+        <label style="display: block; margin: 8px 0">
+          Color:{" "}
+          <input
+            type="color"
+            value={color}
+            on:input={(e: Event) => color((e.target as HTMLInputElement).value)}
+          />
+        </label>
+        <label style="display: block; margin: 8px 0">
+          <input
+            type="checkbox"
+            checked={bold}
+            on:change={() => bold(!bold())}
+          />{" "}
+          Bold
+        </label>
+      </section>
+    ) as Element;
+  }
+}`,
+        active: true,
+      },
+    },
+  }}
+  preview={{}}
+/>
