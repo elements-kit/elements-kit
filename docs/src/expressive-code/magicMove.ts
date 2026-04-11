@@ -3,13 +3,13 @@ import {
   definePlugin,
   type ExpressiveCodeBlock,
 } from "@astrojs/starlight/expressive-code";
+import type { AstroIntegration } from "astro";
+import { fileURLToPath } from "node:url";
 import type { Element, ElementContent, Properties, RootContent } from "hast";
 
 type MagicMoveData = { steps: string[] };
 
 const STEP_SEPARATOR = /^\s*---\s*$/m;
-const LIGHT_THEME = "github-light-default";
-const DARK_THEME = "github-dark-default";
 const attachedData = new AttachedPluginData<MagicMoveData | null>(() => null);
 
 function splitSteps(code: string): string[] | null {
@@ -86,115 +86,6 @@ br.shiki-magic-move-leave-active{display:none}
 .ec-magic-move-btn:disabled{opacity:.35;cursor:not-allowed}
     `,
 
-    jsModules: [
-      `
-import { getSingletonHighlighter } from "shiki";
-import { codeToKeyedTokens, createMagicMoveMachine } from "shiki-magic-move/core";
-import { MagicMoveRenderer } from "shiki-magic-move/renderer";
-
-const LIGHT = "${LIGHT_THEME}";
-const DARK  = "${DARK_THEME}";
-
-function getTheme() {
-  return document.documentElement.getAttribute("data-theme") === "light" ? LIGHT : DARK;
-}
-
-// Encode newlines as DEL (U+007F) — matches what EC's copy handler decodes
-function encodeForCopy(code) {
-  return code.replace(/\\n/g, "\\u007f");
-}
-
-function init(wrapper) {
-  if (wrapper.dataset.ready) return;
-  wrapper.dataset.ready = "1";
-
-  const steps    = JSON.parse(wrapper.dataset.steps ?? "[]");
-  const lang     = wrapper.dataset.lang ?? "text";
-  if (steps.length < 2) return;
-
-  const surface   = wrapper.querySelector(".ec-magic-move-surface");
-  const prevBtn   = wrapper.querySelector(".ec-magic-move-prev");
-  const nextBtn   = wrapper.querySelector(".ec-magic-move-next");
-  const currentEl = wrapper.querySelector(".ec-magic-move-current");
-  const dots      = wrapper.querySelectorAll(".ec-magic-move-dot");
-  const copyBtn   = wrapper.querySelector("[data-code]");
-  if (!surface || !prevBtn || !nextBtn || !currentEl) return;
-
-  let stepIdx = 0;
-  let theme   = getTheme();
-
-  function updateUi() {
-    currentEl.textContent = String(stepIdx + 1);
-    prevBtn.disabled = stepIdx === 0;
-    nextBtn.disabled = stepIdx === steps.length - 1;
-    dots.forEach((d, i) => d.classList.toggle("active", i === stepIdx));
-    if (copyBtn) copyBtn.dataset.code = encodeForCopy(steps[stepIdx]);
-  }
-
-  getSingletonHighlighter({ langs: [lang], themes: [LIGHT, DARK] }).then((hl) => {
-    // Single machine run — all tokens share consistent keys across steps.
-    // This enables smooth animation in BOTH directions via renderer.render().
-    const machine = createMagicMoveMachine(
-      (code) => codeToKeyedTokens(hl, code, { lang, theme }),
-    );
-
-    function buildAllTokens() {
-      machine.reset();
-      return steps.map((step) => machine.commit(step).current);
-    }
-
-    const renderer = new MagicMoveRenderer(surface);
-    renderer.options.duration = 500;
-
-    let tokens = buildAllTokens();
-
-    // Initial render — use render() (not replace()) to clear isFirstRender flag
-    // so the first Next click animates instead of jumping
-    renderer.render(tokens[0]);
-    updateUi();
-
-    // Forward — smooth animation (tokens[N] keys consistent with tokens[N-1])
-    nextBtn.addEventListener("click", () => {
-      if (stepIdx >= steps.length - 1) return;
-      stepIdx += 1;
-      renderer.render(tokens[stepIdx]);
-      updateUi();
-    });
-
-    // Backward — same: pre-computed tokens share keys, diff animates correctly
-    prevBtn.addEventListener("click", () => {
-      if (stepIdx === 0) return;
-      stepIdx -= 1;
-      renderer.render(tokens[stepIdx]);
-      updateUi();
-    });
-
-    // Arrow key navigation
-    wrapper.addEventListener("keydown", (e) => {
-      if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); nextBtn.click(); }
-      else if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); prevBtn.click(); }
-    });
-
-    // Theme switch — rebuild tokens, replace without animation
-    new MutationObserver(() => {
-      const next = getTheme();
-      if (next === theme) return;
-      theme = next;
-      tokens = buildAllTokens();
-      renderer.replace(tokens[stepIdx]);
-    }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-  });
-}
-
-function initAll(root = document) {
-  root.querySelectorAll(".ec-magic-move").forEach(init);
-}
-
-initAll();
-document.addEventListener("astro:page-load", () => initAll());
-      `,
-    ],
-
     hooks: {
       preprocessMetadata({ codeBlock }) {
         if (codeBlock.metaOptions.getBoolean("magic-move") !== true) return;
@@ -213,28 +104,54 @@ document.addEventListener("astro:page-load", () => initAll());
         const data = attachedData.getOrCreateFor(codeBlock);
         if (!data || data.steps.length < 2) return;
 
-        const codeEl = findFirst(renderData.blockAst, (e) => e.tagName === "code");
+        const codeEl = findFirst(
+          renderData.blockAst,
+          (e) => e.tagName === "code",
+        );
         if (!codeEl) return;
 
         codeEl.children = [
-          el("div", { className: ["ec-magic-move-surface", "shiki-magic-move-container"] }),
+          el("div", {
+            className: ["ec-magic-move-surface", "shiki-magic-move-container"],
+          }),
         ];
 
         const dots = data.steps.map((_, i) =>
-          el("span", { className: ["ec-magic-move-dot", ...(i === 0 ? ["active"] : [])] }),
+          el("span", {
+            className: ["ec-magic-move-dot", ...(i === 0 ? ["active"] : [])],
+          }),
         );
 
         const footer = el("div", { className: ["ec-magic-move-footer"] }, [
-          el("button", { className: ["ec-magic-move-btn", "ec-magic-move-prev"], type: "button", disabled: true, "aria-label": "Previous step" }, [text("Prev")]),
+          el(
+            "button",
+            {
+              className: ["ec-magic-move-btn", "ec-magic-move-prev"],
+              type: "button",
+              disabled: true,
+              "aria-label": "Previous step",
+            },
+            [text("Prev")],
+          ),
           el("div", { className: ["ec-magic-move-status"] }, [
             el("span", { className: ["ec-magic-move-counter"] }, [
               el("span", { className: ["ec-magic-move-current"] }, [text("1")]),
               text(" / "),
-              el("span", { className: ["ec-magic-move-total"] }, [text(String(data.steps.length))]),
+              el("span", { className: ["ec-magic-move-total"] }, [
+                text(String(data.steps.length)),
+              ]),
             ]),
             el("div", { className: ["ec-magic-move-dots"] }, dots),
           ]),
-          el("button", { className: ["ec-magic-move-btn", "ec-magic-move-next"], type: "button", "aria-label": "Next step" }, [text("Next")]),
+          el(
+            "button",
+            {
+              className: ["ec-magic-move-btn", "ec-magic-move-next"],
+              type: "button",
+              "aria-label": "Next step",
+            },
+            [text("Next")],
+          ),
         ]);
 
         renderData.blockAst = el(
@@ -250,4 +167,18 @@ document.addEventListener("astro:page-load", () => initAll());
       },
     },
   });
+}
+
+export function magicMoveIntegration(): AstroIntegration {
+  const clientScript = fileURLToPath(
+    new URL("./magic-move-client.ts", import.meta.url),
+  );
+  return {
+    name: "magic-move-runtime",
+    hooks: {
+      "astro:config:setup": ({ injectScript }) => {
+        injectScript("page", `import ${JSON.stringify(clientScript)}`);
+      },
+    },
+  };
 }

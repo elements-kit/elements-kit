@@ -2,12 +2,16 @@ import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 import cloudflare from "@astrojs/cloudflare";
 import react from "@astrojs/react";
-import { pluginMagicMove } from "./src/expressive-code/magicMove.ts";
+import {
+  pluginMagicMove,
+  magicMoveIntegration,
+} from "./src/expressive-code/magicMove.ts";
 
 export default defineConfig({
   output: "server",
   adapter: cloudflare(),
   integrations: [
+    magicMoveIntegration(),
     react(),
     starlight({
       title: "ElementsKit",
