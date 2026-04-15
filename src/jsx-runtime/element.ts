@@ -7,7 +7,7 @@ import {
 } from "./types";
 import { applyProps } from "./properties";
 import { $ref } from "./ref";
-import { effectScope } from "../signals";
+import { effectScope, untracked } from "../signals";
 import "../polyfill";
 
 // ─ Public API ─────────────────────────────────────────────────────────────────
@@ -52,14 +52,15 @@ function createFunctionElement(
   ref: ((el: Element) => void) | undefined,
 ): Element | DocumentFragment | null {
   let el: Element | DocumentFragment | null | undefined;
+  let dispose: () => void;
 
-  const dispose = effectScope(() => {
-    el = type(props);
-    if (typeof ref === "function" && el instanceof Element) ref(el);
+  untracked(() => {
+    dispose = effectScope(() => {
+      el = type(props);
+      if (typeof ref === "function" && el instanceof Element) ref(el);
+    });
   });
-
   const result = el as Element | DocumentFragment | null;
-
   if (result instanceof Element || result instanceof DocumentFragment) {
     attachDisposables(result, new Set([dispose]));
   } else {
@@ -78,13 +79,15 @@ function createNodeElement(
   if (!node) return null;
 
   let el: Element | DocumentFragment | null | undefined;
+  let dispose: () => void;
 
-  const dispose = effectScope(() => {
-    applyProps(node, props);
-    el = renderNode(node);
-    if (typeof ref === "function" && el instanceof Element) ref(el);
+  untracked(() => {
+    dispose = effectScope(() => {
+      applyProps(node, props);
+      el = renderNode(node);
+      if (typeof ref === "function" && el instanceof Element) ref(el);
+    });
   });
-
   const result = el as Element | DocumentFragment | null;
 
   if (result instanceof Element || result instanceof DocumentFragment) {
