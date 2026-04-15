@@ -1,8 +1,7 @@
-import { effect, onCleanup } from "../signals";
+import { effect, effectScope, onCleanup } from "../signals";
 import { Component, Child } from "./types";
 import { $slots, Slots, Slot } from "../slot";
 import { PrimitiveNodeType, resolveNode } from "../lib";
-import { disposeElement } from "./element";
 
 // ─ Typed $slots accessor ──────────────────────────────────────────────────────
 
@@ -65,13 +64,27 @@ export function applyChildren(
 // ─ Helpers ────────────────────────────────────────────────────────────────────
 
 function applySlot(slot: Slot, value: Child): void {
-  if (typeof value === "function") {
-    effect(() => slot.set(resolveChild(value())));
+  // Each slot gets its own effectScope so its onCleanup is isolated from
+  // siblings — effectScope links to the parent scope (no untracked), so it is
+  // disposed automatically when the parent component tears down.
+  effectScope(() => {
+    if (typeof value === "function") {
+      effect(() => slot.set(resolveChild(value())));
+    } else {
+      const node = resolveChild(value);
+      // Class components (e.g. <For>) return a DocumentFragment whose children
+      // are transferred by slot.set(). The fragment object itself holds
+      // Symbol.dispose — capture it before the transfer so we can call it on
+      // teardown. slot.clear() covers nested Element children; this covers the
+      // fragment's own effectScope.
+      const dispose = (node as unknown as Partial<Disposable>)[Symbol.dispose]?.bind(node);
+      slot.set(node);
+      if (dispose) onCleanup(dispose);
+    }
+    // Dispose the current slot content when the parent scope tears down.
+    // Intermediate replacements are already handled by slot.set() → slot.clear().
     onCleanup(() => slot.clear());
-    return;
-  }
-  slot.set(resolveChild(value));
-  onCleanup(() => slot.clear());
+  });
 }
 
 function mountChildren(
@@ -80,15 +93,24 @@ function mountChildren(
 ): void {
   for (const child of ensureFlatArray(value)) {
     if (typeof child === "function") {
+      // Reactive child: a slot proxies the dynamic content. Each child gets its
+      // own effectScope so onCleanup registrations don't overwrite each other
+      // (the signals lib supports only one onCleanup per subscriber).
       const slot = Slot.new();
       el.appendChild(slot());
-      effect(() => slot.set(resolveChild(child())));
-      onCleanup(() => slot.clear());
+      effectScope(() => {
+        effect(() => slot.set(resolveChild(child())));
+        onCleanup(() => slot.clear());
+      });
       continue;
     }
     const node = resolveChild(child as any);
+    // Extract Symbol.dispose before appendChild — DocumentFragment children are
+    // transferred on append, but the JS object and its dispose fn persist.
+    const dispose = (node as unknown as Partial<Disposable>)[Symbol.dispose]?.bind(node);
     el.appendChild(node);
-    if (node instanceof Element) onCleanup(() => disposeElement(node));
+    // Own effectScope per child: prevents onCleanup overwrite across siblings.
+    if (dispose) effectScope(() => { onCleanup(dispose); });
   }
 }
 

@@ -39,9 +39,12 @@ export class Slot {
     return fragment;
   }
 
+  /** Dispose reactive children and remove all content between the markers. */
   clear() {
     let node: ChildNode | null = this.start.nextSibling;
     while (node && node !== this.end) {
+      // Dispose before advancing — node stays in the DOM until deleteContents,
+      // so nextSibling traversal is safe even if dispose triggers side-effects.
       if (node instanceof Element)
         (node as unknown as Disposable)[Symbol.dispose]?.();
       node = node.nextSibling;
