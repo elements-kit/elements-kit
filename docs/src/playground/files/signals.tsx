@@ -52,9 +52,7 @@ const untrackedLogs = signal<string[]>([]);
 
 effect(() => {
   untracked(untrackedLogs).push(`count: ${count2()} (tracked)`);
-  untracked(untrackedLogs).push(
-    `secret: ${untracked(() => secret())} (untracked)`,
-  );
+  untracked(untrackedLogs).push(`secret: ${untracked(secret)} (untracked) `);
   trigger(untrackedLogs);
 });
 
@@ -70,7 +68,7 @@ export class App {
         <div style="display: flex; gap: 4px; margin-bottom: 1rem; flex-wrap: wrap;">
           <For<string>
             each={["Counter", "Batch", "onCleanup", "effectScope", "untracked"]}
-            by={(log: string) => log}
+            by={(log: string, i: number) => i}
           >
             {(name: string, i: number) => (
               <button
@@ -224,7 +222,7 @@ function DemoCleanup() {
             "font-size": "0.85em",
           }}
         >
-          <For each={fetchLogs} by={(log: string) => log}>
+          <For each={fetchLogs} by={(log: string, i: number) => i}>
             {(log: string) => <div>{log}</div>}
           </For>
         </div>
@@ -279,7 +277,7 @@ function DemoEffectScope() {
             "font-size": "0.85em",
           }}
         >
-          <For each={scopeLogs} by={(log: string) => log}>
+          <For each={scopeLogs} by={(log: string, i: number) => i}>
             {(log: string) => <div>{log}</div>}
           </For>
         </div>
@@ -319,7 +317,7 @@ function DemoUntracked() {
             "font-size": "0.85em",
           }}
         >
-          <For each={untrackedLogs} by={(log: string) => log}>
+          <For each={untrackedLogs} by={(log: string, i: number) => i}>
             {(log: string) => <div>{log}</div>}
           </For>
         </div>
