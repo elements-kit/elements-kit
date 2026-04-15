@@ -1,7 +1,8 @@
-import { effect } from "../signals";
+import { effect, onCleanup } from "../signals";
 import { Component, Child } from "./types";
 import { $slots, Slots, Slot } from "../slot";
 import { PrimitiveNodeType, resolveNode } from "../lib";
+import { disposeElement } from "./element";
 
 // ─ Typed $slots accessor ──────────────────────────────────────────────────────
 
@@ -66,9 +67,11 @@ export function applyChildren(
 function applySlot(slot: Slot, value: Child): void {
   if (typeof value === "function") {
     effect(() => slot.set(resolveChild(value())));
+    onCleanup(() => slot.clear());
     return;
   }
   slot.set(resolveChild(value));
+  onCleanup(() => slot.clear());
 }
 
 function mountChildren(
@@ -80,9 +83,12 @@ function mountChildren(
       const slot = Slot.new();
       el.appendChild(slot());
       effect(() => slot.set(resolveChild(child())));
+      onCleanup(() => slot.clear());
       continue;
     }
-    el.appendChild(resolveChild(child as any));
+    const node = resolveChild(child as any);
+    el.appendChild(node);
+    if (node instanceof Element) onCleanup(() => disposeElement(node));
   }
 }
 

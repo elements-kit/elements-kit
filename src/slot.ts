@@ -1,4 +1,5 @@
 import { ElementBuilder } from "./builder";
+import "./polyfill";
 
 /**
  * A lightweight slot that reserves a region in the DOM using comment markers.
@@ -38,6 +39,19 @@ export class Slot {
     return fragment;
   }
 
+  clear() {
+    let node: ChildNode | null = this.start.nextSibling;
+    while (node && node !== this.end) {
+      if (node instanceof Element)
+        (node as unknown as Disposable)[Symbol.dispose]?.();
+      node = node.nextSibling;
+    }
+    const range = document.createRange();
+    range.setStartAfter(this.start);
+    range.setEndBefore(this.end);
+    range.deleteContents();
+  }
+
   /**
    * Replace the slot's content with the given element.
    * No-op if the slot is not mounted or the content is identical.
@@ -46,11 +60,8 @@ export class Slot {
     const parent = this.parent();
     if (!parent) return;
     if (this.isSame(element)) return;
+    this.clear();
 
-    const range = document.createRange();
-    range.setStartAfter(this.start);
-    range.setEndBefore(this.end);
-    range.deleteContents();
     parent.insertBefore(element, this.end);
   }
 
