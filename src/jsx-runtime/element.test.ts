@@ -194,9 +194,10 @@ describe("createElement (function component) — effectScope lifecycle", () => {
 
     const container = document.createElement("div");
     // Capture Symbol.dispose before appendChild consumes the fragment's children.
-    const disposeFor = (forEl as unknown as Partial<Disposable>)[Symbol.dispose]?.bind(forEl);
+    const disposeFor = (forEl as unknown as Partial<Disposable>)[Symbol.dispose];
     container.appendChild(forEl);
 
+    expect(disposeFor).toBeDefined();
     spy.mockClear();
     disposeFor?.();
     s(1);

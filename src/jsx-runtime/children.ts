@@ -68,22 +68,20 @@ function applySlot(slot: Slot, value: Child): void {
   // siblings — effectScope links to the parent scope (no untracked), so it is
   // disposed automatically when the parent component tears down.
   effectScope(() => {
+    // For static class-component children (e.g. <For>), capture Symbol.dispose
+    // before slot.set() transfers the fragment's DOM children. slot.clear()
+    // only covers Element children; this covers the fragment's own effectScope.
+    let dispose: (() => void) | undefined;
     if (typeof value === "function") {
       effect(() => slot.set(resolveChild(value())));
     } else {
       const node = resolveChild(value);
-      // Class components (e.g. <For>) return a DocumentFragment whose children
-      // are transferred by slot.set(). The fragment object itself holds
-      // Symbol.dispose — capture it before the transfer so we can call it on
-      // teardown. slot.clear() covers nested Element children; this covers the
-      // fragment's own effectScope.
-      const dispose = (node as unknown as Partial<Disposable>)[Symbol.dispose]?.bind(node);
+      dispose = (node as unknown as Partial<Disposable>)[Symbol.dispose];
       slot.set(node);
-      if (dispose) onCleanup(dispose);
     }
     // Dispose the current slot content when the parent scope tears down.
     // Intermediate replacements are already handled by slot.set() → slot.clear().
-    onCleanup(() => slot.clear());
+    onCleanup(() => { dispose?.(); slot.clear(); });
   });
 }
 
@@ -107,7 +105,7 @@ function mountChildren(
     const node = resolveChild(child as any);
     // Extract Symbol.dispose before appendChild — DocumentFragment children are
     // transferred on append, but the JS object and its dispose fn persist.
-    const dispose = (node as unknown as Partial<Disposable>)[Symbol.dispose]?.bind(node);
+    const dispose = (node as unknown as Partial<Disposable>)[Symbol.dispose];
     el.appendChild(node);
     // Own effectScope per child: prevents onCleanup overwrite across siblings.
     if (dispose) effectScope(() => { onCleanup(dispose); });

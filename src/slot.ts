@@ -15,6 +15,13 @@ export class Slot {
    * If not yet mounted, inserts the comment markers and optional default content.
    * If already mounted, extracts and returns the current content.
    */
+  /**
+   * Render the slot as a DocumentFragment.
+   * If not yet mounted, inserts the comment markers and optional default content.
+   * If already mounted, extracts and returns the current content WITHOUT disposing
+   * it — the caller takes ownership of the returned nodes and is responsible for
+   * their disposal.
+   */
   slot(defaultContent?: string | Node | ElementBuilder) {
     const fragment = document.createDocumentFragment();
     if (this.isMounted()) {
@@ -43,11 +50,12 @@ export class Slot {
   clear() {
     let node: ChildNode | null = this.start.nextSibling;
     while (node && node !== this.end) {
-      // Dispose before advancing — node stays in the DOM until deleteContents,
-      // so nextSibling traversal is safe even if dispose triggers side-effects.
+      // Save nextSibling before dispose — if dispose removes the node from DOM
+      // the sibling pointer would be lost.
+      const next = node.nextSibling;
       if (node instanceof Element)
         (node as unknown as Disposable)[Symbol.dispose]?.();
-      node = node.nextSibling;
+      node = next;
     }
     const range = document.createRange();
     range.setStartAfter(this.start);
@@ -68,6 +76,12 @@ export class Slot {
     parent.insertBefore(element, this.end);
   }
 
+  /**
+   * Extract and return the current slot content as a DocumentFragment.
+   * Returns `null` if the slot is not mounted.
+   * Content is NOT disposed — the caller takes ownership and is responsible
+   * for disposal.
+   */
   get(): DocumentFragment | null {
     if (!this.isMounted()) return null;
     const range = document.createRange();
