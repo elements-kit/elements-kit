@@ -11,6 +11,9 @@ export interface ComponentInstance {
 
 /** A class whose constructor returns a ComponentInstance. */
 export type ComponentClass = new (...args: any[]) => ComponentInstance;
+export type ComponentFn = (
+  props: Record<string | symbol, unknown>,
+) => null | Element | DocumentFragment;
 
 export type Component = Element | DocumentFragment | ComponentInstance;
 /** Anything that can appear as a JSX child. */

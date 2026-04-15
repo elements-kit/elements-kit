@@ -1,5 +1,5 @@
-import { effect, isReactive } from "../signals";
-import { Child, ComponentInstance, Disposer } from "./types";
+import { effect, isReactive, onCleanup } from "../signals";
+import { Child, ComponentInstance } from "./types";
 import {
   ChildProperties,
   Properties,
@@ -11,48 +11,35 @@ import { applyChildren, isChildrenProperty } from "./children";
 export function applyProps(
   node: Element | DocumentFragment | ComponentInstance,
   props: Record<string, unknown>,
-) {
-  const disposables = new Set<Disposer>();
-
+): void {
   for (const [key, value] of Object.entries(props)) {
     // ─ Children (slot:name, Slot properties) ──────────────────────────────────
     if (isChildrenProperty(node, key)) {
-      const disposable = applyChildren(node, key, value as Child);
-      if (disposable) disposables.add(disposable);
+      applyChildren(node, key, value as Child);
       continue;
     }
 
     // ─ Reactive ───────────────────────────────────────────────────────────────
     if (isReactive(value)) {
       if (isEventKey(key)) {
-        let cleanup: Disposer | void;
-        const dispose = effect(() => {
-          if (cleanup) cleanup();
-          cleanup = setEvent(node as Element, key, value());
+        effect(() => {
+          onCleanup(setEvent(node as Element, key, value()));
         });
-
-        disposables.add(() => {
-          dispose();
-          if (cleanup) cleanup();
-        });
-
         continue;
       }
-      disposables.add(effect(() => setProp(node, key, value())));
+      effect(() => setProp(node, key, value()));
       continue;
     }
 
     // ─ Events ─────────────────────────────────────────────────────────────────
     if (isEventKey(key)) {
-      disposables.add(setEvent(node as Element, key, value));
+      onCleanup(setEvent(node as Element, key, value));
       continue;
     }
 
     // ─ Namespace / Properties / Attributes ────────────────────────────────────
     setProp(node, key, value);
   }
-
-  return disposables;
 }
 
 function setProp(
@@ -154,7 +141,7 @@ function isEventKey(key: string): boolean {
   );
 }
 
-function setEvent(el: Element, key: string, handler: unknown): Disposer {
+function setEvent(el: Element, key: string, handler: unknown): () => void {
   const event = key.startsWith("on:")
     ? key.slice(3)
     : key[2].toLowerCase() + key.slice(3); // onClick → click

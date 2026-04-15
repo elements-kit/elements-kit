@@ -1,77 +1,125 @@
 import {
   Component,
   ComponentClass,
+  ComponentFn,
   ComponentInstance,
   Disposer,
 } from "./types";
 import { applyProps } from "./properties";
 import { $ref } from "./ref";
+import { effectScope } from "../signals";
 import "../polyfill";
 
+// ─ Public API ─────────────────────────────────────────────────────────────────
+
 export function createElement(
-  type:
-    | string
-    | Element
-    | DocumentFragment
-    | ComponentClass
-    | ((
-        props: Record<string | symbol, unknown>,
-      ) => null | Element | DocumentFragment),
-  { [$ref]: ref, ...props }: Record<string | symbol, unknown> = {},
+  type: string | Element | DocumentFragment | ComponentClass | ComponentFn,
+  rawProps: Record<string | symbol, unknown> = {},
 ): Element | DocumentFragment | null {
-  // ─ Function component ───────────────────────────────────────────────────
+  // Extract $ref manually — esbuild drops computed Symbol keys in destructuring.
+  const ref = rawProps[$ref] as ((el: Element) => void) | undefined;
+  const props = Object.fromEntries(
+    Object.entries(rawProps as Record<string, unknown>),
+  ) as Record<string, unknown>;
+
   if (typeof type === "function" && !type.prototype?.render) {
-    const el = (type as Function)(props);
-    if (typeof ref === "function" && el instanceof Element) ref(el);
-    return el;
+    return createFunctionElement(
+      type as (
+        props: Record<string, unknown>,
+      ) => Element | DocumentFragment | null,
+      props,
+      ref,
+    );
   }
 
-  const node = resolveElement(
-    type as string | Element | ComponentClass | DocumentFragment,
+  return createNodeElement(
+    type as string | Element | DocumentFragment | ComponentClass,
+    props,
+    ref,
   );
-  if (!node) return null;
-
-  // ─ Properties ─────────────────────────────────────────────────────────────
-  const disposables = applyProps(node, props);
-
-  if (disposables.size > 0) attachDisposables(node, disposables);
-
-  const el = _render(node);
-
-  // ref fires after render with the final Element
-  if (typeof ref === "function" && el instanceof Element) ref(el);
-
-  return el;
 }
 
-function _render(
+/** Runs all cleanup functions registered by JSX props/effects on `el`. */
+export function disposeElement(el: Element): void {
+  (el as unknown as Disposable)[Symbol.dispose]?.();
+}
+
+// ─ Component creators ─────────────────────────────────────────────────────────
+
+function createFunctionElement(
+  type: (props: Record<string, unknown>) => Element | DocumentFragment | null,
+  props: Record<string, unknown>,
+  ref: ((el: Element) => void) | undefined,
+): Element | DocumentFragment | null {
+  let el: Element | DocumentFragment | null | undefined;
+
+  const dispose = effectScope(() => {
+    el = type(props);
+    if (typeof ref === "function" && el instanceof Element) ref(el);
+  });
+
+  const result = el as Element | DocumentFragment | null;
+
+  if (result instanceof Element || result instanceof DocumentFragment) {
+    attachDisposables(result, new Set([dispose]));
+  } else {
+    dispose();
+  }
+
+  return result;
+}
+
+function createNodeElement(
+  type: string | Element | DocumentFragment | ComponentClass,
+  props: Record<string, unknown>,
+  ref: ((el: Element) => void) | undefined,
+): Element | DocumentFragment | null {
+  const node = resolveNode(type);
+  if (!node) return null;
+
+  let el: Element | DocumentFragment | null | undefined;
+
+  const dispose = effectScope(() => {
+    applyProps(node, props);
+    el = renderNode(node);
+    if (typeof ref === "function" && el instanceof Element) ref(el);
+  });
+
+  const result = el as Element | DocumentFragment | null;
+
+  if (result instanceof Element || result instanceof DocumentFragment) {
+    attachDisposables(result, new Set([dispose]));
+  } else {
+    dispose();
+  }
+
+  return result;
+}
+
+// ─ Node helpers ───────────────────────────────────────────────────────────────
+
+function resolveNode(
+  type: string | Element | DocumentFragment | ComponentClass,
+): ComponentInstance | Element | DocumentFragment | null {
+  if (typeof type === "string") return document.createElement(type);
+  if (type instanceof Element || type instanceof DocumentFragment) return type;
+  return new type();
+}
+
+function renderNode(
   node: ComponentInstance | Element | DocumentFragment | null,
 ): Element | DocumentFragment | null {
   if (node instanceof Element || node instanceof DocumentFragment) return node;
   if (!node || typeof node.render !== "function") return null;
-  return _render(node.render());
+  return renderNode(node.render());
 }
 
-/**
- * Resolves the `type` argument of createElement into a concrete DOM node:
- *   - string          → document.createElement(type)
- *   - Element         → the element itself  (apply props to an existing node)
- *   - class component → new type()
- */
-function resolveElement(
-  type: string | Element | ComponentClass | DocumentFragment,
-): ComponentInstance | Element | DocumentFragment | null {
-  if (typeof type === "string") return document.createElement(type);
-  if (type instanceof Element || type instanceof DocumentFragment) return type;
-
-  return new type();
-}
-
-// ─ Disposable attachment ─────────────────────────────────────────────────────
+// ─ Disposable attachment ──────────────────────────────────────────────────────
 
 function hasOwnDisposable(el: Component): el is Component & Disposable {
   return Object.hasOwn(el, Symbol.dispose);
 }
+
 function attachDisposables(el: Component, disposables: Set<Disposer>): void {
   const existingDispose = hasOwnDisposable(el)
     ? el[Symbol.dispose].bind(el)
@@ -85,9 +133,4 @@ function attachDisposables(el: Component, disposables: Set<Disposer>): void {
     },
     configurable: true,
   });
-}
-
-/** Runs all cleanup functions registered by JSX props/effects on `el`. */
-export function disposeElement(el: Element): void {
-  (el as unknown as Disposable)[Symbol.dispose]?.();
 }

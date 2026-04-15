@@ -1,5 +1,5 @@
 import { effect } from "../signals";
-import { Component, Child, Disposer } from "./types";
+import { Component, Child } from "./types";
 import { $slots, Slots, Slot } from "../slot";
 import { PrimitiveNodeType, resolveNode } from "../lib";
 
@@ -34,12 +34,13 @@ export function applyChildren(
   node: Component,
   key: string,
   value: Child,
-): (() => void) | void {
+): void {
   // ─ $slots ─────────────────────────────────────────────────────────────────
   if (hasSlots(node)) {
     const slotName = key.replace(/^slot:/, "");
     if (Slots.has(node[$slots], slotName)) {
-      return applySlot(node[$slots][slotName], value);
+      applySlot(node[$slots][slotName], value);
+      return;
     }
   }
 
@@ -48,25 +49,24 @@ export function applyChildren(
     key === "children" &&
     (node instanceof Element || node instanceof DocumentFragment)
   ) {
-    return mountChildren(node as Element | DocumentFragment, value);
+    mountChildren(node as Element | DocumentFragment, value);
+    return;
   }
 
   // ─ Slots ─────────────────────────────────────────────────────────────────
   if (key in node) {
     const slot = (node as unknown as Record<typeof key, unknown>)[key];
     if (!(slot instanceof Slot)) return;
-    return applySlot(slot, value);
+    applySlot(slot, value);
   }
 }
 
 // ─ Helpers ────────────────────────────────────────────────────────────────────
 
-/**
- * Sets a Slot's content from a Child value.
- */
-function applySlot(slot: Slot, value: Child): (() => void) | void {
+function applySlot(slot: Slot, value: Child): void {
   if (typeof value === "function") {
-    return effect(() => slot.set(resolveChild(value())));
+    effect(() => slot.set(resolveChild(value())));
+    return;
   }
   slot.set(resolveChild(value));
 }
@@ -74,22 +74,16 @@ function applySlot(slot: Slot, value: Child): (() => void) | void {
 function mountChildren(
   el: Element | DocumentFragment,
   value: Child,
-): (() => void) | void {
-  const children = ensureFlatArray(value);
-  const disposers: Disposer[] = [];
-
-  for (const child of children) {
+): void {
+  for (const child of ensureFlatArray(value)) {
     if (typeof child === "function") {
       const slot = Slot.new();
       el.appendChild(slot());
-      disposers.push(effect(() => slot.set(resolveChild(child()))));
+      effect(() => slot.set(resolveChild(child())));
       continue;
     }
-
     el.appendChild(resolveChild(child as any));
   }
-
-  return disposers.length > 0 ? () => disposers.forEach((d) => d()) : undefined;
 }
 
 function resolveChild(value: Child): Node {

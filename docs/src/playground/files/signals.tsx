@@ -234,11 +234,17 @@ const scopeLogs = signal<string[]>([]);
 const user = signal("Alice");
 const theme = signal("light");
 
-const stop: () => void = effectScope(() => {
-  effect(() => untracked(scopeLogs).push(`user: ${user()}`));
-  effect(() => untracked(scopeLogs).push(`theme: ${theme()}`));
-});
 function DemoEffectScope() {
+  const stop: () => void = effectScope(() => {
+    effect(() => {
+      untracked(scopeLogs).push(`user: ${user()}`);
+      trigger(scopeLogs);
+    });
+    effect(() => {
+      untracked(scopeLogs).push(`theme: ${theme()}`);
+      trigger(scopeLogs);
+    });
+  });
   return (
     <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem;">
       <h3 style="margin-top: 0;">effectScope (grouped effects)</h3>
