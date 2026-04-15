@@ -72,7 +72,7 @@ export type Attributes<T> = Record<string, AttrChangeHandler<T>>;
  * @param cls The custom element class constructor
  * @returns Array of unique attribute names to observe
  */
-export function observedAttributes(cls) {
+export function observedAttributes(cls: { [ATTRIBUTES]?: Record<string, unknown>; observedAttributes?: string[]; prototype: unknown }) {
   const s = new Set<string>(Object.keys(cls[ATTRIBUTES] || {}));
   let _cls = Object.getPrototypeOf(cls);
   while (_cls) {

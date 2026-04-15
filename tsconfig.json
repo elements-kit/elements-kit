@@ -8,7 +8,9 @@
     "allowImportingTsExtensions": true,
     "emitDeclarationOnly": true,
     "declaration": true,
-    "emitDecoratorMetadata": false
+    "emitDecoratorMetadata": false,
+    "jsx": "react-jsx",
+    "jsxImportSource": "elements-kit"
   },
-  "exclude": ["dist"]
+  "exclude": ["dist", "docs", "example"]
 }

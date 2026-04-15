@@ -82,9 +82,9 @@ export class ElementBuilder<T extends Element = Element> {
     listener: (ev: HTMLElementEventMap[K]) => void,
     options?: boolean | AddEventListenerOptions,
   ) {
-    this[VALUE].addEventListener(eventType, listener, options);
+    (this[VALUE] as EventTarget).addEventListener(eventType, listener as EventListener, options);
     this[DISPOSABLES].add(() => {
-      this[VALUE].removeEventListener(eventType, listener, options);
+      (this[VALUE] as EventTarget).removeEventListener(eventType, listener as EventListener, options);
     });
     return this;
   }
@@ -100,16 +100,17 @@ class ChainContext<T> {
     this.key = key;
   }
 
-  setter(value) {
+  setter(value: unknown) {
+    const chain = this.chain as Record<string | symbol, unknown>;
     if (isReactive(value)) {
       this.builder[DISPOSABLES].add(
         effect(() => {
-          this.chain[this.key] = value();
+          chain[this.key] = value();
         }),
       );
       return this.builder;
     }
-    this.chain[this.key] = value;
+    chain[this.key] = value;
     return this.builder;
   }
 }
@@ -119,18 +120,19 @@ function setterOrValue<T extends object = object>(
   chainParent: T,
   key: string | symbol,
 ) {
-  const chain = chainParent[key];
+  const parent = chainParent as Record<string | symbol, unknown>;
+  const chain = parent[key];
   const context = new ChainContext(builder, chainParent, key);
 
   return new Proxy(context.setter.bind(context), {
     apply(target, _thisArg, argArray) {
-      return target.apply(builder, argArray);
+      return target(argArray[0]);
     },
     get(_, subkey) {
       if (isObject(chain)) {
         return setterOrValue(builder, chain, subkey);
       }
-      return chain[subkey];
+      return (chain as Record<string | symbol, unknown>)[subkey];
     },
   });
 }
