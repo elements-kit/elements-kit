@@ -1,4 +1,4 @@
-import { effect, signal, untracked } from "../signals";
+import { effect, signal, trigger, untracked } from "../signals";
 import { disposeElement } from "../jsx-runtime/element";
 
 type KeyFn<T> = (item: T, index: number) => string | number;
@@ -43,6 +43,10 @@ export class For<T = unknown> {
     return this.#each();
   }
   set each(v: T[]) {
+    if (v === untracked(this.#each)) {
+      trigger(this.#each);
+      return;
+    }
     this.#each(v);
   }
 

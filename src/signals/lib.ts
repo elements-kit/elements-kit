@@ -550,31 +550,33 @@ export function untracked<T>(fn: Computed<T>): T {
  * ```
  */
 export function trigger<T = void>(fn: Computed<T>) {
-  const sub: ReactiveNode = {
-    deps: undefined,
-    depsTail: undefined,
-    flags: ReactiveFlags.Watching,
-  };
-  const prevSub = setActiveSub(sub);
-  try {
-    fn();
-  } finally {
-    activeSub = prevSub;
-    let link = sub.deps;
-    while (link !== undefined) {
-      const dep = link.dep;
-      link = unlink(link, sub);
-      const subs = dep.subs;
-      if (subs !== undefined) {
-        sub.flags = ReactiveFlags.None;
-        propagate(subs);
-        shallowPropagate(subs);
+  return untracked(() => {
+    const sub: ReactiveNode = {
+      deps: undefined,
+      depsTail: undefined,
+      flags: ReactiveFlags.Watching,
+    };
+    const prevSub = setActiveSub(sub);
+    try {
+      fn();
+    } finally {
+      activeSub = prevSub;
+      let link = sub.deps;
+      while (link !== undefined) {
+        const dep = link.dep;
+        link = unlink(link, sub);
+        const subs = dep.subs;
+        if (subs !== undefined) {
+          sub.flags = ReactiveFlags.None;
+          propagate(subs);
+          shallowPropagate(subs);
+        }
+      }
+      if (!batchDepth) {
+        flush();
       }
     }
-    if (!batchDepth) {
-      flush();
-    }
-  }
+  });
 }
 
 // ---------------------------------------------------------------------------

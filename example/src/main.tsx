@@ -13,10 +13,11 @@ import { For } from "elements-kit";
 // ============ Demo 1: Counter ============
 const count = signal(0);
 const doubled = computed(() => count() * 2);
-const logs: string[] = [];
+const logs = signal<string[]>([]);
 
 effect(() => {
-  logs.push(`count: ${count()}, doubled: ${doubled()}`);
+  untracked(logs).push(`count: ${count()}, doubled: ${doubled()}`);
+  trigger(logs);
 });
 
 // ============ Demo 2: Batch ============
@@ -30,16 +31,17 @@ effect(() => {
 
 // ============ Demo 3: Cleanup (simulated) ============
 const url = signal("/api/data");
-const fetchLogs: string[] = [];
-let abortCount = 0;
+const fetchLogs = signal<string[]>([]);
+let abortCount = signal(0);
 
 effect(() => {
   const currentUrl = url();
-  fetchLogs.push(`Fetching: ${currentUrl}`);
-
+  untracked(fetchLogs).push(`Fetching: ${currentUrl}`);
+  trigger(fetchLogs);
   onCleanup(() => {
-    abortCount++;
-    fetchLogs.push(`Aborted previous request`);
+    abortCount(abortCount() + 1);
+    untracked(fetchLogs).push(`Aborted previous request`);
+    trigger(fetchLogs);
   });
 });
 
@@ -53,6 +55,7 @@ effect(() => {
   untracked(untrackedLogs).push(
     `secret: ${untracked(() => secret())} (untracked)`,
   );
+  trigger(untrackedLogs);
 });
 
 // ============ App with Tabs ============
