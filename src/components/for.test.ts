@@ -1,18 +1,24 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { signal } from "../signals";
+import { effect, isReactive, signal } from "../signals";
 import { For } from "./for";
 
 // ─ Helpers ────────────────────────────────────────────────────────────────────
 
 /** Mount a For into a real container and return that container. */
 function mount<T>(
-  each: () => T[],
+  each: T[] | (() => T[]),
   by: (item: T, i: number) => string | number,
   render: (item: T, i: number) => Element,
 ): HTMLDivElement {
   const container = document.createElement("div");
   const list = new For<T>();
-  list.each = each;
+  if (typeof each === "function")
+    effect(() => {
+      list.each = each();
+    });
+  else {
+    list.each = each as T[];
+  }
   list.by = by;
   list.children = render;
   container.appendChild(list.render());
