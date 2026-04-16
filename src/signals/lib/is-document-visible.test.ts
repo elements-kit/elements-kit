@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { effectScope } from "../index.ts";
 import { createIsDocumentVisible } from "./is-document-visible.ts";
 
@@ -54,14 +54,17 @@ describe("createIsDocumentVisible", () => {
     expect(visible()).toBe(true);
   });
 
-  it("stops reacting after scope disposal", () => {
+  it("removes event listener on scope disposal", () => {
+    const removeSpy = vi.spyOn(document, "removeEventListener");
     let visible!: ReturnType<typeof createIsDocumentVisible>;
     const stop = effectScope(() => {
       visible = createIsDocumentVisible();
     });
 
     stop();
-    setVisibility("hidden");
-    expect(visible()).toBe(true); // frozen
+    expect(removeSpy).toHaveBeenCalledWith(
+      "visibilitychange",
+      expect.any(Function),
+    );
   });
 });
