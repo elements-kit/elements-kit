@@ -325,6 +325,3 @@ function DemoUntracked() {
     </div>
   );
 }
-
-const appRoot = document.getElementById("app");
-appRoot!.appendChild(new App().render());
