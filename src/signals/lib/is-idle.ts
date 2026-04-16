@@ -1,4 +1,5 @@
 import { type Computed, onCleanup, signal } from "../index.ts";
+import { createEventListener } from "./event-listener.ts";
 
 /** Default idle timeout in milliseconds (60 seconds). */
 const DEFAULT_TIMEOUT = 60_000;
@@ -32,17 +33,15 @@ export function createIsIdle(
 
   reset();
 
-  for (const event of ACTIVITY_EVENTS) {
-    window.addEventListener(event, reset, { passive: true });
-  }
+  const removes = ACTIVITY_EVENTS.map((event) =>
+    createEventListener(window, event, reset, { passive: true }),
+  );
+  onCleanup(() => clearTimeout(timer));
 
   const cleanup = () => {
     clearTimeout(timer);
-    for (const event of ACTIVITY_EVENTS) {
-      window.removeEventListener(event, reset);
-    }
+    removes.forEach((fn) => fn());
   };
-  onCleanup(cleanup);
 
   return Object.assign(idle as Computed<boolean>, {
     [Symbol.dispose]: cleanup,

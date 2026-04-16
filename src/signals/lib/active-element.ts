@@ -1,26 +1,17 @@
-import { type Computed, onCleanup, signal } from "../index.ts";
+import { type Computed } from "../index.ts";
+import { fromEvent, sync } from "./event-driven.ts";
 
 /**
  * Returns a `Computed` that tracks `document.activeElement`.
  * Updates on every `focusin` / `focusout` event bubbling through the document.
  */
 export function createActiveElement(): Computed<Element | null> & Disposable {
-  const active = signal<Element | null>(
-    typeof document !== "undefined" ? document.activeElement : null,
+  const [active, cleanup] = sync(
+    fromEvent(document, ["focusin", "focusout"]),
+    () => (typeof document !== "undefined" ? document.activeElement : null),
   );
-
-  const update = () => active(document.activeElement);
-
-  document.addEventListener("focusin", update);
-  document.addEventListener("focusout", update);
-
-  const cleanup = () => {
-    document.removeEventListener("focusin", update);
-    document.removeEventListener("focusout", update);
-  };
-  onCleanup(cleanup);
 
   return Object.assign(active as Computed<Element | null>, {
     [Symbol.dispose]: cleanup,
-  });
+  }) as Computed<Element | null> & Disposable;
 }

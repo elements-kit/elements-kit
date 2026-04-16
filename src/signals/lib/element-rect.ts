@@ -1,4 +1,5 @@
-import { type Computed, onCleanup, signal } from "../index.ts";
+import { type Computed, signal } from "../index.ts";
+import { createResizeObserver } from "./resize-observer.ts";
 
 type RectResult = {
   x: Computed<number>;
@@ -40,20 +41,14 @@ export function createElementRect(
     left(rect.left);
   };
 
-  const observer = new ResizeObserver((entries) => {
+  const observer = createResizeObserver(target, (entries) => {
     for (const entry of entries) {
       updateRect(entry.target as Element);
     }
   });
 
   const el = typeof target === "function" ? target() : target;
-  if (el) {
-    updateRect(el);
-    observer.observe(el);
-  }
-
-  const cleanup = () => observer.disconnect();
-  onCleanup(cleanup);
+  if (el) updateRect(el);
 
   return Object.assign(
     {
@@ -66,6 +61,6 @@ export function createElementRect(
       bottom: bottom as Computed<number>,
       left: left as Computed<number>,
     },
-    { [Symbol.dispose]: cleanup },
+    { [Symbol.dispose]: observer[Symbol.dispose] },
   );
 }

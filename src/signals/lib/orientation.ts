@@ -1,4 +1,5 @@
-import { type Computed, onCleanup, signal } from "../index.ts";
+import { type Computed, signal } from "../index.ts";
+import { createEventListener } from "./event-listener.ts";
 
 type OrientationResult = {
   angle: Computed<number>;
@@ -19,10 +20,7 @@ export function createOrientation(): OrientationResult {
     type(screen.orientation.type);
   };
 
-  screen.orientation.addEventListener("change", onChange);
-  const cleanup = () =>
-    screen.orientation.removeEventListener("change", onChange);
-  onCleanup(cleanup);
+  const cleanup = createEventListener(screen.orientation, "change", onChange);
 
   return Object.assign(
     {

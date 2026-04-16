@@ -1,4 +1,5 @@
-import { type Computed, onCleanup, signal } from "../index.ts";
+import { type Computed, signal } from "../index.ts";
+import { createResizeObserver } from "./resize-observer.ts";
 
 /**
  * Observes the content-box size of `target` using a `ResizeObserver` and
@@ -13,7 +14,7 @@ export function createElementSize(
   const w = signal(0);
   const h = signal(0);
 
-  const observer = new ResizeObserver((entries) => {
+  const observer = createResizeObserver(target, (entries) => {
     for (const entry of entries) {
       w(entry.contentRect.width);
       h(entry.contentRect.height);
@@ -25,14 +26,10 @@ export function createElementSize(
     const rect = el.getBoundingClientRect();
     w(rect.width);
     h(rect.height);
-    observer.observe(el);
   }
-
-  const cleanup = () => observer.disconnect();
-  onCleanup(cleanup);
 
   return Object.assign(
     { width: w as Computed<number>, height: h as Computed<number> },
-    { [Symbol.dispose]: cleanup },
+    { [Symbol.dispose]: observer[Symbol.dispose] },
   );
 }

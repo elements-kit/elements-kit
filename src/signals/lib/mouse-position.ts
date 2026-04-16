@@ -1,4 +1,5 @@
-import { type Computed, onCleanup, signal } from "../index.ts";
+import { type Computed, signal } from "../index.ts";
+import { createEventListener } from "./event-listener.ts";
 
 type MousePositionResult = {
   x: Computed<number>;
@@ -18,9 +19,7 @@ export function createMousePosition(): MousePositionResult {
     y(e.clientY);
   };
 
-  document.addEventListener("mousemove", handler);
-  const cleanup = () => document.removeEventListener("mousemove", handler);
-  onCleanup(cleanup);
+  const cleanup = createEventListener(document, "mousemove", handler);
 
   return Object.assign(
     { x: x as Computed<number>, y: y as Computed<number> },

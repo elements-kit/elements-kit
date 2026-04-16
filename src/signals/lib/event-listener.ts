@@ -12,34 +12,58 @@ export function createEventListener<K extends keyof HTMLElementEventMap>(
   type: K,
   handler: (e: HTMLElementEventMap[K]) => void,
   options?: AddEventListenerOptions,
-): void;
+): () => void;
 export function createEventListener<K extends keyof DocumentEventMap>(
   target: Document | (() => Document | null),
   type: K,
   handler: (e: DocumentEventMap[K]) => void,
   options?: AddEventListenerOptions,
-): void;
+): () => void;
 export function createEventListener<K extends keyof WindowEventMap>(
   target: Window | (() => Window | null),
   type: K,
   handler: (e: WindowEventMap[K]) => void,
   options?: AddEventListenerOptions,
-): void;
+): () => void;
+export function createEventListener(
+  target: EventTarget | (() => EventTarget | null),
+  type: string,
+  handler: EventListener,
+  options?: AddEventListenerOptions,
+): () => void;
 export function createEventListener(
   target: EventTarget | (() => EventTarget | null),
   type: string,
   handler: EventListenerOrEventListenerObject,
   options?: AddEventListenerOptions,
-): void {
+): () => void {
+  const add = (t: EventTarget) =>
+    options !== undefined
+      ? t.addEventListener(type, handler, options)
+      : t.addEventListener(type, handler);
+  const del = (t: EventTarget) =>
+    options !== undefined
+      ? t.removeEventListener(type, handler, options)
+      : t.removeEventListener(type, handler);
+
   if (typeof target === "function") {
-    effect(() => {
+    let currentRemove: () => void = () => {};
+    const stopEffect = effect(() => {
       const el = target();
       if (!el) return;
-      el.addEventListener(type, handler, options);
-      onCleanup(() => el.removeEventListener(type, handler, options));
+      add(el);
+      const remove = () => del(el);
+      onCleanup(remove);
+      currentRemove = remove;
     });
+    return () => {
+      stopEffect();
+      currentRemove();
+    };
   } else {
-    target.addEventListener(type, handler, options);
-    onCleanup(() => target.removeEventListener(type, handler, options));
+    const remove = () => del(target);
+    add(target);
+    onCleanup(remove);
+    return remove;
   }
 }

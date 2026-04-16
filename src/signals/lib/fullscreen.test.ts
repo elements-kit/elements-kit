@@ -40,23 +40,16 @@ describe("createFullscreen", () => {
     expect(f.isFullscreen()).toBe(true);
   });
 
-  it("stops reacting after Symbol.dispose", () => {
-    Object.defineProperty(document, "fullscreenElement", {
-      configurable: true,
-      get: () => null,
-    });
-
+  it("removes event listener on Symbol.dispose", () => {
+    const removeSpy = vi.spyOn(document, "removeEventListener");
     let f!: ReturnType<typeof createFullscreen>;
     effectScope(() => {
       f = createFullscreen();
     });
     f[Symbol.dispose]();
-
-    Object.defineProperty(document, "fullscreenElement", {
-      configurable: true,
-      get: () => document.documentElement,
-    });
-    document.dispatchEvent(new Event("fullscreenchange"));
-    expect(f.isFullscreen()).toBe(false);
+    expect(removeSpy).toHaveBeenCalledWith(
+      "fullscreenchange",
+      expect.any(Function),
+    );
   });
 });

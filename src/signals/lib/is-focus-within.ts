@@ -1,4 +1,5 @@
-import { type Computed, onCleanup, signal } from "../index.ts";
+import { type Computed, signal } from "../index.ts";
+import { createEventListener } from "./event-listener.ts";
 
 /**
  * Returns a `Computed<boolean>` that is `true` while focus is anywhere inside
@@ -21,16 +22,12 @@ export function createIsFocusWithin(
     if (t && !t.contains(e.relatedTarget as Node)) focused(false);
   };
 
+  const cleanups: Array<() => void> = [];
   if (el) {
-    document.addEventListener("focusin", onFocusIn);
-    document.addEventListener("focusout", onFocusOut);
+    cleanups.push(createEventListener(document, "focusin", onFocusIn));
+    cleanups.push(createEventListener(document, "focusout", onFocusOut));
   }
-
-  const cleanup = () => {
-    document.removeEventListener("focusin", onFocusIn);
-    document.removeEventListener("focusout", onFocusOut);
-  };
-  onCleanup(cleanup);
+  const cleanup = () => cleanups.forEach((fn) => fn());
 
   return Object.assign(focused as Computed<boolean>, {
     [Symbol.dispose]: cleanup,

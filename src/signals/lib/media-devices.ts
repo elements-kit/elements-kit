@@ -1,4 +1,5 @@
-import { type Computed, onCleanup, signal } from "../index.ts";
+import { type Computed, signal } from "../index.ts";
+import { createEventListener } from "./event-listener.ts";
 
 /**
  * Returns a reactive list of available media devices, refreshed whenever
@@ -13,10 +14,11 @@ export function createMediaDevices(): Computed<MediaDeviceInfo[]> & Disposable {
 
   refresh();
 
-  navigator.mediaDevices.addEventListener("devicechange", refresh);
-  const cleanup = () =>
-    navigator.mediaDevices.removeEventListener("devicechange", refresh);
-  onCleanup(cleanup);
+  const cleanup = createEventListener(
+    navigator.mediaDevices,
+    "devicechange",
+    refresh,
+  );
 
   return Object.assign(devices as Computed<MediaDeviceInfo[]>, {
     [Symbol.dispose]: cleanup,

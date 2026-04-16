@@ -1,4 +1,5 @@
-import { type Computed, onCleanup, signal } from "../index.ts";
+import { type Computed, signal } from "../index.ts";
+import { createEventListener } from "./event-listener.ts";
 
 /**
  * Returns a `Computed<boolean>` that is `true` while the pointer is over
@@ -15,17 +16,12 @@ export function createHover(
   const onEnter = () => hovered(true);
   const onLeave = () => hovered(false);
 
+  const cleanups: Array<() => void> = [];
   if (el) {
-    el.addEventListener("pointerenter", onEnter);
-    el.addEventListener("pointerleave", onLeave);
+    cleanups.push(createEventListener(el, "pointerenter", onEnter));
+    cleanups.push(createEventListener(el, "pointerleave", onLeave));
   }
-
-  const cleanup = () => {
-    if (!el) return;
-    el.removeEventListener("pointerenter", onEnter);
-    el.removeEventListener("pointerleave", onLeave);
-  };
-  onCleanup(cleanup);
+  const cleanup = () => cleanups.forEach((fn) => fn());
 
   return Object.assign(hovered as Computed<boolean>, {
     [Symbol.dispose]: cleanup,

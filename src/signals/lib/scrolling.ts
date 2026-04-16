@@ -1,4 +1,5 @@
 import { type Computed, onCleanup, signal } from "../index.ts";
+import { createEventListener } from "./event-listener.ts";
 
 /**
  * Returns a `Computed<boolean>` that is `true` while the user is actively
@@ -19,15 +20,18 @@ export function createScrolling(
     timer = setTimeout(() => scrolling(false), delay);
   };
 
-  target.addEventListener("scroll", handler, { passive: true });
-
-  const cleanup = () => {
-    clearTimeout(timer);
-    target.removeEventListener("scroll", handler);
-  };
-  onCleanup(cleanup);
+  const removeListener = createEventListener(
+    target as Window,
+    "scroll",
+    handler,
+    { passive: true },
+  );
+  onCleanup(() => clearTimeout(timer));
 
   return Object.assign(scrolling as Computed<boolean>, {
-    [Symbol.dispose]: cleanup,
+    [Symbol.dispose]: () => {
+      clearTimeout(timer);
+      removeListener();
+    },
   });
 }

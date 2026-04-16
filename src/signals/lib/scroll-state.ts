@@ -1,4 +1,5 @@
-import { type Computed, onCleanup, signal } from "../index.ts";
+import { type Computed, signal } from "../index.ts";
+import { createEventListener } from "./event-listener.ts";
 
 type ScrollDirection = "left" | "right" | "none";
 type VerticalDirection = "up" | "down" | "none";
@@ -54,9 +55,7 @@ export function createScrollState(
     y(pos.y);
   };
 
-  resolved.addEventListener("scroll", handler);
-  const cleanup = () => resolved.removeEventListener("scroll", handler);
-  onCleanup(cleanup);
+  const cleanup = createEventListener(resolved, "scroll", handler);
 
   return Object.assign(
     {

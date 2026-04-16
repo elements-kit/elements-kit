@@ -1,4 +1,4 @@
-import { onCleanup } from "../index.ts";
+import { createEventListener } from "./event-listener.ts";
 
 /**
  * Fires `handler` whenever a pointer-down event occurs outside `target`.
@@ -21,6 +21,5 @@ export function createOnClickOutside(
     }
   };
 
-  document.addEventListener("pointerdown", listener);
-  onCleanup(() => document.removeEventListener("pointerdown", listener));
+  createEventListener(document, "pointerdown", listener);
 }

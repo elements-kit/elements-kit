@@ -1,4 +1,5 @@
-import { type Computed, onCleanup, signal } from "../index.ts";
+import { type Computed, signal } from "../index.ts";
+import { createEventListener } from "./event-listener.ts";
 
 /**
  * Returns a `Computed<ReadonlySet<string>>` containing all keyboard keys
@@ -23,16 +24,14 @@ export function createPressedKeys(): Computed<ReadonlySet<string>> &
   // Clear all keys when window loses focus so stale keys don't get stuck.
   const onBlur = () => keys(new Set());
 
-  window.addEventListener("keydown", onKeyDown);
-  window.addEventListener("keyup", onKeyUp);
-  window.addEventListener("blur", onBlur);
-
+  const r1 = createEventListener(window, "keydown", onKeyDown);
+  const r2 = createEventListener(window, "keyup", onKeyUp);
+  const r3 = createEventListener(window, "blur", onBlur);
   const cleanup = () => {
-    window.removeEventListener("keydown", onKeyDown);
-    window.removeEventListener("keyup", onKeyUp);
-    window.removeEventListener("blur", onBlur);
+    r1();
+    r2();
+    r3();
   };
-  onCleanup(cleanup);
 
   return Object.assign(keys as Computed<ReadonlySet<string>>, {
     [Symbol.dispose]: cleanup,

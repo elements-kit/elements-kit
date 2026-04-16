@@ -1,4 +1,5 @@
-import { type Computed, onCleanup, signal } from "../index.ts";
+import { type Computed, signal } from "../index.ts";
+import { createEventListener } from "./event-listener.ts";
 
 type NetworkStateResult = {
   online: Computed<boolean>;
@@ -41,16 +42,14 @@ export function createNetworkState(): NetworkStateResult {
     saveData(connection?.saveData);
   };
 
-  window.addEventListener("online", updateOnline);
-  window.addEventListener("offline", updateOnline);
-  connection?.addEventListener("change", updateConnection);
-
-  const cleanup = () => {
-    window.removeEventListener("online", updateOnline);
-    window.removeEventListener("offline", updateOnline);
-    connection?.removeEventListener("change", updateConnection);
-  };
-  onCleanup(cleanup);
+  const cleanups: Array<() => void> = [
+    createEventListener(window, "online", updateOnline),
+    createEventListener(window, "offline", updateOnline),
+  ];
+  if (connection) {
+    cleanups.push(createEventListener(connection, "change", updateConnection));
+  }
+  const cleanup = () => cleanups.forEach((fn) => fn());
 
   return Object.assign(
     {

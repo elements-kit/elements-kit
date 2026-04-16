@@ -1,4 +1,5 @@
-import { type Computed, onCleanup, signal } from "../index.ts";
+import { type Computed, signal } from "../index.ts";
+import { createEventListener } from "./event-listener.ts";
 
 type SearchParamsResult = {
   params: Computed<URLSearchParams>;
@@ -22,10 +23,7 @@ export function createSearchParams(): SearchParamsResult {
 
   const onPopState = () => params(readParams());
 
-  window.addEventListener("popstate", onPopState);
-
-  const cleanup = () => window.removeEventListener("popstate", onPopState);
-  onCleanup(cleanup);
+  const cleanup = createEventListener(window, "popstate", onPopState);
 
   const get = (key: string) => params().get(key);
 

@@ -1,4 +1,4 @@
-import { onCleanup } from "../index.ts";
+import { createEventListener } from "./event-listener.ts";
 
 /**
  * Registers a `beforeunload` handler that shows a native confirmation dialog
@@ -16,9 +16,6 @@ export function createBeforeUnload(
     if (msg !== undefined) e.returnValue = msg;
   };
 
-  window.addEventListener("beforeunload", handler);
-  const cleanup = () => window.removeEventListener("beforeunload", handler);
-  onCleanup(cleanup);
-
+  const cleanup = createEventListener(window, "beforeunload", handler);
   return { [Symbol.dispose]: cleanup };
 }

@@ -1,4 +1,4 @@
-import { onCleanup } from "../index.ts";
+import { createEventListener } from "./event-listener.ts";
 
 /**
  * Fires `handler` when a pointer is held over `target` for at least `delay`
@@ -14,28 +14,23 @@ export function createLongPress(
 
   let timer: ReturnType<typeof setTimeout>;
 
-  const onPointerDown = (e: PointerEvent) => {
-    timer = setTimeout(() => handler(e), delay);
+  const onPointerDown = (e: Event) => {
+    timer = setTimeout(() => handler(e as PointerEvent), delay);
   };
 
   const cancel = () => clearTimeout(timer);
 
+  const cleanups: Array<() => void> = [];
   if (el) {
-    el.addEventListener("pointerdown", onPointerDown);
-    el.addEventListener("pointerup", cancel);
-    el.addEventListener("pointerleave", cancel);
-    el.addEventListener("pointermove", cancel);
+    cleanups.push(createEventListener(el, "pointerdown", onPointerDown));
+    cleanups.push(createEventListener(el, "pointerup", cancel));
+    cleanups.push(createEventListener(el, "pointerleave", cancel));
+    cleanups.push(createEventListener(el, "pointermove", cancel));
   }
-
   const cleanup = () => {
     clearTimeout(timer);
-    if (!el) return;
-    el.removeEventListener("pointerdown", onPointerDown);
-    el.removeEventListener("pointerup", cancel);
-    el.removeEventListener("pointerleave", cancel);
-    el.removeEventListener("pointermove", cancel);
+    cleanups.forEach((fn) => fn());
   };
-  onCleanup(cleanup);
 
   return { [Symbol.dispose]: cleanup };
 }

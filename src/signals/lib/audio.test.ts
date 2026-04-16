@@ -8,50 +8,53 @@ afterEach(() => {
 });
 
 describe("createAudio", () => {
-  it("creates an Audio element from a src string", () => {
+  it("accepts an HTMLAudioElement", () => {
+    const el = new Audio();
     let a!: ReturnType<typeof createAudio>;
     effectScope(() => {
-      a = createAudio("test.mp3");
+      a = createAudio(el);
     });
-    expect(a.element).toBeInstanceOf(HTMLAudioElement);
+    expect(a.element).toBe(el);
   });
 
   it("starts as paused", () => {
     let a!: ReturnType<typeof createAudio>;
     effectScope(() => {
-      a = createAudio("test.mp3");
+      a = createAudio(new Audio());
     });
     expect(a.playing()).toBe(false);
   });
 
-  it("mute() sets muted to true", () => {
+  it("muted(true) sets muted to true", () => {
     let a!: ReturnType<typeof createAudio>;
     effectScope(() => {
-      a = createAudio("test.mp3");
+      a = createAudio(new Audio());
     });
-    a.mute();
+    a.muted(true);
     expect(a.element.muted).toBe(true);
   });
 
-  it("setVolume clamps to [0, 1]", () => {
+  it("volume() clamps to [0, 1]", () => {
     let a!: ReturnType<typeof createAudio>;
     effectScope(() => {
-      a = createAudio("test.mp3");
+      a = createAudio(new Audio());
     });
-    a.setVolume(2);
+    a.volume(2);
     expect(a.element.volume).toBe(1);
-    a.setVolume(-1);
+    a.volume(-1);
     expect(a.element.volume).toBe(0);
   });
 
-  it("removes event listeners on Symbol.dispose", () => {
+  it("removes event listeners when scope is disposed", () => {
     const removeSpy = vi.fn();
+    const el = new Audio();
+    let dispose!: () => void;
     let a!: ReturnType<typeof createAudio>;
-    effectScope(() => {
-      a = createAudio("test.mp3");
+    dispose = effectScope(() => {
+      a = createAudio(el);
     });
     vi.spyOn(a.element, "removeEventListener").mockImplementation(removeSpy);
-    a[Symbol.dispose]();
+    dispose();
     expect(removeSpy).toHaveBeenCalled();
   });
 });

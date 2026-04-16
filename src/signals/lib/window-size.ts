@@ -1,4 +1,5 @@
-import { type Computed, onCleanup, signal } from "../index.ts";
+import { type Computed } from "../index.ts";
+import { fromEvent, sync } from "./event-driven.ts";
 
 type WindowSizeResult = {
   width: Computed<number>;
@@ -10,20 +11,20 @@ type WindowSizeResult = {
  * inner dimensions.
  */
 export function createWindowSize(): WindowSizeResult {
-  const width = signal(typeof window !== "undefined" ? window.innerWidth : 0);
-  const height = signal(typeof window !== "undefined" ? window.innerHeight : 0);
-
-  const onResize = () => {
-    width(window.innerWidth);
-    height(window.innerHeight);
-  };
-
-  window.addEventListener("resize", onResize);
-  const cleanup = () => window.removeEventListener("resize", onResize);
-  onCleanup(cleanup);
-
-  return Object.assign(
-    { width: width as Computed<number>, height: height as Computed<number> },
-    { [Symbol.dispose]: cleanup },
+  const subscribe = fromEvent(window, "resize");
+  const [width, stopWidth] = sync(subscribe, () =>
+    typeof window !== "undefined" ? window.innerWidth : 0,
   );
+  const [height, stopHeight] = sync(subscribe, () =>
+    typeof window !== "undefined" ? window.innerHeight : 0,
+  );
+
+  return {
+    width: width as Computed<number>,
+    height: height as Computed<number>,
+    [Symbol.dispose]: () => {
+      stopWidth();
+      stopHeight();
+    },
+  } as WindowSizeResult;
 }

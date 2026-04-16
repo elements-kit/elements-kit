@@ -28,26 +28,27 @@ describe("createVideo", () => {
     expect(v.playing()).toBe(false);
   });
 
-  it("setTime updates currentTime", () => {
+  it("time(v) updates currentTime", () => {
     const el = document.createElement("video");
     document.body.appendChild(el);
     let v!: ReturnType<typeof createVideo>;
     effectScope(() => {
       v = createVideo(el);
     });
-    v.setTime(30);
+    v.time(30);
     expect(el.currentTime).toBe(30);
   });
 
-  it("removes event listeners on Symbol.dispose", () => {
+  it("removes event listeners when scope is disposed", () => {
     const el = document.createElement("video");
     document.body.appendChild(el);
+    let dispose!: () => void;
     let v!: ReturnType<typeof createVideo>;
-    effectScope(() => {
+    dispose = effectScope(() => {
       v = createVideo(el);
     });
     const removeSpy = vi.spyOn(el, "removeEventListener");
-    v[Symbol.dispose]();
+    dispose();
     expect(removeSpy).toHaveBeenCalled();
   });
 });

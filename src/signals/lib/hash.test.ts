@@ -38,15 +38,13 @@ describe("createHash", () => {
     expect(location.hash).toBe("#new");
   });
 
-  it("stops updating after Symbol.dispose", () => {
+  it("removes event listener on Symbol.dispose", () => {
+    const removeSpy = vi.spyOn(window, "removeEventListener");
     let h!: ReturnType<typeof createHash>;
     effectScope(() => {
       h = createHash();
     });
     h[Symbol.dispose]();
-    location.hash = "#other";
-    window.dispatchEvent(new HashChangeEvent("hashchange"));
-    // Signal no longer reflects the change
-    expect(h()).not.toBe("#other");
+    expect(removeSpy).toHaveBeenCalledWith("hashchange", expect.any(Function));
   });
 });

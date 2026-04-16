@@ -1,4 +1,5 @@
 import { onCleanup } from "../index.ts";
+import { createEventListener } from "./event-listener.ts";
 
 const TYPING_KEYS = new Set([
   "Meta",
@@ -33,13 +34,13 @@ export function createStartTyping(
     }, idleMs);
   };
 
-  document.addEventListener("keydown", onKeyDown);
+  const removeListener = createEventListener(document, "keydown", onKeyDown);
+  onCleanup(() => clearTimeout(timer));
 
-  const cleanup = () => {
-    clearTimeout(timer);
-    document.removeEventListener("keydown", onKeyDown);
+  return {
+    [Symbol.dispose]: () => {
+      clearTimeout(timer);
+      removeListener();
+    },
   };
-  onCleanup(cleanup);
-
-  return { [Symbol.dispose]: cleanup };
 }

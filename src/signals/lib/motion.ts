@@ -1,4 +1,5 @@
-import { type Computed, onCleanup, signal } from "../index.ts";
+import { type Computed, signal } from "../index.ts";
+import { createEventListener } from "./event-listener.ts";
 
 type MotionResult = {
   acceleration: Computed<DeviceMotionEventAcceleration | null>;
@@ -24,9 +25,7 @@ export function createMotion(): MotionResult {
     interval(e.interval);
   };
 
-  window.addEventListener("devicemotion", onMotion);
-  const cleanup = () => window.removeEventListener("devicemotion", onMotion);
-  onCleanup(cleanup);
+  const cleanup = createEventListener(window, "devicemotion", onMotion);
 
   return Object.assign(
     {

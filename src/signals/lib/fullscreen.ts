@@ -1,4 +1,5 @@
-import { type Computed, onCleanup, signal } from "../index.ts";
+import { type Computed } from "../index.ts";
+import { fromEvent, sync } from "./event-driven.ts";
 
 type FullscreenResult = {
   isFullscreen: Computed<boolean>;
@@ -20,21 +21,20 @@ export function createFullscreen(
       : target;
   };
 
-  const isFullscreen = signal(!!document.fullscreenElement);
-
-  const onChange = () => isFullscreen(!!document.fullscreenElement);
-
-  document.addEventListener("fullscreenchange", onChange);
-  const cleanup = () =>
-    document.removeEventListener("fullscreenchange", onChange);
-  onCleanup(cleanup);
+  const [isFullscreen, cleanup] = sync(
+    fromEvent(document, "fullscreenchange"),
+    () => !!document.fullscreenElement,
+  );
 
   const enter = () => getTarget().requestFullscreen();
   const exit = () => document.exitFullscreen();
   const toggle = () => (isFullscreen() ? exit() : enter());
 
-  return Object.assign(
-    { isFullscreen: isFullscreen as Computed<boolean>, enter, exit, toggle },
-    { [Symbol.dispose]: cleanup },
-  );
+  return {
+    isFullscreen: isFullscreen as Computed<boolean>,
+    enter,
+    exit,
+    toggle,
+    [Symbol.dispose]: cleanup,
+  } as FullscreenResult;
 }

@@ -1,4 +1,5 @@
-import { type Computed, onCleanup, signal } from "../index.ts";
+import { type Computed, signal } from "../index.ts";
+import { createEventListener } from "./event-listener.ts";
 
 type KeyPressResult = {
   pressed: Computed<boolean>;
@@ -18,14 +19,12 @@ export function createKeyPress(key: string): KeyPressResult {
     if (e.key === key) pressed(false);
   };
 
-  window.addEventListener("keydown", onDown);
-  window.addEventListener("keyup", onUp);
-
+  const r1 = createEventListener(window, "keydown", onDown);
+  const r2 = createEventListener(window, "keyup", onUp);
   const cleanup = () => {
-    window.removeEventListener("keydown", onDown);
-    window.removeEventListener("keyup", onUp);
+    r1();
+    r2();
   };
-  onCleanup(cleanup);
 
   return Object.assign(
     { pressed: pressed as Computed<boolean> },
