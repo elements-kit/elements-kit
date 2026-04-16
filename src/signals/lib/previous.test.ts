@@ -7,7 +7,7 @@ describe("createPrevious", () => {
     const s = signal(1);
     let p!: ReturnType<typeof createPrevious<number>>;
     effectScope(() => {
-      p = createPrevious(() => s());
+      p = createPrevious(s);
     });
     expect(p()).toBeUndefined();
   });
@@ -16,7 +16,7 @@ describe("createPrevious", () => {
     const s = signal(1);
     let p!: ReturnType<typeof createPrevious<number>>;
     effectScope(() => {
-      p = createPrevious(() => s());
+      p = createPrevious(s);
     });
 
     s(2);
@@ -27,7 +27,7 @@ describe("createPrevious", () => {
     const s = signal("a");
     let p!: ReturnType<typeof createPrevious<string>>;
     effectScope(() => {
-      p = createPrevious(() => s());
+      p = createPrevious(s);
     });
 
     s("b");
@@ -41,7 +41,7 @@ describe("createPrevious", () => {
     const s = signal(10);
     let p!: ReturnType<typeof createPrevious<number>>;
     const stop = effectScope(() => {
-      p = createPrevious(() => s());
+      p = createPrevious(s);
     });
 
     s(20);
@@ -56,7 +56,7 @@ describe("createPrevious with isEqual (distinct mode)", () => {
     const s = signal(0);
     let prev!: ReturnType<typeof createPrevious<number>>;
     effectScope(() => {
-      prev = createPrevious(() => s(), Object.is);
+      prev = createPrevious(s, Object.is);
     });
     expect(prev()).toBeUndefined();
   });
@@ -65,7 +65,7 @@ describe("createPrevious with isEqual (distinct mode)", () => {
     const s = signal(0);
     let prev!: ReturnType<typeof createPrevious<number>>;
     effectScope(() => {
-      prev = createPrevious(() => s(), Object.is);
+      prev = createPrevious(s, Object.is);
     });
     s(1);
     expect(prev()).toBe(0);
@@ -75,7 +75,7 @@ describe("createPrevious with isEqual (distinct mode)", () => {
     const s = signal(0);
     let prev!: ReturnType<typeof createPrevious<number>>;
     effectScope(() => {
-      prev = createPrevious(() => s(), Object.is);
+      prev = createPrevious(s, Object.is);
     });
     s(1);
     expect(prev()).toBe(0);
@@ -88,10 +88,7 @@ describe("createPrevious with isEqual (distinct mode)", () => {
     const s = signal({ id: 1 });
     let prev!: ReturnType<typeof createPrevious<{ id: number }>>;
     effectScope(() => {
-      prev = createPrevious(
-        () => s(),
-        (a, b) => a.id === b.id,
-      );
+      prev = createPrevious(s, (a, b) => a.id === b.id);
     });
     // Same id — should NOT update prev
     s({ id: 1 });

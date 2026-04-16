@@ -10,7 +10,7 @@ import { fromEvent, sync } from "./event-driven.ts";
  * @param defaultState The default value (for SSR/hydration)
  * @returns Computed<boolean> that is true if the query matches
  */
-export function createMediaSignal(
+export function createMediaQuery(
   query: string,
   defaultState?: boolean,
 ): Computed<boolean> {

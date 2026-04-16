@@ -151,7 +151,7 @@ Helpers that wrap browser APIs as reactive signals.
 | **geolocation** | `createGeolocation(options?)` | `{ position, error, loading } & Disposable` | — |
 | **hash** | `createHash()` | `Signal<string>` | `event-driven` |
 | **lock-body-scroll** | `createLockBodyScroll()` | `Disposable` | — |
-| **media** | `createMediaSignal(query, defaultState?)` | `Computed<boolean>` | `event-driven` |
+| **media** | `createMediaQuery(query, defaultState?)` | `Computed<boolean>` | `event-driven` |
 | **media-devices** | `createMediaDevices()` | `Computed<MediaDeviceInfo[]>` | `event-listener` |
 | **motion** | `createMotion()` | `{ acceleration, rotationRate, interval, … } & Disposable` | `event-listener` |
 | **network-state** | `createNetworkState()` | `{ online, downlink, effectiveType, rtt, saveData } & Disposable` | `event-listener` |

@@ -5,26 +5,16 @@ import { createEventListener } from "./event-listener.ts";
  * Returns a `Computed<boolean>` that is `true` while focus is anywhere inside
  * `target` (including `target` itself).
  */
-export function createIsFocusWithin(
-  target: Element | (() => Element | null),
-): Computed<boolean> {
+export function createIsFocusWithin(target: Element): Computed<boolean> {
   const focused = signal(false);
 
-  const el = typeof target === "function" ? target() : target;
-
-  const onFocusIn = (e: FocusEvent) => {
-    const t = typeof target === "function" ? target() : target;
-    if (t && t.contains(e.target as Node)) focused(true);
-  };
-
-  const onFocusOut = (e: FocusEvent) => {
-    const t = typeof target === "function" ? target() : target;
-    if (t && !t.contains(e.relatedTarget as Node)) focused(false);
-  };
+  const el = target;
 
   if (el) {
-    createEventListener(document, "focusin", onFocusIn);
-    createEventListener(document, "focusout", onFocusOut);
+    createEventListener(el, "focusin", () => focused(true));
+    createEventListener(el, "focusout", (e) => {
+      if (!el.contains((e as FocusEvent).relatedTarget as Node)) focused(false);
+    });
   }
 
   return focused as Computed<boolean>;

@@ -8,7 +8,7 @@ export function createLongPress(
   target: Element | (() => Element | null),
   handler: (e: PointerEvent) => void,
   options: { delay?: number } = {},
-): Disposable {
+): () => void {
   const { delay = 500 } = options;
   const el = typeof target === "function" ? target() : target;
 
@@ -32,5 +32,5 @@ export function createLongPress(
     cleanups.forEach((fn) => fn());
   };
 
-  return { [Symbol.dispose]: cleanup };
+  return stop;
 }
