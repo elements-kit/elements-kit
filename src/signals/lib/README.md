@@ -23,6 +23,7 @@ Core Primitives (signal, computed, effect, onCleanup, trigger …)
 │   ├── mouse-position.ts
 │   ├── mouse-wheel.ts
 │   ├── network-state.ts
+│   ├── focus-trap.ts
 │   ├── on-click-outside.ts
 │   ├── page-leave.ts
 │   ├── pressed-keys.ts
@@ -30,6 +31,7 @@ Core Primitives (signal, computed, effect, onCleanup, trigger …)
 │   ├── scrolling.ts
 │   ├── search-params.ts
 │   ├── start-typing.ts
+│   ├── storage-event.ts
 │   ├── swipe.ts
 │   └── text-selection.ts
 │
@@ -58,12 +60,15 @@ Core Primitives (signal, computed, effect, onCleanup, trigger …)
 └── (standalone — no lib/ dependencies)
     ├── animation-frames.ts
     ├── async-retry.ts
+    ├── async-state.ts
     ├── battery.ts
     ├── broadcast-channel.ts
     ├── clipboard.ts
     ├── counter.ts
+    ├── css-var.ts
     ├── debounced.ts
     ├── document-title.ts
+    ├── event-source.ts
     ├── eye-dropper.ts
     ├── favicon.ts
     ├── finite-state-machine.ts
@@ -91,6 +96,7 @@ Core Primitives (signal, computed, effect, onCleanup, trigger …)
     ├── toggle.ts
     ├── wake-lock.ts
     ├── web-notification.ts
+    ├── web-socket.ts
     └── watch.ts
 ```
 
@@ -133,6 +139,7 @@ Helpers that track DOM event-driven state.
 | **draggable** | `createDraggable(target)` | `{ x, y, isDragging } & Disposable` | `event-listener` |
 | **drop-zone** | `createDropZone(target, onDrop?)` | `{ isOver, files } & Disposable` | `event-listener` |
 | **start-typing** | `createStartTyping(handler, idleMs?)` | `Disposable` | `event-listener` |
+| **focus-trap** | `createFocusTrap(target)` | `Disposable` | `event-listener` |
 | **swipe** | `createSwipe(target?, threshold?)` | `{ direction, isSwiping, deltaX, deltaY } & Disposable` | `event-listener` |
 | **text-selection** | `createTextSelection()` | `{ text, ranges }` | `event-listener` |
 
@@ -148,6 +155,8 @@ Helpers that wrap browser APIs as reactive signals.
 | **broadcast-channel** | `createBroadcastChannel<T>(name)` | `{ data, post() } & Disposable` | — |
 | **clipboard** | `createClipboard(resetDelay?)` | `{ copied, value, copy() }` | — |
 | **color-scheme** | `createColorScheme(default?)` | `Computed<"dark" \| "light">` | `media` |
+| **css-var** | `createCSSVar(name, initialValue?, target?)` | `Signal<string>` | — |
+| **event-source** | `createEventSource<T>(url, options?)` | `{ data, event, lastEventId, status, error, close } & Disposable` | — |
 | **eye-dropper** | `createEyeDropper()` | `{ isSupported, color, open() }` | — |
 | **fullscreen** | `createFullscreen(target?)` | `{ isFullscreen, enter(), exit(), toggle() } & Disposable` | `event-driven` |
 | **geolocation** | `createGeolocation(options?)` | `{ position, error, loading } & Disposable` | — |
@@ -164,8 +173,10 @@ Helpers that wrap browser APIs as reactive signals.
 | **url-pattern** | `createURLPattern(source, input?, options?)` | `Computed<URLPatternResult \| null>` | — |
 | **search-params** | `createSearchParams()` | `{ params, get(), set(), delete() } & Disposable` | `event-listener` |
 | **share** | `createShare()` | `{ isSupported, isSharing, share() }` | — |
+| **storage-event** | `createStorageEvent<T>(key, initialValue, options?)` | `Signal<T>` | `event-listener` |
 | **wake-lock** | `createWakeLock()` | `{ isActive, isSupported, request(), release() } & Disposable` | — |
 | **web-notification** | `createWebNotification()` | `{ permission, isSupported, requestPermission(), notify() }` | — |
+| **web-socket** | `createWebSocket<T>(url, options?)` | `{ data, status, send, close, open } & Disposable` | — |
 | **window-size** | `createWindowSize()` | `{ width, height } & Disposable` | `event-driven` |
 
 ---
@@ -268,6 +279,7 @@ Reactive collection primitives.
 | Utility | Export | Returns | Dependencies |
 |---------|--------|---------|-------------|
 | **async-retry** | `createAsyncRetry(source, fetcher, options?)` | `{ data, loading, error, retry(), attempt }` | — |
+| **async-state** | `createAsyncState(producer, options?)` | `{ data, loading, error, execute() }` | — |
 | **resource** | `createResource(source, fetcher, options?)` | `{ data, loading, error, refetch() }` | — |
 
 ---
