@@ -54,11 +54,11 @@ interface EffectNode extends ReactiveNode {
   /** The user-supplied side-effect function. */
   fn(): void;
   /**
-   * Cleanup callback registered by the most recent execution of `fn` via
-   * {@link onCleanup}.  Cleared to `undefined` immediately before it is
+   * Cleanup callbacks registered during the most recent execution of `fn` via
+   * {@link onCleanup}.  Cleared to `undefined` immediately before they are
    * called so that re-entrant or recursive scenarios are safe.
    */
-  onCleanup?: () => void;
+  onCleanup?: (() => void)[];
 }
 
 /**
@@ -487,7 +487,12 @@ export function effectScope(fn: () => void): () => void {
  */
 export function onCleanup(fn: () => void): void {
   if (activeOwner !== undefined) {
-    (activeOwner as EffectNode).onCleanup = fn;
+    const node = activeOwner as EffectNode;
+    if (node.onCleanup === undefined) {
+      node.onCleanup = [fn];
+    } else {
+      node.onCleanup.push(fn);
+    }
   }
 }
 
@@ -643,9 +648,9 @@ function run(e: EffectNode): void {
 
     // Run and clear any cleanup from the previous execution before re-running.
     if (e.onCleanup !== undefined) {
-      const cleanup = e.onCleanup;
+      const cleanups = e.onCleanup;
       e.onCleanup = undefined;
-      untracked(cleanup);
+      untracked(() => { for (const fn of cleanups) fn(); });
     }
 
     e.depsTail = undefined;
@@ -796,9 +801,9 @@ function signalOper<T>(this: SignalNode<T>, ...value: [T]): T | void {
 function effectOper(this: EffectNode): void {
   // Run and clear any registered cleanup before tearing down the effect.
   if (this.onCleanup !== undefined) {
-    const cleanup = this.onCleanup;
+    const cleanups = this.onCleanup;
     this.onCleanup = undefined;
-    untracked(cleanup);
+    untracked(() => { for (const fn of cleanups) fn(); });
   }
   effectScopeOper.call(this);
 }
@@ -824,10 +829,10 @@ function effectOper(this: EffectNode): void {
 function effectScopeOper(this: ReactiveNode): void {
   // Handle cascade disposal: effectOper may not have been called if this node
   // is being torn down because its parent scope was disposed.
-  const cleanup = (this as EffectNode).onCleanup;
-  if (cleanup !== undefined) {
+  const cleanups = (this as EffectNode).onCleanup;
+  if (cleanups !== undefined) {
     (this as EffectNode).onCleanup = undefined;
-    untracked(cleanup);
+    untracked(() => { for (const fn of cleanups) fn(); });
   }
 
   this.depsTail = undefined;

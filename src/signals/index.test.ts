@@ -421,16 +421,18 @@ describe("onCleanup", () => {
     expect(outerSpy).not.toHaveBeenCalled();
   });
 
-  it("last onCleanup registration wins within a single run", () => {
-    const first = vi.fn();
-    const last = vi.fn();
+  it("all onCleanup registrations within a single run are called in order", () => {
+    const order: number[] = [];
+    const value = signal(0);
     const stop = effect(() => {
-      onCleanup(first);
-      onCleanup(last); // overwrites first
+      onCleanup(() => order.push(1));
+      onCleanup(() => order.push(2));
+      onCleanup(() => order.push(3));
+      value(); // dependency to prevent no-op effect
     });
+    value(1);
     stop();
-    expect(first).not.toHaveBeenCalled();
-    expect(last).toHaveBeenCalledTimes(1);
+    expect(order).toEqual([1, 2, 3, 1, 2, 3]);
   });
 });
 
