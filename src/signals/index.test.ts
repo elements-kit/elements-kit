@@ -357,6 +357,70 @@ describe("onCleanup", () => {
     expect(() => onCleanup(() => {})).not.toThrow();
   });
 
+  it("registers correctly when called inside untracked() inside an effect", () => {
+    // Regression: onCleanup used activeSub which untracked() clears to undefined,
+    // causing cleanup to silently drop. It now uses activeOwner which is unaffected
+    // by untracked().
+    const cleanup = vi.fn();
+
+    const stop = effectScope(() => {
+      effect(() => {
+        untracked(() => onCleanup(cleanup));
+      });
+    });
+
+    expect(cleanup).not.toHaveBeenCalled();
+    stop();
+    expect(cleanup).toHaveBeenCalledTimes(1);
+  });
+
+  it("registers correctly when called inside untracked() directly inside effectScope", () => {
+    const cleanup = vi.fn();
+
+    const stop = effectScope(() => {
+      untracked(() => onCleanup(cleanup));
+    });
+
+    expect(cleanup).not.toHaveBeenCalled();
+    stop();
+    expect(cleanup).toHaveBeenCalledTimes(1);
+  });
+
+  it("registers correctly when effectScope is created inside untracked()", () => {
+    // effectScope entered inside an untracked block: activeSub is undefined
+    // but activeOwner must still be set to the scope node so onCleanup works.
+    const cleanup = vi.fn();
+    let stop!: () => void;
+
+    untracked(() => {
+      stop = effectScope(() => {
+        onCleanup(cleanup);
+      });
+    });
+
+    expect(cleanup).not.toHaveBeenCalled();
+    stop();
+    expect(cleanup).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not create phantom dependencies in the parent effect when it reads signals", () => {
+    // Regression: cleanup ran before setActiveSub(e), so signal reads inside
+    // cleanup were tracked by the parent context, causing phantom re-runs.
+    const s = signal(0);
+    const outerSpy = vi.fn();
+
+    effect(() => {
+      outerSpy();
+      effect(() => {
+        onCleanup(() => s()); // reads s during cleanup — must NOT subscribe outer
+      });
+    });
+
+    outerSpy.mockClear();
+    s(1); // outer does not track s directly — must not re-run
+    expect(outerSpy).not.toHaveBeenCalled();
+  });
+
   it("last onCleanup registration wins within a single run", () => {
     const first = vi.fn();
     const last = vi.fn();
