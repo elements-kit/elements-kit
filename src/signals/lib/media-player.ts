@@ -1,8 +1,8 @@
 import { type Computed, type Signal } from "../index.ts";
 import { fromEvent, sync } from "./event-driven.ts";
 
-type VideoResult = {
-  element: HTMLVideoElement;
+type MediaPlayerResult<T extends HTMLMediaElement> = {
+  element: T;
   playing: Computed<boolean>;
   muted: Signal<boolean>;
   volume: Signal<number>;
@@ -15,9 +15,12 @@ type VideoResult = {
 } & Disposable;
 
 /**
- * Wraps an `HTMLVideoElement` with reactive state and playback controls.
+ * Wraps an `HTMLMediaElement` (`<audio>` or `<video>`) with reactive state
+ * and playback controls.
  */
-export function createVideo(element: HTMLVideoElement): VideoResult {
+export function createMediaPlayer<T extends HTMLMediaElement>(
+  element: T,
+): MediaPlayerResult<T> {
   const el = element;
 
   const [playing] = sync(fromEvent(el, ["play", "pause"]), () => !el.paused);
@@ -60,5 +63,10 @@ export function createVideo(element: HTMLVideoElement): VideoResult {
     pause: () => el.pause(),
     toggle: () => (el.paused ? el.play() : el.pause()),
     [Symbol.dispose]: () => {},
-  } as VideoResult;
+  } as MediaPlayerResult<T>;
 }
+
+/** @deprecated Use `createMediaPlayer` instead. */
+export const createAudio = createMediaPlayer<HTMLAudioElement>;
+/** @deprecated Use `createMediaPlayer` instead. */
+export const createVideo = createMediaPlayer<HTMLVideoElement>;

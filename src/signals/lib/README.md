@@ -31,21 +31,16 @@ Core Primitives (signal, computed, effect, onCleanup, trigger …)
 │   ├── scrolling.ts
 │   ├── search-params.ts
 │   ├── start-typing.ts
-│   ├── storage-event.ts
 │   ├── swipe.ts
 │   └── text-selection.ts
 │
 ├── event-driven.ts ─── fromEvent / sync
 │   ├── active-element.ts
-│   ├── audio.ts
 │   ├── fullscreen.ts
 │   ├── hash.ts
-│   ├── is-document-visible.ts
 │   ├── media.ts
-│   │   └── color-scheme.ts
+│   ├── media-player.ts (+ createAudio / createVideo aliases)
 │   ├── orientation.ts
-│   ├── preferred-languages.ts
-│   ├── video.ts
 │   └── window-size.ts
 │
 ├── resize-observer.ts ─── createResizeObserver
@@ -61,10 +56,8 @@ Core Primitives (signal, computed, effect, onCleanup, trigger …)
     ├── animation-frames.ts
     ├── async-retry.ts
     ├── async-state.ts
-    ├── battery.ts
     ├── broadcast-channel.ts
     ├── clipboard.ts
-    ├── counter.ts
     ├── css-var.ts
     ├── debounced.ts
     ├── document-title.ts
@@ -80,9 +73,7 @@ Core Primitives (signal, computed, effect, onCleanup, trigger …)
     ├── memo.ts
     ├── mutation-observer.ts
     ├── permission.ts
-    ├── persisted-state.ts
     ├── previous.ts
-    ├── previous-distinct.ts
     ├── queue.ts
     ├── raf.ts
     ├── resource.ts
@@ -93,11 +84,11 @@ Core Primitives (signal, computed, effect, onCleanup, trigger …)
     ├── throttled.ts
     ├── timeout.ts
     ├── timestamp.ts
-    ├── toggle.ts
     ├── wake-lock.ts
     ├── web-notification.ts
     ├── web-socket.ts
-    └── watch.ts
+    ├── watch.ts
+    └── storage.ts (+ createLocalStorage / createSessionStorage)
 ```
 
 ---
@@ -151,17 +142,14 @@ Helpers that wrap browser APIs as reactive signals.
 
 | Utility | Export | Returns | Dependencies |
 |---------|--------|---------|-------------|
-| **battery** | `createBattery()` | `{ supported, charging, level, chargingTime, dischargingTime } & Disposable` | — |
 | **broadcast-channel** | `createBroadcastChannel<T>(name)` | `{ data, post() } & Disposable` | — |
 | **clipboard** | `createClipboard(resetDelay?)` | `{ copied, value, copy() }` | — |
-| **color-scheme** | `createColorScheme(default?)` | `Computed<"dark" \| "light">` | `media` |
 | **css-var** | `createCSSVar(name, initialValue?, target?)` | `Signal<string>` | — |
 | **event-source** | `createEventSource<T>(url, options?)` | `{ data, event, lastEventId, status, error, close } & Disposable` | — |
 | **eye-dropper** | `createEyeDropper()` | `{ isSupported, color, open() }` | — |
 | **fullscreen** | `createFullscreen(target?)` | `{ isFullscreen, enter(), exit(), toggle() } & Disposable` | `event-driven` |
 | **geolocation** | `createGeolocation(options?)` | `{ position, error, loading } & Disposable` | — |
 | **hash** | `createHash()` | `Signal<string>` | `event-driven` |
-| **is-document-visible** | `createIsDocumentVisible()` | `Computed<boolean>` | `event-driven` |
 | **lock-body-scroll** | `createLockBodyScroll()` | `Disposable` | — |
 | **media** | `createMediaSignal(query, defaultState?)` | `Computed<boolean>` | `event-driven` |
 | **media-devices** | `createMediaDevices()` | `Computed<MediaDeviceInfo[]>` | `event-listener` |
@@ -169,11 +157,9 @@ Helpers that wrap browser APIs as reactive signals.
 | **network-state** | `createNetworkState()` | `{ online, downlink, effectiveType, rtt, saveData } & Disposable` | `event-listener` |
 | **orientation** | `createOrientation()` | `{ angle, type } & Disposable` | `event-driven` |
 | **permission** | `createPermission(descriptor)` | `{ state } & Disposable` | — |
-| **preferred-languages** | `createPreferredLanguages()` | `Computed<readonly string[]>` | `event-driven` |
 | **url-pattern** | `createURLPattern(source, input?, options?)` | `Computed<URLPatternResult \| null>` | — |
 | **search-params** | `createSearchParams()` | `{ params, get(), set(), delete() } & Disposable` | `event-listener` |
 | **share** | `createShare()` | `{ isSupported, isSharing, share() }` | — |
-| **storage-event** | `createStorageEvent<T>(key, initialValue, options?)` | `Signal<T>` | `event-listener` |
 | **wake-lock** | `createWakeLock()` | `{ isActive, isSupported, request(), release() } & Disposable` | — |
 | **web-notification** | `createWebNotification()` | `{ permission, isSupported, requestPermission(), notify() }` | — |
 | **web-socket** | `createWebSocket<T>(url, options?)` | `{ data, status, send, close, open } & Disposable` | — |
@@ -200,8 +186,9 @@ Reactive wrappers for `<audio>` and `<video>` elements.
 
 | Utility | Export | Returns | Dependencies |
 |---------|--------|---------|-------------|
-| **audio** | `createAudio(element)` | `{ element, playing, muted, volume, duration, time, ended, play(), pause(), toggle() } & Disposable` | `event-driven` |
-| **video** | `createVideo(element)` | `{ element, playing, muted, volume, duration, time, ended, play(), pause(), toggle() } & Disposable` | `event-driven` |
+| **media-player** | `createMediaPlayer(element)` | `{ element, playing, muted, volume, duration, time, ended, play(), pause(), toggle() } & Disposable` | `event-driven` |
+
+`createAudio` and `createVideo` are deprecated aliases for `createMediaPlayer`.
 
 `muted`, `volume`, and `time` are writable `Signal<T>` — writing them updates the underlying element. `playing`, `duration`, and `ended` are read-only `Computed<T>`.
 
@@ -236,12 +223,10 @@ Reactive collection primitives.
 
 | Utility | Export | Returns | Dependencies |
 |---------|--------|---------|-------------|
-| **counter** | `createCounter(initial?, options?)` | `Signal<number> & { increment(), decrement(), reset() }` | — |
 | **list** | `createList(initial?)` | `{ items, push(), pop(), remove(), filter(), set(), clear(), size }` | — |
 | **map** | `createMap(initial?)` | `{ entries, get(), set(), delete(), has(), clear(), size }` | — |
 | **queue** | `createQueue(initial?)` | `{ items, add(), remove(), peek(), clear(), size }` | — |
 | **set** | `createSet(initial?)` | `{ entries, add(), remove(), toggle(), has(), clear(), size }` | — |
-| **toggle** | `createToggle(initial?)` | `Signal<boolean> & { toggle() }` | — |
 
 ---
 
@@ -264,9 +249,9 @@ Reactive collection primitives.
 | Utility | Export | Returns | Dependencies |
 |---------|--------|---------|-------------|
 | **finite-state-machine** | `createFiniteStateMachine(initial, transitions, options?)` | `{ state, send(), can() }` | — |
-| **persisted-state** | `createPersistedState(key, initialValue, storage?)` | `Signal<T>` | — |
-| **previous** | `createPrevious(getter)` | `Computed<T \| undefined>` | — |
-| **previous-distinct** | `createPreviousDistinct(getter, isEqual?)` | `Computed<T \| undefined>` | — |
+| **storage** | `createLocalStorage(key, initialValue, options?)` | `Signal<T>` | `event-listener` |
+| **storage** | `createSessionStorage(key, initialValue, options?)` | `Signal<T>` | — |
+| **previous** | `createPrevious(getter, isEqual?)` | `Computed<T \| undefined>` | — |
 | **state-history** | `createStateHistory(getter, capacity?)` | `{ history, index, canUndo, canRedo, undo(), redo(), clear() }` | — |
 | **state-validator** | `createStateValidator(getter, validator)` | `{ errors, isValid }` | — |
 | **memo** | `createMemo(fn, keyFn?)` | `{ call(), result, clear() }` | — |
