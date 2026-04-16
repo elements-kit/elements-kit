@@ -1,52 +1,57 @@
-import { type Computed, signal } from "../index.ts";
-import { createEventListener } from "./event-listener.ts";
+import type { Signal } from "../index.ts";
+import { fromEvent, sync } from "./event-driven.ts";
 
-type SearchParamsResult = {
-  params: Computed<URLSearchParams>;
-  get(key: string): string | null;
-  set(key: string, value: string): void;
-  delete(key: string): void;
-} & Disposable;
-
-function readParams(): URLSearchParams {
-  return new URLSearchParams(
-    typeof location !== "undefined" ? location.search : "",
-  );
-}
+type SearchParamOptions<T> = {
+  /** Custom serialiser (default `String`). */
+  serialise?: (value: T) => string;
+  /** Custom deserialiser (default identity → `string`). */
+  deserialise?: (raw: string) => T;
+  /** History method to use when writing (default `"replace"`). */
+  history?: "replace" | "push";
+};
 
 /**
- * Returns reactive access to the URL's search params.  Writing via `set` /
- * `delete` updates both `location.search` and the reactive signal.
+ * Returns a writable `Signal<T | null>` bound to a single URL search parameter.
+ *
+ * Reading returns the deserialised value (or `null` when absent).
+ * Writing serialises and updates `location.search` via `replaceState`.
+ * Reacts to `popstate` so back/forward navigation is reflected.
  */
-export function createSearchParams(): SearchParamsResult {
-  const params = signal<URLSearchParams>(readParams());
+export function createSearchParam<T = string>(
+  key: string,
+  options?: SearchParamOptions<T>,
+): Signal<T | null> {
+  const serialise = options?.serialise ?? ((v: T) => String(v));
+  const deserialise =
+    options?.deserialise ?? ((raw: string) => raw as unknown as T);
+  const navigate =
+    options?.history === "push"
+      ? (url: string) => history.pushState(null, "", url)
+      : (url: string) => history.replaceState(null, "", url);
 
-  const onPopState = () => params(readParams());
-
-  const cleanup = createEventListener(window, "popstate", onPopState);
-
-  const get = (key: string) => params().get(key);
-
-  const set = (key: string, value: string) => {
-    const next = readParams();
-    next.set(key, value);
-    history.replaceState(null, "", `?${next.toString()}`);
-    params(next);
+  const read = (): T | null => {
+    if (typeof location === "undefined") return null;
+    const raw = new URLSearchParams(location.search).get(key);
+    if (raw === null) return null;
+    try {
+      return deserialise(raw);
+    } catch {
+      return null;
+    }
   };
 
-  const del = (key: string) => {
-    const next = readParams();
-    next.delete(key);
-    const qs = next.toString();
-    history.replaceState(null, "", qs ? `?${qs}` : location.pathname);
-    params(next);
+  const write = (value: T | null) => {
+    const params = new URLSearchParams(location.search);
+    if (value === null) {
+      params.delete(key);
+    } else {
+      params.set(key, serialise(value));
+    }
+    const qs = params.toString();
+    navigate(qs ? `?${qs}` : location.pathname);
   };
 
-  return {
-    params: params as Computed<URLSearchParams>,
-    get,
-    set,
-    delete: del,
-    [Symbol.dispose]: cleanup,
-  };
+  const [s] = sync(fromEvent(window, "popstate"), read, write);
+
+  return s;
 }

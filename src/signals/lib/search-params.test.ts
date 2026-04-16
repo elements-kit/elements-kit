@@ -1,59 +1,95 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { effectScope } from "../index.ts";
-import { createSearchParams } from "./search-params.ts";
+import { createSearchParam } from "./search-params.ts";
 
 afterEach(() => {
-  document.body.innerHTML = "";
   history.replaceState(null, "", location.pathname);
 });
 
-describe("createSearchParams", () => {
-  it("reads initial search params", () => {
-    let sp!: ReturnType<typeof createSearchParams>;
+describe("createSearchParam", () => {
+  it("returns null when param is absent", () => {
+    let s!: ReturnType<typeof createSearchParam<string>>;
     effectScope(() => {
-      sp = createSearchParams();
+      s = createSearchParam("q");
     });
-    expect(sp.params()).toBeInstanceOf(URLSearchParams);
+    expect(s()).toBeNull();
   });
 
-  it("set() updates a param", () => {
-    let sp!: ReturnType<typeof createSearchParams>;
+  it("reads an existing param from the URL", () => {
+    history.replaceState(null, "", "?q=hello");
+    let s!: ReturnType<typeof createSearchParam<string>>;
     effectScope(() => {
-      sp = createSearchParams();
+      s = createSearchParam("q");
     });
-    sp.set("q", "hello");
-    expect(sp.get("q")).toBe("hello");
-    expect(sp.params().get("q")).toBe("hello");
+    expect(s()).toBe("hello");
   });
 
-  it("delete() removes a param", () => {
-    let sp!: ReturnType<typeof createSearchParams>;
+  it("writing updates location.search", () => {
+    let s!: ReturnType<typeof createSearchParam<string>>;
     effectScope(() => {
-      sp = createSearchParams();
+      s = createSearchParam("q");
     });
-    sp.set("q", "hello");
-    sp.delete("q");
-    expect(sp.get("q")).toBeNull();
+    s("world");
+    expect(new URLSearchParams(location.search).get("q")).toBe("world");
   });
 
-  it("updates on popstate event", () => {
-    let sp!: ReturnType<typeof createSearchParams>;
+  it("writing null removes the param", () => {
+    history.replaceState(null, "", "?q=hello");
+    let s!: ReturnType<typeof createSearchParam<string>>;
     effectScope(() => {
-      sp = createSearchParams();
+      s = createSearchParam("q");
     });
-    history.replaceState(null, "", "?foo=bar");
+    s(null);
+    expect(new URLSearchParams(location.search).has("q")).toBe(false);
+  });
+
+  it("reacts to popstate events", () => {
+    let s!: ReturnType<typeof createSearchParam<string>>;
+    effectScope(() => {
+      s = createSearchParam("q");
+    });
+    history.replaceState(null, "", "?q=changed");
     window.dispatchEvent(new PopStateEvent("popstate"));
-    expect(sp.get("foo")).toBe("bar");
+    expect(s()).toBe("changed");
   });
 
-  it("stops reacting after Symbol.dispose", () => {
-    let sp!: ReturnType<typeof createSearchParams>;
+  it("supports custom serialise / deserialise", () => {
+    let s!: ReturnType<typeof createSearchParam<number>>;
     effectScope(() => {
-      sp = createSearchParams();
+      s = createSearchParam("page", {
+        serialise: (v) => String(v),
+        deserialise: (raw) => Number(raw),
+      });
     });
-    sp[Symbol.dispose]();
-    history.replaceState(null, "", "?x=1");
+    s(42);
+    expect(new URLSearchParams(location.search).get("page")).toBe("42");
+
+    history.replaceState(null, "", "?page=7");
     window.dispatchEvent(new PopStateEvent("popstate"));
-    expect(sp.get("x")).toBeNull();
+    expect(s()).toBe(7);
+  });
+
+  it("preserves other params when writing", () => {
+    history.replaceState(null, "", "?a=1&b=2");
+    let s!: ReturnType<typeof createSearchParam<string>>;
+    effectScope(() => {
+      s = createSearchParam("a");
+    });
+    s("changed");
+    const params = new URLSearchParams(location.search);
+    expect(params.get("a")).toBe("changed");
+    expect(params.get("b")).toBe("2");
+  });
+
+  it("uses pushState when history: 'push'", () => {
+    const before = history.length;
+    let s!: ReturnType<typeof createSearchParam<string>>;
+    effectScope(() => {
+      s = createSearchParam("q", { history: "push" });
+    });
+    s("pushed");
+    expect(new URLSearchParams(location.search).get("q")).toBe("pushed");
+    // pushState increases history length
+    expect(history.length).toBe(before + 1);
   });
 });
