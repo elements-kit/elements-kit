@@ -97,6 +97,12 @@ let queuedLength = 0;
  * link back to this node.
  */
 let activeSub: ReactiveNode | undefined;
+/**
+ * The innermost effect or effectScope that owns the current execution frame.
+ * Unlike `activeSub`, this is **not** cleared by `untracked`, so `onCleanup`
+ * can be called from inside an untracked block and still register correctly.
+ */
+let activeOwner: ReactiveNode | undefined;
 
 /** Ring-buffer of effects waiting to be flushed. */
 const queued: (EffectNode | undefined)[] = [];
@@ -379,6 +385,8 @@ export function effect(fn: () => void): () => void {
     flags: ReactiveFlags.Watching | ReactiveFlags.RecursedCheck,
   };
   const prevSub = setActiveSub(e);
+  const prevOwner = activeOwner;
+  activeOwner = e;
   if (prevSub !== undefined) {
     link(e, prevSub, 0);
   }
@@ -386,6 +394,7 @@ export function effect(fn: () => void): () => void {
     e.fn();
   } finally {
     activeSub = prevSub;
+    activeOwner = prevOwner;
     e.flags &= ~ReactiveFlags.RecursedCheck;
   }
   return effectOper.bind(e);
@@ -424,6 +433,8 @@ export function effectScope(fn: () => void): () => void {
     flags: ReactiveFlags.None,
   };
   const prevSub = setActiveSub(e);
+  const prevOwner = activeOwner;
+  activeOwner = e;
   if (prevSub !== undefined) {
     link(e, prevSub, 0);
   }
@@ -431,6 +442,7 @@ export function effectScope(fn: () => void): () => void {
     fn();
   } finally {
     activeSub = prevSub;
+    activeOwner = prevOwner;
   }
   return effectScopeOper.bind(e);
 }
@@ -474,8 +486,8 @@ export function effectScope(fn: () => void): () => void {
  * ```
  */
 export function onCleanup(fn: () => void): void {
-  if (activeSub !== undefined) {
-    (activeSub as EffectNode).onCleanup = fn;
+  if (activeOwner !== undefined) {
+    (activeOwner as EffectNode).onCleanup = fn;
   }
 }
 
@@ -633,16 +645,19 @@ function run(e: EffectNode): void {
     if (e.onCleanup !== undefined) {
       const cleanup = e.onCleanup;
       e.onCleanup = undefined;
-      cleanup();
+      untracked(cleanup);
     }
 
     e.depsTail = undefined;
     e.flags = ReactiveFlags.Watching | ReactiveFlags.RecursedCheck;
     const prevSub = setActiveSub(e);
+    const prevOwner = activeOwner;
+    activeOwner = e;
     try {
       e.fn();
     } finally {
       activeSub = prevSub;
+      activeOwner = prevOwner;
       e.flags &= ~ReactiveFlags.RecursedCheck;
       purgeDeps(e);
     }
@@ -783,7 +798,7 @@ function effectOper(this: EffectNode): void {
   if (this.onCleanup !== undefined) {
     const cleanup = this.onCleanup;
     this.onCleanup = undefined;
-    cleanup();
+    untracked(cleanup);
   }
   effectScopeOper.call(this);
 }
@@ -812,7 +827,7 @@ function effectScopeOper(this: ReactiveNode): void {
   const cleanup = (this as EffectNode).onCleanup;
   if (cleanup !== undefined) {
     (this as EffectNode).onCleanup = undefined;
-    cleanup();
+    untracked(cleanup);
   }
 
   this.depsTail = undefined;
