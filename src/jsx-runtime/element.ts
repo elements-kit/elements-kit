@@ -52,7 +52,7 @@ function createFunctionElement(
   ref: ((el: Element) => void) | undefined,
 ): Element | DocumentFragment | null {
   let el: Element | DocumentFragment | null | undefined;
-  let dispose: () => void;
+  let dispose!: () => void;
 
   untracked(() => {
     dispose = effectScope(() => {
@@ -79,12 +79,12 @@ function createNodeElement(
   if (!node) return null;
 
   let el: Element | DocumentFragment | null | undefined;
-  let dispose: () => void;
+  let dispose!: () => void;
 
   untracked(() => {
     dispose = effectScope(() => {
-      el = renderNode(node);
       applyProps(node, props);
+      el = renderNode(node);
       if (typeof ref === "function" && el instanceof Element) ref(el);
     });
   });

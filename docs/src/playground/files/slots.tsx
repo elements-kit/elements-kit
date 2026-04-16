@@ -4,7 +4,7 @@ import type { SlotProps } from "elements-kit/jsx-runtime";
 
 // ── Card Component with named slots ───────────────────────────────────────────
 class CardComponent {
-  [$slots] = Slots.new(["header", "actions", "children"] as const);
+  [$slots] = Slots.new(["header", "actions"] as const);
 
   children = Slot.new();
   render() {

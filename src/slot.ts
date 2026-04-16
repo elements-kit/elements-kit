@@ -1,4 +1,4 @@
-import { ElementBuilder } from "./builder";
+import { PrimitiveNodeType, resolveNode } from "./lib";
 import "./polyfill";
 
 /**
@@ -9,12 +9,9 @@ export class Slot {
   // Using comments as markers to avoid extra elements in the DOM
   private readonly start = document.createComment("{");
   private readonly end = document.createComment("}");
+  // Content buffered via set() before the slot is mounted — applied on first slot() call.
+  #pending: Node | undefined;
 
-  /**
-   * Render the slot as a DocumentFragment.
-   * If not yet mounted, inserts the comment markers and optional default content.
-   * If already mounted, extracts and returns the current content.
-   */
   /**
    * Render the slot as a DocumentFragment.
    * If not yet mounted, inserts the comment markers and optional default content.
@@ -22,7 +19,7 @@ export class Slot {
    * it — the caller takes ownership of the returned nodes and is responsible for
    * their disposal.
    */
-  slot(defaultContent?: string | Node | ElementBuilder) {
+  slot(defaultContent?: PrimitiveNodeType) {
     const fragment = document.createDocumentFragment();
     if (this.isMounted()) {
       const range = document.createRange();
@@ -33,16 +30,10 @@ export class Slot {
     }
     fragment.appendChild(this.start);
     fragment.appendChild(this.end);
-    if (defaultContent) {
-      // TODO: refactor th
-      const defaultNode =
-        typeof defaultContent === "string"
-          ? document.createTextNode(defaultContent)
-          : defaultContent instanceof Node
-            ? defaultContent
-            : defaultContent.ref();
-      fragment.insertBefore(defaultNode, this.end);
-    }
+    // Use content buffered before mount, or the provided default.
+    const initialContent = this.#pending ?? resolveNode(defaultContent);
+    if (initialContent) fragment.insertBefore(initialContent, this.end);
+    this.#pending = undefined;
     return fragment;
   }
 
@@ -69,11 +60,14 @@ export class Slot {
    */
   set(element: Node) {
     const parent = this.parent();
-    if (!parent) return;
+    if (!parent) {
+      this.#pending = element; // buffer until slot() mounts the markers
+      return;
+    }
     if (this.isSame(element)) return;
     this.clear();
-
     parent.insertBefore(element, this.end);
+    this.#pending = undefined;
   }
 
   /**
@@ -129,7 +123,10 @@ export class Slot {
         return target(...argArray);
       },
       get(_target, prop) {
-        return instance[prop as keyof Slot];
+        const value = instance[prop as keyof Slot];
+        return typeof value === "function"
+          ? (value as (...a: unknown[]) => unknown).bind(instance)
+          : value;
       },
       getPrototypeOf() {
         return Slot.prototype;
