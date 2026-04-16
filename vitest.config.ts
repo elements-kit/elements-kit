@@ -11,11 +11,18 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "elements-kit/jsx-runtime": resolve(__dirname, "src/jsx-runtime/index.ts"),
-      "elements-kit/jsx-dev-runtime": resolve(__dirname, "src/jsx-runtime/index.ts"),
+      "elements-kit/jsx-runtime": resolve(
+        __dirname,
+        "src/jsx-runtime/index.ts",
+      ),
+      "elements-kit/jsx-dev-runtime": resolve(
+        __dirname,
+        "src/jsx-runtime/index.ts",
+      ),
     },
   },
   test: {
     environment: "happy-dom",
+    exclude: ["**/node_modules/**", "**/dist/**"],
   },
 });
