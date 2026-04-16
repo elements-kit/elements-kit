@@ -1,4 +1,5 @@
-import { type Computed, onCleanup, signal } from "../index.ts";
+import { type Computed } from "../index.ts";
+import { fromEvent, sync } from "./event-driven.ts";
 
 /**
  * Returns a `Computed<boolean>` that tracks the Page Visibility API.
@@ -6,20 +7,13 @@ import { type Computed, onCleanup, signal } from "../index.ts";
  * background tab, etc.).
  */
 export function createIsDocumentVisible(): Computed<boolean> & Disposable {
-  const visible = signal(
-    typeof document !== "undefined"
-      ? document.visibilityState === "visible"
-      : true,
+  const [visible, cleanup] = sync(
+    fromEvent(document, "visibilitychange"),
+    () =>
+      typeof document !== "undefined"
+        ? document.visibilityState === "visible"
+        : true,
   );
-
-  const handler = () => {
-    visible(document.visibilityState === "visible");
-  };
-
-  document.addEventListener("visibilitychange", handler);
-  const cleanup = () =>
-    document.removeEventListener("visibilitychange", handler);
-  onCleanup(cleanup);
 
   return Object.assign(visible as Computed<boolean>, {
     [Symbol.dispose]: cleanup,

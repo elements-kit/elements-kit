@@ -1,5 +1,5 @@
-import { type Computed, signal } from "../index.ts";
-import { createEventListener } from "./event-listener.ts";
+import { type Computed } from "../index.ts";
+import { fromEvent, sync } from "./event-driven.ts";
 
 type OrientationResult = {
   angle: Computed<number>;
@@ -10,23 +10,22 @@ type OrientationResult = {
  * Returns reactive signals for the screen orientation.
  */
 export function createOrientation(): OrientationResult {
-  const angle = signal<number>(screen.orientation?.angle ?? 0);
-  const type = signal<OrientationType>(
-    screen.orientation?.type ?? "portrait-primary",
+  const subscribe = fromEvent(screen.orientation, "change");
+  const [angle, stopAngle] = sync(
+    subscribe,
+    () => screen.orientation?.angle ?? 0,
+  );
+  const [type, stopType] = sync(
+    subscribe,
+    () => screen.orientation?.type ?? "portrait-primary",
   );
 
-  const onChange = () => {
-    angle(screen.orientation.angle);
-    type(screen.orientation.type);
-  };
-
-  const cleanup = createEventListener(screen.orientation, "change", onChange);
-
-  return Object.assign(
-    {
-      angle: angle as Computed<number>,
-      type: type as Computed<OrientationType>,
+  return {
+    angle: angle as Computed<number>,
+    type: type as Computed<OrientationType>,
+    [Symbol.dispose]: () => {
+      stopAngle();
+      stopType();
     },
-    { [Symbol.dispose]: cleanup },
-  );
+  } as OrientationResult;
 }

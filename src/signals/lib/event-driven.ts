@@ -77,6 +77,7 @@ export function sync<T>(
     tick();
     return getter();
   });
+  value(); // eager initial evaluation
   const cleanup = subscribe(() => trigger(tick));
   onCleanup(cleanup);
 
