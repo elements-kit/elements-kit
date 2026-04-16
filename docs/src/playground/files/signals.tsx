@@ -32,7 +32,7 @@ effect(() => {
 // ============ Demo 3: Cleanup (simulated) ============
 const url = signal("/api/data");
 const fetchLogs = signal<string[]>([]);
-let abortCount = signal(0);
+const abortCount = signal(0);
 
 effect(() => {
   const currentUrl = url();
@@ -202,7 +202,7 @@ function DemoCleanup() {
       <p>
         URL: <strong>{() => url()}</strong>
         {" — "}
-        Abort count: <strong>{() => abortCount}</strong>
+        Abort count: <strong>{abortCount}</strong>
       </p>
       <div style="display: flex; gap: 8px; flex-wrap: wrap;">
         <button onClick={() => url("/api/data")}>Fetch /api/data</button>
