@@ -83,8 +83,8 @@ function createNodeElement(
 
   untracked(() => {
     dispose = effectScope(() => {
-      applyProps(node, props);
       el = renderNode(node);
+      applyProps(node, props);
       if (typeof ref === "function" && el instanceof Element) ref(el);
     });
   });

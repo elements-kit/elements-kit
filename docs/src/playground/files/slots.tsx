@@ -4,8 +4,9 @@ import type { SlotProps } from "elements-kit/jsx-runtime";
 
 // ── Card Component with named slots ───────────────────────────────────────────
 class CardComponent {
-  [$slots] = Slots.new(["header", "actions"] as const);
+  [$slots] = Slots.new(["header", "actions", "children"] as const);
 
+  children = Slot.new();
   render() {
     return (
       <article
@@ -20,9 +21,7 @@ class CardComponent {
         <header style="padding: 1rem; border-bottom: 1px solid #e2e8f0; background: #f7fafc">
           {this[$slots].header("Untitled")}
         </header>
-        <main style="padding: 1rem">
-          <slot />
-        </main>
+        <main style="padding: 1rem">{this.children()}</main>
         <footer style="padding: 0.75rem 1rem; border-top: 1px solid #e2e8f0; display: flex; gap: 8px">
           {this[$slots].actions()}
         </footer>
