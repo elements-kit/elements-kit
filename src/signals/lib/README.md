@@ -10,6 +10,9 @@ Reactive utilities built on top of the core signal primitives (`signal`, `comput
 Core Primitives (signal, computed, effect, onCleanup, trigger …)
 ├── event-listener.ts ─── createEventListener
 │   ├── before-unload.ts
+│   ├── draggable.ts
+│   ├── drop-zone.ts
+│   ├── element-scroll.ts
 │   ├── hover.ts
 │   ├── is-focus-within.ts
 │   ├── is-idle.ts
@@ -26,7 +29,9 @@ Core Primitives (signal, computed, effect, onCleanup, trigger …)
 │   ├── scroll-state.ts
 │   ├── scrolling.ts
 │   ├── search-params.ts
-│   └── start-typing.ts
+│   ├── start-typing.ts
+│   ├── swipe.ts
+│   └── text-selection.ts
 │
 ├── event-driven.ts ─── fromEvent / sync
 │   ├── active-element.ts
@@ -35,7 +40,9 @@ Core Primitives (signal, computed, effect, onCleanup, trigger …)
 │   ├── hash.ts
 │   ├── is-document-visible.ts
 │   ├── media.ts
+│   │   └── color-scheme.ts
 │   ├── orientation.ts
+│   ├── preferred-languages.ts
 │   ├── video.ts
 │   └── window-size.ts
 │
@@ -44,16 +51,20 @@ Core Primitives (signal, computed, effect, onCleanup, trigger …)
 │   └── element-size.ts
 │
 ├── intersection-observer.ts ─── createIntersectionObserver
+│   ├── element-visibility.ts
+│   ├── infinite-scroll.ts
 │   └── is-in-viewport.ts
 │
 └── (standalone — no lib/ dependencies)
     ├── animation-frames.ts
     ├── async-retry.ts
     ├── battery.ts
+    ├── broadcast-channel.ts
     ├── clipboard.ts
     ├── counter.ts
     ├── debounced.ts
     ├── document-title.ts
+    ├── eye-dropper.ts
     ├── favicon.ts
     ├── finite-state-machine.ts
     ├── geolocation.ts
@@ -61,6 +72,7 @@ Core Primitives (signal, computed, effect, onCleanup, trigger …)
     ├── list.ts
     ├── lock-body-scroll.ts
     ├── map.ts
+    ├── memo.ts
     ├── mutation-observer.ts
     ├── permission.ts
     ├── persisted-state.ts
@@ -70,11 +82,15 @@ Core Primitives (signal, computed, effect, onCleanup, trigger …)
     ├── raf.ts
     ├── resource.ts
     ├── set.ts
+    ├── share.ts
     ├── state-history.ts
     ├── state-validator.ts
     ├── throttled.ts
     ├── timeout.ts
+    ├── timestamp.ts
     ├── toggle.ts
+    ├── wake-lock.ts
+    ├── web-notification.ts
     └── watch.ts
 ```
 
@@ -114,7 +130,11 @@ Helpers that track DOM event-driven state.
 | **mouse-wheel** | `createMouseWheel()` | `Computed<number>` | `event-listener` |
 | **on-click-outside** | `createOnClickOutside(target, handler)` | `void` | `event-listener` |
 | **pressed-keys** | `createPressedKeys()` | `Computed<ReadonlySet<string>>` | `event-listener` |
+| **draggable** | `createDraggable(target)` | `{ x, y, isDragging } & Disposable` | `event-listener` |
+| **drop-zone** | `createDropZone(target, onDrop?)` | `{ isOver, files } & Disposable` | `event-listener` |
 | **start-typing** | `createStartTyping(handler, idleMs?)` | `Disposable` | `event-listener` |
+| **swipe** | `createSwipe(target?, threshold?)` | `{ direction, isSwiping, deltaX, deltaY } & Disposable` | `event-listener` |
+| **text-selection** | `createTextSelection()` | `{ text, ranges }` | `event-listener` |
 
 ---
 
@@ -125,7 +145,10 @@ Helpers that wrap browser APIs as reactive signals.
 | Utility | Export | Returns | Dependencies |
 |---------|--------|---------|-------------|
 | **battery** | `createBattery()` | `{ supported, charging, level, chargingTime, dischargingTime } & Disposable` | — |
+| **broadcast-channel** | `createBroadcastChannel<T>(name)` | `{ data, post() } & Disposable` | — |
 | **clipboard** | `createClipboard(resetDelay?)` | `{ copied, value, copy() }` | — |
+| **color-scheme** | `createColorScheme(default?)` | `Computed<"dark" \| "light">` | `media` |
+| **eye-dropper** | `createEyeDropper()` | `{ isSupported, color, open() }` | — |
 | **fullscreen** | `createFullscreen(target?)` | `{ isFullscreen, enter(), exit(), toggle() } & Disposable` | `event-driven` |
 | **geolocation** | `createGeolocation(options?)` | `{ position, error, loading } & Disposable` | — |
 | **hash** | `createHash()` | `Signal<string>` | `event-driven` |
@@ -137,7 +160,12 @@ Helpers that wrap browser APIs as reactive signals.
 | **network-state** | `createNetworkState()` | `{ online, downlink, effectiveType, rtt, saveData } & Disposable` | `event-listener` |
 | **orientation** | `createOrientation()` | `{ angle, type } & Disposable` | `event-driven` |
 | **permission** | `createPermission(descriptor)` | `{ state } & Disposable` | — |
+| **preferred-languages** | `createPreferredLanguages()` | `Computed<readonly string[]>` | `event-driven` |
+| **url-pattern** | `createURLPattern(source, input?, options?)` | `Computed<URLPatternResult \| null>` | — |
 | **search-params** | `createSearchParams()` | `{ params, get(), set(), delete() } & Disposable` | `event-listener` |
+| **share** | `createShare()` | `{ isSupported, isSharing, share() }` | — |
+| **wake-lock** | `createWakeLock()` | `{ isActive, isSupported, request(), release() } & Disposable` | — |
+| **web-notification** | `createWebNotification()` | `{ permission, isSupported, requestPermission(), notify() }` | — |
 | **window-size** | `createWindowSize()` | `{ width, height } & Disposable` | `event-driven` |
 
 ---
@@ -150,6 +178,7 @@ Helpers that observe element properties using browser observers.
 |---------|--------|---------|-------------|
 | **element-rect** | `createElementRect(target)` | `{ x, y, width, height, top, right, bottom, left } & Disposable` | `resize-observer` |
 | **element-size** | `createElementSize(target)` | `{ width, height } & Disposable` | `resize-observer` |
+| **element-visibility** | `createElementVisibility(target, options?)` | `Computed<number>` (0–1 ratio) | `intersection-observer` |
 | **is-in-viewport** | `createIsInViewport(target, options?)` | `Computed<boolean>` | `intersection-observer` |
 
 ---
@@ -171,6 +200,8 @@ Reactive wrappers for `<audio>` and `<video>` elements.
 
 | Utility | Export | Returns | Dependencies |
 |---------|--------|---------|-------------|
+| **element-scroll** | `createElementScroll(target)` | `{ x: Signal, y: Signal } & Disposable` | `event-listener` |
+| **infinite-scroll** | `createInfiniteScroll(sentinel, handler, options?)` | `Disposable` | `intersection-observer` |
 | **scroll-state** | `createScrollState(target?)` | `{ x, y, directionX, directionY } & Disposable` | `event-listener` |
 | **scrolling** | `createScrolling(target?, delay?)` | `Computed<boolean>` | `event-listener` |
 
@@ -213,6 +244,7 @@ Reactive collection primitives.
 | **raf** | `createRaf(callback)` | `{ isRunning, start(), stop() } & Disposable` | — |
 | **throttled** | `createThrottled(getter, interval)` | `Computed<T>` | — |
 | **timeout** | `createTimeout(callback, delay)` | `{ isPending, start(), stop(), reset() } & Disposable` | — |
+| **timestamp** | `createTimestamp()` | `Computed<number>` | — |
 
 ---
 
@@ -226,6 +258,7 @@ Reactive collection primitives.
 | **previous-distinct** | `createPreviousDistinct(getter, isEqual?)` | `Computed<T \| undefined>` | — |
 | **state-history** | `createStateHistory(getter, capacity?)` | `{ history, index, canUndo, canRedo, undo(), redo(), clear() }` | — |
 | **state-validator** | `createStateValidator(getter, validator)` | `{ errors, isValid }` | — |
+| **memo** | `createMemo(fn, keyFn?)` | `{ call(), result, clear() }` | — |
 | **watch** | `createWatch(source, callback)` | `() => void` (stop function) | — |
 
 ---
