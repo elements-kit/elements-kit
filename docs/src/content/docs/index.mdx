@@ -10,7 +10,7 @@ ElementsKit is a set of **universal reactive primitives** for building web UI. I
 
 <CardGrid>
   <Card title="Signals" icon="rocket">
-    Fine-grained reactive state. `signal`, `computed`, `effect`, stores, and helpers like `createMediaSignal` — framework-agnostic, usable anywhere JS runs.
+    Fine-grained reactive state. `signal`, `computed`, `effect`, stores, and helpers like `createMediaQuery` — framework-agnostic, usable anywhere JS runs.
   </Card>
   <Card title="Elements" icon="puzzle">
     JSX compiles to real `document.createElement` calls. Reactive props become live DOM bindings — no diffing, no reconciliation, no runtime overhead.
@@ -177,7 +177,7 @@ class Counter { @reactive() count = 0; render() { return <button onClick={() => 
 <CardGrid>
   <LinkCard title="Signals" href="/signals" description="signal · computed · effect · @reactive · batch · onCleanup" />
   <LinkCard title="Stores" href="/stores" description="Class-based reactive stores — share state across components and frameworks" />
-  <LinkCard title="Helpers" href="/signals/helpers" description="createMediaSignal and other pre-built signal factories for browser APIs" />
+  <LinkCard title="Helpers" href="/signals/helpers" description="createMediaQuery and other pre-built signal factories for browser APIs" />
   <LinkCard title="Elements" href="/elements" description="JSX → real DOM, live bindings, reactive props, event listeners" />
   <LinkCard title="Components" href="/components" description="Class components — store + render pattern, For list rendering" />
   <LinkCard title="Custom Elements" href="/custom-elements" description="Native HTMLElement enhanced with signals, JSX, and decorators" />

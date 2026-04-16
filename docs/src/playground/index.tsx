@@ -1,7 +1,7 @@
 /* @jsxImportSource react */
 import { createRoot } from "react-dom/client";
 import { signal, type Signal } from "elements-kit/signals";
-import { createMediaSignal } from "elements-kit/signals/media";
+import { createMediaQuery } from "elements-kit/signals/media";
 import { useSignal as use$, useScope } from "elements-kit/signals/react";
 import {
   SandpackProvider,
@@ -46,7 +46,7 @@ export interface PlaygroundProps {
   tests?: React.ComponentProps<typeof SandpackTests>;
 }
 
-const isDarkSignal = createMediaSignal.bind(
+const isDarkSignal = createMediaQuery.bind(
   null,
   "(prefers-color-scheme: dark)",
 );

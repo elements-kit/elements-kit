@@ -1,10 +1,10 @@
 import { effect, effectScope } from "elements-kit/signals";
-import { createMediaSignal } from "elements-kit/signals/media";
+import { createMediaQuery } from "elements-kit/signals/media";
 
 // Live media query signals
-const isDark = createMediaSignal("(prefers-color-scheme: dark)");
-const isMobile = createMediaSignal("(max-width: 640px)");
-const prefersNoAnim = createMediaSignal("(prefers-reduced-motion: reduce)");
+const isDark = createMediaQuery("(prefers-color-scheme: dark)");
+const isMobile = createMediaQuery("(max-width: 640px)");
+const prefersNoAnim = createMediaQuery("(prefers-reduced-motion: reduce)");
 
 export class App {
   render() {

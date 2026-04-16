@@ -250,10 +250,10 @@ The same `cart` store drives custom elements, React trees, and plain scripts —
 Pre-built signal factories for common browser APIs:
 
 ```ts
-import { createMediaSignal } from "elements-kit/signals/media";
+import { createMediaQuery } from "elements-kit/signals/media";
 
-const isDark = createMediaSignal("(prefers-color-scheme: dark)");
-const isMobile = createMediaSignal("(max-width: 640px)");
+const isDark = createMediaQuery("(prefers-color-scheme: dark)");
+const isMobile = createMediaQuery("(max-width: 640px)");
 
 effect(() => document.documentElement.classList.toggle("dark", isDark()));
 ```

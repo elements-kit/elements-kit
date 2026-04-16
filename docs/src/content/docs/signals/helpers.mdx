@@ -9,19 +9,19 @@ import PLAYGROUND_FILE from "@/playground/files/media.tsx?raw";
 Signal helpers are pre-built factories that wrap common browser APIs in signals — similar in spirit to [react-use](https://github.com/streamich/react-use) hooks or [Svelte runes](https://svelte.dev/docs/svelte/what-are-runes), but **framework-agnostic**. They return a `Computed<T>` you can read anywhere signals work.
 
 ```ts
-import { createMediaSignal } from "elements-kit/signals/media";
+import { createMediaQuery } from "elements-kit/signals/media";
 ```
 
 ---
 
-## createMediaSignal
+## createMediaQuery
 
 Creates a `Computed<boolean>` that tracks a [CSS media query](https://developer.mozilla.org/en-US/docs/Web/API/Window/matchMedia). Returns `true` when the query matches, `false` otherwise.
 
 ```ts
-import { createMediaSignal } from "elements-kit/signals/media";
+import { createMediaQuery } from "elements-kit/signals/media";
 
-const isDark = createMediaSignal("(prefers-color-scheme: dark)");
+const isDark = createMediaQuery("(prefers-color-scheme: dark)");
 
 isDark(); // true or false — live, updates on OS change
 ```
@@ -29,7 +29,7 @@ isDark(); // true or false — live, updates on OS change
 ### Signature
 
 ```ts
-function createMediaSignal(
+function createMediaQuery(
   query: string,
   defaultState?: boolean,
 ): Computed<boolean>
@@ -46,9 +46,9 @@ function createMediaSignal(
 
 ```ts
 import { effect } from "elements-kit/signals";
-import { createMediaSignal } from "elements-kit/signals/media";
+import { createMediaQuery } from "elements-kit/signals/media";
 
-const isDark = createMediaSignal("(prefers-color-scheme: dark)");
+const isDark = createMediaQuery("(prefers-color-scheme: dark)");
 
 effect(() => {
   document.documentElement.classList.toggle("dark", isDark());
@@ -58,9 +58,9 @@ effect(() => {
 **Responsive layout**
 
 ```ts
-const isMobile  = createMediaSignal("(max-width: 640px)");
-const isTablet  = createMediaSignal("(max-width: 1024px)");
-const prefersReducedMotion = createMediaSignal("(prefers-reduced-motion: reduce)");
+const isMobile  = createMediaQuery("(max-width: 640px)");
+const isTablet  = createMediaQuery("(max-width: 1024px)");
+const prefersReducedMotion = createMediaQuery("(prefers-reduced-motion: reduce)");
 
 effect(() => {
   if (isMobile()) {
@@ -77,7 +77,7 @@ Pass `defaultState` to control the value returned on the server before the brows
 
 ```ts
 // Server renders as if dark mode is off
-const isDark = createMediaSignal("(prefers-color-scheme: dark)", false);
+const isDark = createMediaQuery("(prefers-color-scheme: dark)", false);
 ```
 
 ### Cleanup
@@ -87,13 +87,13 @@ The underlying `MediaQueryList` event listener is automatically removed when the
 ```ts
 // Inside an effect or effectScope — cleanup is automatic
 effectScope(() => {
-  const isDark = createMediaSignal("(prefers-color-scheme: dark)");
+  const isDark = createMediaQuery("(prefers-color-scheme: dark)");
   effect(() => document.body.classList.toggle("dark", isDark()));
 });
 // ↑ stop() cleans up the MediaQueryList listener too
 
 // Explicit disposal
-using isDark = createMediaSignal("(prefers-color-scheme: dark)");
+using isDark = createMediaQuery("(prefers-color-scheme: dark)");
 // ↑ listener removed when `isDark` goes out of scope (TC39 `using` keyword)
 ```
 
