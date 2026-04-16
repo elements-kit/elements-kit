@@ -8,10 +8,10 @@ import { createIntersectionObserver } from "./intersection-observer.ts";
 export function createIsInViewport(
   target: Element | (() => Element | null),
   options?: IntersectionObserverInit,
-): Computed<boolean> & Disposable {
+): Computed<boolean> {
   const visible = signal(false);
 
-  const observer = createIntersectionObserver(
+  createIntersectionObserver(
     target,
     (entries) => {
       for (const entry of entries) {
@@ -21,7 +21,5 @@ export function createIsInViewport(
     options,
   );
 
-  return Object.assign(visible as Computed<boolean>, {
-    [Symbol.dispose]: observer[Symbol.dispose],
-  });
+  return visible as Computed<boolean>;
 }

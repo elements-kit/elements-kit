@@ -50,17 +50,15 @@ export function createElementRect(
   const el = typeof target === "function" ? target() : target;
   if (el) updateRect(el);
 
-  return Object.assign(
-    {
-      x: x as Computed<number>,
-      y: y as Computed<number>,
-      width: width as Computed<number>,
-      height: height as Computed<number>,
-      top: top as Computed<number>,
-      right: right as Computed<number>,
-      bottom: bottom as Computed<number>,
-      left: left as Computed<number>,
-    },
-    { [Symbol.dispose]: observer[Symbol.dispose] },
-  );
+  return {
+    x: x as Computed<number>,
+    y: y as Computed<number>,
+    width: width as Computed<number>,
+    height: height as Computed<number>,
+    top: top as Computed<number>,
+    right: right as Computed<number>,
+    bottom: bottom as Computed<number>,
+    left: left as Computed<number>,
+    [Symbol.dispose]: observer[Symbol.dispose],
+  };
 }

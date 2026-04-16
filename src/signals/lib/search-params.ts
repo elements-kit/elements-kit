@@ -42,13 +42,11 @@ export function createSearchParams(): SearchParamsResult {
     params(next);
   };
 
-  return Object.assign(
-    {
-      params: params as Computed<URLSearchParams>,
-      get,
-      set,
-      delete: del,
-    },
-    { [Symbol.dispose]: cleanup },
-  );
+  return {
+    params: params as Computed<URLSearchParams>,
+    get,
+    set,
+    delete: del,
+    [Symbol.dispose]: cleanup,
+  };
 }

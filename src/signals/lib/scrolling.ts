@@ -10,7 +10,7 @@ import { createEventListener } from "./event-listener.ts";
 export function createScrolling(
   target: Element | Window = window,
   delay = 150,
-): Computed<boolean> & Disposable {
+): Computed<boolean> {
   const scrolling = signal(false);
   let timer: ReturnType<typeof setTimeout>;
 
@@ -20,18 +20,8 @@ export function createScrolling(
     timer = setTimeout(() => scrolling(false), delay);
   };
 
-  const removeListener = createEventListener(
-    target as Window,
-    "scroll",
-    handler,
-    { passive: true },
-  );
+  createEventListener(target as Window, "scroll", handler, { passive: true });
   onCleanup(() => clearTimeout(timer));
 
-  return Object.assign(scrolling as Computed<boolean>, {
-    [Symbol.dispose]: () => {
-      clearTimeout(timer);
-      removeListener();
-    },
-  });
+  return scrolling as Computed<boolean>;
 }

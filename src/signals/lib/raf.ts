@@ -40,8 +40,10 @@ export function createRaf(callback: (time: number) => void): RafResult {
   const cleanup = () => stop();
   onCleanup(cleanup);
 
-  return Object.assign(
-    { isRunning: isRunning as Computed<boolean>, start, stop },
-    { [Symbol.dispose]: cleanup },
-  );
+  return {
+    isRunning: isRunning as Computed<boolean>,
+    start,
+    stop,
+    [Symbol.dispose]: cleanup,
+  };
 }

@@ -39,13 +39,13 @@ describe("createIsIdle", () => {
     expect(idle()).toBe(false);
   });
 
-  it("stops reacting after Symbol.dispose", () => {
+  it("stops reacting after scope disposal", () => {
     vi.useFakeTimers();
     let idle!: ReturnType<typeof createIsIdle>;
-    effectScope(() => {
+    const stop = effectScope(() => {
       idle = createIsIdle(500);
     });
-    idle[Symbol.dispose]();
+    stop();
     vi.advanceTimersByTime(1000);
     expect(idle()).toBe(false);
   });

@@ -29,7 +29,7 @@ describe("createMediaDevices", () => {
     expect(d()).toEqual(mockDevices);
   });
 
-  it("removes devicechange listener on Symbol.dispose", () => {
+  it("removes devicechange listener on scope disposal", () => {
     const removeListener = vi.fn();
     vi.stubGlobal("navigator", {
       mediaDevices: {
@@ -40,10 +40,10 @@ describe("createMediaDevices", () => {
     });
 
     let d!: ReturnType<typeof createMediaDevices>;
-    effectScope(() => {
+    const stop = effectScope(() => {
       d = createMediaDevices();
     });
-    d[Symbol.dispose]();
+    stop();
     expect(removeListener).toHaveBeenCalledWith(
       "devicechange",
       expect.any(Function),

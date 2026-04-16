@@ -37,12 +37,10 @@ export function createGeolocation(
   const cleanup = () => navigator.geolocation.clearWatch(watchId);
   onCleanup(cleanup);
 
-  return Object.assign(
-    {
-      position: position as Computed<GeolocationPosition | null>,
-      error: error as Computed<GeolocationPositionError | null>,
-      loading: loading as Computed<boolean>,
-    },
-    { [Symbol.dispose]: cleanup },
-  );
+  return {
+    position: position as Computed<GeolocationPosition | null>,
+    error: error as Computed<GeolocationPositionError | null>,
+    loading: loading as Computed<boolean>,
+    [Symbol.dispose]: cleanup,
+  };
 }

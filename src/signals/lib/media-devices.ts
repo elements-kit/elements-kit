@@ -5,7 +5,7 @@ import { createEventListener } from "./event-listener.ts";
  * Returns a reactive list of available media devices, refreshed whenever
  * devices are added or removed.
  */
-export function createMediaDevices(): Computed<MediaDeviceInfo[]> & Disposable {
+export function createMediaDevices(): Computed<MediaDeviceInfo[]> {
   const devices = signal<MediaDeviceInfo[]>([]);
 
   const refresh = () => {
@@ -14,13 +14,7 @@ export function createMediaDevices(): Computed<MediaDeviceInfo[]> & Disposable {
 
   refresh();
 
-  const cleanup = createEventListener(
-    navigator.mediaDevices,
-    "devicechange",
-    refresh,
-  );
+  createEventListener(navigator.mediaDevices, "devicechange", refresh);
 
-  return Object.assign(devices as Computed<MediaDeviceInfo[]>, {
-    [Symbol.dispose]: cleanup,
-  });
+  return devices as Computed<MediaDeviceInfo[]>;
 }

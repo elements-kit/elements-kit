@@ -5,8 +5,7 @@ import { createEventListener } from "./event-listener.ts";
  * Returns a `Computed<ReadonlySet<string>>` containing all keyboard keys
  * currently being held down.  Key values follow the `KeyboardEvent.key` spec.
  */
-export function createPressedKeys(): Computed<ReadonlySet<string>> &
-  Disposable {
+export function createPressedKeys(): Computed<ReadonlySet<string>> {
   const keys = signal<ReadonlySet<string>>(new Set());
 
   const onKeyDown = (e: KeyboardEvent) => {
@@ -24,16 +23,9 @@ export function createPressedKeys(): Computed<ReadonlySet<string>> &
   // Clear all keys when window loses focus so stale keys don't get stuck.
   const onBlur = () => keys(new Set());
 
-  const r1 = createEventListener(window, "keydown", onKeyDown);
-  const r2 = createEventListener(window, "keyup", onKeyUp);
-  const r3 = createEventListener(window, "blur", onBlur);
-  const cleanup = () => {
-    r1();
-    r2();
-    r3();
-  };
+  createEventListener(window, "keydown", onKeyDown);
+  createEventListener(window, "keyup", onKeyUp);
+  createEventListener(window, "blur", onBlur);
 
-  return Object.assign(keys as Computed<ReadonlySet<string>>, {
-    [Symbol.dispose]: cleanup,
-  });
+  return keys as Computed<ReadonlySet<string>>;
 }

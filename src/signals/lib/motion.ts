@@ -27,16 +27,14 @@ export function createMotion(): MotionResult {
 
   const cleanup = createEventListener(window, "devicemotion", onMotion);
 
-  return Object.assign(
-    {
-      acceleration:
-        acceleration as Computed<DeviceMotionEventAcceleration | null>,
-      accelerationIncludingGravity:
-        accelerationIncludingGravity as Computed<DeviceMotionEventAcceleration | null>,
-      rotationRate:
-        rotationRate as Computed<DeviceMotionEventRotationRate | null>,
-      interval: interval as Computed<number | null>,
-    },
-    { [Symbol.dispose]: cleanup },
-  );
+  return {
+    acceleration:
+      acceleration as Computed<DeviceMotionEventAcceleration | null>,
+    accelerationIncludingGravity:
+      accelerationIncludingGravity as Computed<DeviceMotionEventAcceleration | null>,
+    rotationRate:
+      rotationRate as Computed<DeviceMotionEventRotationRate | null>,
+    interval: interval as Computed<number | null>,
+    [Symbol.dispose]: cleanup,
+  };
 }

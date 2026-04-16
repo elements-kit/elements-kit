@@ -27,12 +27,12 @@ describe("createMouseWheel", () => {
     expect(w()).toBe(50);
   });
 
-  it("stops updating after Symbol.dispose", () => {
+  it("stops updating after scope disposal", () => {
     let w!: ReturnType<typeof createMouseWheel>;
-    effectScope(() => {
+    const stop = effectScope(() => {
       w = createMouseWheel();
     });
-    w[Symbol.dispose]();
+    stop();
     window.dispatchEvent(new WheelEvent("wheel", { deltaY: 200 }));
     expect(w()).toBe(0);
   });

@@ -51,14 +51,12 @@ export function createNetworkState(): NetworkStateResult {
   }
   const cleanup = () => cleanups.forEach((fn) => fn());
 
-  return Object.assign(
-    {
-      online: online as Computed<boolean>,
-      downlink: downlink as Computed<number | undefined>,
-      effectiveType: effectiveType as Computed<string | undefined>,
-      rtt: rtt as Computed<number | undefined>,
-      saveData: saveData as Computed<boolean | undefined>,
-    },
-    { [Symbol.dispose]: cleanup },
-  );
+  return {
+    online: online as Computed<boolean>,
+    downlink: downlink as Computed<number | undefined>,
+    effectiveType: effectiveType as Computed<string | undefined>,
+    rtt: rtt as Computed<number | undefined>,
+    saveData: saveData as Computed<boolean | undefined>,
+    [Symbol.dispose]: cleanup,
+  };
 }

@@ -28,12 +28,12 @@ describe("createActiveElement", () => {
     expect(active()).toBe(document.activeElement);
   });
 
-  it("stops updating after Symbol.dispose", () => {
+  it("stops updating after scope disposal", () => {
     let active!: ReturnType<typeof createActiveElement>;
-    effectScope(() => {
+    const stop = effectScope(() => {
       active = createActiveElement();
     });
-    active[Symbol.dispose]();
+    stop();
 
     const input = document.createElement("input");
     document.body.appendChild(input);

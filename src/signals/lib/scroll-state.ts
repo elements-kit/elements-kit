@@ -57,13 +57,11 @@ export function createScrollState(
 
   const cleanup = createEventListener(resolved, "scroll", handler);
 
-  return Object.assign(
-    {
-      x: x as Computed<number>,
-      y: y as Computed<number>,
-      directionX: directionX as Computed<ScrollDirection>,
-      directionY: directionY as Computed<VerticalDirection>,
-    },
-    { [Symbol.dispose]: cleanup },
-  );
+  return {
+    x: x as Computed<number>,
+    y: y as Computed<number>,
+    directionX: directionX as Computed<ScrollDirection>,
+    directionY: directionY as Computed<VerticalDirection>,
+    [Symbol.dispose]: cleanup,
+  };
 }

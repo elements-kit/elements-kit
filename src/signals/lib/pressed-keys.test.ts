@@ -45,12 +45,12 @@ describe("createPressedKeys", () => {
     expect(keys().has("a")).toBe(true);
   });
 
-  it("stops reacting after Symbol.dispose", () => {
+  it("stops reacting after scope disposal", () => {
     let keys!: ReturnType<typeof createPressedKeys>;
-    effectScope(() => {
+    const stop = effectScope(() => {
       keys = createPressedKeys();
     });
-    keys[Symbol.dispose]();
+    stop();
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "z" }));
     expect(keys().has("z")).toBe(false);
   });

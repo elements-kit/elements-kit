@@ -34,8 +34,8 @@ export function createPermission(
 
   onCleanup(cleanup);
 
-  return Object.assign(
-    { state: state as Computed<PermissionState | "unsupported"> },
-    { [Symbol.dispose]: cleanup },
-  );
+  return {
+    state: state as Computed<PermissionState | "unsupported">,
+    [Symbol.dispose]: cleanup,
+  };
 }

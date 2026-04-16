@@ -50,14 +50,12 @@ export function createAnimationFrames(): AnimationFramesResult {
   const cleanup = () => stop();
   onCleanup(cleanup);
 
-  return Object.assign(
-    {
-      isRunning: isRunning as Computed<boolean>,
-      delta: delta as Computed<number>,
-      elapsed: elapsed as Computed<number>,
-      start,
-      stop,
-    },
-    { [Symbol.dispose]: cleanup },
-  );
+  return {
+    isRunning: isRunning as Computed<boolean>,
+    delta: delta as Computed<number>,
+    elapsed: elapsed as Computed<number>,
+    start,
+    stop,
+    [Symbol.dispose]: cleanup,
+  };
 }

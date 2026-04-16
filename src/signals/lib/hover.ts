@@ -8,7 +8,7 @@ import { createEventListener } from "./event-listener.ts";
  */
 export function createHover(
   target: Element | (() => Element | null),
-): Computed<boolean> & Disposable {
+): Computed<boolean> {
   const hovered = signal(false);
 
   const el = typeof target === "function" ? target() : target;
@@ -16,14 +16,10 @@ export function createHover(
   const onEnter = () => hovered(true);
   const onLeave = () => hovered(false);
 
-  const cleanups: Array<() => void> = [];
   if (el) {
-    cleanups.push(createEventListener(el, "pointerenter", onEnter));
-    cleanups.push(createEventListener(el, "pointerleave", onLeave));
+    createEventListener(el, "pointerenter", onEnter);
+    createEventListener(el, "pointerleave", onLeave);
   }
-  const cleanup = () => cleanups.forEach((fn) => fn());
 
-  return Object.assign(hovered as Computed<boolean>, {
-    [Symbol.dispose]: cleanup,
-  });
+  return hovered as Computed<boolean>;
 }

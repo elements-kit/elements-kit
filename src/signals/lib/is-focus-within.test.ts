@@ -41,15 +41,15 @@ describe("createIsFocusWithin", () => {
     expect(typeof focused()).toBe("boolean");
   });
 
-  it("stops reacting after Symbol.dispose", () => {
+  it("stops reacting after scope disposal", () => {
     const el = document.createElement("div");
     document.body.appendChild(el);
 
     let focused!: ReturnType<typeof createIsFocusWithin>;
-    effectScope(() => {
+    const stop = effectScope(() => {
       focused = createIsFocusWithin(el);
     });
-    focused[Symbol.dispose]();
+    stop();
     expect(focused()).toBe(false);
   });
 });

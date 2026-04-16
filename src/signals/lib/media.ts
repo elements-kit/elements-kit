@@ -17,9 +17,7 @@ export function createMediaSignal(
   if (!isBrowser) return signal(defaultState ?? false);
   const mql = window.matchMedia(query);
 
-  const [state, cleanup] = sync(fromEvent(mql, "change"), () => mql.matches);
+  const [state] = sync(fromEvent(mql, "change"), () => mql.matches);
 
-  return Object.assign(state, {
-    [Symbol.dispose]: cleanup,
-  });
+  return state;
 }

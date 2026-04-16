@@ -52,7 +52,7 @@ export function createBattery(): BatteryResult {
   };
 
   if (supported()) {
-    (navigator as { getBattery(): Promise<BatteryManager> })
+    (navigator as unknown as { getBattery(): Promise<BatteryManager> })
       .getBattery()
       .then((b) => {
         battery = b;
@@ -63,14 +63,12 @@ export function createBattery(): BatteryResult {
 
   onCleanup(cleanup);
 
-  return Object.assign(
-    {
-      supported: supported as Computed<boolean>,
-      charging: charging as Computed<boolean>,
-      level: level as Computed<number>,
-      chargingTime: chargingTime as Computed<number>,
-      dischargingTime: dischargingTime as Computed<number>,
-    },
-    { [Symbol.dispose]: cleanup },
-  );
+  return {
+    supported: supported as Computed<boolean>,
+    charging: charging as Computed<boolean>,
+    level: level as Computed<number>,
+    chargingTime: chargingTime as Computed<number>,
+    dischargingTime: dischargingTime as Computed<number>,
+    [Symbol.dispose]: cleanup,
+  };
 }

@@ -21,8 +21,9 @@ export function createMousePosition(): MousePositionResult {
 
   const cleanup = createEventListener(document, "mousemove", handler);
 
-  return Object.assign(
-    { x: x as Computed<number>, y: y as Computed<number> },
-    { [Symbol.dispose]: cleanup },
-  );
+  return {
+    x: x as Computed<number>,
+    y: y as Computed<number>,
+    [Symbol.dispose]: cleanup,
+  };
 }

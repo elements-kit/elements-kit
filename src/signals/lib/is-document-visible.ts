@@ -6,16 +6,12 @@ import { fromEvent, sync } from "./event-driven.ts";
  * `true` while the document is visible; `false` when hidden (minimised,
  * background tab, etc.).
  */
-export function createIsDocumentVisible(): Computed<boolean> & Disposable {
-  const [visible, cleanup] = sync(
-    fromEvent(document, "visibilitychange"),
-    () =>
-      typeof document !== "undefined"
-        ? document.visibilityState === "visible"
-        : true,
+export function createIsDocumentVisible(): Computed<boolean> {
+  const [visible] = sync(fromEvent(document, "visibilitychange"), () =>
+    typeof document !== "undefined"
+      ? document.visibilityState === "visible"
+      : true,
   );
 
-  return Object.assign(visible as Computed<boolean>, {
-    [Symbol.dispose]: cleanup,
-  });
+  return visible;
 }

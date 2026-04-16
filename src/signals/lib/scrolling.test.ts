@@ -47,16 +47,16 @@ describe("createScrolling", () => {
     expect(scrolling()).toBe(false);
   });
 
-  it("stops reacting after Symbol.dispose", () => {
+  it("stops reacting after scope disposal", () => {
     vi.useFakeTimers();
     const el = document.createElement("div");
     document.body.appendChild(el);
 
     let scrolling!: ReturnType<typeof createScrolling>;
-    effectScope(() => {
+    const stop = effectScope(() => {
       scrolling = createScrolling(el);
     });
-    scrolling[Symbol.dispose]();
+    stop();
     el.dispatchEvent(new Event("scroll"));
     expect(scrolling()).toBe(false);
   });

@@ -44,10 +44,11 @@ export function createInterval(
   const cleanup = () => stop();
   onCleanup(cleanup);
 
-  return Object.assign(
-    { isRunning: isRunning as Computed<boolean>, start, stop, reset },
-    {
-      [Symbol.dispose]: cleanup,
-    },
-  );
+  return {
+    isRunning: isRunning as Computed<boolean>,
+    start,
+    stop,
+    reset,
+    [Symbol.dispose]: cleanup,
+  };
 }

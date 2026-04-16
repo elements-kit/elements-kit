@@ -54,13 +54,13 @@ describe("createIsDocumentVisible", () => {
     expect(visible()).toBe(true);
   });
 
-  it("stops reacting after Symbol.dispose", () => {
+  it("stops reacting after scope disposal", () => {
     let visible!: ReturnType<typeof createIsDocumentVisible>;
-    effectScope(() => {
+    const stop = effectScope(() => {
       visible = createIsDocumentVisible();
     });
 
-    visible[Symbol.dispose]();
+    stop();
     setVisibility("hidden");
     expect(visible()).toBe(true); // frozen
   });

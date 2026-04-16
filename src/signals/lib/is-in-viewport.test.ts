@@ -78,16 +78,16 @@ describe("createIsInViewport", () => {
     expect(visible()).toBe(false);
   });
 
-  it("disconnects on Symbol.dispose", () => {
+  it("disconnects on scope disposal", () => {
     const { disconnect } = mockIntersectionObserver();
     const el = document.createElement("div");
 
     let visible!: ReturnType<typeof createIsInViewport>;
-    effectScope(() => {
+    const stop = effectScope(() => {
       visible = createIsInViewport(el);
     });
 
-    visible[Symbol.dispose]();
+    stop();
     expect(disconnect).toHaveBeenCalledOnce();
   });
 });

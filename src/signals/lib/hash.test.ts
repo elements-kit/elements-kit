@@ -38,13 +38,13 @@ describe("createHash", () => {
     expect(location.hash).toBe("#new");
   });
 
-  it("removes event listener on Symbol.dispose", () => {
+  it("removes event listener on scope disposal", () => {
     const removeSpy = vi.spyOn(window, "removeEventListener");
     let h!: ReturnType<typeof createHash>;
-    effectScope(() => {
+    const stop = effectScope(() => {
       h = createHash();
     });
-    h[Symbol.dispose]();
+    stop();
     expect(removeSpy).toHaveBeenCalledWith("hashchange", expect.any(Function));
   });
 });

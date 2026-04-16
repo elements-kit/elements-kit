@@ -44,8 +44,11 @@ export function createTimeout(
   const cleanup = () => stop();
   onCleanup(cleanup);
 
-  return Object.assign(
-    { isPending: isPending as Computed<boolean>, start, stop, reset },
-    { [Symbol.dispose]: cleanup },
-  );
+  return {
+    isPending: isPending as Computed<boolean>,
+    start,
+    stop,
+    reset,
+    [Symbol.dispose]: cleanup,
+  };
 }

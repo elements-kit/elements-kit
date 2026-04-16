@@ -47,16 +47,16 @@ describe("createHover", () => {
     expect(hovered()).toBe(false);
   });
 
-  it("removes listeners on Symbol.dispose", () => {
+  it("removes listeners on scope disposal", () => {
     const el = document.createElement("div");
     document.body.appendChild(el);
 
     let hovered!: ReturnType<typeof createHover>;
-    effectScope(() => {
+    const stop = effectScope(() => {
       hovered = createHover(el);
     });
 
-    hovered[Symbol.dispose]();
+    stop();
     el.dispatchEvent(new PointerEvent("pointerenter"));
     expect(hovered()).toBe(false); // not updated after dispose
   });

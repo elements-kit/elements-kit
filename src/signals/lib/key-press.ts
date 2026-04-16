@@ -26,8 +26,8 @@ export function createKeyPress(key: string): KeyPressResult {
     r2();
   };
 
-  return Object.assign(
-    { pressed: pressed as Computed<boolean> },
-    { [Symbol.dispose]: cleanup },
-  );
+  return {
+    pressed: pressed as Computed<boolean>,
+    [Symbol.dispose]: cleanup,
+  };
 }

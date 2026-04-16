@@ -28,8 +28,9 @@ export function createElementSize(
     h(rect.height);
   }
 
-  return Object.assign(
-    { width: w as Computed<number>, height: h as Computed<number> },
-    { [Symbol.dispose]: observer[Symbol.dispose] },
-  );
+  return {
+    width: w as Computed<number>,
+    height: h as Computed<number>,
+    [Symbol.dispose]: observer[Symbol.dispose],
+  };
 }

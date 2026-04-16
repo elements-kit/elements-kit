@@ -18,9 +18,7 @@ const ACTIVITY_EVENTS = [
  * Returns a `Computed<boolean>` that is `true` when the user has been inactive
  * for longer than `timeout` milliseconds (default 60 s).
  */
-export function createIsIdle(
-  timeout = DEFAULT_TIMEOUT,
-): Computed<boolean> & Disposable {
+export function createIsIdle(timeout = DEFAULT_TIMEOUT): Computed<boolean> {
   const idle = signal(false);
 
   let timer: ReturnType<typeof setTimeout>;
@@ -33,17 +31,10 @@ export function createIsIdle(
 
   reset();
 
-  const removes = ACTIVITY_EVENTS.map((event) =>
+  ACTIVITY_EVENTS.forEach((event) =>
     createEventListener(window, event, reset, { passive: true }),
   );
   onCleanup(() => clearTimeout(timer));
 
-  const cleanup = () => {
-    clearTimeout(timer);
-    removes.forEach((fn) => fn());
-  };
-
-  return Object.assign(idle as Computed<boolean>, {
-    [Symbol.dispose]: cleanup,
-  });
+  return idle as Computed<boolean>;
 }

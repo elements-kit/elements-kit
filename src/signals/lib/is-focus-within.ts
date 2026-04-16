@@ -7,7 +7,7 @@ import { createEventListener } from "./event-listener.ts";
  */
 export function createIsFocusWithin(
   target: Element | (() => Element | null),
-): Computed<boolean> & Disposable {
+): Computed<boolean> {
   const focused = signal(false);
 
   const el = typeof target === "function" ? target() : target;
@@ -22,14 +22,10 @@ export function createIsFocusWithin(
     if (t && !t.contains(e.relatedTarget as Node)) focused(false);
   };
 
-  const cleanups: Array<() => void> = [];
   if (el) {
-    cleanups.push(createEventListener(document, "focusin", onFocusIn));
-    cleanups.push(createEventListener(document, "focusout", onFocusOut));
+    createEventListener(document, "focusin", onFocusIn);
+    createEventListener(document, "focusout", onFocusOut);
   }
-  const cleanup = () => cleanups.forEach((fn) => fn());
 
-  return Object.assign(focused as Computed<boolean>, {
-    [Symbol.dispose]: cleanup,
-  });
+  return focused as Computed<boolean>;
 }
