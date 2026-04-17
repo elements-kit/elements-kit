@@ -13,9 +13,9 @@ export type Fn<TInput, TOutput> = (
 ) => Promise<TOutput>;
 
 export class Async<TInput = undefined, TOutput = unknown> {
-  #promise: Promise<TOutput> | undefined;
-  get promise() {
-    return this.#promise;
+  #raw: Promise<TOutput> | undefined;
+  get raw() {
+    return this.#raw;
   }
   #pending = signal(false);
   get pending() {
@@ -48,7 +48,6 @@ export class Async<TInput = undefined, TOutput = unknown> {
 
   #stop = () => {};
   stop() {
-    this.#pending(false);
     this.#stop();
     return this;
   }
@@ -58,7 +57,7 @@ export class Async<TInput = undefined, TOutput = unknown> {
     this.stop();
     this.#stop = effect(() => {
       this.#pending(true);
-      this.#promise = this.fn
+      this.#raw = this.fn
         .call(this, input)
         .then((output) => {
           batch(() => {
