@@ -1,5 +1,5 @@
 import { effect, onCleanup, signal, trigger, untracked } from "../signals";
-import { disposeElement } from "../jsx-runtime/element";
+import { disposeElement } from "./element";
 
 type KeyFn<T> = (item: T, index: number) => string | number;
 type RenderFn<T> = (

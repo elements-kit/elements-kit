@@ -1,1 +1,1 @@
-export { For } from "./components/for";
+export { For } from "./jsx-runtime/for";

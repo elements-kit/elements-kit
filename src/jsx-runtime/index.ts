@@ -9,7 +9,7 @@ export {
   createElement as jsxDEV,
   createElement as h,
 };
-export { Fragment } from "../components/fragment";
+export { Fragment } from "./fragment";
 
 // ─ Helpers: namespaced prop types ────────────────────────────────────────────
 

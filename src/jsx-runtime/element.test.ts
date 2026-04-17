@@ -1,14 +1,17 @@
 import { describe, it, expect, vi } from "vitest";
 import { signal, effect, effectScope, onCleanup } from "../signals";
 import { createElement, disposeElement } from "./element";
-import { For } from "../components/for";
+import { For } from "./for";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 /** Minimal JSX-less way to call a function component through createElement. */
-function mount(fn: (props: Record<string, unknown>) => Element | null, props = {}) {
+function mount(
+  fn: (props: Record<string, unknown>) => Element | null,
+  props = {},
+) {
   return createElement(fn, props) as Element | null;
 }
 
@@ -22,7 +25,10 @@ describe("createElement (function component) — effectScope lifecycle", () => {
     const s = signal(0);
 
     mount(() => {
-      effect(() => { s(); spy(); });
+      effect(() => {
+        s();
+        spy();
+      });
       return document.createElement("div");
     });
 
@@ -34,7 +40,10 @@ describe("createElement (function component) — effectScope lifecycle", () => {
     const s = signal(0);
 
     mount(() => {
-      effect(() => { s(); spy(); });
+      effect(() => {
+        s();
+        spy();
+      });
       return document.createElement("div");
     });
 
@@ -48,7 +57,10 @@ describe("createElement (function component) — effectScope lifecycle", () => {
     const s = signal(0);
 
     const el = mount(() => {
-      effect(() => { s(); spy(); });
+      effect(() => {
+        s();
+        spy();
+      });
       return document.createElement("div");
     })!;
 
@@ -64,8 +76,14 @@ describe("createElement (function component) — effectScope lifecycle", () => {
 
     const el = mount(() => {
       effectScope(() => {
-        effect(() => { s(); spy(); });
-        effect(() => { s(); spy(); });
+        effect(() => {
+          s();
+          spy();
+        });
+        effect(() => {
+          s();
+          spy();
+        });
       });
       return document.createElement("div");
     })!;
@@ -79,7 +97,9 @@ describe("createElement (function component) — effectScope lifecycle", () => {
   it("onCleanup registered in component effect fires on disposeElement", () => {
     const cleanup = vi.fn();
     const el = mount(() => {
-      effect(() => { onCleanup(cleanup); });
+      effect(() => {
+        onCleanup(cleanup);
+      });
       return document.createElement("div");
     })!;
 
@@ -93,7 +113,10 @@ describe("createElement (function component) — effectScope lifecycle", () => {
     const s = signal(0);
 
     const el = mount(() => {
-      effect(() => { s(); spy(); });
+      effect(() => {
+        s();
+        spy();
+      });
       return document.createElement("div");
     })!;
 
@@ -110,7 +133,10 @@ describe("createElement (function component) — effectScope lifecycle", () => {
 
     // null return — scope must be disposed inline
     const el = mount(() => {
-      effect(() => { s(); spy(); });
+      effect(() => {
+        s();
+        spy();
+      });
       return null;
     });
 
@@ -132,16 +158,24 @@ describe("createElement (function component) — effectScope lifecycle", () => {
     const s = signal(0);
 
     const child1 = createElement(() => {
-      effect(() => { s(); spy1(); });
+      effect(() => {
+        s();
+        spy1();
+      });
       return document.createElement("span");
     }, {}) as Element;
 
     const child2 = createElement(() => {
-      effect(() => { s(); spy2(); });
+      effect(() => {
+        s();
+        spy2();
+      });
       return document.createElement("span");
     }, {}) as Element;
 
-    const parent = createElement("div", { children: [child1, child2] }) as Element;
+    const parent = createElement("div", {
+      children: [child1, child2],
+    }) as Element;
 
     spy1.mockClear();
     spy2.mockClear();
@@ -161,7 +195,10 @@ describe("createElement (function component) — effectScope lifecycle", () => {
     const parent = createElement("div", {
       children: () =>
         createElement(() => {
-          effect(() => { s(); spy(); });
+          effect(() => {
+            s();
+            spy();
+          });
           return document.createElement("span");
         }, {}),
     }) as Element;
@@ -186,15 +223,21 @@ describe("createElement (function component) — effectScope lifecycle", () => {
     const forEl = createElement(For, {
       each: [{ id: "1" }, { id: "2" }],
       by: (item: any) => item.id,
-      children: () => createElement(() => {
-        effect(() => { s(); spy(); });
-        return document.createElement("li");
-      }, {}),
+      children: () =>
+        createElement(() => {
+          effect(() => {
+            s();
+            spy();
+          });
+          return document.createElement("li");
+        }, {}),
     }) as DocumentFragment;
 
     const container = document.createElement("div");
     // Capture Symbol.dispose before appendChild consumes the fragment's children.
-    const disposeFor = (forEl as unknown as Partial<Disposable>)[Symbol.dispose];
+    const disposeFor = (forEl as unknown as Partial<Disposable>)[
+      Symbol.dispose
+    ];
     container.appendChild(forEl);
 
     expect(disposeFor).toBeDefined();
@@ -215,10 +258,14 @@ describe("createElement (function component) — effectScope lifecycle", () => {
     const forFragment = createElement(For, {
       each: [{ id: "1" }],
       by: (item: any) => item.id,
-      children: () => createElement(() => {
-        effect(() => { s(); spy(); });
-        return document.createElement("li");
-      }, {}),
+      children: () =>
+        createElement(() => {
+          effect(() => {
+            s();
+            spy();
+          });
+          return document.createElement("li");
+        }, {}),
     });
 
     const parent = createElement("div", { children: forFragment }) as Element;
@@ -234,7 +281,10 @@ describe("createElement (function component) — effectScope lifecycle", () => {
     const s = signal(0);
 
     const el = mount(() => {
-      effect(() => { s(); onCleanup(bodyCleanup); });
+      effect(() => {
+        s();
+        onCleanup(bodyCleanup);
+      });
       return document.createElement("div");
     })!;
 

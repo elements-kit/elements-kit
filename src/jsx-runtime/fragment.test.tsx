@@ -2,7 +2,7 @@
 /** @jsxImportSource elements-kit */
 import { describe, it, expect, vi } from "vitest";
 import { signal, effect } from "../signals";
-import { createElement, disposeElement } from "../jsx-runtime/element";
+import { createElement, disposeElement } from "./element";
 import { For } from "./for";
 
 // ---------------------------------------------------------------------------
@@ -43,11 +43,18 @@ describe("Fragment (<>...</>) — JSX syntax", () => {
     const s = signal(0);
 
     function Comp() {
-      effect(() => { s(); spy(); });
+      effect(() => {
+        s();
+        spy();
+      });
       return <div />;
     }
 
-    const frag = (<><Comp /></>) as DocumentFragment;
+    const frag = (
+      <>
+        <Comp />
+      </>
+    ) as DocumentFragment;
     const dispose = (frag as any)[Symbol.dispose] as () => void;
 
     spy.mockClear();
@@ -62,15 +69,26 @@ describe("Fragment (<>...</>) — JSX syntax", () => {
     const s = signal(0);
 
     function A() {
-      effect(() => { s(); spy1(); });
+      effect(() => {
+        s();
+        spy1();
+      });
       return <span />;
     }
     function B() {
-      effect(() => { s(); spy2(); });
+      effect(() => {
+        s();
+        spy2();
+      });
       return <span />;
     }
 
-    const frag = (<><A /><B /></>) as DocumentFragment;
+    const frag = (
+      <>
+        <A />
+        <B />
+      </>
+    ) as DocumentFragment;
     const dispose = (frag as any)[Symbol.dispose] as () => void;
 
     spy1.mockClear();
@@ -88,10 +106,15 @@ describe("Fragment (<>...</>) — JSX syntax", () => {
     const frag = (
       <>
         <For each={[{ id: "1" }, { id: "2" }]} by={(item: any) => item.id}>
-          {() => createElement(() => {
-            effect(() => { s(); spy(); });
-            return document.createElement("li");
-          }, {})}
+          {() =>
+            createElement(() => {
+              effect(() => {
+                s();
+                spy();
+              });
+              return document.createElement("li");
+            }, {})
+          }
         </For>
       </>
     ) as DocumentFragment;
@@ -113,12 +136,19 @@ describe("Fragment (<>...</>) — JSX syntax", () => {
     const s = signal(0);
 
     function Comp() {
-      effect(() => { s(); spy(); });
+      effect(() => {
+        s();
+        spy();
+      });
       return <div />;
     }
 
     // Root — not mounted anywhere, just disposed directly
-    const frag = (<><Comp /></>) as DocumentFragment;
+    const frag = (
+      <>
+        <Comp />
+      </>
+    ) as DocumentFragment;
     const dispose = (frag as any)[Symbol.dispose] as () => void;
     expect(dispose).toBeDefined();
 
@@ -133,12 +163,19 @@ describe("Fragment (<>...</>) — JSX syntax", () => {
     const s = signal(0);
 
     function Comp() {
-      effect(() => { s(); spy(); });
+      effect(() => {
+        s();
+        spy();
+      });
       return <span />;
     }
 
     // Fragment as child of a div
-    const frag = (<><Comp /></>) as DocumentFragment;
+    const frag = (
+      <>
+        <Comp />
+      </>
+    ) as DocumentFragment;
     const parent = createElement("div", { children: frag }) as Element;
 
     spy.mockClear();
