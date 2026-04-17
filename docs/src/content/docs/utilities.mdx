@@ -6,10 +6,102 @@ description: Pre-built signal factories for common reactive patterns.
 import Playground from "@/playground/Playground.astro";
 import PLAYGROUND_FILE from "@/playground/files/media.tsx?raw";
 
-Utilities are pre-built factories that wrap common browser APIs in signals — similar in spirit to [react-use](https://github.com/streamich/react-use) hooks or [Svelte runes](https://svelte.dev/docs/svelte/what-are-runes), but **framework-agnostic**. They return a `Computed<T>` you can read anywhere signals work.
+Utilities are pre-built factories that wrap common browser APIs in signals — similar in spirit to [react-use](https://github.com/streamich/react-use) hooks or [Svelte runes](https://svelte.dev/docs/svelte/what-are-runes), but **framework-agnostic**. They return a `Computed<T>` or `Signal<T>` you can read anywhere signals work.
 
-```ts
-import { createMediaQuery } from "elements-kit/utilities/media-query";
+---
+
+## Quick Reference
+
+| Utility | Import | Returns |
+|---------|--------|---------|
+| `createMediaQuery` | `utilities/media-query` | `Computed<boolean>` |
+| `createTimeout` | `utilities/timeout` | `{ isRunning, start, stop, reset } & Disposable` |
+| `createInterval` | `utilities/interval` | `{ isRunning, start, stop, reset } & Disposable` |
+| `createDebounced` | `utilities/debounced` | `Computed<T>` |
+| `createThrottled` | `utilities/throttled` | `Computed<T>` |
+| `on` | `utilities/event-listener` | `() => void` |
+| `createHover` | `utilities/hover` | `Computed<boolean>` |
+| `createIsFocusWithin` | `utilities/is-focus-within` | `Computed<boolean>` |
+| `onClickOutside` | `utilities/on-click-outside` | `() => void` |
+| `createLongPress` | `utilities/long-press` | `() => void` |
+| `activeElement` | `utilities/active-element` | `Computed<Element \| null>` |
+| `elementRect` | `utilities/element-rect` | `{ x, y, width, height, … } & Disposable` |
+| `elementScroll` | `utilities/element-scroll` | `{ x: Signal, y: Signal } & Disposable` |
+| `createResizeObserver` | `utilities/resize-observer` | `Disposable` |
+| `createIntersectionObserver` | `utilities/intersection-observer` | `Disposable` |
+| `createMutationObserver` | `utilities/mutation-observer` | `Disposable` |
+| `createMediaDevices` | `utilities/media-devices` | `Computed<MediaDeviceInfo[]>` |
+| `windowSize` | `utilities/window-size` | `{ width, height } & Disposable` |
+| `orientation` | `utilities/orientation` | `{ angle, type } & Disposable` |
+| `createLocalStorage` | `utilities/storage` | `Signal<T>` |
+| `createSessionStorage` | `utilities/storage` | `Signal<T>` |
+| `createMediaPlayer` | `utilities/media-player` | `{ playing, muted, volume, … } & Disposable` |
+| `hash` | `utilities/hash` | `Computed<string>` |
+| `href` | `utilities/href` | `Computed<string>` |
+| `pathname` | `utilities/pathname` | `Computed<string>` |
+| `createSearchParam` | `utilities/search-params` | `Computed<string \| null>` |
+| `createURLPattern` | `utilities/url-pattern` | `Computed<URLPatternResult \| null>` |
+| `createRoutePattern` | `utilities/route-pattern` | `Computed<URLPatternResult \| null>` |
+| `createPrevious` | `utilities/previous` | `Computed<T \| undefined>` |
+| `fromEvent` | `utilities/event-driven` | `Subscribe` |
+| `sync` | `utilities/event-driven` | `[Computed<T> \| Signal<T>, () => void]` |
+
+---
+
+## Using utilities with React
+
+Utilities return plain signals and computeds — `useSignal` from `elements-kit/integrations/react` connects them to React components with no special glue.
+
+**Singleton utilities** are module-level values shared across the whole app. Pass them directly to `useSignal`:
+
+```tsx
+import { useSignal } from "elements-kit/integrations/react";
+import { windowSize } from "elements-kit/utilities/window-size";
+import { pathname } from "elements-kit/utilities/pathname";
+
+function Layout() {
+  const width = useSignal(windowSize.width);
+  const path = useSignal(pathname);
+  return <p>{path} — {width}px wide</p>;
+}
+```
+
+**Factory utilities** with per-component lifetime go inside `useScope` so they are created and cleaned up with the component:
+
+```tsx
+import { useSignal, useScope } from "elements-kit/integrations/react";
+import { createDebounced } from "elements-kit/utilities/debounced";
+import { signal } from "elements-kit/signals";
+
+const query = signal("");
+
+function Search() {
+  const debounced = useScope(() => createDebounced(query, 300));
+  return (
+    <>
+      <input onInput={(e) => query(e.currentTarget.value)} />
+      <p>Searching for: {debounced}</p>
+    </>
+  );
+}
+```
+
+**Writable signals** from storage or scroll work as both getter (via `useSignal`) and setter (call directly):
+
+```tsx
+import { useSignal } from "elements-kit/integrations/react";
+import { createLocalStorage } from "elements-kit/utilities/storage";
+
+const theme = createLocalStorage("theme", "light");
+
+function ThemeToggle() {
+  const current = useSignal(theme);
+  return (
+    <button onClick={() => theme(current === "light" ? "dark" : "light")}>
+      {current}
+    </button>
+  );
+}
 ```
 
 ---
@@ -99,6 +191,576 @@ using isDark = createMediaQuery("(prefers-color-scheme: dark)");
 
 ---
 
+## Timing
+
+### createTimeout
+
+Reactive `setTimeout` wrapper. Fires `callback` once after `delay` ms. Starts immediately unless `immediate` is `false`.
+
+```ts
+import { createTimeout } from "elements-kit/utilities/timeout";
+
+const { isRunning, stop, reset } = createTimeout(() => {
+  console.log("fired");
+}, 1000);
+```
+
+```ts
+function createTimeout(
+  callback: () => void,
+  delay: number | (() => number),
+  immediate?: boolean,
+): { isRunning: Computed<boolean>; start(): void; stop(): void; reset(): void } & Disposable
+```
+
+### createInterval
+
+Pausable `setInterval` wrapper. Starts running immediately on creation.
+
+```ts
+import { createInterval } from "elements-kit/utilities/interval";
+
+const { isRunning, stop } = createInterval(() => {
+  console.log("tick");
+}, 1000);
+
+stop(); // pause
+```
+
+```ts
+function createInterval(
+  callback: () => void,
+  delay: number | (() => number),
+): { isRunning: Computed<boolean>; start(): void; stop(): void; reset(): void } & Disposable
+```
+
+### createDebounced
+
+Returns a `Computed<T>` that mirrors `getter` but only updates after `delay` ms of silence.
+
+```ts
+import { createDebounced } from "elements-kit/utilities/debounced";
+import { signal } from "elements-kit/signals";
+
+const input = signal("");
+const debounced = createDebounced(input, 300);
+
+effect(() => console.log(debounced())); // fires 300ms after input stops changing
+```
+
+```ts
+function createDebounced<T>(getter: () => T, delay: number | (() => number)): Computed<T>
+```
+
+### createThrottled
+
+Returns a `Computed<T>` that mirrors `getter` but updates at most once per `interval` ms. A trailing-edge update ensures the final value is never dropped.
+
+```ts
+import { createThrottled } from "elements-kit/utilities/throttled";
+
+const throttledScroll = createThrottled(() => window.scrollY, 100);
+```
+
+```ts
+function createThrottled<T>(getter: () => T, interval: number): Computed<T>
+```
+
+---
+
+## DOM Events
+
+### on
+
+Attaches a type-safe event listener with automatic cleanup. When the target is a reactive getter, the listener re-registers whenever the target changes.
+
+```ts
+import { on } from "elements-kit/utilities/event-listener";
+
+const cleanup = on(document, "keydown", (e) => console.log(e.key));
+// cleanup() to remove manually, or call inside an effectScope for auto-cleanup
+```
+
+```ts
+function on(
+  target: EventTarget | Computed<EventTarget | null>,
+  type: string,
+  handler: EventListener,
+  options?: AddEventListenerOptions,
+): () => void
+```
+
+### createHover
+
+Returns `Computed<boolean>` — `true` while pointer is over `target`.
+
+```ts
+import { createHover } from "elements-kit/utilities/hover";
+
+const hovered = createHover(document.querySelector("#btn")!);
+
+effect(() => console.log("hovered:", hovered()));
+```
+
+```ts
+function createHover(target: Element): Computed<boolean>
+```
+
+### createIsFocusWithin
+
+Returns `Computed<boolean>` — `true` while focus is anywhere inside `target` (including `target` itself).
+
+```ts
+import { createIsFocusWithin } from "elements-kit/utilities/is-focus-within";
+
+const focused = createIsFocusWithin(document.querySelector("form")!);
+```
+
+```ts
+function createIsFocusWithin(target: Element): Computed<boolean>
+```
+
+### onClickOutside
+
+Fires `handler` whenever a pointer-down event occurs outside `target`. Returns a cleanup function.
+
+```ts
+import { onClickOutside } from "elements-kit/utilities/on-click-outside";
+
+const cleanup = onClickOutside(menuEl, () => closeMenu());
+```
+
+```ts
+function onClickOutside(target: Element, handler: (e: PointerEvent) => void): () => void
+```
+
+### createLongPress
+
+Fires `handler` when a pointer is held over `target` for at least `delay` ms (default 500 ms).
+
+```ts
+import { createLongPress } from "elements-kit/utilities/long-press";
+
+const cleanup = createLongPress(el, (e) => openContextMenu(e), { delay: 600 });
+```
+
+```ts
+function createLongPress(
+  target: Element,
+  handler: (e: PointerEvent) => void,
+  options?: { delay?: number },
+): () => void
+```
+
+### activeElement
+
+Module-level singleton. `Computed<Element | null>` bound to `document.activeElement`.
+
+```ts
+import { activeElement } from "elements-kit/utilities/active-element";
+
+effect(() => console.log("focused:", activeElement()));
+```
+
+---
+
+## Element Observation
+
+### elementRect
+
+Observes the full bounding rect of `target` via `ResizeObserver`. All eight `DOMRect` properties are reactive computeds.
+
+```ts
+import { elementRect } from "elements-kit/utilities/element-rect";
+
+const { width, height, top } = elementRect(document.querySelector("#box")!);
+
+effect(() => console.log(width(), height()));
+```
+
+```ts
+function elementRect(target: Element): {
+  x: Computed<number>; y: Computed<number>;
+  width: Computed<number>; height: Computed<number>;
+  top: Computed<number>; right: Computed<number>;
+  bottom: Computed<number>; left: Computed<number>;
+} & Disposable
+```
+
+### elementScroll
+
+Returns writable `x` / `y` signals for an element's scroll position. Reading returns `scrollLeft` / `scrollTop`; writing scrolls the element.
+
+```ts
+import { elementScroll } from "elements-kit/utilities/element-scroll";
+
+const { x, y } = elementScroll(document.querySelector(".list")!);
+
+effect(() => console.log("scroll:", x(), y()));
+y(200); // scrolls to top 200px
+```
+
+```ts
+function elementScroll(target: Element): { x: Signal<number>; y: Signal<number> } & Disposable
+```
+
+### createResizeObserver
+
+Raw `ResizeObserver` wrapper with automatic cleanup via `onCleanup`. Use `elementRect` for the common case.
+
+```ts
+import { createResizeObserver } from "elements-kit/utilities/resize-observer";
+
+createResizeObserver(el, (entries) => {
+  for (const entry of entries) console.log(entry.contentRect);
+});
+```
+
+```ts
+function createResizeObserver(target: Element, callback: ResizeObserverCallback): Disposable
+```
+
+### createIntersectionObserver
+
+Raw `IntersectionObserver` wrapper with automatic cleanup.
+
+```ts
+import { createIntersectionObserver } from "elements-kit/utilities/intersection-observer";
+
+createIntersectionObserver(el, ([entry]) => {
+  console.log("visible:", entry.isIntersecting);
+}, { threshold: 0.5 });
+```
+
+```ts
+function createIntersectionObserver(
+  target: Element,
+  callback: IntersectionObserverCallback,
+  options?: IntersectionObserverInit,
+): Disposable
+```
+
+### createMutationObserver
+
+Watches `target` for DOM mutations with automatic cleanup.
+
+```ts
+import { createMutationObserver } from "elements-kit/utilities/mutation-observer";
+
+createMutationObserver(el, { childList: true }, (records) => {
+  console.log("mutations:", records.length);
+});
+```
+
+```ts
+function createMutationObserver(
+  target: Element,
+  options: MutationObserverInit,
+  callback: (records: MutationRecord[]) => void,
+): Disposable
+```
+
+---
+
+## Browser APIs
+
+### createMediaDevices
+
+Returns a reactive list of available media devices, refreshed when devices are added or removed.
+
+```ts
+import { createMediaDevices } from "elements-kit/utilities/media-devices";
+
+const devices = createMediaDevices();
+
+effect(() => console.log(devices().map((d) => d.label)));
+```
+
+```ts
+function createMediaDevices(): Computed<MediaDeviceInfo[]>
+```
+
+### windowSize
+
+Module-level singleton. Reactive `innerWidth` and `innerHeight` of the browser window.
+
+```ts
+import { windowSize } from "elements-kit/utilities/window-size";
+
+effect(() => console.log(windowSize.width(), windowSize.height()));
+```
+
+### orientation
+
+Module-level singleton. Reactive `screen.orientation` angle and type.
+
+```ts
+import { orientation } from "elements-kit/utilities/orientation";
+
+effect(() => console.log(orientation.type(), orientation.angle()));
+```
+
+### createLocalStorage
+
+Returns a `Signal<T>` persisted to `localStorage`. Writes in other tabs/windows are synchronised automatically via `StorageEvent`.
+
+```ts
+import { createLocalStorage } from "elements-kit/utilities/storage";
+
+const theme = createLocalStorage("theme", "light");
+
+theme();        // "light"
+theme("dark");  // persisted immediately
+```
+
+```ts
+function createLocalStorage<T>(
+  key: string,
+  initialValue: T,
+  options?: { serialise?: (v: T) => string; deserialise?: (raw: string) => T },
+): Signal<T>
+```
+
+### createSessionStorage
+
+Same as `createLocalStorage` but scoped to the current tab — no cross-tab sync.
+
+```ts
+import { createSessionStorage } from "elements-kit/utilities/storage";
+
+const draft = createSessionStorage("draft", "");
+```
+
+```ts
+function createSessionStorage<T>(key: string, initialValue: T, options?: StorageOptions<T>): Signal<T>
+```
+
+---
+
+## Media
+
+### createMediaPlayer
+
+Wraps an `HTMLMediaElement` (`<audio>` or `<video>`) with reactive state and playback controls. `muted`, `volume`, and `time` are writable — writing them updates the element. `playing`, `duration`, and `ended` are read-only.
+
+```ts
+import { createMediaPlayer } from "elements-kit/utilities/media-player";
+
+const player = createMediaPlayer(document.querySelector("video")!);
+
+effect(() => console.log("playing:", player.playing()));
+
+player.volume(0.5);   // set volume
+player.time(30);      // seek to 30s
+player.toggle();      // play/pause
+```
+
+```ts
+function createMediaPlayer<T extends HTMLMediaElement>(element: T): {
+  element: T;
+  playing: Computed<boolean>;
+  muted: Signal<boolean>;
+  volume: Signal<number>;
+  duration: Computed<number>;
+  time: Signal<number>;
+  ended: Computed<boolean>;
+  play(): void;
+  pause(): void;
+  toggle(): void;
+} & Disposable
+```
+
+---
+
+## URL & Routing
+
+`hash`, `href`, and `pathname` react to `popstate` (back/forward) automatically. They also listen for `pushstate` and `replacestate` **custom events**, which must be dispatched manually by your router or by patching `history`:
+
+```ts
+// Patch history so pushState/replaceState fire custom events
+for (const method of ["pushState", "replaceState"] as const) {
+  const original = history[method].bind(history);
+  history[method] = (...args) => {
+    original(...args);
+    window.dispatchEvent(new Event(method.toLowerCase()));
+  };
+}
+```
+
+Without this patch, these signals still update on back/forward — only programmatic navigation via `history.pushState`/`replaceState` won't be reflected.
+
+### hash
+
+Module-level singleton. `Computed<string>` bound to `location.hash`.
+
+```ts
+import { hash } from "elements-kit/utilities/hash";
+
+effect(() => console.log("hash:", hash()));
+```
+
+### href
+
+Module-level singleton. `Computed<string>` bound to `location.href`.
+
+```ts
+import { href } from "elements-kit/utilities/href";
+
+effect(() => console.log("url:", href()));
+```
+
+### pathname
+
+Module-level singleton. `Computed<string>` bound to `location.pathname`.
+
+```ts
+import { pathname } from "elements-kit/utilities/pathname";
+
+effect(() => console.log("path:", pathname()));
+```
+
+### createSearchParam
+
+Returns `Computed<string | null>` for a single URL search parameter.
+
+```ts
+import { createSearchParam } from "elements-kit/utilities/search-params";
+
+const tab = createSearchParam("tab");
+
+effect(() => console.log("tab:", tab())); // null when absent
+```
+
+```ts
+function createSearchParam(key: string): Computed<string | null>
+```
+
+### createURLPattern
+
+Reactively tests a URL source against a [`URLPattern`](https://developer.mozilla.org/en-US/docs/Web/API/URL_Pattern_API). The source can be a plain string/URL or a reactive getter.
+
+```ts
+import { createURLPattern } from "elements-kit/utilities/url-pattern";
+import { href } from "elements-kit/utilities/href";
+
+const match = createURLPattern(href, { pathname: "/users/:id" });
+
+effect(() => console.log(match()?.pathname.groups.id));
+```
+
+```ts
+function createURLPattern(
+  source: string | URL | Computed<string | URL>,
+  input?: URLPatternInput,
+  options?: URLPatternOptions,
+): Computed<URLPatternResult | null>
+```
+
+### createRoutePattern
+
+Shorthand for `createURLPattern(href, input, options)` — matches the current page URL.
+
+```ts
+import { createRoutePattern } from "elements-kit/utilities/route-pattern";
+
+const match = createRoutePattern({ pathname: "/posts/:slug" });
+
+effect(() => {
+  const slug = match()?.pathname.groups.slug;
+  if (slug) loadPost(slug);
+});
+```
+
+```ts
+function createRoutePattern(
+  input: URLPatternInput,
+  options?: URLPatternOptions,
+): Computed<URLPatternResult | null>
+```
+
+---
+
+## State
+
+### createPrevious
+
+Returns a `Computed` that always holds the previous value of `source`. Starts as `undefined` until the source changes for the first time.
+
+```ts
+import { createPrevious } from "elements-kit/utilities/previous";
+import { signal } from "elements-kit/signals";
+
+const count = signal(0);
+const prev = createPrevious(count);
+
+count(1);
+effect(() => console.log(prev())); // 0
+```
+
+Pass `ignore` to skip updates when a condition is met:
+
+```ts
+// Only track previous when value actually changes
+const prev = createPrevious(count, (a, b) => a === b);
+```
+
+```ts
+function createPrevious<T>(
+  source: Computed<T>,
+  ignore?: (next: T, current: T) => boolean,
+): Computed<T | undefined>
+```
+
+---
+
+## Low-level Primitives
+
+### fromEvent
+
+Returns a `Subscribe` function for one or more DOM events on a target. Use with `sync` to build reactive wrappers around DOM APIs.
+
+```ts
+import { fromEvent } from "elements-kit/utilities/event-driven";
+
+const onResize = fromEvent(window, "resize");
+// pass to sync() as the subscribe argument
+```
+
+```ts
+function fromEvent(target: EventTarget, events: string | string[]): Subscribe
+```
+
+### sync
+
+Keeps a reactive value in sync with an external source. Pass a `Subscribe` + a `getter` to get a `Computed<T>`; add a `setter` to get a writable `Signal<T>`.
+
+```ts
+import { fromEvent, sync } from "elements-kit/utilities/event-driven";
+
+// Read-only: re-reads getter whenever events fire
+const [scrollY] = sync(
+  fromEvent(window, "scroll"),
+  () => window.scrollY,
+);
+
+// Writable: setter syncs writes back to the external source
+const [volume, cleanup] = sync(
+  fromEvent(audioEl, "volumechange"),
+  () => audioEl.volume,
+  (v) => { audioEl.volume = v; },
+);
+
+volume(0.5); // writes to audioEl.volume
+```
+
+```ts
+type Subscribe = (notify: () => void) => () => void;
+
+function sync<T>(subscribe: Subscribe, getter: () => T): [Computed<T>, () => void];
+function sync<T>(subscribe: Subscribe, getter: () => T, setter: (v: T) => void): [Signal<T>, () => void];
+```
+
+---
 
 ## Playground
 
