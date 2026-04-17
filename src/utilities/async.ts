@@ -64,11 +64,6 @@ export class Async<TInput = undefined, TOutput = unknown> {
           batch(() => {
             this.data = output;
             this.#pending(false);
-            console.log(
-              "Async operation completed with result:",
-              output,
-              this.pending,
-            );
           });
           return output;
         })
@@ -76,11 +71,6 @@ export class Async<TInput = undefined, TOutput = unknown> {
           batch(() => {
             this.error = err;
             this.#pending(false);
-            console.error(
-              "Async operation failed with error:",
-              err,
-              this.pending,
-            );
           });
           throw err;
         });
