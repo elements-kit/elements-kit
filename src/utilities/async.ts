@@ -22,7 +22,7 @@ export class Async<TInput = undefined, TOutput = unknown> {
     return this.#pending();
   }
 
-  @reactive() result: TOutput | undefined = undefined;
+  @reactive() data: TOutput | undefined = undefined;
   @reactive() error: unknown;
 
   #fn = signal<Fn<TInput, TOutput>>(async () =>
@@ -39,10 +39,18 @@ export class Async<TInput = undefined, TOutput = unknown> {
     this.#fn(resolve(fn));
   }
 
+  reset() {
+    this.stop();
+    this.data = undefined;
+    this.error = undefined;
+    return this;
+  }
+
   #stop = () => {};
   stop() {
     this.#pending(false);
     this.#stop();
+    return this;
   }
 
   run(...args: TInput extends undefined ? [] : [input: TInput]): this {
@@ -54,7 +62,7 @@ export class Async<TInput = undefined, TOutput = unknown> {
         .call(this, input)
         .then((output) => {
           batch(() => {
-            this.result = output;
+            this.data = output;
             this.#pending(false);
             console.log(
               "Async operation completed with result:",
