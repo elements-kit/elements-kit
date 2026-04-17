@@ -114,6 +114,25 @@ const promise = async(function (this: Async) {
 });
 ```
 
+## Enabled and Disabled State
+
+By default, an async instance is **disabled**—it will not run automatically until you explicitly call `run()`.
+
+- **Enabled:** When you call `promise.run()`, the async operation is enabled and will execute.
+- **Disabled:** You can disable the async operation at any time by calling `promise.stop()`. This prevents further automatic execution (such as from effects or autorun logic).
+
+**Example:**
+
+```ts
+const promise = async(...);
+const enabledPromise = async(...).run(); // create and enables the async operation
+
+promise.run();   // enables and starts the async operation
+promise.stop();  // disables further runs
+```
+
+This gives you fine-grained control over when your async logic is active.
+
 ## Rerun with Clean
 
 To rerun and reset state:
@@ -138,5 +157,4 @@ const promise = async(async function (this: Async) {
 ```
 
 ---
-
 
