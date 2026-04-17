@@ -1,14 +1,14 @@
 import { describe, it, expect } from "vitest";
 import { effectScope } from "@/signals/index.ts";
-import { elementScroll } from "./element-scroll.ts";
+import { createElementScroll } from "./element-scroll.ts";
 
 describe("createElementScroll", () => {
   it("starts at 0,0 for a new element", () => {
     const el = document.createElement("div");
 
-    let scroll!: ReturnType<typeof elementScroll>;
+    let scroll!: ReturnType<typeof createElementScroll>;
     effectScope(() => {
-      scroll = elementScroll(el);
+      scroll = createElementScroll(el);
     });
 
     expect(scroll.x()).toBe(0);
@@ -18,9 +18,9 @@ describe("createElementScroll", () => {
   it("cleans up on dispose", () => {
     const el = document.createElement("div");
 
-    let scroll!: ReturnType<typeof elementScroll>;
+    let scroll!: ReturnType<typeof createElementScroll>;
     effectScope(() => {
-      scroll = elementScroll(el);
+      scroll = createElementScroll(el);
     });
 
     // Should not throw

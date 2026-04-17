@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { effectScope } from "@/signals/index.ts";
-import { elementRect } from "./element-rect.ts";
+import { createElementRect } from "./element-rect.ts";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -25,9 +25,9 @@ describe("createElementRect", () => {
       toJSON: () => ({}),
     });
 
-    let rect!: ReturnType<typeof elementRect>;
+    let rect!: ReturnType<typeof createElementRect>;
     effectScope(() => {
-      rect = elementRect(el);
+      rect = createElementRect(el);
     });
 
     expect(rect.x()).toBe(10);
@@ -77,9 +77,9 @@ describe("createElementRect", () => {
       },
     );
 
-    let rect!: ReturnType<typeof elementRect>;
+    let rect!: ReturnType<typeof createElementRect>;
     effectScope(() => {
-      rect = elementRect(el);
+      rect = createElementRect(el);
     });
 
     observerCallback(
@@ -99,9 +99,9 @@ describe("createElementRect", () => {
     });
 
     const el = document.createElement("div");
-    let rect!: ReturnType<typeof elementRect>;
+    let rect!: ReturnType<typeof createElementRect>;
     effectScope(() => {
-      rect = elementRect(el);
+      rect = createElementRect(el);
     });
 
     rect[Symbol.dispose]();

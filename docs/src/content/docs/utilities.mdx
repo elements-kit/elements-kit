@@ -21,12 +21,12 @@ Utilities are pre-built factories that wrap common browser APIs in signals — s
 | `createThrottled` | `utilities/throttled` | `Computed<T>` |
 | `on` | `utilities/event-listener` | `() => void` |
 | `createHover` | `utilities/hover` | `Computed<boolean>` |
-| `createIsFocusWithin` | `utilities/is-focus-within` | `Computed<boolean>` |
+| `createFocusWithin` | `utilities/focus-within` | `Computed<boolean>` |
 | `onClickOutside` | `utilities/on-click-outside` | `() => void` |
 | `createLongPress` | `utilities/long-press` | `() => void` |
 | `activeElement` | `utilities/active-element` | `Computed<Element \| null>` |
-| `elementRect` | `utilities/element-rect` | `{ x, y, width, height, … } & Disposable` |
-| `elementScroll` | `utilities/element-scroll` | `{ x: Signal, y: Signal } & Disposable` |
+| `createElementRect` | `utilities/element-rect` | `{ x, y, width, height, … } & Disposable` |
+| `createElementScroll` | `utilities/element-scroll` | `{ x: Signal, y: Signal } & Disposable` |
 | `createResizeObserver` | `utilities/resize-observer` | `Disposable` |
 | `createIntersectionObserver` | `utilities/intersection-observer` | `Disposable` |
 | `createMutationObserver` | `utilities/mutation-observer` | `Disposable` |
@@ -36,12 +36,12 @@ Utilities are pre-built factories that wrap common browser APIs in signals — s
 | `createLocalStorage` | `utilities/storage` | `Signal<T>` |
 | `createSessionStorage` | `utilities/storage` | `Signal<T>` |
 | `createMediaPlayer` | `utilities/media-player` | `{ playing, muted, volume, … } & Disposable` |
-| `hash` | `utilities/hash` | `Computed<string>` |
-| `href` | `utilities/href` | `Computed<string>` |
-| `pathname` | `utilities/pathname` | `Computed<string>` |
+| `createLocation` / `currentLocation` | `utilities/location` | `{ hash, href, pathname, search }` |
 | `createSearchParam` | `utilities/search-params` | `Computed<string \| null>` |
-| `createURLPattern` | `utilities/url-pattern` | `Computed<URLPatternResult \| null>` |
-| `createRoutePattern` | `utilities/route-pattern` | `Computed<URLPatternResult \| null>` |
+| `navigate` | `utilities/routing` | `void` |
+| `isLocalNavigationEvent` | `utilities/routing` | `boolean` |
+| `matches` | `utilities/routing` | `Computed<boolean>` |
+| `match` | `utilities/routing` | `Computed<URLPatternResult \| null>` |
 | `createPrevious` | `utilities/previous` | `Computed<T \| undefined>` |
 | `fromEvent` | `utilities/event-driven` | `Subscribe` |
 | `sync` | `utilities/event-driven` | `[Computed<T> \| Signal<T>, () => void]` |
@@ -57,11 +57,11 @@ Utilities return plain signals and computeds — `useSignal` from `elements-kit/
 ```tsx
 import { useSignal } from "elements-kit/integrations/react";
 import { windowSize } from "elements-kit/utilities/window-size";
-import { pathname } from "elements-kit/utilities/pathname";
+import { currentLocation } from "elements-kit/utilities/location";
 
 function Layout() {
   const width = useSignal(windowSize.width);
-  const path = useSignal(pathname);
+  const path = useSignal(currentLocation.pathname);
   return <p>{path} — {width}px wide</p>;
 }
 ```
@@ -306,18 +306,18 @@ effect(() => console.log("hovered:", hovered()));
 function createHover(target: Element): Computed<boolean>
 ```
 
-### createIsFocusWithin
+### createFocusWithin
 
 Returns `Computed<boolean>` — `true` while focus is anywhere inside `target` (including `target` itself).
 
 ```ts
-import { createIsFocusWithin } from "elements-kit/utilities/is-focus-within";
+import { createFocusWithin } from "elements-kit/utilities/focus-within";
 
-const focused = createIsFocusWithin(document.querySelector("form")!);
+const focused = createFocusWithin(document.querySelector("form")!);
 ```
 
 ```ts
-function createIsFocusWithin(target: Element): Computed<boolean>
+function createFocusWithin(target: Element): Computed<boolean>
 ```
 
 ### onClickOutside
@@ -366,20 +366,20 @@ effect(() => console.log("focused:", activeElement()));
 
 ## Element Observation
 
-### elementRect
+### createElementRect
 
 Observes the full bounding rect of `target` via `ResizeObserver`. All eight `DOMRect` properties are reactive computeds.
 
 ```ts
-import { elementRect } from "elements-kit/utilities/element-rect";
+import { createElementRect } from "elements-kit/utilities/element-rect";
 
-const { width, height, top } = elementRect(document.querySelector("#box")!);
+const { width, height, top } = createElementRect(document.querySelector("#box")!);
 
 effect(() => console.log(width(), height()));
 ```
 
 ```ts
-function elementRect(target: Element): {
+function createElementRect(target: Element): {
   x: Computed<number>; y: Computed<number>;
   width: Computed<number>; height: Computed<number>;
   top: Computed<number>; right: Computed<number>;
@@ -387,21 +387,21 @@ function elementRect(target: Element): {
 } & Disposable
 ```
 
-### elementScroll
+### createElementScroll
 
 Returns writable `x` / `y` signals for an element's scroll position. Reading returns `scrollLeft` / `scrollTop`; writing scrolls the element.
 
 ```ts
-import { elementScroll } from "elements-kit/utilities/element-scroll";
+import { createElementScroll } from "elements-kit/utilities/element-scroll";
 
-const { x, y } = elementScroll(document.querySelector(".list")!);
+const { x, y } = createElementScroll(document.querySelector(".list")!);
 
 effect(() => console.log("scroll:", x(), y()));
 y(200); // scrolls to top 200px
 ```
 
 ```ts
-function elementScroll(target: Element): { x: Signal<number>; y: Signal<number> } & Disposable
+function createElementScroll(target: Element): { x: Signal<number>; y: Signal<number> } & Disposable
 ```
 
 ### createResizeObserver
@@ -574,7 +574,7 @@ function createMediaPlayer<T extends HTMLMediaElement>(element: T): {
 
 ## URL & Routing
 
-`hash`, `href`, and `pathname` react to `popstate` (back/forward) automatically. They also listen for `pushstate` and `replacestate` **custom events**, which must be dispatched manually by your router or by patching `history`:
+All location signals react to `popstate` (back/forward) automatically. They also listen for `pushstate` and `replacestate` **custom events**, which must be dispatched by your router or by patching `history`:
 
 ```ts
 // Patch history so pushState/replaceState fire custom events
@@ -587,36 +587,35 @@ for (const method of ["pushState", "replaceState"] as const) {
 }
 ```
 
-Without this patch, these signals still update on back/forward — only programmatic navigation via `history.pushState`/`replaceState` won't be reflected.
+Without this patch, signals still update on back/forward — only programmatic navigation via `pushState`/`replaceState` won't be reflected.
 
-### hash
+### createLocation / currentLocation
 
-Module-level singleton. `Computed<string>` bound to `location.hash`.
+Returns reactive signals for `hash`, `href`, `pathname`, and `search` — all sharing a single event listener set.
+
+`currentLocation` is a module-level singleton suitable for most apps. Use the `createLocation()` factory when you need a scoped or testable instance.
 
 ```ts
-import { hash } from "elements-kit/utilities/hash";
+import { currentLocation, createLocation } from "elements-kit/utilities/location";
 
-effect(() => console.log("hash:", hash()));
+// Singleton — shared across the app
+effect(() => console.log(currentLocation.pathname()));
+
+// Factory — create a scoped instance
+const loc = createLocation();
+effect(() => console.log(loc.search()));
 ```
 
-### href
-
-Module-level singleton. `Computed<string>` bound to `location.href`.
-
 ```ts
-import { href } from "elements-kit/utilities/href";
+type LocationResult = {
+  hash: Computed<string>;
+  href: Computed<string>;
+  pathname: Computed<string>;
+  search: Computed<string>;
+};
 
-effect(() => console.log("url:", href()));
-```
-
-### pathname
-
-Module-level singleton. `Computed<string>` bound to `location.pathname`.
-
-```ts
-import { pathname } from "elements-kit/utilities/pathname";
-
-effect(() => console.log("path:", pathname()));
+function createLocation(): LocationResult
+const currentLocation: LocationResult
 ```
 
 ### createSearchParam
@@ -639,11 +638,13 @@ function createSearchParam(key: string): Computed<string | null>
 
 Reactively tests a URL source against a [`URLPattern`](https://developer.mozilla.org/en-US/docs/Web/API/URL_Pattern_API). The source can be a plain string/URL or a reactive getter.
 
+No polyfill needed for modern browsers (Chrome 95+, Safari 16.4+, Firefox 117+). Use `urlpattern-polyfill` on npm for legacy targets.
+
 ```ts
 import { createURLPattern } from "elements-kit/utilities/url-pattern";
-import { href } from "elements-kit/utilities/href";
+import { currentLocation } from "elements-kit/utilities/location";
 
-const match = createURLPattern(href, { pathname: "/users/:id" });
+const match = createURLPattern(currentLocation.href, { pathname: "/users/:id" });
 
 effect(() => console.log(match()?.pathname.groups.id));
 ```
@@ -656,26 +657,112 @@ function createURLPattern(
 ): Computed<URLPatternResult | null>
 ```
 
-### createRoutePattern
+### navigate
 
-Shorthand for `createURLPattern(href, input, options)` — matches the current page URL.
+Navigates to a URL via `history.pushState` (or `replaceState`). Patches `history` once on first call so all programmatic navigation — including third-party router calls — fires the `pushstate` / `replacestate` custom events that `currentLocation` signals react to.
 
 ```ts
-import { createRoutePattern } from "elements-kit/utilities/route-pattern";
+import { navigate } from "elements-kit/utilities/routing";
 
-const match = createRoutePattern({ pathname: "/posts/:slug" });
+navigate("/users/42");
+navigate("/users/42", { replace: true }); // replaceState — no new history entry
+navigate("/users/42", { state: { id: 42 } }); // pass history state
+```
 
-effect(() => {
-  const slug = match()?.pathname.groups.slug;
-  if (slug) loadPost(slug);
+```ts
+function navigate(url: string | URL, options?: { replace?: boolean; state?: unknown }): void
+```
+
+### isLocalNavigationEvent
+
+Returns `true` when a click event on an `<a>` element should be handled client-side — same origin, primary button, no modifier keys, no `download` attribute, no `target="_blank"`. Walks up to the nearest anchor via `closest("a")`, so it works on container elements too.
+
+Use alongside `navigate()` to intercept anchor clicks without hardwiring routing logic into this utility.
+
+```ts
+import { isLocalNavigationEvent, navigate } from "elements-kit/utilities/routing";
+
+document.querySelector("nav")!.addEventListener("click", (e) => {
+  if (isLocalNavigationEvent(e)) {
+    e.preventDefault();
+    navigate((e.target as HTMLAnchorElement).href);
+  }
 });
 ```
 
 ```ts
-function createRoutePattern(
-  input: URLPatternInput,
-  options?: URLPatternOptions,
-): Computed<URLPatternResult | null>
+function isLocalNavigationEvent(e: MouseEvent): boolean
+```
+
+### matches
+
+Returns `Computed<boolean>` — `true` when the current URL matches `input`. Uses `URLPattern.test()` — faster than `match` when you don't need captured groups.
+
+Always use the object form `{ pathname: "..." }` — relative string patterns require a base URL and will throw.
+
+Requires [`urlpattern-polyfill`](https://www.npmjs.com/package/urlpattern-polyfill) for Safari < 26 and Firefox < 142.
+
+```ts
+import { matches } from "elements-kit/utilities/routing";
+
+const isHome = matches({ pathname: "/" });
+effect(() => {
+  if (isHome()) showHomeNav();
+});
+```
+
+**Conditional rendering with React:**
+
+```tsx
+import { useSignal } from "elements-kit/integrations/react";
+import { matches } from "elements-kit/utilities/routing";
+
+const isSettings = matches({ pathname: "/settings" });
+
+function App() {
+  return useSignal(isSettings) ? <Settings /> : <NotFound />;
+}
+```
+
+```ts
+function matches(input: URLPatternInput, options?: URLPatternOptions): Computed<boolean>
+```
+
+### match
+
+Returns `Computed<URLPatternResult | null>` — the full match result when the current URL matches `input`, `null` when it does not. Use when you need captured groups. For a boolean gate, prefer `matches()`.
+
+Always use the object form `{ pathname: "..." }` — relative string patterns require a base URL and will throw.
+
+Requires [`urlpattern-polyfill`](https://www.npmjs.com/package/urlpattern-polyfill) for Safari < 26 and Firefox < 142.
+
+```ts
+import { match } from "elements-kit/utilities/routing";
+
+const postMatch = match({ pathname: "/posts/:slug" });
+effect(() => {
+  const slug = postMatch()?.pathname.groups.slug;
+  if (slug) loadPost(slug);
+});
+```
+
+**Extracting params in React:**
+
+```tsx
+import { useSignal } from "elements-kit/integrations/react";
+import { match } from "elements-kit/utilities/routing";
+
+const userMatch = match({ pathname: "/users/:id" });
+
+function App() {
+  const result = useSignal(userMatch);
+  const id = result?.pathname.groups.id;
+  return id ? <UserPage id={id} /> : <NotFound />;
+}
+```
+
+```ts
+function match(input: URLPatternInput, options?: URLPatternOptions): Computed<URLPatternResult | null>
 ```
 
 ---

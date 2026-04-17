@@ -5,7 +5,7 @@ import { on } from "./event-listener.ts";
  * Returns a `Computed<boolean>` that is `true` while focus is anywhere inside
  * `target` (including `target` itself).
  */
-export function createIsFocusWithin(target: Element): Computed<boolean> {
+export function createFocusWithin(target: Element): Computed<boolean> {
   const focused = signal(false);
 
   const el = target;

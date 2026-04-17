@@ -1,18 +1,18 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { effectScope } from "../signals/index.ts";
-import { createIsFocusWithin } from "@/utilities/is-focus-within.ts";
+import { createFocusWithin } from "@/utilities/focus-within.ts";
 
 afterEach(() => {
   document.body.innerHTML = "";
 });
 
-describe("createIsFocusWithin", () => {
+describe("createFocusWithin", () => {
   it("starts as false", () => {
     const el = document.createElement("div");
     document.body.appendChild(el);
-    let focused!: ReturnType<typeof createIsFocusWithin>;
+    let focused!: ReturnType<typeof createFocusWithin>;
     effectScope(() => {
-      focused = createIsFocusWithin(el);
+      focused = createFocusWithin(el);
     });
     expect(focused()).toBe(false);
   });
@@ -23,9 +23,9 @@ describe("createIsFocusWithin", () => {
     outer.appendChild(inner);
     document.body.appendChild(outer);
 
-    let focused!: ReturnType<typeof createIsFocusWithin>;
+    let focused!: ReturnType<typeof createFocusWithin>;
     effectScope(() => {
-      focused = createIsFocusWithin(outer);
+      focused = createFocusWithin(outer);
     });
 
     document.dispatchEvent(
@@ -45,9 +45,9 @@ describe("createIsFocusWithin", () => {
     const el = document.createElement("div");
     document.body.appendChild(el);
 
-    let focused!: ReturnType<typeof createIsFocusWithin>;
+    let focused!: ReturnType<typeof createFocusWithin>;
     const stop = effectScope(() => {
-      focused = createIsFocusWithin(el);
+      focused = createFocusWithin(el);
     });
     stop();
     expect(focused()).toBe(false);
