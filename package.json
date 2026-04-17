@@ -43,16 +43,6 @@
       "import": "./dist/attributes.mjs",
       "types": "./dist/attributes.d.ts"
     },
-    "./builder": {
-      "source": "./src/builder/index.ts",
-      "import": "./dist/builder/index.mjs",
-      "types": "./dist/builder/index.d.ts"
-    },
-    "./builder/dom": {
-      "source": "./src/builder/dom.ts",
-      "import": "./dist/builder/dom.mjs",
-      "types": "./dist/builder/dom.d.ts"
-    },
     "./jsx-runtime": {
       "source": "./src/jsx-runtime/index.ts",
       "import": "./dist/jsx-runtime/index.mjs",
