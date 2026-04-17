@@ -895,7 +895,9 @@ describe("onCleanup in computed", () => {
       return s();
     });
 
-    const stop = effect(() => { c(); });
+    const stop = effect(() => {
+      c();
+    });
     expect(cleanupSpy).not.toHaveBeenCalled();
     stop();
     expect(cleanupSpy).toHaveBeenCalledTimes(1);
@@ -909,7 +911,11 @@ describe("onCleanup in computed", () => {
       return s();
     });
 
-    const stopScope = effectScope(() => { effect(() => { c(); }); });
+    const stopScope = effectScope(() => {
+      effect(() => {
+        c();
+      });
+    });
     stopScope();
     expect(cleanupSpy).toHaveBeenCalledTimes(1);
   });
@@ -922,8 +928,16 @@ describe("onCleanup in computed", () => {
       return s();
     });
 
-    const stopScope1 = effectScope(() => { effect(() => { c(); }); });
-    const stopScope2 = effectScope(() => { effect(() => { c(); }); });
+    const stopScope1 = effectScope(() => {
+      effect(() => {
+        c();
+      });
+    });
+    const stopScope2 = effectScope(() => {
+      effect(() => {
+        c();
+      });
+    });
 
     stopScope1(); // c still has scope2 → must NOT fire
     expect(cleanupSpy).not.toHaveBeenCalled();
@@ -943,12 +957,16 @@ describe("onCleanup in computed", () => {
     });
 
     // First lifecycle
-    const stop1 = effect(() => { c(); });
+    const stop1 = effect(() => {
+      c();
+    });
     stop1(); // unwatched → cleanup-0 fires, C marked Dirty, deps purged
     expect(log).toEqual(["cleanup-0"]);
 
     // Second lifecycle — C is dirty, re-evaluates on first read
-    const stop2 = effect(() => { c(); }); // C re-evaluates → registers cleanup-0 again
+    const stop2 = effect(() => {
+      c();
+    }); // C re-evaluates → registers cleanup-0 again
     s(1); // re-evaluates → cleanup-0 fires (Point 1), registers cleanup-1
     expect(log).toEqual(["cleanup-0", "cleanup-0"]);
 
@@ -966,7 +984,9 @@ describe("onCleanup in computed", () => {
       return u;
     });
 
-    const stop = effect(() => { c(); });
+    const stop = effect(() => {
+      c();
+    });
 
     stop(); // unwatched → cleanup-A fires; deps purged (C no longer tracks url)
     expect(log).toEqual(["cleanup-A"]);
@@ -978,7 +998,9 @@ describe("onCleanup in computed", () => {
     expect(log).toEqual(["cleanup-A"]); // still just one cleanup
 
     // new subscriber — C is dirty → re-evaluates with latest url="D"
-    const stop2 = effect(() => { c(); });
+    const stop2 = effect(() => {
+      c();
+    });
     expect(log).toEqual(["cleanup-A"]); // re-eval registered cleanup-D, not fired yet
     expect(c()).toBe("D");
 
@@ -999,16 +1021,41 @@ describe("onCleanup in computed", () => {
     });
 
     // lifecycle 1: subscribe while s=0
-    const stop1 = effect(() => { c(); }); // eval 1 → val=0
-    stop1();                               // unwatched → cleanup val=0
+    const stop1 = effect(() => {
+      c();
+    }); // eval 1 → val=0
+    stop1(); // unwatched → cleanup val=0
 
     // lifecycle 2: re-subscribe while s still=0 → extra eval at same value
-    const stop2 = effect(() => { c(); }); // eval 2 → val=0 again (dirty re-eval)
-    s(1);                                  // eval 3 → val=1, cleanup val=0 fires (Point 1)
-    stop2();                               // unwatched → cleanup val=1
+    const stop2 = effect(() => {
+      c();
+    }); // eval 2 → val=0 again (dirty re-eval)
+    s(1); // eval 3 → val=1, cleanup val=0 fires (Point 1)
+    s(2); // eval 4 → val=2, cleanup val=1 fires (Point 2)
+    stop2(); // unwatched → cleanup val=2
+    s(3); // no subscribers → no eval, no cleanup
+    s(4); // no subscribers → no eval, no cleanup
+    s(5); // no subscribers → no eval, no cleanup
 
-    expect(evals).toEqual([0, 0, 1]);      // 3 evaluations
-    expect(cleanups).toEqual([0, 0, 1]);   // 3 cleanups — exactly 1:1, never n+1
+    expect(evals).toEqual([0, 0, 1, 2]); // 4 evaluations (including dirty re-eval)
+    expect(cleanups).toEqual([0, 0, 1, 2]); // 4 cleanups — exactly 1:1
+
+    const stop3 = effect(() => {
+      console.log("c()", c());
+    });
+
+    expect(evals).toEqual([0, 0, 1, 2, 5]); // 5 evaluations (including dirty re-eval)
+    expect(cleanups).toEqual([0, 0, 1, 2]); // 4 cleanups so far
+
+    s(6); // eval 5 → val=6, cleanup val=5 fires
+
+    expect(evals).toEqual([0, 0, 1, 2, 5, 6]); // 6 evaluations
+    expect(cleanups).toEqual([0, 0, 1, 2, 5]); // 5 cleanups so far
+
+    stop3(); // unwatched → cleanup val=6
+
+    expect(evals).toEqual([0, 0, 1, 2, 5, 6]); // 6 evaluations
+    expect(cleanups).toEqual([0, 0, 1, 2, 5, 6]); // 6 cleanups — exactly 1:1
   });
 });
 

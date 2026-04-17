@@ -249,6 +249,30 @@ url("/api/other"); // previous fetch aborted, new one starts
 
 `onCleanup` works at **any call depth** inside the effect — you can call it anywhere without passing anything down.
 
+You can use `onCleanup` inside a `computed` getter to manage resources that need cleanup (like timers or subscriptions). The cleanup runs **before the computed re-evaluates** (when dependencies change), and also when the computed loses its last subscriber (to prevent resource leaks).
+
+```ts
+import { signal, computed, onCleanup } from "elements-kit/signals";
+
+const source = signal(0);
+
+const derived = computed(() => {
+  // Setup resource
+  const id = setInterval(() => {
+    // ...do something...
+  }, 1000);
+
+  // Register cleanup
+  onCleanup(() => clearInterval(id));
+
+  return source() * 2;
+});
+```
+
+This ensures that any resources created inside the computed are always cleaned up at the right time.
+
+
+
 ---
 
 ## batch
