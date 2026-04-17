@@ -13,7 +13,7 @@ export type Fn<TInput, TOutput> = (
 ) => Promise<TOutput>;
 
 export class Async<TInput = undefined, TOutput = unknown> {
-  #raw: Promise<TOutput> | undefined;
+  #raw = signal<Promise<TOutput> | undefined>(undefined);
   get raw() {
     return this.#raw;
   }
@@ -57,7 +57,7 @@ export class Async<TInput = undefined, TOutput = unknown> {
     this.stop();
     this.#stop = effect(() => {
       this.#pending(true);
-      this.#raw = this.fn
+      const raw = this.fn
         .call(this, input)
         .then((output) => {
           batch(() => {
@@ -73,6 +73,7 @@ export class Async<TInput = undefined, TOutput = unknown> {
           });
           throw err;
         });
+      this.#raw(raw);
     });
     return this;
   }
