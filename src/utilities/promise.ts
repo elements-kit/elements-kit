@@ -54,6 +54,10 @@ type Executor<T, E = unknown> = (
 ) => void;
 
 export function createPromise<T, E = unknown>(
+  promise: ReactivePromise<T>,
+): ComputedPromise<T, E>;
+
+export function createPromise<T, E = unknown>(
   promise: Promise<T>,
 ): ComputedPromise<T, E>;
 
@@ -62,11 +66,14 @@ export function createPromise<T, E = unknown>(
 ): ComputedPromise<T, E>;
 
 export function createPromise<T, E = unknown>(
-  from: Executor<T, E> | Promise<T>,
+  from: Executor<T, E> | Promise<T> | ReactivePromise<T, E>,
 ): ComputedPromise<T, E> {
-  const promise = ReactivePromise.from(
-    from instanceof Promise ? from : new Promise(from),
-  );
+  const promise =
+    from instanceof ReactivePromise
+      ? from
+      : ReactivePromise.from(
+          from instanceof Promise ? from : new Promise(from),
+        );
   const $value = computed(() => {
     if (promise.state === "pending") {
       return;
