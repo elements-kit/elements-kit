@@ -15,5 +15,5 @@
       "@/*": ["./src/*"]
     }
   },
-  "exclude": ["dist", "docs", "example", "node_modules"]
+  "exclude": ["dist", "docs", "example", "node_modules", "tsdown.config.ts"]
 }
