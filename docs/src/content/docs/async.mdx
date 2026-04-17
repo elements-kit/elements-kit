@@ -35,6 +35,32 @@ effect(() => {
 });
 ```
 
+:::caution[Signals aren't tracked after an `await`]
+Signals or computed values are only tracked up to the first `await` in your async function. If you call `id()` before an `await`, changes to `id` will trigger a rerun. If you call `id()` after an `await`, it will not be tracked for reactivity.
+
+```ts
+const id = signal(1);
+
+const promise = async(async function (this: Async) {
+  await someAsyncSetup();
+  // This is NOT reactive:
+  const currentId = id(); // Not tracked for reactivity
+  // ...
+});
+```
+
+**Best Practice:**
+Always read reactive parameters (signals) before the first `await` if you want the async operation to rerun when they change.
+
+```ts
+const promise = async(async function (this: Async) {
+  const currentId = id(); // Tracked for reactivity
+  await fetch(...);
+  // ...
+});
+```
+:::
+
 You can use a signal as the input to your async operation and trigger reruns automatically:
 
 ```ts
@@ -93,9 +119,10 @@ const promise = async(function (this: Async) {
 To rerun and reset state:
 
 ```ts
-promise.run(); // triggers async
+promise.run(); // triggers auto-run
 promise.reset().run(); // resets data/error and triggers async
 promise.run().stop(); // run once, then stop autorun
+promise.reset().run().stop(); // resets data/error and run once
 promise.data = null; // clean data 
 promise.error = null; // clean error
 ```
@@ -112,32 +139,4 @@ const promise = async(async function (this: Async) {
 
 ---
 
-## Gotchas
 
-### Parameters Aren't Subscribed After an `await`
-
-Reactive parameters (like signals) are only tracked up to the first `await` in your async function. If you call `id()` before an `await`, changes to `id` will trigger a rerun. If you call `id()` after an `await`, it will not be tracked for reactivity.
-
-**Example:**
-
-```ts
-const id = signal(1);
-
-const promise = async(async function (this: Async) {
-  await someAsyncSetup();
-  // This is NOT reactive:
-  const currentId = id(); // Not tracked for reactivity
-  // ...
-});
-```
-
-**Best Practice:**
-Always read reactive parameters (signals) before the first `await` if you want the async operation to rerun when they change.
-
-```ts
-const promise = async(async function (this: Async) {
-  const currentId = id(); // Tracked for reactivity
-  await fetch(...);
-  // ...
-});
-```
