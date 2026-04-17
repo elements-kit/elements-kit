@@ -68,6 +68,7 @@ interface EffectNode extends ReactiveNode {
 interface ComputedNode<T = any> extends ReactiveNode {
   value: T | undefined;
   getter: (previousValue?: T) => T;
+  onCleanup?: (() => void)[];
 }
 
 /**
@@ -175,6 +176,14 @@ const { link, unlink, propagate, checkDirty, shallowPropagate } =
       if (!(node.flags & ReactiveFlags.Mutable)) {
         effectScopeOper.call(node);
       } else if (node.depsTail !== undefined) {
+        const c = node as ComputedNode;
+        if (c.onCleanup !== undefined) {
+          const fns = c.onCleanup;
+          c.onCleanup = undefined;
+          untracked(() => {
+            for (const fn of fns) fn();
+          });
+        }
         node.depsTail = undefined;
         node.flags = ReactiveFlags.Mutable | ReactiveFlags.Dirty;
         purgeDeps(node);
@@ -252,8 +261,8 @@ export function endBatch() {
  *
  * Relies on `$signal` matching the internal `signalOper` function name.
  */
-export function isSignal(fn: () => void): boolean {
-  return (fn as any)[$signal] === true;
+export function isSignal(fn: unknown): boolean {
+  return fn != null && (fn as any)[$signal] === true;
 }
 
 /**
@@ -261,8 +270,8 @@ export function isSignal(fn: () => void): boolean {
  *
  * Relies on `$computed` matching the internal `computedOper` function name.
  */
-export function isComputed(fn: () => void): boolean {
-  return (fn as any)[$computed] === true;
+export function isComputed(fn: unknown): boolean {
+  return fn != null && (fn as any)[$computed] === true;
 }
 
 /**
@@ -270,8 +279,8 @@ export function isComputed(fn: () => void): boolean {
  *
  * Relies on the $effect symbol branding.
  */
-export function isEffect(fn: () => void): boolean {
-  return (fn as any)[$effect] === true;
+export function isEffect(fn: unknown): boolean {
+  return fn != null && (fn as any)[$effect] === true;
 }
 
 /**
@@ -503,7 +512,7 @@ export function effectScope(fn: () => void): () => void {
  */
 export function onCleanup(fn: () => void): void {
   if (activeOwner !== undefined) {
-    const node = activeOwner as EffectNode;
+    const node = activeOwner as EffectNode | ComputedNode;
     if (node.onCleanup === undefined) {
       node.onCleanup = [fn];
     } else {
@@ -623,14 +632,26 @@ export function trigger<T = void>(fn: Computed<T>) {
  */
 function updateComputed(c: ComputedNode): boolean {
   ++cycle;
+
+  if (c.onCleanup !== undefined) {
+    const cleanups = c.onCleanup;
+    c.onCleanup = undefined;
+    untracked(() => {
+      for (const fn of cleanups) fn();
+    });
+  }
+
   c.depsTail = undefined;
   c.flags = ReactiveFlags.Mutable | ReactiveFlags.RecursedCheck;
   const prevSub = setActiveSub(c);
+  const prevOwner = activeOwner;
+  activeOwner = c as unknown as ReactiveNode;
   try {
     const oldValue = c.value;
     return oldValue !== (c.value = c.getter(oldValue));
   } finally {
     activeSub = prevSub;
+    activeOwner = prevOwner;
     c.flags &= ~ReactiveFlags.RecursedCheck;
     purgeDeps(c);
   }
@@ -748,10 +769,13 @@ function computedOper<T>(this: ComputedNode<T>): T {
     // First read: no deps yet, compute eagerly and start tracking.
     this.flags = ReactiveFlags.Mutable | ReactiveFlags.RecursedCheck;
     const prevSub = setActiveSub(this);
+    const prevOwner = activeOwner;
+    activeOwner = this as unknown as ReactiveNode;
     try {
       this.value = this.getter();
     } finally {
       activeSub = prevSub;
+      activeOwner = prevOwner;
       this.flags &= ~ReactiveFlags.RecursedCheck;
     }
   }

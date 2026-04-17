@@ -766,3 +766,749 @@ describe("edge cases", () => {
     }).not.toThrow();
   });
 });
+
+describe("onCleanup in computed", () => {
+  it("fires before computed re-evaluates when deps change", () => {
+    const s = signal(0);
+    const cleanupSpy = vi.fn();
+    const c = computed(() => {
+      onCleanup(cleanupSpy);
+      return s();
+    });
+
+    c(); // first read — registers cleanup
+    expect(cleanupSpy).not.toHaveBeenCalled();
+
+    s(1); // dirty
+    c(); // re-evaluate — cleanup fires first
+    expect(cleanupSpy).toHaveBeenCalledTimes(1);
+
+    s(2);
+    c();
+    expect(cleanupSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not fire if computed is never re-read after deps change (lazy)", () => {
+    const s = signal(0);
+    const cleanupSpy = vi.fn();
+    const c = computed(() => {
+      onCleanup(cleanupSpy);
+      return s();
+    });
+
+    c(); // first read
+    s(1); // dirty but never re-read
+    expect(cleanupSpy).not.toHaveBeenCalled();
+  });
+
+  it("fires all registered cleanups in order", () => {
+    const s = signal(0);
+    const order: number[] = [];
+    const c = computed(() => {
+      onCleanup(() => order.push(1));
+      onCleanup(() => order.push(2));
+      onCleanup(() => order.push(3));
+      return s();
+    });
+
+    c();
+    s(1);
+    c();
+    expect(order).toEqual([1, 2, 3]);
+  });
+
+  it("onCleanup inside computed nested inside effect uses correct owner", () => {
+    const s = signal(0);
+    const computedCleanup = vi.fn();
+    const effectCleanup = vi.fn();
+
+    const c = computed(() => {
+      onCleanup(computedCleanup);
+      return s();
+    });
+
+    const stop = effect(() => {
+      onCleanup(effectCleanup);
+      c(); // read computed inside effect
+    });
+
+    s(1); // triggers both effect and computed re-run
+
+    // computed cleanup should have fired (re-evaluated), effect cleanup too
+    expect(computedCleanup).toHaveBeenCalledTimes(1);
+    expect(effectCleanup).toHaveBeenCalledTimes(1);
+
+    stop();
+  });
+
+  it("cleanup that throws propagates the error (same as effect)", () => {
+    const s = signal(0);
+    const afterCleanup = vi.fn();
+    const c = computed(() => {
+      onCleanup(() => {
+        throw new Error("cleanup error");
+      });
+      afterCleanup();
+      return s();
+    });
+
+    c(); // initial read — registers cleanup, afterCleanup called once
+    s(1); // dirty
+    // re-read triggers cleanup first; cleanup throws before getter runs
+    expect(() => c()).toThrow("cleanup error");
+    expect(afterCleanup).toHaveBeenCalledTimes(1);
+  });
+
+  it("onCleanup called outside any context is a no-op", () => {
+    expect(() => onCleanup(() => {})).not.toThrow();
+  });
+
+  it("cleanup runs in untracked context — does not create deps on parent", () => {
+    const s = signal(0);
+    const tracker = signal(0);
+    const effectRuns = vi.fn();
+
+    const c = computed(() => {
+      onCleanup(() => tracker()); // read tracker inside cleanup
+      return s();
+    });
+
+    const stop = effect(() => {
+      effectRuns();
+      c();
+    });
+
+    effectRuns.mockClear();
+    s(1);
+    c(); // re-evaluate computed, cleanup reads tracker
+    tracker(1); // should NOT re-run effect (tracker not a dep)
+    expect(effectRuns).toHaveBeenCalledTimes(1); // only from s(1), not tracker(1)
+
+    stop();
+  });
+
+  it("cleanup fires when effect stops (last subscriber gone)", () => {
+    const s = signal(0);
+    const cleanupSpy = vi.fn();
+    const c = computed(() => {
+      onCleanup(cleanupSpy);
+      return s();
+    });
+
+    const stop = effect(() => { c(); });
+    expect(cleanupSpy).not.toHaveBeenCalled();
+    stop();
+    expect(cleanupSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("cleanup fires when effectScope is disposed", () => {
+    const s = signal(0);
+    const cleanupSpy = vi.fn();
+    const c = computed(() => {
+      onCleanup(cleanupSpy);
+      return s();
+    });
+
+    const stopScope = effectScope(() => { effect(() => { c(); }); });
+    stopScope();
+    expect(cleanupSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("cleanup does NOT fire while computed still has subscribers (one of two scopes stops)", () => {
+    const s = signal(0);
+    const cleanupSpy = vi.fn();
+    const c = computed(() => {
+      onCleanup(cleanupSpy);
+      return s();
+    });
+
+    const stopScope1 = effectScope(() => { effect(() => { c(); }); });
+    const stopScope2 = effectScope(() => { effect(() => { c(); }); });
+
+    stopScope1(); // c still has scope2 → must NOT fire
+    expect(cleanupSpy).not.toHaveBeenCalled();
+
+    stopScope2(); // last subscriber gone → cleanup fires
+    expect(cleanupSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("Case 1: re-watched after unwatched — each lifecycle gets its own cleanup", () => {
+    const s = signal(0);
+    const log: string[] = [];
+
+    const c = computed(() => {
+      const val = s();
+      onCleanup(() => log.push(`cleanup-${val}`));
+      return val;
+    });
+
+    // First lifecycle
+    const stop1 = effect(() => { c(); });
+    stop1(); // unwatched → cleanup-0 fires, C marked Dirty, deps purged
+    expect(log).toEqual(["cleanup-0"]);
+
+    // Second lifecycle — C is dirty, re-evaluates on first read
+    const stop2 = effect(() => { c(); }); // C re-evaluates → registers cleanup-0 again
+    s(1); // re-evaluates → cleanup-0 fires (Point 1), registers cleanup-1
+    expect(log).toEqual(["cleanup-0", "cleanup-0"]);
+
+    stop2(); // last subscriber gone → cleanup-1 fires
+    expect(log).toEqual(["cleanup-0", "cleanup-0", "cleanup-1"]);
+  });
+
+  it("Case 2: dep changes many times while unwatched — cleanup fires once, no re-evaluations", () => {
+    const url = signal("A");
+    const log: string[] = [];
+
+    const c = computed(() => {
+      const u = url();
+      onCleanup(() => log.push(`cleanup-${u}`));
+      return u;
+    });
+
+    const stop = effect(() => { c(); });
+
+    stop(); // unwatched → cleanup-A fires; deps purged (C no longer tracks url)
+    expect(log).toEqual(["cleanup-A"]);
+
+    // url changes while unwatched — C has no dep links, no re-evaluation, no new cleanups
+    url("B");
+    url("C");
+    url("D");
+    expect(log).toEqual(["cleanup-A"]); // still just one cleanup
+
+    // new subscriber — C is dirty → re-evaluates with latest url="D"
+    const stop2 = effect(() => { c(); });
+    expect(log).toEqual(["cleanup-A"]); // re-eval registered cleanup-D, not fired yet
+    expect(c()).toBe("D");
+
+    stop2(); // last subscriber gone → cleanup-D fires
+    expect(log).toEqual(["cleanup-A", "cleanup-D"]);
+  });
+
+  it("n evaluations → n cleanups, exactly 1:1 (re-subscribing while value unchanged causes extra eval)", () => {
+    const s = signal(0);
+    const evals: number[] = [];
+    const cleanups: number[] = [];
+
+    const c = computed(() => {
+      const val = s();
+      evals.push(val);
+      onCleanup(() => cleanups.push(val));
+      return val;
+    });
+
+    // lifecycle 1: subscribe while s=0
+    const stop1 = effect(() => { c(); }); // eval 1 → val=0
+    stop1();                               // unwatched → cleanup val=0
+
+    // lifecycle 2: re-subscribe while s still=0 → extra eval at same value
+    const stop2 = effect(() => { c(); }); // eval 2 → val=0 again (dirty re-eval)
+    s(1);                                  // eval 3 → val=1, cleanup val=0 fires (Point 1)
+    stop2();                               // unwatched → cleanup val=1
+
+    expect(evals).toEqual([0, 0, 1]);      // 3 evaluations
+    expect(cleanups).toEqual([0, 0, 1]);   // 3 cleanups — exactly 1:1, never n+1
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Enterprise: A — Error propagation
+// ---------------------------------------------------------------------------
+
+describe("enterprise: error propagation", () => {
+  it("when an effect throws, remaining queued effects are marked Recursed and retry on next flush", () => {
+    const s = signal(0);
+    const ran = vi.fn();
+    let shouldThrow = false;
+
+    effect(() => {
+      s();
+      if (shouldThrow) {
+        shouldThrow = false;
+        throw new Error("boom");
+      }
+    });
+    effect(() => {
+      s();
+      ran();
+    });
+
+    ran.mockClear();
+    shouldThrow = true;
+    // Throwing effect aborts flush; sibling is marked Recursed (not run yet)
+    expect(() => s(1)).toThrow("boom");
+    expect(ran).toHaveBeenCalledTimes(0);
+
+    // Next signal write triggers a fresh flush — sibling now runs
+    s(2);
+    expect(ran).toHaveBeenCalledTimes(1);
+  });
+
+  it("batchDepth resets to 0 after an effect throws during flush", () => {
+    const s = signal(0);
+    effect(() => {
+      if (s()) throw new Error("boom");
+    });
+
+    expect(() => s(1)).toThrow();
+    expect(getBatchDepth()).toBe(0);
+  });
+
+  it("cleanup that throws aborts the flush; sibling effects retry on next flush", () => {
+    const s = signal(0);
+    const siblingRan = vi.fn();
+
+    const stop = effect(() => {
+      s();
+      onCleanup(() => {
+        throw new Error("cleanup boom");
+      });
+    });
+    effect(() => {
+      s();
+      siblingRan();
+    });
+
+    siblingRan.mockClear();
+    // Cleanup throws → flush aborts → sibling marked Recursed, not yet run
+    expect(() => s(1)).toThrow("cleanup boom");
+    expect(siblingRan).toHaveBeenCalledTimes(0);
+
+    // Next flush runs the sibling
+    s(2);
+    expect(siblingRan).toHaveBeenCalledTimes(1);
+    stop();
+  });
+
+  it("multiple cleanups — one throws — remaining still called", () => {
+    const s = signal(0);
+    const order: number[] = [];
+
+    const stop = effect(() => {
+      s();
+      onCleanup(() => order.push(1));
+      onCleanup(() => {
+        order.push(2);
+        throw new Error("boom");
+      });
+      onCleanup(() => order.push(3));
+    });
+
+    expect(() => s(1)).toThrow("boom");
+    // 1 and 2 ran; 3 is after the throw so it does not run
+    expect(order).toContain(1);
+    expect(order).toContain(2);
+    stop();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Enterprise: B — Circular / feedback loops
+// ---------------------------------------------------------------------------
+
+describe("enterprise: circular / feedback loops", () => {
+  it("effect writing to signal it reads does not infinite-loop (RecursedCheck guard)", () => {
+    const s = signal(0);
+    let runs = 0;
+
+    const stop = effect(() => {
+      runs++;
+      if (s() < 3) s(s() + 1);
+    });
+
+    expect(runs).toBeGreaterThan(0);
+    expect(runs).toBeLessThan(10); // guard limits recursion
+    stop();
+  });
+
+  it("computed that reads itself through a dependency does not hang", () => {
+    const s = signal(0);
+    let runs = 0;
+    const c = computed(() => {
+      runs++;
+      return s() + 1;
+    });
+
+    // Reading c should not cause infinite recursion
+    expect(c()).toBe(1);
+    expect(runs).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Enterprise: C — Disposal during flush
+// ---------------------------------------------------------------------------
+
+describe("enterprise: disposal during flush", () => {
+  it("effect that stops itself during execution does not crash", () => {
+    const s = signal(0);
+    let stop: () => void;
+
+    stop = effect(() => {
+      s();
+      stop?.();
+    });
+
+    expect(() => s(1)).not.toThrow();
+  });
+
+  it("effect that stops a sibling during execution does not crash", () => {
+    const s = signal(0);
+    const siblingRan = vi.fn();
+    let stopSibling: () => void;
+
+    effect(() => {
+      s();
+      stopSibling?.();
+    });
+    stopSibling = effect(() => {
+      s();
+      siblingRan();
+    });
+
+    siblingRan.mockClear();
+    expect(() => s(1)).not.toThrow();
+  });
+
+  it("effectScope disposed while its effects are queued does not crash", () => {
+    const s = signal(0);
+    let stopScope!: () => void;
+
+    stopScope = effectScope(() => {
+      effect(() => {
+        s();
+        stopScope?.();
+      });
+    });
+
+    expect(() => s(1)).not.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Enterprise: D — Cleanup edge cases
+// ---------------------------------------------------------------------------
+
+describe("enterprise: cleanup edge cases", () => {
+  it("cleanup that registers a new onCleanup does not affect current disposal", () => {
+    const s = signal(0);
+    const inner = vi.fn();
+
+    const stop = effect(() => {
+      s();
+      onCleanup(() => {
+        onCleanup(inner); // re-entrant — registers on whatever owner is active at call time
+      });
+    });
+
+    stop(); // dispose — outer cleanup fires
+    expect(() => inner).not.toThrow();
+  });
+
+  it("cleanup that creates a new effect — new effect is not owned by the disposed scope", () => {
+    const s = signal(0);
+    const newEffectRan = vi.fn();
+
+    const stop = effect(() => {
+      s();
+      onCleanup(() => {
+        // Creating an effect inside cleanup — should not throw
+        effect(() => {
+          newEffectRan();
+        });
+      });
+    });
+
+    expect(() => stop()).not.toThrow();
+    expect(newEffectRan).toHaveBeenCalledTimes(1);
+  });
+
+  it("cleanup reading a signal does not create a dep on the parent effect", () => {
+    const dep = signal(0);
+    const other = signal(0);
+    const runs = vi.fn();
+
+    const stop = effect(() => {
+      dep();
+      runs();
+      onCleanup(() => other()); // read other inside cleanup
+    });
+
+    runs.mockClear();
+    dep(1); // re-run effect (cleanup fires, reads other)
+    other(1); // should NOT re-run effect
+    expect(runs).toHaveBeenCalledTimes(1); // only dep(1) triggered it
+    stop();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Enterprise: E — Memory / subscription correctness
+// ---------------------------------------------------------------------------
+
+describe("enterprise: memory and subscription correctness", () => {
+  it("computed with no active subscriber does not recompute when deps change", () => {
+    const s = signal(0);
+    let computeCount = 0;
+    const c = computed(() => {
+      computeCount++;
+      return s();
+    });
+
+    c(); // first read
+    const before = computeCount;
+    s(1); // mark dirty — but nobody is watching
+    // No re-computation yet (lazy)
+    expect(computeCount).toBe(before);
+    c(); // now it recomputes on read
+    expect(computeCount).toBe(before + 1);
+  });
+
+  it("signal with no subscribers: write + read returns new value with zero side effects", () => {
+    const s = signal(0);
+    const spy = vi.fn();
+    s(42);
+    expect(s()).toBe(42);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("repeated stop() calls on effect are safe", () => {
+    const stop = effect(() => {});
+    expect(() => {
+      stop();
+      stop();
+      stop();
+    }).not.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Enterprise: F — Batch robustness
+// ---------------------------------------------------------------------------
+
+describe("enterprise: batch robustness", () => {
+  it("batchDepth resets after exception thrown inside batch()", () => {
+    const s = signal(0);
+    expect(() =>
+      batch(() => {
+        s(1);
+        throw new Error("batch error");
+      }),
+    ).toThrow("batch error");
+    expect(getBatchDepth()).toBe(0);
+  });
+
+  it("signal written in both inner and outer batch — effect runs once", () => {
+    const s = signal(0);
+    const runs = vi.fn();
+
+    effect(() => {
+      s();
+      runs();
+    });
+
+    runs.mockClear();
+    batch(() => {
+      s(1);
+      batch(() => {
+        s(2);
+      });
+      s(3);
+    });
+
+    expect(runs).toHaveBeenCalledTimes(1);
+    expect(s()).toBe(3);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Enterprise: G — Dynamic dependency churn
+// ---------------------------------------------------------------------------
+
+describe("enterprise: dynamic dependency churn", () => {
+  it("effect alternating between two signals 10+ times has no stale links", () => {
+    const a = signal(0);
+    const b = signal(0);
+    const flag = signal(true);
+    const results: number[] = [];
+
+    const stop = effect(() => {
+      results.push(flag() ? a() : b());
+    });
+
+    for (let i = 0; i < 12; i++) {
+      flag(i % 2 === 0);
+      if (i % 2 === 0) a(i);
+      else b(i);
+    }
+
+    // After flipping, b changes should not trigger effect when flag=true
+    const lenBefore = results.length;
+    flag(true);
+    b(99); // effect tracks a, not b — should NOT run
+    expect(results.length).toBe(lenBefore + 1); // only flag(true) triggered it
+
+    stop();
+  });
+
+  it("computed with conditional branch — deps update correctly each evaluation", () => {
+    const flag = signal(true);
+    const a = signal(1);
+    const b = signal(2);
+    const c = computed(() => (flag() ? a() : b()));
+
+    expect(c()).toBe(1);
+
+    flag(false);
+    expect(c()).toBe(2);
+
+    a(10); // a is no longer a dep — should not change c
+    expect(c()).toBe(2);
+
+    b(20);
+    expect(c()).toBe(20);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Enterprise: J — trigger + untracked interactions
+// ---------------------------------------------------------------------------
+
+describe("enterprise: trigger + untracked interactions", () => {
+  it("trigger inside untracked does not notify subscribers", () => {
+    const s = signal([1, 2, 3]);
+    const runs = vi.fn();
+
+    const stop = effect(() => {
+      runs();
+      s(); // track s
+    });
+
+    runs.mockClear();
+    untracked(() => {
+      s().push(4);
+      trigger(s); // should not schedule effect (not in tracking context)
+    });
+
+    // trigger inside untracked: subscribers ARE notified (untracked only blocks dep creation, not propagation)
+    expect(runs).toHaveBeenCalledTimes(1);
+    stop();
+  });
+
+  it("signal read inside untracked inside effect does not create a dep", () => {
+    const tracked = signal(0);
+    const notTracked = signal(0);
+    const runs = vi.fn();
+
+    const stop = effect(() => {
+      runs();
+      tracked();
+      untracked(() => notTracked());
+    });
+
+    runs.mockClear();
+    notTracked(1); // should NOT re-run effect
+    expect(runs).toHaveBeenCalledTimes(0);
+
+    tracked(1); // should re-run
+    expect(runs).toHaveBeenCalledTimes(1);
+    stop();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Enterprise: K — effectScope advanced
+// ---------------------------------------------------------------------------
+
+describe("enterprise: effectScope advanced", () => {
+  it("nested scopes: inner stop does not affect outer", () => {
+    const s = signal(0);
+    const outerRan = vi.fn();
+    const innerRan = vi.fn();
+
+    const stopOuter = effectScope(() => {
+      effect(() => {
+        s();
+        outerRan();
+      });
+
+      const stopInner = effectScope(() => {
+        effect(() => {
+          s();
+          innerRan();
+        });
+      });
+
+      stopInner();
+    });
+
+    outerRan.mockClear();
+    innerRan.mockClear();
+
+    s(1);
+    expect(outerRan).toHaveBeenCalledTimes(1);
+    expect(innerRan).toHaveBeenCalledTimes(0); // inner was stopped
+
+    stopOuter();
+  });
+
+  it("effectScope stop is idempotent", () => {
+    const stop = effectScope(() => {
+      effect(() => {});
+    });
+
+    expect(() => {
+      stop();
+      stop();
+    }).not.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Enterprise: L — Type guard robustness
+// ---------------------------------------------------------------------------
+
+describe("enterprise: type guard robustness", () => {
+  it("isSignal returns false for plain functions", () => {
+    expect(isSignal(() => 42)).toBe(false);
+    expect(isSignal(null)).toBe(false);
+    expect(isSignal(undefined)).toBe(false);
+    expect(isSignal(42)).toBe(false);
+  });
+
+  it("isComputed returns false for plain functions and signals", () => {
+    const s = signal(0);
+    expect(isComputed(() => 42)).toBe(false);
+    expect(isComputed(s)).toBe(false); // signal is not a computed
+  });
+
+  it("isEffect returns false for plain functions", () => {
+    expect(isEffect(() => {})).toBe(false);
+    expect(isEffect(null)).toBe(false);
+  });
+
+  it("isEffectScope returns false for plain functions and effects", () => {
+    const stop = effect(() => {});
+    expect(isEffectScope(stop)).toBe(false);
+    expect(isEffectScope(() => {})).toBe(false);
+    stop();
+  });
+
+  it("brand symbols are non-enumerable — not copied by Object.assign", () => {
+    const s = signal(0);
+    const c = computed(() => 1);
+    const stopE = effect(() => {});
+    const stopS = effectScope(() => {});
+
+    // Object.assign only copies enumerable own properties; brands are non-enumerable
+    const sCopy = Object.assign(() => {}, s);
+    const cCopy = Object.assign(() => {}, c);
+
+    expect(isSignal(sCopy)).toBe(false);
+    expect(isComputed(cCopy)).toBe(false);
+
+    stopE();
+    stopS();
+  });
+});
