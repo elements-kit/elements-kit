@@ -11,6 +11,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      "@": resolve(__dirname, "src"),
       "elements-kit/jsx-runtime": resolve(
         __dirname,
         "src/jsx-runtime/index.ts",

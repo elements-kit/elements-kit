@@ -33,11 +33,6 @@
       "import": "./dist/signals/index.mjs",
       "types": "./dist/signals/index.d.ts"
     },
-    "./signals/*": {
-      "source": "./src/signals/lib/*.ts",
-      "import": "./dist/signals/lib/*.mjs",
-      "types": "./dist/signals/lib/*.d.ts"
-    },
     "./slot": {
       "source": "./src/slot.ts",
       "import": "./dist/slot.mjs",
@@ -67,6 +62,16 @@
       "source": "./src/jsx-runtime/index.ts",
       "import": "./dist/jsx-runtime/index.mjs",
       "types": "./dist/jsx-runtime/index.d.ts"
+    },
+    "./integrations/*": {
+      "source": "./src/integrations/*.ts",
+      "import": "./dist/integrations/*.mjs",
+      "types": "./dist/integrations/*.d.ts"
+    },
+    "./utilities/*": {
+      "source": "./src/utilities/*.ts",
+      "import": "./dist/utilities/*.mjs",
+      "types": "./dist/utilities/*.d.ts"
     }
   },
   "scripts": {

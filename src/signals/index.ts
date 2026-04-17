@@ -13,9 +13,8 @@ export {
   untracked,
 } from "./lib";
 import { isSignal, isComputed, signal } from "./lib";
-import type { ValueOrReactive } from "../builder";
 import "../polyfill";
-export function isReactive<T>(value: ValueOrReactive<T>): value is () => T {
+export function isReactive<T>(value: MaybeReactive<T>): value is () => T {
   return isSignal(value as () => T) || isComputed(value as () => T);
 }
 
@@ -84,4 +83,13 @@ export function reactive<This extends object, Value>(
       return initialValue;
     };
   };
+}
+
+export type MaybeReactive<T> = T | Computed<T>;
+/**
+ * Resolves a MaybeReactive<T> to its current value.
+ * If the input is a function, calls it; otherwise returns as-is.
+ */
+export function resolve<T>(value: MaybeReactive<T>): T {
+  return isReactive(value) ? value() : value;
 }
