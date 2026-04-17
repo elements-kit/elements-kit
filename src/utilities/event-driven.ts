@@ -6,6 +6,7 @@ import {
   signal,
   trigger,
 } from "@/signals/index.ts";
+import { $signal } from "@/signals/lib";
 
 /**
  * A subscribe function: registers a `notify` callback and returns an
@@ -72,7 +73,7 @@ export function sync<T>(
   getter: () => T,
   setter?: (value: T) => void,
 ): [Computed<T> | Signal<T>, () => void] {
-  const tick = signal<undefined>(undefined);
+  const tick = signal<T | undefined>(undefined);
   const value = computed<T>(() => {
     tick();
     return getter();
@@ -81,14 +82,17 @@ export function sync<T>(
   const cleanup = subscribe(() => trigger(tick));
   onCleanup(cleanup);
 
-  if (setter) {
-    const proxy = (v?: T): T => {
-      if (v === undefined) return value();
-      setter(v);
-      return v;
-    };
-    return [proxy as unknown as Signal<T>, cleanup];
-  }
+  const factory = () => {
+    if (!setter) return value;
+    function proxy(v?: T): T {
+      if (arguments.length === 0 || !setter) return value();
+      setter(v!);
+      return v!;
+    }
+    Object.defineProperty(proxy, $signal, { value: true });
+    return proxy;
+  };
+  const proxy = factory();
 
-  return [value, cleanup];
+  return [proxy, cleanup];
 }

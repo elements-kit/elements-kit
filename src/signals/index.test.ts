@@ -31,6 +31,7 @@ import {
   isEffectScope,
   getActiveSub,
   getBatchDepth,
+  $effect,
 } from "./lib";
 
 // ---------------------------------------------------------------------------
@@ -649,6 +650,12 @@ describe("type guards", () => {
     const stop = effect(() => {});
     expect(isEffect(stop)).toBe(true);
     expect(isEffect(signal(0))).toBe(false);
+    stop();
+  });
+
+  it("effectOper is branded with $effect symbol", () => {
+    const stop = effect(() => {});
+    expect((stop as any)[$effect]).toBe(true);
     stop();
   });
 

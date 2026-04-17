@@ -108,6 +108,15 @@ let activeOwner: ReactiveNode | undefined;
 const queued: (EffectNode | undefined)[] = [];
 
 // ---------------------------------------------------------------------------
+// Brand symbols for type-guard checking on bound handles
+// ---------------------------------------------------------------------------
+
+export const $signal = Symbol("signal");
+export const $computed = Symbol("computed");
+export const $effect = Symbol("effect");
+export const $effectScope = Symbol("effectScope");
+
+// ---------------------------------------------------------------------------
 // Reactive system wiring
 // ---------------------------------------------------------------------------
 
@@ -241,28 +250,28 @@ export function endBatch() {
 /**
  * Returns `true` if `fn` is a signal handle created by {@link signal}.
  *
- * Relies on `Function.name` matching the internal `signalOper` function name.
+ * Relies on `$signal` matching the internal `signalOper` function name.
  */
 export function isSignal(fn: () => void): boolean {
-  return fn.name === "bound " + signalOper.name;
+  return (fn as any)[$signal] === true;
 }
 
 /**
  * Returns `true` if `fn` is a computed handle created by {@link computed}.
  *
- * Relies on `Function.name` matching the internal `computedOper` function name.
+ * Relies on `$computed` matching the internal `computedOper` function name.
  */
 export function isComputed(fn: () => void): boolean {
-  return fn.name === "bound " + computedOper.name;
+  return (fn as any)[$computed] === true;
 }
 
 /**
  * Returns `true` if `fn` is an effect cleanup handle created by {@link effect}.
  *
- * Relies on `Function.name` matching the internal `effectOper` function name.
+ * Relies on the $effect symbol branding.
  */
 export function isEffect(fn: () => void): boolean {
-  return fn.name === "bound " + effectOper.name;
+  return (fn as any)[$effect] === true;
 }
 
 /**
@@ -301,15 +310,16 @@ export function signal<T>(initialValue?: T): {
   (): T | undefined;
   (value: T | undefined): void;
 } {
-  return signalOper.bind({
+  const handle = signalOper.bind({
     currentValue: initialValue,
     pendingValue: initialValue,
     subs: undefined,
     subsTail: undefined,
     flags: ReactiveFlags.Mutable,
   }) as () => T | undefined;
+  Object.defineProperty(handle, $signal, { value: true });
+  return handle;
 }
-
 /**
  * Creates a lazily-evaluated computed value.
  *
@@ -334,7 +344,7 @@ export function signal<T>(initialValue?: T): {
  * ```
  */
 export function computed<T>(getter: (previousValue?: T) => T): () => T {
-  return computedOper.bind({
+  const handle = computedOper.bind({
     value: undefined,
     subs: undefined,
     subsTail: undefined,
@@ -343,6 +353,8 @@ export function computed<T>(getter: (previousValue?: T) => T): () => T {
     flags: ReactiveFlags.None,
     getter: getter as (previousValue?: unknown) => unknown,
   }) as () => T;
+  Object.defineProperty(handle, $computed, { value: true });
+  return handle;
 }
 
 /**
@@ -397,7 +409,9 @@ export function effect(fn: () => void): () => void {
     activeOwner = prevOwner;
     e.flags &= ~ReactiveFlags.RecursedCheck;
   }
-  return effectOper.bind(e);
+  const handle = effectOper.bind(e);
+  Object.defineProperty(handle, $effect, { value: true });
+  return handle;
 }
 
 /**
@@ -444,7 +458,9 @@ export function effectScope(fn: () => void): () => void {
     activeSub = prevSub;
     activeOwner = prevOwner;
   }
-  return effectScopeOper.bind(e);
+  const handle = effectScopeOper.bind(e);
+  Object.defineProperty(handle, $effectScope, { value: true });
+  return handle;
 }
 
 /**
@@ -650,7 +666,9 @@ function run(e: EffectNode): void {
     if (e.onCleanup !== undefined) {
       const cleanups = e.onCleanup;
       e.onCleanup = undefined;
-      untracked(() => { for (const fn of cleanups) fn(); });
+      untracked(() => {
+        for (const fn of cleanups) fn();
+      });
     }
 
     e.depsTail = undefined;
@@ -743,7 +761,6 @@ function computedOper<T>(this: ComputedNode<T>): T {
   }
   return this.value!;
 }
-
 /**
  * The bound operation function for signal nodes.
  *
@@ -788,7 +805,6 @@ function signalOper<T>(this: SignalNode<T>, ...value: [T]): T | void {
     return this.currentValue;
   }
 }
-
 /**
  * The bound disposal function for effect nodes.
  *
@@ -803,7 +819,9 @@ function effectOper(this: EffectNode): void {
   if (this.onCleanup !== undefined) {
     const cleanups = this.onCleanup;
     this.onCleanup = undefined;
-    untracked(() => { for (const fn of cleanups) fn(); });
+    untracked(() => {
+      for (const fn of cleanups) fn();
+    });
   }
   effectScopeOper.call(this);
 }
@@ -832,7 +850,9 @@ function effectScopeOper(this: ReactiveNode): void {
   const cleanups = (this as EffectNode).onCleanup;
   if (cleanups !== undefined) {
     (this as EffectNode).onCleanup = undefined;
-    untracked(() => { for (const fn of cleanups) fn(); });
+    untracked(() => {
+      for (const fn of cleanups) fn();
+    });
   }
 
   this.depsTail = undefined;
@@ -843,6 +863,8 @@ function effectScopeOper(this: ReactiveNode): void {
     unlink(sub);
   }
 }
+
+
 
 /**
  * Removes all dep links from `sub` that were not refreshed during the most
