@@ -1,14 +1,4 @@
 import { Computed, computed, signal } from "@/signals";
-// Symbol for branding ComputedPromise
-export const isComputedPromise = Symbol("isComputedPromise");
-
-// Class for instanceof support
-export class ComputedPromiseBrand {
-  static [Symbol.hasInstance](instance: any) {
-    return !!instance && instance[isComputedPromise] === true;
-  }
-}
-
 export class ReactivePromise<T, E = unknown> extends Promise<T> {
   #state = signal<"pending" | "fulfilled" | "rejected">("pending");
   #value = signal<T | undefined>(undefined);
@@ -48,20 +38,20 @@ export class ReactivePromise<T, E = unknown> extends Promise<T> {
     });
   }
 
-  static [Symbol.hasInstance](instance: any) {
-    return (
-      !!instance &&
-      typeof instance === "object" &&
-      instance[isComputedPromise] === true
-    );
-  }
-
   static from<T, E = unknown>(promise: Promise<T>): ReactivePromise<T, E> {
     return new ReactivePromise((resolve, reject) => {
       promise.then(resolve).catch(reject);
     });
   }
 }
+const promiseKeys = new Set<PropertyKey>([
+  "then",
+  "catch",
+  "finally",
+  "state",
+  "value",
+  "reason",
+]);
 
 export type ComputedPromise<T, E = unknown> = ReactivePromise<T, E> &
   Computed<T | E | undefined>;
@@ -110,18 +100,21 @@ export function createPromise<T, E = unknown>(
     }
   });
 
-  // Make $value callable and awaitable by forwarding .then/.catch/finally
-  // Attach branding symbol
-  ($value as any)[isComputedPromise] = true;
-  // Forward promise methods
-  ($value as any).then = promise.then.bind(promise);
-  ($value as any).catch = promise.catch.bind(promise);
-  ($value as any).finally = promise.finally.bind(promise);
-  // Forward state, value, reason as properties
-  Object.defineProperties($value, {
-    state: { get: () => promise.state },
-    value: { get: () => promise.value },
-    reason: { get: () => promise.reason },
-  });
-  return $value as ComputedPromise<T, E>;
+  return new Proxy($value, {
+    apply(target) {
+      return target();
+    },
+    get(target, prop, receiver) {
+      if (promiseKeys.has(prop)) {
+        const val = promise[prop as keyof ReactivePromise<T, E>];
+        return typeof val === "function"
+          ? (val as Function).bind(promise)
+          : val;
+      }
+      return Reflect.get(target, prop, receiver);
+    },
+    getPrototypeOf() {
+      return ReactivePromise.prototype;
+    },
+  }) as ComputedPromise<T, E>;
 }
