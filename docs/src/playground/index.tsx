@@ -1,8 +1,8 @@
 /* @jsxImportSource react */
 import { createRoot } from "react-dom/client";
 import { signal, type Signal } from "elements-kit/signals";
-import { createMediaQuery } from "elements-kit/signals/media";
-import { useSignal as use$, useScope } from "elements-kit/signals/react";
+import { createMediaQuery } from "elements-kit/utilities/media-query";
+import { useSignal as use$, useScope } from "elements-kit/integrations/react";
 import {
   SandpackProvider,
   SandpackLayout,

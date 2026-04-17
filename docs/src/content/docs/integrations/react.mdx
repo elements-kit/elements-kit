@@ -10,8 +10,8 @@ import REACT_TSCONFIG from "@/playground/files/tsconfig.react.json?raw";
 Signals are framework-agnostic — they work the same whether you're in a custom element, a vanilla script, or a React tree. These two hooks connect them to React's rendering model via [`useSyncExternalStore`](https://react.dev/reference/react/useSyncExternalStore), so React only re-renders components that actually depend on a changed signal.
 
 ```jsx
-// signals/react is included with elements-kit — no extra install needed
-import { useSignal, useScope } from "elements-kit/signals/react";
+// integrations/react is included with elements-kit — no extra install needed
+import { useSignal, useScope } from "elements-kit/integrations/react";
 ```
 
 ---
@@ -22,12 +22,12 @@ Subscribe a React component to any signal or computed value. Returns the current
 
 ```tsx magic-move 
 import { signal, computed } from "elements-kit/signals";
-import { useSignal } from "elements-kit/signals/react";
+import { useSignal } from "elements-kit/integrations/react";
 
 const count = signal(0);
 ---
 import { signal, computed } from "elements-kit/signals";
-import { useSignal } from "elements-kit/signals/react";
+import { useSignal } from "elements-kit/integrations/react";
 
 const count = signal(0);
 
@@ -38,7 +38,7 @@ function Counter() {
 }
 ---
 import { signal, computed } from "elements-kit/signals";
-import { useSignal } from "elements-kit/signals/react";
+import { useSignal } from "elements-kit/integrations/react";
 
 const count = signal(0);
 const doubled = computed(() => count() * 2);
@@ -50,7 +50,7 @@ function Counter() {
 }
 ---
 import { signal, computed } from "elements-kit/signals";
-import { useSignal } from "elements-kit/signals/react";
+import { useSignal } from "elements-kit/integrations/react";
 
 const count = signal(0);
 const doubled = computed(() => count() * 2);
@@ -67,7 +67,7 @@ setInterval(() => count(count() + 1), 1000);
 
 ```tsx
 import { signal, computed } from "elements-kit/signals";
-import { useSignal } from "elements-kit/signals/react";
+import { useSignal } from "elements-kit/integrations/react";
 
 // Defined outside any component — shared reactive state
 const theme = signal<"light" | "dark">("light");
@@ -107,7 +107,7 @@ If the callback returns a `Computed<T>`, `useScope` subscribes to it and returns
 
 ```tsx magic-move
 import { effect } from "elements-kit/signals";
-import { useScope } from "elements-kit/signals/react";
+import { useScope } from "elements-kit/integrations/react";
 
 function Analytics() {
   // Effects run when the component mounts
@@ -118,7 +118,7 @@ function Analytics() {
 }
 ---
 import { computed, effect } from "elements-kit/signals";
-import { useScope } from "elements-kit/signals/react";
+import { useScope } from "elements-kit/integrations/react";
 
 function DoubleCounter() {
   // Return a Computed — useScope subscribes and returns its value
@@ -130,7 +130,7 @@ function DoubleCounter() {
 }
 ---
 import { computed, effect, onCleanup } from "elements-kit/signals";
-import { useScope } from "elements-kit/signals/react";
+import { useScope } from "elements-kit/integrations/react";
 
 function Tracker() {
   useScope(() => {
@@ -145,7 +145,7 @@ function Tracker() {
 
 ```tsx
 import { effect, onCleanup } from "elements-kit/signals";
-import { useScope } from "elements-kit/signals/react";
+import { useScope } from "elements-kit/integrations/react";
 
 function Logger() {
   useScope(() => {
@@ -168,7 +168,7 @@ function Logger() {
 
 ```tsx
 import { computed } from "elements-kit/signals";
-import { useScope } from "elements-kit/signals/react";
+import { useScope } from "elements-kit/integrations/react";
 
 function ExpensiveMetrics() {
   // Compute inside the scope — lifecycle managed by the component
@@ -222,7 +222,7 @@ export const counter = new CounterStore();
 
 ```tsx
 // Counter.tsx
-import { useSignal } from "elements-kit/signals/react";
+import { useSignal } from "elements-kit/integrations/react";
 import { counter } from "./store";
 
 export function Counter() {

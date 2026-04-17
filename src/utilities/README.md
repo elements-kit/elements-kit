@@ -1,4 +1,4 @@
-# Signal Helpers (`src/signals/lib/`)
+# Utilities
 
 Reactive utilities built on top of the core signal primitives (`signal`, `computed`, `effect`, `effectScope`, `onCleanup`, `trigger`, `batch`, `untracked`).
 

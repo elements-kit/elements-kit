@@ -1,5 +1,5 @@
 import { effect, effectScope } from "elements-kit/signals";
-import { createMediaQuery } from "elements-kit/signals/media";
+import { createMediaQuery } from "elements-kit/utilities/media-query";
 
 // Live media query signals
 const isDark = createMediaQuery("(prefers-color-scheme: dark)");

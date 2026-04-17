@@ -224,7 +224,7 @@ customElements.define("x-counter", CounterElement);
 Connect signals and stores to React components via `useSyncExternalStore`:
 
 ```tsx
-import { useSignal, useScope } from "elements-kit/signals/react";
+import { useSignal, useScope } from "elements-kit/integrations/react";
 import { cart } from "./cart-store";
 
 function CartSummary() {
@@ -245,12 +245,12 @@ The same `cart` store drives custom elements, React trees, and plain scripts —
 
 ---
 
-## Signal Helpers
+## Utilities
 
 Pre-built signal factories for common browser APIs:
 
 ```ts
-import { createMediaQuery } from "elements-kit/signals/media";
+import { createMediaQuery } from "elements-kit/utilities/media-query";
 
 const isDark = createMediaQuery("(prefers-color-scheme: dark)");
 const isMobile = createMediaQuery("(max-width: 640px)");
@@ -323,7 +323,6 @@ class MyElement extends HTMLElement {
 
 ## Roadmap
 
-- [ ] More signal helpers (`localStorage`, `IntersectionObserver`, `ResizeObserver`, …)
 - [ ] Context — share state across a subtree without prop drilling
 - [ ] Async signal — `signal.from(promise)`, `signal.from(observable)`
 - [ ] UI library — pre-built reactive components built on ElementsKit primitives

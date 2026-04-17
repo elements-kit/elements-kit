@@ -1,15 +1,15 @@
 ---
-title: Helpers
+title: Utilities
 description: Pre-built signal factories for common reactive patterns.
 ---
 
 import Playground from "@/playground/Playground.astro";
 import PLAYGROUND_FILE from "@/playground/files/media.tsx?raw";
 
-Signal helpers are pre-built factories that wrap common browser APIs in signals — similar in spirit to [react-use](https://github.com/streamich/react-use) hooks or [Svelte runes](https://svelte.dev/docs/svelte/what-are-runes), but **framework-agnostic**. They return a `Computed<T>` you can read anywhere signals work.
+Utilities are pre-built factories that wrap common browser APIs in signals — similar in spirit to [react-use](https://github.com/streamich/react-use) hooks or [Svelte runes](https://svelte.dev/docs/svelte/what-are-runes), but **framework-agnostic**. They return a `Computed<T>` you can read anywhere signals work.
 
 ```ts
-import { createMediaQuery } from "elements-kit/signals/media";
+import { createMediaQuery } from "elements-kit/utilities/media-query";
 ```
 
 ---
@@ -19,7 +19,7 @@ import { createMediaQuery } from "elements-kit/signals/media";
 Creates a `Computed<boolean>` that tracks a [CSS media query](https://developer.mozilla.org/en-US/docs/Web/API/Window/matchMedia). Returns `true` when the query matches, `false` otherwise.
 
 ```ts
-import { createMediaQuery } from "elements-kit/signals/media";
+import { createMediaQuery } from "elements-kit/utilities/media-query";
 
 const isDark = createMediaQuery("(prefers-color-scheme: dark)");
 
@@ -46,7 +46,7 @@ function createMediaQuery(
 
 ```ts
 import { effect } from "elements-kit/signals";
-import { createMediaQuery } from "elements-kit/signals/media";
+import { createMediaQuery } from "elements-kit/utilities/media-query";
 
 const isDark = createMediaQuery("(prefers-color-scheme: dark)");
 
@@ -99,17 +99,6 @@ using isDark = createMediaQuery("(prefers-color-scheme: dark)");
 
 ---
 
-## More helpers coming
-
-Additional framework-agnostic signal helpers are planned, including reactive wrappers for:
-
-- `localStorage` / `sessionStorage`
-- `IntersectionObserver`
-- `ResizeObserver`
-- Network status
-- Geolocation
-
----
 
 ## Playground
 

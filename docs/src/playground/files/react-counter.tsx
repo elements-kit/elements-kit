@@ -1,5 +1,5 @@
 import { signal, computed, effect } from "elements-kit/signals";
-import { useSignal, useScope } from "elements-kit/signals/react";
+import { useSignal, useScope } from "elements-kit/integrations/react";
 
 // Signals are defined outside React — they're global reactive state.
 // Any component that reads them will re-render when they change.

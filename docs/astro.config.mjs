@@ -27,7 +27,6 @@ export default defineConfig({
           items: [
             { label: "Primitives", slug: "signals" },
             { label: "Stores", slug: "stores" },
-            { label: "Helpers", slug: "signals/helpers" },
           ],
         },
         {
@@ -50,6 +49,7 @@ export default defineConfig({
           label: "Integrations",
           items: [{ label: "React", slug: "integrations/react" }],
         },
+        { label: "Utilities", slug: "utilities" },
       ],
 
       expressiveCode: {
