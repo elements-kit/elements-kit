@@ -25,6 +25,3 @@ export function createPrevious<T>(
 
   return prev;
 }
-
-/** @deprecated Use `createPrevious(getter, isEqual)` instead. */
-export const createPreviousDistinct = createPrevious;

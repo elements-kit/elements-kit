@@ -5,14 +5,13 @@ import { onCleanup } from "../index.ts";
  * Use `createIsInViewport` for the common boolean case.
  */
 export function createIntersectionObserver(
-  target: Element | (() => Element | null),
+  target: Element,
   callback: IntersectionObserverCallback,
   options?: IntersectionObserverInit,
 ): Disposable {
   const observer = new IntersectionObserver(callback, options);
 
-  const el = typeof target === "function" ? target() : target;
-  if (el) observer.observe(el);
+  if (target) observer.observe(target);
 
   const cleanup = () => observer.disconnect();
   onCleanup(cleanup);

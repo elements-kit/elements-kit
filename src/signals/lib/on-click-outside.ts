@@ -8,18 +8,14 @@ import { createEventListener } from "./event-listener.ts";
  * effect or scope.
  */
 export function createOnClickOutside(
-  target: Element | (() => Element | null),
+  target: Element,
   handler: (e: PointerEvent) => void,
-): void {
-  const getTarget = typeof target === "function" ? target : () => target;
-
+): () => void {
   const listener = (e: PointerEvent) => {
-    const el = getTarget();
-    if (!el) return;
-    if (!el.contains(e.target as Node)) {
+    if (!target.contains(e.target as Node)) {
       handler(e);
     }
   };
 
-  createEventListener(document, "pointerdown", listener);
+  return createEventListener(document, "pointerdown", listener);
 }

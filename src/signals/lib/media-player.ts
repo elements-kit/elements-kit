@@ -65,8 +65,3 @@ export function createMediaPlayer<T extends HTMLMediaElement>(
     [Symbol.dispose]: () => {},
   } as MediaPlayerResult<T>;
 }
-
-/** @deprecated Use `createMediaPlayer` instead. */
-export const createAudio = createMediaPlayer<HTMLAudioElement>;
-/** @deprecated Use `createMediaPlayer` instead. */
-export const createVideo = createMediaPlayer<HTMLVideoElement>;

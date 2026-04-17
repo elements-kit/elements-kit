@@ -5,12 +5,12 @@ import { createEventListener } from "./event-listener.ts";
  * milliseconds (default: 500 ms).
  */
 export function createLongPress(
-  target: Element | (() => Element | null),
+  target: Element,
   handler: (e: PointerEvent) => void,
   options: { delay?: number } = {},
 ): () => void {
   const { delay = 500 } = options;
-  const el = typeof target === "function" ? target() : target;
+  const el = target;
 
   let timer: ReturnType<typeof setTimeout>;
 
@@ -32,5 +32,5 @@ export function createLongPress(
     cleanups.forEach((fn) => fn());
   };
 
-  return stop;
+  return cleanup;
 }

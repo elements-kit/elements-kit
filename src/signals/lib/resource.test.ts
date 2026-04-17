@@ -67,4 +67,63 @@ describe("createResource", () => {
     await new Promise((res) => setTimeout(res, 0));
     expect(callCount).toBe(2);
   });
+
+  it("retries on failure and eventually resolves", async () => {
+    vi.useFakeTimers();
+    let calls = 0;
+    let r!: ReturnType<typeof createResource<string, string>>;
+    effectScope(() => {
+      r = createResource(
+        () => "url",
+        async () => {
+          calls++;
+          if (calls < 3) throw new Error("fail");
+          return "success";
+        },
+        { maxRetries: 3, retryDelay: 100 },
+      );
+    });
+
+    await vi.runAllTicks();
+    await vi.runAllTimersAsync();
+    expect(r.data()).toBe("success");
+  }, 10_000);
+
+  it("sets error after exhausting retries", async () => {
+    vi.useFakeTimers();
+    let r!: ReturnType<typeof createResource<string, string>>;
+    effectScope(() => {
+      r = createResource(
+        () => "url",
+        async () => {
+          throw new Error("persistent");
+        },
+        { maxRetries: 2, retryDelay: 50 },
+      );
+    });
+    await vi.runAllTimersAsync();
+    expect(r.error()).toBeInstanceOf(Error);
+    expect(r.loading()).toBe(false);
+  }, 10_000);
+
+  it("exposes attempt count during retries", async () => {
+    vi.useFakeTimers();
+    let calls = 0;
+    let r!: ReturnType<typeof createResource<string, string>>;
+    effectScope(() => {
+      r = createResource(
+        () => "url",
+        async () => {
+          calls++;
+          if (calls < 2) throw new Error("fail");
+          return "ok";
+        },
+        { maxRetries: 3, retryDelay: 100 },
+      );
+    });
+
+    expect(r.attempt()).toBe(0);
+    await vi.runAllTimersAsync();
+    expect(r.data()).toBe("ok");
+  }, 10_000);
 });

@@ -1,4 +1,4 @@
-import { effect, onCleanup } from "../index.ts";
+import { Computed, effect, onCleanup } from "../index.ts";
 
 /**
  * Attaches a type-safe event listener to a target, with automatic cleanup.
@@ -8,31 +8,31 @@ import { effect, onCleanup } from "../index.ts";
  * listener is re-registered whenever the target changes.
  */
 export function createEventListener<K extends keyof HTMLElementEventMap>(
-  target: HTMLElement | (() => HTMLElement | null),
+  target: HTMLElement | Computed<HTMLElement | null>,
   type: K,
   handler: (e: HTMLElementEventMap[K]) => void,
   options?: AddEventListenerOptions,
 ): () => void;
 export function createEventListener<K extends keyof DocumentEventMap>(
-  target: Document | (() => Document | null),
+  target: Document | Computed<Document | null>,
   type: K,
   handler: (e: DocumentEventMap[K]) => void,
   options?: AddEventListenerOptions,
 ): () => void;
 export function createEventListener<K extends keyof WindowEventMap>(
-  target: Window | (() => Window | null),
+  target: Window | Computed<Window | null>,
   type: K,
   handler: (e: WindowEventMap[K]) => void,
   options?: AddEventListenerOptions,
 ): () => void;
 export function createEventListener(
-  target: EventTarget | (() => EventTarget | null),
+  target: EventTarget | Computed<EventTarget | null>,
   type: string,
   handler: EventListener,
   options?: AddEventListenerOptions,
 ): () => void;
 export function createEventListener(
-  target: EventTarget | (() => EventTarget | null),
+  target: EventTarget | Computed<EventTarget | null>,
   type: string,
   handler: EventListenerOrEventListenerObject,
   options?: AddEventListenerOptions,

@@ -51,19 +51,4 @@ describe("createOnClickOutside", () => {
     outside.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
     expect(handler).not.toHaveBeenCalled();
   });
-
-  it("works with a reactive target getter", () => {
-    const el = document.createElement("div");
-    const outside = document.createElement("span");
-    document.body.append(el, outside);
-
-    const handler = vi.fn();
-
-    effectScope(() => {
-      createOnClickOutside(() => el, handler);
-    });
-
-    outside.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
-    expect(handler).toHaveBeenCalledOnce();
-  });
 });

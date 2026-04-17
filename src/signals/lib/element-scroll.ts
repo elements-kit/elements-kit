@@ -14,10 +14,8 @@ type ElementScrollResult = {
  * Reading `x()` / `y()` returns the current `scrollLeft` / `scrollTop`.
  * Writing `x(100)` or `y(200)` scrolls the element to that position.
  */
-export function createElementScroll(
-  target: Element | (() => Element | null),
-): ElementScrollResult {
-  const el = typeof target === "function" ? target() : target;
+export function createElementScroll(target: Element): ElementScrollResult {
+  const el = target;
   const x = signal(el?.scrollLeft ?? 0);
   const y = signal(el?.scrollTop ?? 0);
 

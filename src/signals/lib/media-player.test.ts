@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { effectScope } from "../index.ts";
-import { createAudio, createMediaPlayer, createVideo } from "./media-player.ts";
+import { createMediaPlayer } from "./media-player.ts";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -103,16 +103,6 @@ describe("createMediaPlayer", () => {
       const removeSpy = vi.spyOn(el, "removeEventListener");
       dispose();
       expect(removeSpy).toHaveBeenCalled();
-    });
-  });
-
-  describe("deprecated aliases", () => {
-    it("createAudio is an alias for createMediaPlayer", () => {
-      expect(createAudio).toBe(createMediaPlayer);
-    });
-
-    it("createVideo is an alias for createMediaPlayer", () => {
-      expect(createVideo).toBe(createMediaPlayer);
     });
   });
 });

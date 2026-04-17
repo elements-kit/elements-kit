@@ -17,9 +17,7 @@ type RectResult = {
  * fires on size changes) and returns all eight DOMRect properties as reactive
  * computeds.
  */
-export function createElementRect(
-  target: Element | (() => Element | null),
-): RectResult {
+export function createElementRect(target: Element): RectResult {
   const x = signal(0);
   const y = signal(0);
   const width = signal(0);
@@ -47,8 +45,7 @@ export function createElementRect(
     }
   });
 
-  const el = typeof target === "function" ? target() : target;
-  if (el) updateRect(el);
+  updateRect(target);
 
   return {
     x: x as Computed<number>,

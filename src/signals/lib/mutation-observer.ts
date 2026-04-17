@@ -5,13 +5,13 @@ import { onCleanup } from "../index.ts";
  * `MutationRecord`s.
  */
 export function createMutationObserver(
-  target: Element | (() => Element | null),
+  target: Element,
   options: MutationObserverInit,
   callback: (records: MutationRecord[]) => void,
 ): Disposable {
   const observer = new MutationObserver((records) => callback(records));
 
-  const el = typeof target === "function" ? target() : target;
+  const el = target;
   if (el) observer.observe(el, options);
 
   const cleanup = () => observer.disconnect();

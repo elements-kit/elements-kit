@@ -6,19 +6,15 @@ import { createEventListener } from "./event-listener.ts";
  * `target`.  Uses `pointerenter` / `pointerleave` so it works for both mouse
  * and touch/stylus input.
  */
-export function createHover(
-  target: Element | (() => Element | null),
-): Computed<boolean> {
+export function createHover(target: Element): Computed<boolean> {
   const hovered = signal(false);
-
-  const el = typeof target === "function" ? target() : target;
 
   const onEnter = () => hovered(true);
   const onLeave = () => hovered(false);
 
-  if (el) {
-    createEventListener(el, "pointerenter", onEnter);
-    createEventListener(el, "pointerleave", onLeave);
+  if (target) {
+    createEventListener(target, "pointerenter", onEnter);
+    createEventListener(target, "pointerleave", onLeave);
   }
 
   return hovered as Computed<boolean>;

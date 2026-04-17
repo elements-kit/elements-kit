@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { effectScope, signal } from "../index.ts";
-import { createPrevious, createPreviousDistinct } from "./previous.ts";
+import { createPrevious } from "./previous.ts";
 
 describe("createPrevious", () => {
   it("starts as undefined", () => {
@@ -96,11 +96,5 @@ describe("createPrevious with isEqual (distinct mode)", () => {
     // Different id — should update prev
     s({ id: 2 });
     expect(prev()?.id).toBe(1);
-  });
-});
-
-describe("createPreviousDistinct (deprecated alias)", () => {
-  it("is an alias for createPrevious", () => {
-    expect(createPreviousDistinct).toBe(createPrevious);
   });
 });
