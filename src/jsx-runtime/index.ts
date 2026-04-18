@@ -1,7 +1,7 @@
 import { Child, ComponentClass } from "./types";
 import { createElement } from "./element";
 import type { JSX as DomJSX } from "dom-expressions/src/jsx-h";
-import type { CustomElementRegistry } from "../define";
+import type { CustomElementRegistry } from "../custom-elements";
 import type { AnyElementCtor, ElementProps } from "./infer";
 
 export type {

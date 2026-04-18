@@ -53,6 +53,11 @@
       "import": "./dist/custom-elements.mjs",
       "types": "./dist/custom-elements.d.mts"
     },
+    "./render": {
+      "source": "./src/render.ts",
+      "import": "./dist/render.mjs",
+      "types": "./dist/render.d.mts"
+    },
     "./jsx-runtime": {
       "source": "./src/jsx-runtime/index.ts",
       "import": "./dist/jsx-runtime/index.mjs",

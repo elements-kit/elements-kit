@@ -45,9 +45,10 @@ Every feature is a separate subpath export — import only what you use.
 |-------|---------|
 | `elements-kit` | `For` component and core re-exports |
 | `elements-kit/signals` | `signal`, `computed`, `effect`, `effectScope`, `batch`, `untracked`, `trigger`, `onCleanup`, `MaybeReactive`, `resolve`, `resolveProps`, `@reactive` |
+| `elements-kit/render` | `render(target, setup)` — mount a node with a scoped lifetime; returns `unmount` |
 | `elements-kit/attributes` | `@attributes` decorator + `ATTRIBUTES` symbol |
 | `elements-kit/slot` | `Slot`, `Slots`, `SLOTS` symbol — comment-marker DOM regions |
-| `elements-kit/custom-elements` | `defineElement`, `CustomElementRegistry`, `renderScope`, `connectedScope`, `disconnectedScope` |
+| `elements-kit/custom-elements` | `defineElement`, `CustomElementRegistry` |
 | `elements-kit/for` | `For` keyed-list component |
 | `elements-kit/jsx-runtime` | JSX factory + type helpers (`ElementProps`, `Props`, `ComponentProps`, `MaybeReactiveProps`, `Require`) — configure via `jsxImportSource` |
 | `elements-kit/integrations/react` | `useSignal`, `useScope` React bridge hooks |
@@ -206,6 +207,7 @@ Any class with a `render()` method returning an `Element` is a component. Compon
 
 ```tsx
 import { reactive, computed } from "elements-kit/signals";
+import { render } from "elements-kit/render";
 
 class Counter {
   @reactive() count = 0;
@@ -221,7 +223,7 @@ class Counter {
   }
 }
 
-document.getElementById("app")!.appendChild(new Counter().render());
+const unmount = render(document.getElementById("app")!, () => <Counter/>);
 ```
 
 ---
@@ -230,9 +232,10 @@ document.getElementById("app")!.appendChild(new Counter().render());
 
 ElementsKit enhances native `HTMLElement` subclasses — start with the platform, add only what you need.
 
-```ts
+```tsx
 import { reactive, computed } from "elements-kit/signals";
 import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
+import { render } from "elements-kit/render";
 
 @attributes
 class CounterElement extends HTMLElement {
@@ -245,13 +248,20 @@ class CounterElement extends HTMLElement {
   @reactive() count = 0;
   doubled = computed(() => this.count * 2);
 
+  #unmount?: () => void;
+
   connectedCallback() {
-    this.appendChild(
+    this.#unmount = render(this, () => (
       <section>
         <p>{() => this.count} × 2 = {this.doubled}</p>
         <button onClick={() => this.count++}>+1</button>
-      </section> as Element,
-    );
+      </section>
+    ));
+  }
+
+  disconnectedCallback() {
+    this.#unmount?.();
+    this.#unmount = undefined;
   }
 }
 

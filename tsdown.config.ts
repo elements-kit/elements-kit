@@ -8,6 +8,7 @@ export default defineConfig({
     "src/signals/index.ts",
     "src/attributes.ts",
     "src/custom-elements.ts",
+    "src/render.ts",
     "src/slot.ts",
     "src/jsx-runtime/index.ts",
     "src/utilities/*.ts",

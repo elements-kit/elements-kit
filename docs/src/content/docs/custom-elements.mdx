@@ -164,37 +164,36 @@ customElements.define("x-counter", CounterElement);
 
 ## Cleanup
 
-Unlike JSX elements, a custom element is **not** wrapped in an `effectScope` automatically. Effects and timers started in `connectedCallback` leak unless you tie them to a scope you dispose in `disconnectedCallback`. Use `connectedScope` / `disconnectedScope` from `elements-kit/custom-elements` — they handle the bookkeeping per element:
+Unlike JSX elements, a custom element is **not** wrapped in an `effectScope` automatically. Effects and timers started in `connectedCallback` leak unless you tie them to a scope you dispose in `disconnectedCallback`. Use `render` from `elements-kit/render` — it mounts a JSX tree and returns a single `unmount` thunk that tears down both the DOM and every effect registered inside:
 
-```ts
+```tsx
 import { signal, onCleanup } from "elements-kit/signals";
-import { connectedScope, disconnectedScope } from "elements-kit/custom-elements";
+import { render } from "elements-kit/render";
 
 class ClockElement extends HTMLElement {
   #time = signal(new Date());
+  #unmount?: () => void;
 
   connectedCallback() {
-    connectedScope(this, () => {
+    this.#unmount = render(this, () => {
       const id = setInterval(() => this.#time(new Date()), 1000);
       onCleanup(() => clearInterval(id));
+      return <time>{() => this.#time().toLocaleTimeString()}</time> as Element;
     });
-
-    this.appendChild(
-      <time>{() => this.#time().toLocaleTimeString()}</time> as Element,
-    );
   }
 
   disconnectedCallback() {
-    disconnectedScope(this);
+    this.#unmount?.();
+    this.#unmount = undefined;
   }
 }
 ```
 
 :::caution[Create effects inside the scope]
-Create `effect` and `onCleanup` **inside** the `connectedScope` callback — not in the constructor, in a field initializer, or in `attributeChangedCallback`. Effects created outside aren't owned by any scope and won't stop on disconnect, so they keep running (and holding the element) after the element leaves the DOM. `computed` is lazy and self-disposes when it has no subscribers, so a class-field `computed` is fine.
+Create `effect` and `onCleanup` **inside** the `render` callback — not in the constructor, in a field initializer, or in `attributeChangedCallback`. Effects created outside aren't owned by any scope and won't stop on disconnect, so they keep running (and holding the element) after the element leaves the DOM. `computed` is lazy and self-disposes when it has no subscribers, so a class-field `computed` is fine.
 :::
 
-For finer control (e.g. you need the scope's return value, or multiple scopes on one element), use `renderScope` — see [Scopes & cleanup](/scopes/).
+`render` works the same way at the app root too — pass `document.getElementById("app")!` as the target. See [Scopes & cleanup](/scopes/) for the full lifetime contract.
 
 ---
 

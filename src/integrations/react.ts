@@ -1,4 +1,5 @@
-import { type Computed, effect, effectScope, signal } from "@/signals/index.ts";
+import { type Computed, effect, signal } from "@/signals/index.ts";
+import { scope } from "@/signals/scope";
 import { useEffect, useMemo, useSyncExternalStore, useRef } from "react";
 
 /**
@@ -72,13 +73,13 @@ export function useScope<T>(callback: () => Computed<T> | void): T | void {
   const computedRef = useRef<Computed<T> | void>(undefined);
 
   // Create/recreate the effect scope when callback changes.
-  // callback() runs directly inside effectScope — no inner effect wrapper —
-  // so computedRef is set synchronously and is available to useSignalValue
-  // on the same render without relying on effect scheduling order.
+  // `scope()` runs callback synchronously inside an effectScope detached via
+  // untracked — so computedRef is set before we subscribe below, without
+  // relying on effect scheduling order.
   const stopScope = useMemo(() => {
-    return effectScope(() => {
-      computedRef.current = callback();
-    });
+    const [result, stop] = scope(callback);
+    computedRef.current = result;
+    return stop;
   }, [callback]);
 
   // Subscribe to the computed signal using useSyncExternalStore

@@ -37,6 +37,11 @@ const SHARED_FILES: SandpackFiles = {
     hidden: true,
     active: false,
   },
+  // Sandpack's "test-ts" template auto-injects `/add.ts` + `/add.test.ts`
+  // fixtures. The file API can't delete them, so override both to empty
+  // hidden stubs — no tabs, no assertions, no discoverable tests.
+  "/add.ts": { code: "", hidden: true, active: false },
+  "/add.test.ts": { code: "", hidden: true, active: false },
 };
 
 export interface PlaygroundProps {
