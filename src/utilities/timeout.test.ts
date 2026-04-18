@@ -64,4 +64,65 @@ describe("createTimeout", () => {
     vi.advanceTimersByTime(300);
     expect(cb).toHaveBeenCalledOnce();
   });
+
+  it("immediate=false does not start automatically", () => {
+    vi.useFakeTimers();
+    const cb = vi.fn();
+    let t!: ReturnType<typeof createTimeout>;
+    effectScope(() => {
+      t = createTimeout(cb, 200, false);
+    });
+    expect(t.pending()).toBe(false);
+    vi.advanceTimersByTime(300);
+    expect(cb).not.toHaveBeenCalled();
+  });
+
+  it("start() fires after delay when called manually", () => {
+    vi.useFakeTimers();
+    const cb = vi.fn();
+    let t!: ReturnType<typeof createTimeout>;
+    effectScope(() => {
+      t = createTimeout(cb, 200, false);
+    });
+    t.start();
+    expect(t.pending()).toBe(true);
+    vi.advanceTimersByTime(200);
+    expect(cb).toHaveBeenCalledOnce();
+    expect(t.pending()).toBe(false);
+  });
+
+  it("Symbol.dispose cancels the timeout", () => {
+    vi.useFakeTimers();
+    const cb = vi.fn();
+    let t!: ReturnType<typeof createTimeout>;
+    effectScope(() => {
+      t = createTimeout(cb, 500);
+    });
+    t[Symbol.dispose]();
+    vi.advanceTimersByTime(1000);
+    expect(cb).not.toHaveBeenCalled();
+  });
+
+  it("stops when scope is disposed", () => {
+    vi.useFakeTimers();
+    const cb = vi.fn();
+    const stop = effectScope(() => {
+      createTimeout(cb, 200);
+    });
+    stop();
+    vi.advanceTimersByTime(500);
+    expect(cb).not.toHaveBeenCalled();
+  });
+
+  it("dynamic delay function is called at start", () => {
+    vi.useFakeTimers();
+    const cb = vi.fn();
+    const getDelay = vi.fn().mockReturnValue(300);
+    effectScope(() => {
+      createTimeout(cb, getDelay);
+    });
+    vi.advanceTimersByTime(300);
+    expect(cb).toHaveBeenCalledOnce();
+    expect(getDelay).toHaveBeenCalledOnce();
+  });
 });

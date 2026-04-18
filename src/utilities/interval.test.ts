@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { effectScope } from "@/signals/index.ts";
 import { createInterval } from "./interval.ts";
+import * as asyncModule from "./async.ts";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -67,5 +68,57 @@ describe("createInterval", () => {
     iv[Symbol.dispose]();
     vi.advanceTimersByTime(500);
     expect(cb).toHaveBeenCalledTimes(0);
+  });
+
+  it("no-callback form updates timestamp on each tick", () => {
+    vi.useFakeTimers();
+    let iv!: ReturnType<typeof createInterval>;
+    effectScope(() => {
+      iv = createInterval(100);
+    });
+    const before = iv.timestamp();
+    vi.advanceTimersByTime(100);
+    expect(iv.timestamp()).toBeGreaterThan(before);
+  });
+
+  it("dynamic delay form is called each tick", () => {
+    vi.useFakeTimers();
+    const cb = vi.fn();
+    const getDelay = vi.fn().mockReturnValue(100);
+    effectScope(() => {
+      createInterval(cb, getDelay);
+    });
+    vi.advanceTimersByTime(300);
+    expect(cb).toHaveBeenCalledTimes(3);
+  });
+
+  it("stops when scope is disposed", () => {
+    vi.useFakeTimers();
+    const cb = vi.fn();
+    const stop = effectScope(() => {
+      createInterval(cb, 100);
+    });
+    stop();
+    vi.advanceTimersByTime(500);
+    expect(cb).toHaveBeenCalledTimes(0);
+  });
+
+  it("composes with async() — reruns on each tick", async () => {
+    vi.useFakeTimers();
+    const asyncOp = asyncModule.async;
+    let runCount = 0;
+    const timer = createInterval(100);
+
+    const op = asyncOp(() => {
+      timer.timestamp(); // tracked — reruns on each tick
+      runCount++;
+      return Promise.resolve(runCount);
+    }).start();
+
+    await vi.advanceTimersByTimeAsync(350); // ~3 ticks
+    expect(runCount).toBeGreaterThan(1);
+
+    timer[Symbol.dispose]();
+    op.stop();
   });
 });
