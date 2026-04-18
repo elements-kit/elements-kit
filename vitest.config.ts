@@ -24,6 +24,11 @@ export default defineConfig({
   },
   test: {
     environment: "happy-dom",
-    exclude: ["**/node_modules/**", "**/dist/**"],
+    exclude: [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/playground/**",
+      "**/docs/**",
+    ],
   },
 });

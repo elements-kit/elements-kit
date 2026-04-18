@@ -1,5 +1,6 @@
 import { reactive, computed } from "elements-kit/signals";
 import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
+import { defineElement } from "elements-kit/custom-elements";
 
 @attributes
 class RangeDisplay extends HTMLElement {
@@ -61,18 +62,11 @@ class RangeDisplay extends HTMLElement {
   }
 }
 
-customElements.define("x-range", RangeDisplay);
+defineElement("x-range", RangeDisplay);
 
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      "x-range": {
-        min?: number | string;
-        max?: number | string;
-        value?: number | string;
-        label?: string;
-      };
-    }
+declare module "elements-kit/custom-elements" {
+  interface CustomElementRegistry {
+    "x-range": typeof RangeDisplay;
   }
 }
 

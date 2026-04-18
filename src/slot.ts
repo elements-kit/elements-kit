@@ -190,6 +190,25 @@ export class Slots<K extends string> implements Iterable<[K, SlotInstance]> {
   static keys<K extends string>(slots: Slots<K>): MapIterator<K> {
     return slots[$keys]();
   }
+  /**
+   * Create a typed `Slots` collection from a list of key names.
+   *
+   * Pass the keys with `as const` so TS narrows them to a literal union —
+   * this is what lets `ElementProps<typeof Cls>` synthesize `slot:${K}`
+   * entries. Without `as const`, the array type widens to `string[]` and
+   * the slot keys are lost.
+   *
+   * @example
+   * ```ts
+   * class Card extends HTMLElement {
+   *   // ✅ literal keys flow through — "header" | "footer"
+   *   [$slots] = Slots.new(["header", "footer"] as const);
+   * }
+   *
+   * // ❌ widens to string; no typed slot:* props
+   * // [$slots] = Slots.new(["header", "footer"]);
+   * ```
+   */
   static new<K extends string>(
     keys: K[],
   ): Slots<K> & { readonly [P in K]: SlotInstance } {

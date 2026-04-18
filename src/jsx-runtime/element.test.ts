@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { signal, effect, effectScope, onCleanup } from "../signals";
 import { createElement, disposeElement } from "./element";
-import { For } from "./for";
+import { For } from "@/for";
 
 // ---------------------------------------------------------------------------
 // Helpers

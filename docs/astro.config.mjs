@@ -85,6 +85,7 @@ export default defineConfig({
             { label: "JSX & Elements", slug: "elements" },
             { label: "Components", slug: "components" },
             { label: "For (list rendering)", slug: "writing-ui/for" },
+            { label: "Types", slug: "writing-ui/types" },
           ],
         },
         {

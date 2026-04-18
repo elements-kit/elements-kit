@@ -1,3 +1,4 @@
+export { defineElement, type CustomElementRegistry } from "./define";
 import { effectScope, untracked } from "./signals";
 
 /**

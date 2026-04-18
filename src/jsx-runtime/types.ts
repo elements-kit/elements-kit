@@ -10,7 +10,7 @@ export interface ComponentInstance {
 }
 
 /** A class whose constructor returns a ComponentInstance. */
-export type ComponentClass = new (...args: any[]) => ComponentInstance;
+export type ComponentClass<P = any> = new (props: P) => ComponentInstance;
 export type ComponentFn = (
   props: Record<string | symbol, unknown>,
 ) => null | Element | DocumentFragment;

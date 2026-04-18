@@ -1,6 +1,18 @@
 import { Child, ComponentClass } from "./types";
 import { createElement } from "./element";
 import type { JSX as DomJSX } from "dom-expressions/src/jsx-h";
+import type { CustomElementRegistry } from "../define";
+import type { AnyElementCtor, ElementProps } from "./infer";
+
+export type {
+  ComponentProps,
+  ElementProps,
+  MaybeReactiveProps,
+  Props,
+  Require,
+} from "./infer";
+
+export type { MaybeReactive } from "../signals";
 
 export {
   createElement as jsx,
@@ -64,15 +76,21 @@ export namespace JSX {
     children: {};
   }
 
+  type RegisteredElements = {
+    [K in keyof CustomElementRegistry]: CustomElementRegistry[K] extends AnyElementCtor
+      ? ElementProps<CustomElementRegistry[K]>
+      : never;
+  };
+
   export type IntrinsicElements = {
     [K in keyof DomJSX.IntrinsicElements]: WithOurProps<
       DomJSX.IntrinsicElements[K]
     >;
-  } & {
-    /** Custom elements (`x-foo`, `my-component`, …) get a loose typed fallback. */
-    [customElement: `${string}-${string}`]: WithOurProps<
-      DomJSX.DOMAttributes<HTMLElement>
-    > &
-      Record<string, unknown>;
-  };
+  } & RegisteredElements & {
+      /** Unregistered custom elements (`x-foo`, `my-component`, …) — loose fallback. */
+      [customElement: `${string}-${string}`]: WithOurProps<
+        DomJSX.DOMAttributes<HTMLElement>
+      > &
+        Record<string, unknown>;
+    };
 }

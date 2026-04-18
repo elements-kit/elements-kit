@@ -102,7 +102,7 @@ function resolveNode(
 ): ComponentInstance | Element | DocumentFragment | null {
   if (typeof type === "string") return document.createElement(type);
   if (type instanceof Element || type instanceof DocumentFragment) return type;
-  return new type();
+  return new (type as new (...args: any[]) => ComponentInstance)();
 }
 
 function renderNode(

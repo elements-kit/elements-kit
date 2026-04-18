@@ -46,7 +46,22 @@ interface Entry {
  *   by       — extracts a stable key per item (default: index)
  *   children — render function called once per new key
  */
+import type { Props, Require } from "@/jsx-runtime/infer";
+
+/**
+ * Props for `<For>`, derived from its public instance fields.
+ * All props are optional — the class initializes sane defaults at runtime.
+ * Non-function props also accept a reactive getter.
+ */
+export type ForProps<T> = Require<Props<For<T>>, "each" | "children">;
+
 export class For<T = unknown> {
+  // Phantom signature: JSX reads it to infer T from props. Runtime constructs
+  // with no args — createElement assigns each prop via property set afterwards.
+  // Inlined (not `ForProps<T>`) to avoid a self-referential type alias during
+  // class-shape resolution.
+  constructor(_props?: ForProps<T>) {}
+
   readonly #each = signal<T[]>([]);
   get each(): T[] {
     return this.#each();
