@@ -113,7 +113,6 @@ export default defineConfig({
       expressiveCode: {
         themes: ["github-light-default", "github-dark-default"],
         plugins: [
-          pluginMagicMove(),
           ecTwoSlash({
             twoslashOptions: {
               compilerOptions: {
@@ -127,6 +126,7 @@ export default defineConfig({
               },
             },
           }),
+          pluginMagicMove(),
         ],
         styleOverrides: {
           borderRadius: "0.25rem",
