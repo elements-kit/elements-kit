@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { effect, onCleanup, signal } from "@/signals/index.ts";
 import { Async, async as asyncOp } from "./async.ts";
+import { createInterval } from "./interval.ts";
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -244,6 +245,26 @@ describe("Async", () => {
     await op;
     op.stop();
     expect(cleaned[0]).toBe(1);
+  });
+
+  it("re-runs when createInterval ticks", async () => {
+    vi.useFakeTimers();
+    const timer = createInterval(1_000);
+    const calls: number[] = [];
+    const op = asyncOp(() => {
+      timer.timestamp(); // track timestamp signal
+      calls.push(calls.length);
+      return Promise.resolve(calls.length);
+    });
+    op.start();
+    await op;
+    expect(calls.length).toBe(1);
+    vi.advanceTimersByTime(1_000);
+    await op;
+    expect(calls.length).toBe(2);
+    op.stop();
+    timer.stop();
+    vi.useRealTimers();
   });
 
   it("state and value update atomically — no inconsistent intermediate state", async () => {

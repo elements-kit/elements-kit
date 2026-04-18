@@ -59,9 +59,9 @@ export function createInterval(arg1: Fn | Delay, arg2?: Delay): IntervalResult {
   };
 }
 
-function resolveArgs(arg1: Fn | Delay, arg2?: Delay): [Fn, Delay] {
-  if (arguments.length === 1) {
-    [undefined, arg1 as number | (() => number)];
+function resolveArgs(arg1: Fn | Delay, arg2?: Delay): [Fn | undefined, Delay] {
+  if (arg2 === undefined) {
+    return [undefined, arg1 as Delay];
   }
-  return [arg1, arg2] as [Fn, Delay];
+  return [arg1 as Fn, arg2];
 }
