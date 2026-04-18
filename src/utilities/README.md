@@ -1,12 +1,12 @@
 # Utilities
 
-Reactive utilities built on top of the core signal primitives (`signal`, `computed`, `effect`, `effectScope`, `onCleanup`, `trigger`, `batch`, `untracked`).
+Reactive helpers over core primitives (`signal`, `computed`, `effect`, `effectScope`, `onCleanup`, `trigger`, `batch`, `untracked`).
 
-See [root README](../../README.md) for library overview and [SPEC.md](../../SPEC.md) for the cleanup convention, quality bars, and module-dependency rules that apply to every helper listed below.
+Overview → [README](../../README.md). Contracts (cleanup, quality bars, deps) → [SPEC](../../SPEC.md).
 
-Each utility is its own subpath: `elements-kit/utilities/<name>`. Files are the source of truth; this catalog is kept in sync manually — open a PR if you spot drift.
+Each module = one subpath: `elements-kit/utilities/<name>`. Source files are authoritative — open a PR on drift.
 
-All modules are import-safe in Node (see `environment.ts` for the shared `isBrowser` guard). Singletons that wrap browser APIs degrade to neutral defaults outside a browser — full reactivity requires a DOM.
+Node import-safe. Shared `isBrowser` in `environment.ts`. Singletons degrade to neutral defaults outside a browser; full reactivity needs DOM.
 
 ---
 
@@ -197,18 +197,10 @@ Defined in [../integrations/react.ts](../integrations/react.ts), not under `util
 
 ---
 
-## Cleanup convention
+## Cleanup
 
-Every helper that allocates a resource follows these rules (see [SPEC.md §6](../../SPEC.md)):
+Full rules → [SPEC §6](../../SPEC.md). Short version: `onCleanup` in current scope auto-disposes. Composite returns expose `[Symbol.dispose]` / `using`. Raw `Signal` / `Computed` never carry `Symbol.dispose`.
 
-1. **`onCleanup`** — teardown is registered with the current `effect` / `effectScope` / `computed`. Scope disposal removes all listeners / observers / timers automatically.
-2. **`Disposable`** — helpers that return composite objects expose `[Symbol.dispose]` for explicit teardown or `using`.
-3. **No `Disposable` on core reactive values** — helpers returning raw `Signal<T>` / `Computed<T>` rely on `onCleanup` only. Attaching `Symbol.dispose` to the callable would be unsafe.
+## Environment
 
-When called inside an `effectScope`, cleanup happens on scope disposal. For explicit teardown, dispose the scope (call the function returned by `effectScope`) or the `Disposable`.
-
----
-
-## Environment safety
-
-The six module-level singletons (`activeElement`, `currentLocation`, `online`, `orientation`, `windowFocused`, `windowSize`) currently touch DOM globals at module load. See the SSR safety plan for the import-safety work in progress. Until that lands, these modules throw when imported in Node. All factory-style utilities (`createX`) are import-safe — DOM access happens only when the factory is called.
+Six singletons (`activeElement`, `currentLocation`, `online`, `orientation`, `windowFocused`, `windowSize`) read DOM globals at module load. Node-safe via `isBrowser` gate — degrade to neutral defaults. Factories (`createX`) always import-safe.
