@@ -40,6 +40,6 @@ export class App {
           </p>
         </div>
       </div>
-    ) as Element;
+    );
   }
 }

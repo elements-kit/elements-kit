@@ -53,6 +53,6 @@ declare global {
 
 export class App {
   render() {
-    return (<x-counter count={signal(9)} />) as Element;
+    return <x-counter count={signal(9)} />;
   }
 }

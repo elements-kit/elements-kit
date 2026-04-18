@@ -26,7 +26,7 @@ class CardComponent {
           {this[SLOTS].actions()}
         </footer>
       </article>
-    ) as Element;
+    );
   }
 }
 
@@ -55,6 +55,6 @@ export class App {
           </p>
         </CardComponent>
       </div>
-    ) as Element;
+    );
   }
 }

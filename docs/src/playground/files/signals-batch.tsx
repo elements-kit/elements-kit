@@ -64,6 +64,6 @@ export class App {
           </div>
         </div>
       </div>
-    ) as Element;
+    );
   }
 }

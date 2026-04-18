@@ -31,10 +31,13 @@ export class App {
             <strong>{() => fetchTodo.state}</strong>
           </p>
           <pre style="background: #f9fafb; padding: 8px; border-radius: 4px; font-size: 0.85em; margin: 0;">
-            {() => JSON.stringify(fetchTodo.value ?? fetchTodo.reason, null, 2) ?? "—"}
+            {() =>
+              JSON.stringify(fetchTodo.value ?? fetchTodo.reason, null, 2) ??
+              "—"
+            }
           </pre>
         </div>
       </div>
-    ) as Element;
+    );
   }
 }

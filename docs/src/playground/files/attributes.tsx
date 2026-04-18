@@ -54,7 +54,7 @@ class RangeDisplay extends HTMLElement {
         <span>{() => this.max}</span>
       </div>
     </div>
-  ) as Element;
+  );
 
   connectedCallback() {
     this.style.display = "block";
@@ -91,6 +91,6 @@ export class App {
         <x-range label="Temperature" min={-20} max={40} value={22} />
         <x-range label="Brightness" min={0} max={255} value={128} />
       </div>
-    ) as Element;
+    );
   }
 }

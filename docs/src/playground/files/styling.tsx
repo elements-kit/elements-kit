@@ -44,7 +44,7 @@ class CounterElement extends HTMLElement {
         <button onClick={() => (this.count = 0)}>Reset</button>
       </div>
     </div>
-  ) as Element;
+  );
 
   connectedCallback() {
     // Shadow DOM — styles are scoped, sheet is shared
@@ -79,6 +79,6 @@ export class App {
         <x-counter />
         <x-counter />
       </div>
-    ) as Element;
+    );
   }
 }

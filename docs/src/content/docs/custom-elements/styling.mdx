@@ -74,7 +74,7 @@ class CounterElement extends HTMLElement {
       <p>Count: <strong>{this.#count}</strong></p>
       <button onClick={() => this.#count(this.#count() + 1)}>+1</button>
     </section>
-  ) as Element;
+  );
 
   connectedCallback() {
     const shadow = this.attachShadow({ mode: "open" });
@@ -152,7 +152,7 @@ class CounterElement extends HTMLElement {
       <p>Count: <strong>{() => this.count}</strong></p>
       <button onClick={() => this.count++}>+1</button>
     </section>
-  ) as Element;
+  );
 
   connectedCallback() {
     const shadow = this.attachShadow({ mode: "open" });
@@ -260,7 +260,7 @@ class CounterElement extends HTMLElement {
       <p>Count: <strong>{() => this.count}</strong></p>
       <button onClick={() => this.count++}>+1</button>
     </div>
-  ) as Element;
+  );
 
   connectedCallback() {
     const shadow = this.attachShadow({ mode: "open" });

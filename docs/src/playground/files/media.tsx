@@ -27,6 +27,6 @@ export class App {
           </li>
         </ul>
       </section>
-    ) as Element;
+    );
   }
 }

@@ -43,6 +43,6 @@ export class App {
           Bold
         </label>
       </section>
-    ) as Element;
+    );
   }
 }

@@ -37,6 +37,6 @@ export class App {
           </For>
         </ul>
       </div>
-    ) as Element;
+    );
   }
 }

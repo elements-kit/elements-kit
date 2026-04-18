@@ -95,6 +95,6 @@ export class App {
           <strong>Total: ${() => cart.total().toFixed(2)}</strong>
         </p>
       </section>
-    ) as Element;
+    );
   }
 }

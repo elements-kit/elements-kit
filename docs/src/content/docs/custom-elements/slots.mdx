@@ -97,7 +97,7 @@ class CardElement extends HTMLElement {
         <slot name="footer" />
       </footer>
     </article>
-  ) as Element;
+  );
 
   connectedCallback() {
     const shadow = this.attachShadow({ mode: "open" });
@@ -160,7 +160,7 @@ class CardComponent {
           {this[SLOTS].footer()}
         </footer>
       </article>
-    ) as Element;
+    );
   }
 }
 ```

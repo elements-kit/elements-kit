@@ -58,7 +58,7 @@ class TemperatureElement extends HTMLElement {
         </tr>
       </table>
     </div>
-  ) as Element;
+  );
 
   connectedCallback() {
     this.style.display = "block";
@@ -87,6 +87,6 @@ declare global {
 
 export class App {
   render() {
-    return (<x-temperature celsius={22} />) as Element;
+    return <x-temperature celsius={22} />;
   }
 }
