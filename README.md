@@ -2,7 +2,7 @@
   <img src="docs/public/og.svg" alt="ElementsKit" width="600" />
 </p>
 
-# 🌱 ElementsKit
+# ElementsKit
 
 **Universal reactive primitives for the web.** Signals, JSX, and custom elements that work anywhere — standalone, inside React, Vue, or any framework, or as the foundation of your own component model.
 
@@ -73,6 +73,16 @@ Modern UI frameworks solve reactivity and rendering together — you adopt the w
 - **Custom elements** are standard browser components — ElementsKit enhances them with signals and JSX without wrapping or abstracting the platform.
 
 Use one piece, or all three. Integrate with React for complex UIs. Build web components that work anywhere HTML does.
+
+### Primitives first, composable abstractions
+
+Small primitives, one job each, typed interfaces at every boundary. Abstraction is assembled, not inherited — compose upward from `signal` → `sync(fromEvent(...), ...)` → `<For>` and stop at the level your feature needs. Designed for AI agents as much as for humans: each step is verifiable on its own, and there's no framework-specific mental model to learn before writing the first line.
+
+- **No prop matrices.** No single-system components with forty flags where legal combinations aren't obvious until you read the source.
+- **No hidden coupling.** Blocks meet at their types; invariants don't leak across layers.
+- **Close to the platform.** `promise` wraps a native `Promise`. JSX compiles to `document.createElement`. Custom elements are `HTMLElement` subclasses. You already know the underlying shape.
+- **Minimal surface.** `async` has no cache, no query client, no query/mutation split. If you need those, compose them on top — don't inherit them by default.
+- **Swap, don't rewrite.** Replace one block (`throttled` → `debounced`) without touching the ones around it.
 
 ---
 
