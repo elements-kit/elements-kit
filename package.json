@@ -1,7 +1,7 @@
 {
   "name": "elements-kit",
   "type": "module",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "description": "A lightweight reactive UI library that transforms native HTMLElements into reactive components with signals. Ideal for framework-agnostic applications and web components.",
   "keywords": [
     "webcomponents",
@@ -18,7 +18,7 @@
   "author": "@waelbettayeb",
   "license": "MIT",
   "main": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
+  "types": "./dist/index.d.mts",
   "files": [
     "dist"
   ],
@@ -26,52 +26,52 @@
     ".": {
       "source": "./src/index.ts",
       "import": "./dist/index.mjs",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.mts"
     },
     "./signals": {
       "source": "./src/signals/index.ts",
       "import": "./dist/signals/index.mjs",
-      "types": "./dist/signals/index.d.ts"
+      "types": "./dist/signals/index.d.mts"
     },
     "./slot": {
       "source": "./src/slot.ts",
       "import": "./dist/slot.mjs",
-      "types": "./dist/slot.d.ts"
+      "types": "./dist/slot.d.mts"
     },
     "./for": {
       "source": "./src/for.ts",
       "import": "./dist/for.mjs",
-      "types": "./dist/for.d.ts"
+      "types": "./dist/for.d.mts"
     },
     "./attributes": {
       "source": "./src/attributes.ts",
       "import": "./dist/attributes.mjs",
-      "types": "./dist/attributes.d.ts"
+      "types": "./dist/attributes.d.mts"
     },
     "./custom-elements": {
       "source": "./src/custom-elements.ts",
       "import": "./dist/custom-elements.mjs",
-      "types": "./dist/custom-elements.d.ts"
+      "types": "./dist/custom-elements.d.mts"
     },
     "./jsx-runtime": {
       "source": "./src/jsx-runtime/index.ts",
       "import": "./dist/jsx-runtime/index.mjs",
-      "types": "./dist/jsx-runtime/index.d.ts"
+      "types": "./dist/jsx-runtime/index.d.mts"
     },
     "./jsx-dev-runtime": {
       "source": "./src/jsx-runtime/index.ts",
       "import": "./dist/jsx-runtime/index.mjs",
-      "types": "./dist/jsx-runtime/index.d.ts"
+      "types": "./dist/jsx-runtime/index.d.mts"
     },
     "./integrations/*": {
       "source": "./src/integrations/*.ts",
       "import": "./dist/integrations/*.mjs",
-      "types": "./dist/integrations/*.d.ts"
+      "types": "./dist/integrations/*.d.mts"
     },
     "./utilities/*": {
       "source": "./src/utilities/*.ts",
       "import": "./dist/utilities/*.mjs",
-      "types": "./dist/utilities/*.d.ts"
+      "types": "./dist/utilities/*.d.mts"
     }
   },
   "scripts": {

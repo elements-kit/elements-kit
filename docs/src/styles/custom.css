@@ -54,6 +54,12 @@
   width: 100%;
 }
 
+/* Tests panel: match the preview's full-fill behavior. */
+.ek-playground-frame--tests .sp-tests {
+  height: 100% !important;
+  width: 100%;
+}
+
 /* Panels: even split, no per-panel resize. */
 .ek-playground-frame > * {
   min-width: 0;
@@ -66,6 +72,10 @@
 @container playground (max-width: 768px) {
   .ek-playground-frame .sp-layout {
     flex-direction: column-reverse;
+  }
+  /* Tests: keep natural order (code on top, results below). */
+  .ek-playground-frame--tests .sp-layout {
+    flex-direction: column;
   }
   .ek-playground-frame .sp-stack {
     width: 100% !important;

@@ -76,7 +76,9 @@ function Playground({
       {...provider}
       files={{ ...SHARED_FILES, ...provider.files }}
     >
-      <div className="ek-playground-frame">
+      <div
+        className={`ek-playground-frame${tests ? " ek-playground-frame--tests" : ""}`}
+      >
         <SandpackLayout>
           <SandpackCodeEditor
             showTabs

@@ -28,7 +28,7 @@ export class App {
           <button onClick={shuffle}>shuffle</button>
         </div>
         <ul style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; list-style: none; margin: 0;">
-          <For<Row> each={rows} by={(row) => row.id}>
+          <For each={rows} by={(row) => row.id}>
             {(row) => (
               <li style="padding: 4px 0;">
                 #{row.id} — {row.label}
