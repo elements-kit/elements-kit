@@ -37,7 +37,6 @@ Every page, top to bottom:
 ## Playground — position, size, style
 
 - **Default: top**, directly after the hook. Scanners, copiers, and evaluators reach for Run first.
-- **Exceptions — bottom**: landing ([index.mdx](docs/src/content/docs/index.mdx)) and concept pages ([elements.mdx](docs/src/content/docs/elements.mdx), [custom-elements.mdx](docs/src/content/docs/custom-elements.mdx)). Read-first pedagogy.
 - **Landing page: no Sandpack.** A static hero snippet plus a link to `/signals` loads faster and respects the 5-second budget.
 - **Height**: default `height: 300` on the `<Playground>` wrapper. Increase only for multi-panel demos; add an inline comment explaining why.
 - **One primary playground per page.** Use Starlight `<Tabs>` + multiple `<Playground>` only when a single demo would obscure per-facet learning (current [signals.mdx](docs/src/content/docs/signals.mdx) pattern).
@@ -99,7 +98,7 @@ One concept per page. Current map:
 | `getting-started/why.mdx` | Why ElementsKit | concept | none |
 | `signals.mdx` | `signal` / `computed` / `effect` / `effectScope` / `batch` / `untracked` / `onCleanup` | reference | top (Tabs) |
 | `stores.mdx` | `@reactive` class pattern | how-to | top |
-| `elements.mdx` | JSX → DOM, prop namespaces, live bindings | concept | bottom |
+| `elements.mdx` | JSX → DOM, prop namespaces, live bindings | concept | top |
 | `components.mdx` | `render()` classes | how-to | top |
 | `writing-ui/for.mdx` | `For` — keyed list rendering | reference | top |
 | `custom-elements.mdx` | `HTMLElement` + overview | concept | bottom |
