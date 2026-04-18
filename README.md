@@ -33,6 +33,31 @@ customElements.define("x-counter", CounterElement);
 
 ---
 
+## Packages
+
+Every feature is a separate subpath export — import only what you use.
+
+| Entry | Purpose |
+|-------|---------|
+| `elements-kit` | `For` and core re-exports |
+| `elements-kit/signals` | `signal`, `computed`, `effect`, `effectScope`, `batch`, `untracked`, `trigger`, `onCleanup`, `@reactive` |
+| `elements-kit/attributes` | `@attributes` decorator + `ATTRIBUTES` symbol for custom elements |
+| `elements-kit/slot` | `Slot` class — comment-marker DOM regions |
+| `elements-kit/jsx-runtime` | JSX factory (configure via `jsxImportSource`) |
+| `elements-kit/integrations/react` | `useSignal`, `useScope` React bridge hooks |
+| `elements-kit/utilities/*` | 50+ reactive browser-API utilities — see [src/utilities/README.md](src/utilities/README.md) (catalog under audit) |
+
+## Repository
+
+- [src/](src/) — library source ([signals](src/signals/), [jsx-runtime](src/jsx-runtime/), [utilities](src/utilities/), [integrations](src/integrations/))
+- [docs/](docs/) — Astro + Starlight documentation site
+- [example/](example/) — Vite sandbox
+- [AGENTS.md](AGENTS.md) — agent navigation map
+- [SPEC.md](SPEC.md) — technical spec and quality bars
+- [src/utilities/README.md](src/utilities/README.md) — utilities catalog and dependency graph
+
+---
+
 ## Why ElementsKit
 
 Modern UI frameworks solve reactivity and rendering together — you adopt the whole system or none of it. ElementsKit separates the two:
@@ -247,42 +272,7 @@ The same `cart` store drives custom elements, React trees, and plain scripts —
 
 ## Utilities
 
-Pre-built signal factories for common browser APIs:
-
-```ts
-import { signal, effect, untracked, onCleanup } from "elements-kit/signals";
-import { createMediaQuery } from "elements-kit/utilities/media-query";
-import { async } from "elements-kit/utilities/async";
-import { retry } from "elements-kit/utilities/retry";
-import { online } from "elements-kit/utilities/network";
-import { windowFocused } from "elements-kit/utilities/window-focus";
-import { storage } from "elements-kit/utilities/storage";
-
-const id = signal(1);
-const cache = storage("todos"); // persists across reloads, used as initial value
-
-// Query — retries on failure, refetches when back online or tab regains focus
-const fetchTodo = async(() => {
-  if (!online()) return untracked(cache); // pause while offline, return stale value
-  windowFocused();                        // refetch on tab focus
-  return retry(() => {
-    const controller = new AbortController();
-    onCleanup(() => controller.abort());  // abort before each retry
-    return fetch(`/api/todos/${id()}`, { signal: controller.signal })
-      .then((r) => r.json())
-      .then(cache);                       // update cache on success
-  }, 3, (n) => n * 500)();               // 0 ms, 500 ms, 1000 ms backoff
-}).start();
-
-effect(() => console.log(fetchTodo.state, fetchTodo.value));
-
-// Mutation — run once, no reactive tracking
-const deleteTodo = async((todoId: number) =>
-  fetch(`/api/todos/${todoId}`, { method: "DELETE" }).then((r) => r.json()),
-);
-
-const result = await deleteTodo.run(42);
-```
+Pre-built reactive wrappers around common browser APIs. Each utility lives at its own subpath (`elements-kit/utilities/<name>`) and ships as its own entry — you pay only for what you import. Full catalog in [src/utilities/README.md](src/utilities/README.md).
 
 `createMediaQuery` wraps `window.matchMedia` into a reactive signal — reads inside effects or computeds re-run automatically when the media query result changes.
 
@@ -294,6 +284,108 @@ const isDark = createMediaQuery("(prefers-color-scheme: dark)");
 const isMobile = createMediaQuery("(max-width: 640px)");
 
 effect(() => document.documentElement.classList.toggle("dark", isDark()));
+```
+
+Singletons like `online`, `windowFocused`, `activeElement`, and `currentLocation` are pre-instantiated — import and read them directly inside any reactive context.
+
+```ts
+import { effect } from "elements-kit/signals";
+import { online } from "elements-kit/utilities/network";
+import { windowFocused } from "elements-kit/utilities/window-focus";
+
+effect(() => console.log("online:", online(), "focused:", windowFocused()));
+```
+
+---
+
+## Async & Promise
+
+Two primitives convert imperative async work into reactive state: `promise` (minimal, any `Promise` → reactive state) and `async` (full controller with start/stop/run and optional reactive input).
+
+### `promise`
+
+Wraps an async function (or raw `Promise`) into a `ComputedPromise<T>` — awaitable **and** callable as a reactive value. Exposes `.state`, `.value`, `.reason`, `.result` as reactive reads.
+
+```ts
+import { promise } from "elements-kit/utilities/promise";
+import { effect } from "elements-kit/signals";
+
+const user = promise(() => fetch("/api/user").then((r) => r.json()));
+
+effect(() => {
+  if (user.state === "pending")   console.log("loading…");
+  if (user.state === "fulfilled") console.log("user:", user.value);
+  if (user.state === "rejected")  console.log("error:", user.reason);
+});
+
+await user; // awaitable
+```
+
+`ReactivePromise` is the underlying class — use it when you want the reactive state getters without the `Computed` callable interface.
+
+### `async`
+
+A controller around `promise`. The async function may be a plain function or a `MaybeReactive<Fn>` (so the body itself can re-read signals and rerun on change).
+
+```ts
+import { async } from "elements-kit/utilities/async";
+
+const op = async(() => fetch("/api/items").then((r) => r.json()));
+
+op.start();   // run with reactive tracking — reruns when tracked signals change
+await op;     // awaitable (delegates to .then/.catch/.finally via .raw)
+op.stop();    // halt reruns + fire registered cleanup
+```
+
+Reactive state getters: `.state`, `.value`, `.reason`, `.result`, `.pending`, `.raw` (the underlying `ComputedPromise`).
+
+One-shot mutation (no tracking):
+
+```ts
+const del = async((id: number) =>
+  fetch(`/api/items/${id}`, { method: "DELETE" }).then((r) => r.json()),
+);
+
+await del.run(42);
+```
+
+`Async` implements `Symbol.dispose`, so `using` auto-stops on scope exit:
+
+```ts
+{
+  using poll = async(() => fetch("/api/poll").then((r) => r.json())).start();
+  await poll;
+} // poll.stop() here
+```
+
+### Composing with retry, online, storage
+
+`async`'s reactive body composes with other utilities. Below: fetch a todo by `id()`, retry on failure with exponential backoff, pause while offline (returning the stale cached value), and refetch when the tab regains focus.
+
+```ts
+import { signal, effect, untracked, onCleanup } from "elements-kit/signals";
+import { async } from "elements-kit/utilities/async";
+import { retry } from "elements-kit/utilities/retry";
+import { online } from "elements-kit/utilities/network";
+import { windowFocused } from "elements-kit/utilities/window-focus";
+import { createLocalStorage } from "elements-kit/utilities/storage";
+
+const id = signal(1);
+const cache = createLocalStorage<unknown>("todo-cache", null);
+
+const fetchTodo = async(() => {
+  if (!online()) return untracked(cache);   // pause while offline
+  windowFocused();                          // refetch on tab focus
+  return retry(() => {
+    const controller = new AbortController();
+    onCleanup(() => controller.abort());    // abort before each retry
+    return fetch(`/api/todos/${id()}`, { signal: controller.signal })
+      .then((r) => r.json())
+      .then((value) => (cache(value), value));
+  }, 3, (n) => n * 500)();                  // 0 ms, 500 ms, 1000 ms backoff
+}).start();
+
+effect(() => console.log(fetchTodo.state, fetchTodo.value));
 ```
 
 ---
@@ -362,7 +454,6 @@ class MyElement extends HTMLElement {
 ## Roadmap
 
 - [ ] Context — share state across a subtree without prop drilling
-- [ ] Async signal — `signal.from(promise)`, `signal.from(observable)`
 - [ ] UI library — pre-built reactive components built on ElementsKit primitives
 - [ ] More framework integrations (Vue, Solid, Angular, …)
 - [ ] Tutorial — building a full app from scratch

@@ -2,6 +2,10 @@
 
 Reactive utilities built on top of the core signal primitives (`signal`, `computed`, `effect`, `effectScope`, `onCleanup`, `trigger`, `batch`, `untracked`).
 
+See [root README](../../README.md) for library overview and [SPEC.md](../../SPEC.md) for the cleanup convention, quality bars, and module-dependency rules that apply to every helper listed below.
+
+> ⚠️ **This catalog is under audit.** Export names in the tables below may lag the source. Treat the files in this directory as the source of truth; open an issue or PR when you spot drift. Known-correct corrections already applied: `on` (not `createEventListener`), `onClickOutside`, `createFocusWithin`, `activeElement` (singleton), `createSearchParam`, `online` / `createOnline`.
+
 ---
 
 ## Dependency Graph
@@ -99,7 +103,7 @@ These are the foundational building blocks used by many other helpers.
 
 | Utility | Export | Description |
 |---------|--------|-------------|
-| **event-listener** | `createEventListener(target, type, handler, options?)` | Attaches a type-safe event listener with auto-cleanup via `onCleanup`. Supports reactive getter targets (re-registers when target changes). |
+| **event-listener** | `on(target, type, handler, options?)` | Attaches a type-safe event listener with auto-cleanup via `onCleanup`. Supports reactive getter targets (re-registers when target changes). |
 | **event-driven** | `Subscribe`, `fromEvent(target, events)`, `sync(subscribe, getter, setter?)` | Declarative DOM-state-to-signal bridge. `fromEvent` creates a `Subscribe` for DOM events; `sync` keeps a `Computed` (or writable `Signal` with setter) in sync with an external source. |
 | **resize-observer** | `createResizeObserver(target, callback)` | Wraps `ResizeObserver` with auto-cleanup via `onCleanup`. |
 | **intersection-observer** | `createIntersectionObserver(target, callback, options?)` | Wraps `IntersectionObserver` with auto-cleanup via `onCleanup`. |
@@ -108,7 +112,7 @@ These are the foundational building blocks used by many other helpers.
 ### When to use which
 
 - **`sync` + `fromEvent`** — When you want to read DOM state on events (getter pattern). The signal is a lazy `computed` that re-reads the getter when events fire.
-- **`createEventListener`** — When you need the event object itself (e.g. `e.clientX`, `e.key`) or need listener options like `{ passive: true }`.
+- **`on`** — When you need the event object itself (e.g. `e.clientX`, `e.key`) or need listener options like `{ passive: true }`.
 
 ---
 
@@ -118,14 +122,14 @@ Helpers that track DOM event-driven state.
 
 | Utility | Export | Returns | Dependencies |
 |---------|--------|---------|-------------|
-| **active-element** | `createActiveElement()` | `Computed<Element \| null>` | `event-driven` |
+| **active-element** | `activeElement` (singleton `Computed<Element \| null>`) | `Computed<Element \| null>` | `event-driven` |
 | **hover** | `createHover(target)` | `Computed<boolean>` | `event-listener` |
-| **is-focus-within** | `createIsFocusWithin(target)` | `Computed<boolean>` | `event-listener` |
+| **focus-within** | `createFocusWithin(target)` | `Computed<boolean>` | `event-listener` |
 | **key-press** | `createKeyPress(key)` | `{ pressed: Computed<boolean> } & Disposable` | `event-listener` |
 | **long-press** | `createLongPress(target, handler, options?)` | `Disposable` | `event-listener` |
 | **mouse-position** | `createMousePosition()` | `{ x, y: Computed<number> } & Disposable` | `event-listener` |
 | **mouse-wheel** | `createMouseWheel()` | `Computed<number>` | `event-listener` |
-| **on-click-outside** | `createOnClickOutside(target, handler)` | `void` | `event-listener` |
+| **on-click-outside** | `onClickOutside(target, handler)` | `void` | `event-listener` |
 | **pressed-keys** | `createPressedKeys()` | `Computed<ReadonlySet<string>>` | `event-listener` |
 | **draggable** | `createDraggable(target)` | `{ x, y, isDragging } & Disposable` | `event-listener` |
 | **drop-zone** | `createDropZone(target, onDrop?)` | `{ isOver, files } & Disposable` | `event-listener` |
@@ -154,11 +158,11 @@ Helpers that wrap browser APIs as reactive signals.
 | **media** | `createMediaQuery(query, defaultState?)` | `Computed<boolean>` | `event-driven` |
 | **media-devices** | `createMediaDevices()` | `Computed<MediaDeviceInfo[]>` | `event-listener` |
 | **motion** | `createMotion()` | `{ acceleration, rotationRate, interval, … } & Disposable` | `event-listener` |
-| **network-state** | `createNetworkState()` | `{ online, downlink, effectiveType, rtt, saveData } & Disposable` | `event-listener` |
+| **network** | `online` (singleton `Computed<boolean>`), `createOnline()` | `Computed<boolean>` | `event-listener` |
 | **orientation** | `createOrientation()` | `{ angle, type } & Disposable` | `event-driven` |
 | **permission** | `createPermission(descriptor)` | `{ state } & Disposable` | — |
 | **url-pattern** | `createURLPattern(source, input?, options?)` | `Computed<URLPatternResult \| null>` | — |
-| **search-params** | `createSearchParams()` | `{ params, get(), set(), delete() } & Disposable` | `event-listener` |
+| **search-params** | `createSearchParam(key)` | `Computed<string \| null>` | `event-listener` |
 | **share** | `createShare()` | `{ isSupported, isSharing, share() }` | — |
 | **wake-lock** | `createWakeLock()` | `{ isActive, isSupported, request(), release() } & Disposable` | — |
 | **web-notification** | `createWebNotification()` | `{ permission, isSupported, requestPermission(), notify() }` | — |
@@ -287,3 +291,14 @@ All helpers that allocate resources follow these patterns:
 3. **Scope-only cleanup** — Single-value helpers (returning `Computed<T>` or `Signal<T>`) rely solely on `onCleanup` — they do **not** implement `Disposable`, since mutating core signal types with `Symbol.dispose` would be unsafe.
 
 When called inside an `effectScope`, cleanup happens automatically on scope disposal. For explicit teardown, dispose the scope itself (call the function returned by `effectScope`).
+
+---
+
+## TODO — catalog audit
+
+Pending work before removing the banner at the top:
+
+- Audit remaining rows against `src/utilities/*.ts` and update return-type / signature drift.
+- Add missing entries for: `retry` (`retry.ts`), `async` + `Async` (`async.ts`), `promise` + `ReactivePromise` (`promise.ts`), `routing` (`patchHistory`, `navigate`, `matches`, `match`, `isLocalNavigationEvent`), `location` (`createLocation` + `currentLocation` singleton), `window-focus` (`windowFocused` singleton + `createWindowFocused`).
+- Mark singletons explicitly where applicable (`windowSize`, `orientation`, `currentLocation`, etc.).
+- Verify every entry in the dependency graph matches an actual file.

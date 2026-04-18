@@ -109,13 +109,13 @@ let activeOwner: ReactiveNode | undefined;
 const queued: (EffectNode | undefined)[] = [];
 
 // ---------------------------------------------------------------------------
-// Brand symbols for type-guard checking on bound handles
+// Symbols for type-guard checking on bound handles
 // ---------------------------------------------------------------------------
 
-export const $signal = Symbol("signal");
-export const $computed = Symbol("computed");
-export const $effect = Symbol("effect");
-export const $effectScope = Symbol("effectScope");
+export const SIGNAL = Symbol("signal");
+export const COMPUTED = Symbol("computed");
+export const EFFECT = Symbol("effect");
+export const EFFECT_SCOPE = Symbol("effectScope");
 
 // ---------------------------------------------------------------------------
 // Reactive system wiring
@@ -262,7 +262,7 @@ export function endBatch() {
  * Relies on `$signal` matching the internal `signalOper` function name.
  */
 export function isSignal(fn: unknown): boolean {
-  return fn != null && (fn as any)[$signal] === true;
+  return fn != null && (fn as any)[SIGNAL] === true;
 }
 
 /**
@@ -271,7 +271,7 @@ export function isSignal(fn: unknown): boolean {
  * Relies on `$computed` matching the internal `computedOper` function name.
  */
 export function isComputed(fn: unknown): boolean {
-  return fn != null && (fn as any)[$computed] === true;
+  return fn != null && (fn as any)[COMPUTED] === true;
 }
 
 /**
@@ -280,7 +280,7 @@ export function isComputed(fn: unknown): boolean {
  * Relies on the $effect symbol branding.
  */
 export function isEffect(fn: unknown): boolean {
-  return fn != null && (fn as any)[$effect] === true;
+  return fn != null && (fn as any)[EFFECT] === true;
 }
 
 /**
@@ -326,7 +326,7 @@ export function signal<T>(initialValue?: T): {
     subsTail: undefined,
     flags: ReactiveFlags.Mutable,
   }) as () => T | undefined;
-  Object.defineProperty(handle, $signal, { value: true });
+  Object.defineProperty(handle, SIGNAL, { value: true });
   return handle;
 }
 /**
@@ -362,7 +362,7 @@ export function computed<T>(getter: (previousValue?: T) => T): () => T {
     flags: ReactiveFlags.None,
     getter: getter as (previousValue?: unknown) => unknown,
   }) as () => T;
-  Object.defineProperty(handle, $computed, { value: true });
+  Object.defineProperty(handle, COMPUTED, { value: true });
   return handle;
 }
 
@@ -419,7 +419,7 @@ export function effect(fn: () => void): () => void {
     e.flags &= ~ReactiveFlags.RecursedCheck;
   }
   const handle = effectOper.bind(e);
-  Object.defineProperty(handle, $effect, { value: true });
+  Object.defineProperty(handle, EFFECT, { value: true });
   return handle;
 }
 
@@ -468,7 +468,7 @@ export function effectScope(fn: () => void): () => void {
     activeOwner = prevOwner;
   }
   const handle = effectScopeOper.bind(e);
-  Object.defineProperty(handle, $effectScope, { value: true });
+  Object.defineProperty(handle, EFFECT_SCOPE, { value: true });
   return handle;
 }
 
@@ -887,8 +887,6 @@ function effectScopeOper(this: ReactiveNode): void {
     unlink(sub);
   }
 }
-
-
 
 /**
  * Removes all dep links from `sub` that were not refreshed during the most

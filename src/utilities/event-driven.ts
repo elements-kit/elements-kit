@@ -6,7 +6,7 @@ import {
   signal,
   trigger,
 } from "@/signals/index.ts";
-import { $signal } from "@/signals/lib";
+import { SIGNAL } from "@/signals/lib";
 
 /**
  * A subscribe function: registers a `notify` callback and returns an
@@ -89,7 +89,7 @@ export function sync<T>(
       setter(v!);
       return v!;
     }
-    Object.defineProperty(proxy, $signal, { value: true });
+    Object.defineProperty(proxy, SIGNAL, { value: true });
     return proxy;
   };
   const proxy = factory();

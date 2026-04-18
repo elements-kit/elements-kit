@@ -11,10 +11,10 @@ export {
   batch,
   onCleanup,
   untracked,
-  $signal,
-  $computed,
-  $effect,
-  $effectScope,
+  SIGNAL as $signal,
+  COMPUTED as $computed,
+  EFFECT as $effect,
+  EFFECT_SCOPE as $effectScope,
 } from "./lib";
 import { isSignal, isComputed, signal } from "./lib";
 import "../polyfill";
