@@ -1,5 +1,5 @@
 import { reactive, computed } from "elements-kit/signals";
-import { For } from "elements-kit";
+import { For } from "elements-kit/for";
 
 // ── Store ─────────────────────────────────────────────────────────────────────
 class Todo {

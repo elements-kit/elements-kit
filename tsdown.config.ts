@@ -4,6 +4,7 @@ export default defineConfig({
   dts: true,
   entry: [
     "src/index.ts",
+    "src/for.ts",
     "src/signals/index.ts",
     "src/attributes.ts",
     "src/custom-elements.ts",

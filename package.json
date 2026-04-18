@@ -38,6 +38,11 @@
       "import": "./dist/slot.mjs",
       "types": "./dist/slot.d.ts"
     },
+    "./for": {
+      "source": "./src/for.ts",
+      "import": "./dist/for.mjs",
+      "types": "./dist/for.d.ts"
+    },
     "./attributes": {
       "source": "./src/attributes.ts",
       "import": "./dist/attributes.mjs",

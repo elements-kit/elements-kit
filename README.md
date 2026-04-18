@@ -411,7 +411,7 @@ effect(() => console.log(fetchTodo.state, fetchTodo.value));
 Reconciles a reactive array into the DOM. Each item renders once per key — no full re-renders on reorder, add, or remove.
 
 ```tsx
-import { For } from "elements-kit";
+import { For } from "elements-kit/for";
 
 <ul>
   <For each={todos} by={(todo) => todo.id}>

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { effect, isReactive, onCleanup, signal } from "../signals";
+import { effect, isReactive, onCleanup, signal } from "./signals";
 import { For } from "./for";
 
 // ─ Helpers ────────────────────────────────────────────────────────────────────

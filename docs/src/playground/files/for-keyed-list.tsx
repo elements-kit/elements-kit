@@ -1,5 +1,5 @@
 import { signal } from "elements-kit/signals";
-import { For } from "elements-kit";
+import { For } from "elements-kit/for";
 
 type Row = { id: number; label: string };
 

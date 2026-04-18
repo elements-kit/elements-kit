@@ -5,7 +5,7 @@ import {
   untracked,
   trigger,
 } from "elements-kit/signals";
-import { For } from "elements-kit";
+import { For } from "elements-kit/for";
 
 const url = signal("/api/data");
 const fetchLogs = signal<string[]>([]);

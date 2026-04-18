@@ -1,10 +1,5 @@
-import {
-  signal,
-  effect,
-  untracked,
-  trigger,
-} from "elements-kit/signals";
-import { For } from "elements-kit";
+import { signal, effect, untracked, trigger } from "elements-kit/signals";
+import { For } from "elements-kit/for";
 
 const count2 = signal(0);
 const secret = signal("hidden");
@@ -28,9 +23,13 @@ export class App {
             secret: <strong>{() => secret()}</strong>
           </p>
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <button onClick={() => count2(count2() + 1)}>count +1 (tracked)</button>
+            <button onClick={() => count2(count2() + 1)}>
+              count +1 (tracked)
+            </button>
             <button
-              onClick={() => secret(secret() === "hidden" ? "visible" : "hidden")}
+              onClick={() =>
+                secret(secret() === "hidden" ? "visible" : "hidden")
+              }
             >
               Toggle secret
             </button>

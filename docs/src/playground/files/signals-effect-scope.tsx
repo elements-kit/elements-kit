@@ -1,10 +1,5 @@
-import {
-  signal,
-  effect,
-  effectScope,
-  untracked,
-} from "elements-kit/signals";
-import { For } from "elements-kit";
+import { signal, effect, effectScope, untracked } from "elements-kit/signals";
+import { For } from "elements-kit/for";
 
 const scopeLogs = signal<string[]>([]);
 const user = signal("Alice");
@@ -36,7 +31,9 @@ export class App {
             <button onClick={() => user(user() === "Alice" ? "Bob" : "Alice")}>
               Toggle user
             </button>
-            <button onClick={() => theme(theme() === "light" ? "dark" : "light")}>
+            <button
+              onClick={() => theme(theme() === "light" ? "dark" : "light")}
+            >
               Toggle theme
             </button>
             <button onClick={() => stop()}>Stop all effects</button>

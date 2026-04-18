@@ -5,7 +5,7 @@ import {
   untracked,
   trigger,
 } from "elements-kit/signals";
-import { For } from "elements-kit";
+import { For } from "elements-kit/for";
 
 const x = signal(1);
 const y = signal(2);
@@ -20,7 +20,9 @@ export class App {
   render() {
     return (
       <div style="padding: 1.5rem; font-family: system-ui, sans-serif; max-width: 800px;">
-        <h2 style="margin-top: 0;">Batch — multiple writes, single notification</h2>
+        <h2 style="margin-top: 0;">
+          Batch — multiple writes, single notification
+        </h2>
         <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem;">
           <p>
             x: <strong>{() => x()}</strong>

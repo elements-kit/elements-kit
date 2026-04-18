@@ -5,7 +5,7 @@ import {
   untracked,
   trigger,
 } from "elements-kit/signals";
-import { For } from "elements-kit";
+import { For } from "elements-kit/for";
 
 const count = signal(0);
 const doubled = computed(() => count() * 2);

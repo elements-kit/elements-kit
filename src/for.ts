@@ -5,8 +5,8 @@ import {
   signal,
   trigger,
   untracked,
-} from "../signals";
-import { disposeElement } from "./element";
+} from "@/signals";
+import { disposeElement } from "@/jsx-runtime/element";
 
 type KeyFn<T> = (item: T, index: number) => string | number;
 type RenderFn<T> = (

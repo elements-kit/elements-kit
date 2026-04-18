@@ -16,7 +16,7 @@ Each subpath is a stable import entry declared in [package.json](package.json) `
 
 | Subpath | Exports | Stability |
 |---------|---------|-----------|
-| `elements-kit` | `For`, core re-exports | stable |
+| `elements-kit/for` | `For` — reactive keyed-list renderer | stable |
 | `elements-kit/signals` | `signal`, `computed`, `effect`, `effectScope`, `batch`, `untracked`, `trigger`, `onCleanup`, `isSignal`, `isComputed`, `isEffect`, `isEffectScope`, `isReactive`, `resolve`, `reactive`, `@reactive`, brand symbols `SIGNAL` / `COMPUTED` / `EFFECT` / `EFFECT_SCOPE` (type-narrowing markers — not debug variants, no logging); types `Signal<T>`, `Computed<T>`, `MaybeReactive<T>` | stable |
 | `elements-kit/attributes` | `@attributes`, `ATTRIBUTES`, `dispatchAttrChange`, `observedAttributes`; types `Attributes<T>`, `AttrChangeHandler<T>` | stable |
 | `elements-kit/custom-elements` | `renderScope` — run setup in a detached `effectScope`, return `{ result, dispose }`. `connectedScope(el, setup)` / `disconnectedScope(el)` — convenience pair for `connectedCallback`/`disconnectedCallback` that stores the dispose handle per-element. | stable |
