@@ -22,6 +22,12 @@ export class ReactivePromise<T, E = unknown> extends Promise<T> {
   #state = signal<"pending" | "fulfilled" | "rejected">("pending");
   #value = signal<T | undefined>(undefined);
   #reason = signal<E | undefined>(undefined);
+  #result = computed<T | E | undefined>(() => {
+    const state = this.#state();
+    if (state === "fulfilled") return this.#value() as T;
+    if (state === "rejected") return this.#reason() as E;
+    return undefined;
+  });
 
   get state() {
     return this.#state();
@@ -36,13 +42,7 @@ export class ReactivePromise<T, E = unknown> extends Promise<T> {
   }
 
   get result(): T | E | undefined {
-    if (this.state === "fulfilled") {
-      return this.value;
-    }
-    if (this.state === "rejected") {
-      return this.reason;
-    }
-    return undefined;
+    return this.#result();
   }
 
   constructor(
