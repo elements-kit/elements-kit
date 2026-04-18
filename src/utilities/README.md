@@ -6,6 +6,8 @@ See [root README](../../README.md) for library overview and [SPEC.md](../../SPEC
 
 Each utility is its own subpath: `elements-kit/utilities/<name>`. Files are the source of truth; this catalog is kept in sync manually — open a PR if you spot drift.
 
+All modules are import-safe in Node (see `environment.ts` for the shared `isBrowser` guard). Singletons that wrap browser APIs degrade to neutral defaults outside a browser — full reactivity requires a DOM.
+
 ---
 
 ## Dependency graph

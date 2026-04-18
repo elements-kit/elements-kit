@@ -66,6 +66,7 @@ Rule of thumb: if an agent tomorrow would answer a user question differently bec
 - **Factory inside scope**: every utility assumes it runs inside an `effectScope` (or caller disposes explicitly). Cleanup always routes through `onCleanup`.
 - **No wrapper elements**: JSX and Slot emit to the DOM directly. No virtual nodes, no host wrappers.
 - **Utility-to-utility dependencies**: when a utility builds on another, import only from the foundation modules listed in the dependency graph in [src/utilities/README.md](src/utilities/README.md): `event-listener` (`on`), `event-driven` (`fromEvent`/`sync`), `resize-observer`, `intersection-observer`, `mutation-observer`. Do not create cycles. Update the graph when adding a new module.
+- **Node import safety**: any module-level read of a DOM global (`window`, `document`, `screen`, `navigator`, `location`, `history`) must be gated by `isBrowser` from [src/utilities/environment.ts](src/utilities/environment.ts). Factories that only touch globals inside their returned object are fine. New utilities get a row in [src/utilities/ssr.test.ts](src/utilities/ssr.test.ts) and a neutral-value assertion if they export a singleton.
 
 ## Extending utilities
 

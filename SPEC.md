@@ -79,7 +79,7 @@ Each subpath is a stable import entry declared in [package.json](package.json) `
 - **`style:prop={falsy}`** — setting `undefined` / `null` / `""` removes the inline style property. Reactive bindings clear on falsy transitions.
 - **Event listeners** (`onClick`, `on:click`) — attached via `addEventListener`. They are **not** removed on node removal; they are cleaned up when the enclosing `effectScope` disposes. For detached subtrees with no scope, call sites own cleanup.
 - **Fragment (`<>...</>`)** — a `DocumentFragment` whose children are appended into the parent on insertion. Fragment itself is empty after insertion (children move out). Reactive children inside a fragment maintain their live bindings against the parent post-move.
-- **SSR / import safety** — the JSX runtime and any utility that touches `document` / `window` at module top-level will throw when imported in a Node environment without a DOM. Utilities that access globals only inside the factory (most `createX` helpers) are import-safe; singletons that read globals eagerly (`activeElement`, `currentLocation`, `windowSize`, `orientation`, `online`, `windowFocused`) are not — defer their import or guard with `isBrowser` from `utilities/media-query`.
+- **Import safety (Node)** — every module under `elements-kit/utilities/*` is import-safe in Node. Singletons that wrap browser APIs (`windowSize`, `online`, `windowFocused`, `activeElement`, `orientation`, `currentLocation`) return neutral values outside a browser: zeros, empty strings, `null`, or sensible defaults (`online` and `windowFocused` assume `true`; `orientation.type` defaults to `"portrait-primary"`). The JSX runtime and custom-element helpers touch the DOM only at call time, not at import. The shared `isBrowser` guard lives in [src/utilities/environment.ts](src/utilities/environment.ts). Full SSR rendering / hydration is not implemented — see §9.
 
 ## 5. Custom-element contract
 
@@ -168,7 +168,7 @@ Full dependency and returns matrix: [src/utilities/README.md](src/utilities/READ
 
 ## 9. Non-goals
 
-- Server-side rendering and hydration.
+- Server-side rendering and hydration — not implemented today. Imports are Node-safe (see §4a) so bundlers don't crash, but runtime behavior is DOM-only.
 - Virtual-DOM diffing.
 - Styling primitives (CSS-in-JS, theme system).
 - Application-level routing (a `url-pattern` matcher utility exists; composition into a router is out of scope).

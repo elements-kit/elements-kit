@@ -1,5 +1,6 @@
 import { type Computed, computed } from "@/signals/index.ts";
 import { fromEvent, sync } from "./event-driven.ts";
+import { isBrowser } from "./environment.ts";
 
 type WindowSizeResult = {
   width: Computed<number>;
@@ -8,13 +9,19 @@ type WindowSizeResult = {
 
 /**
  * Returns reactive `width` and `height` signals tracking the browser window
- * inner dimensions.
+ * inner dimensions. Outside a browser, returns zeros and a no-op disposer.
  */
 function createWindowSize(): WindowSizeResult {
-  const isBrowser = typeof window !== "undefined";
+  if (!isBrowser) {
+    return {
+      width: computed(() => 0),
+      height: computed(() => 0),
+      [Symbol.dispose]() {},
+    } as WindowSizeResult;
+  }
   const [size, stop] = sync(fromEvent(window, "resize"), () => ({
-    w: isBrowser ? window.innerWidth : 0,
-    h: isBrowser ? window.innerHeight : 0,
+    w: window.innerWidth,
+    h: window.innerHeight,
   }));
 
   return {

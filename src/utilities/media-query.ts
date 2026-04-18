@@ -1,7 +1,6 @@
-export const isBrowser = typeof window !== "undefined";
-
 import { type Computed, signal } from "@/signals/index.ts";
 import { fromEvent, sync } from "@/utilities/event-driven.ts";
+import { isBrowser } from "./environment.ts";
 
 /**
  * Creates a signal that tracks a CSS media query.

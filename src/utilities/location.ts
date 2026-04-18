@@ -1,6 +1,7 @@
 import type { Computed } from "@/signals/index.ts";
 import { computed, onCleanup, signal, trigger } from "@/signals/index.ts";
 import { fromEvent } from "./event-driven.ts";
+import { isBrowser } from "./environment.ts";
 
 type LocationResult = {
   hash: Computed<string>;
@@ -12,7 +13,7 @@ type LocationResult = {
 const EVENTS = ["popstate", "pushstate", "replacestate", "hashchange"];
 
 const read = (prop: keyof Location): string =>
-  typeof location !== "undefined" ? String(location[prop]) : "";
+  isBrowser ? String(location[prop]) : "";
 
 /**
  * Returns reactive signals for the four commonly used `location` properties:
@@ -24,8 +25,19 @@ const read = (prop: keyof Location): string =>
  * **Custom events note:** `pushstate` and `replacestate` are not native DOM
  * events — they must be dispatched by your router or by patching `history`.
  * Back/forward navigation via `popstate` always works without any setup.
+ *
+ * Outside a browser, every signal reads the empty string.
  */
 export function createLocation(): LocationResult {
+  if (!isBrowser) {
+    return {
+      hash: computed(() => ""),
+      href: computed(() => ""),
+      pathname: computed(() => ""),
+      search: computed(() => ""),
+    };
+  }
+
   const tick = signal<undefined>(undefined);
 
   const cleanup = fromEvent(window, EVENTS)(() => trigger(tick));
