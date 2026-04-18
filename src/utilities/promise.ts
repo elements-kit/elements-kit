@@ -1,4 +1,5 @@
 import { Computed, computed, signal } from "@/signals";
+
 export class ReactivePromise<T, E = unknown> extends Promise<T> {
   #state = signal<"pending" | "fulfilled" | "rejected">("pending");
   #value = signal<T | undefined>(undefined);
@@ -14,6 +15,16 @@ export class ReactivePromise<T, E = unknown> extends Promise<T> {
 
   get reason() {
     return this.#reason();
+  }
+
+  get result(): T | E | undefined {
+    if (this.state === "fulfilled") {
+      return this.value;
+    }
+    if (this.state === "rejected") {
+      return this.reason;
+    }
+    return undefined;
   }
 
   constructor(
@@ -38,19 +49,21 @@ export class ReactivePromise<T, E = unknown> extends Promise<T> {
     });
   }
 
-  static from<T, E = unknown>(promise: Promise<T>): ReactivePromise<T, E> {
+  static from<T, E = unknown>(p: Promise<T>): ReactivePromise<T, E> {
     return new ReactivePromise((resolve, reject) => {
-      promise.then(resolve).catch(reject);
+      p.then(resolve).catch(reject);
     });
   }
 }
-const promiseKeys = new Set<PropertyKey>([
+
+const PROMISE_KEYS = new Set<PropertyKey>([
   "then",
   "catch",
   "finally",
   "state",
   "value",
   "reason",
+  "result",
 ]);
 
 export type ComputedPromise<T, E = unknown> = ReactivePromise<T, E> &
@@ -66,37 +79,44 @@ function resolvePromise<T, E = unknown>(
 ): ReactivePromise<T, E> {
   if (from instanceof ReactivePromise) {
     return from;
-  } else if (from instanceof Promise) {
-    return ReactivePromise.from(from);
-  } else {
-    return new ReactivePromise(from);
   }
+  if (from instanceof Promise) {
+    return ReactivePromise.from(from);
+  }
+  return new ReactivePromise(from);
 }
 
-export function createPromise<T, E = unknown>(
-  promise: ReactivePromise<T>,
+export function promise<T, E = unknown>(
+  p: ReactivePromise<T>,
 ): ComputedPromise<T, E>;
 
-export function createPromise<T, E = unknown>(
-  promise: Promise<T>,
-): ComputedPromise<T, E>;
+export function promise<T, E = unknown>(p: Promise<T>): ComputedPromise<T, E>;
 
-export function createPromise<T, E = unknown>(
+export function promise<T, E = unknown>(
   executor: Executor<T, E>,
 ): ComputedPromise<T, E>;
 
-export function createPromise<T, E = unknown>(
+/**
+ * Creates a computed promise that tracks the state of the given promise or executor.
+ * The returned object has the same API as a regular promise, but also includes reactive properties:
+ * - `state`: "pending" | "fulfilled" | "rejected"
+ * - `value`: the resolved value (if fulfilled)
+ * - `reason`: the rejection reason (if rejected)
+ * @param from The promise, reactive promise, or executor to track.
+ * @returns A computed promise with reactive properties.
+ */
+export function promise<T, E = unknown>(
   from: Executor<T, E> | Promise<T> | ReactivePromise<T, E>,
 ): ComputedPromise<T, E> {
-  const promise = resolvePromise(from);
+  const p = resolvePromise(from);
 
   const $value = computed(() => {
-    if (promise.state === "pending") {
+    if (p.state === "pending") {
       return;
-    } else if (promise.state === "fulfilled") {
-      return promise.value;
+    } else if (p.state === "fulfilled") {
+      return p.value;
     } else {
-      throw promise.reason;
+      throw p.reason;
     }
   });
 
@@ -105,11 +125,9 @@ export function createPromise<T, E = unknown>(
       return target();
     },
     get(target, prop, receiver) {
-      if (promiseKeys.has(prop)) {
-        const val = promise[prop as keyof ReactivePromise<T, E>];
-        return typeof val === "function"
-          ? (val as Function).bind(promise)
-          : val;
+      if (PROMISE_KEYS.has(prop)) {
+        const val = p[prop as keyof ReactivePromise<T, E>];
+        return typeof val === "function" ? (val as Function).bind(p) : val;
       }
       return Reflect.get(target, prop, receiver);
     },
