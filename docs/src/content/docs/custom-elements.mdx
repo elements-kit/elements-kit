@@ -79,6 +79,8 @@ class CounterElement extends HTMLElement {
     });
   }
 }
+
+customElements.define("x-counter", CounterElement);
 ---
 // Step 3 — JSX: declarative DOM, live bindings
 import { signal } from "elements-kit/signals";
@@ -95,6 +97,8 @@ class CounterElement extends HTMLElement {
     );
   }
 }
+
+customElements.define("x-counter", CounterElement);
 ---
 // Step 4 — @reactive: natural property access + computed
 import { computed, reactive } from "elements-kit/signals";
@@ -117,6 +121,8 @@ class CounterElement extends HTMLElement {
     );
   }
 }
+
+customElements.define("x-counter", CounterElement);
 ---
 // Step 5 — @attributes: HTML attributes ↔ reactive properties
 import { computed, reactive } from "elements-kit/signals";
@@ -150,6 +156,53 @@ class CounterElement extends HTMLElement {
 
 customElements.define("x-counter", CounterElement);
 // <x-counter count="5" />  or  <x-counter count={signal(9)} />
+---
+// Step 6 — render + unmount + defineElement: scoped mount, typed JSX
+import { computed, reactive } from "elements-kit/signals";
+import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
+import { render } from "elements-kit/render";
+import { defineElement } from "elements-kit/custom-elements";
+
+@attributes
+class CounterElement extends HTMLElement {
+  static [attr] = {
+    count(this: CounterElement, value: string | null) {
+      this.count = Number(value ?? 0);
+    },
+  };
+
+  @reactive() count = 0;
+  doubled = computed(() => this.count * 2);
+  #unmount?: () => void;
+
+  connectedCallback() {
+    this.#unmount = render(this, () => (
+      <section>
+        <p>
+          <strong>{() => this.count}</strong>
+          {" × 2 = "}
+          <strong>{this.doubled}</strong>
+        </p>
+        <button onClick={() => this.count++}>+1</button>{" "}
+        <button onClick={() => this.count--}>−1</button>
+      </section>
+    ));
+  }
+
+  disconnectedCallback() {
+    this.#unmount?.();
+    this.#unmount = undefined;
+  }
+}
+
+defineElement("x-counter", CounterElement);
+
+declare module "elements-kit/custom-elements" {
+  interface CustomElementRegistry {
+    "x-counter": typeof CounterElement;
+  }
+}
+// <x-counter count={5} /> — typed props, typed ref
 ```
 
 | Step | ElementsKit | What you gain |
@@ -159,6 +212,7 @@ customElements.define("x-counter", CounterElement);
 | 3 | `elements-kit` JSX runtime | Declarative DOM, live text and attribute bindings |
 | 4 | `@reactive` decorator | Natural class-field syntax, derived values with `computed` |
 | 5 | `elements-kit/attributes` — `@attributes` | HTML attribute ↔ reactive property wiring |
+| 6 | `elements-kit/render` + `defineElement` | Scoped mount with a single `unmount` thunk, plus typed JSX via `CustomElementRegistry` augmentation |
 
 ---
 
