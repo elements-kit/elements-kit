@@ -1,0 +1,97 @@
+---
+title: Promise Utility
+---
+
+The `promise` utility wraps any native `Promise`, executor function, or `ReactivePromise` into a `ComputedPromise` — an object that is both **awaitable** like a regular promise and **reactive** like a signal.
+
+## Basic Usage
+
+```ts
+import { promise } from "elements-kit/utilities/promise";
+
+// From an executor
+const cp = promise<number>((resolve) => {
+  setTimeout(() => resolve(42), 1000);
+});
+
+// From an existing Promise
+const cp = promise(fetch("/api/data").then(res => res.json()));
+```
+
+## Awaitable
+
+A `ComputedPromise` is a real `Promise` — you can `await` it, chain `.then()` / `.catch()` / `.finally()`, and use it anywhere a `Promise` is expected:
+
+```ts
+const data = await cp;
+
+cp.then(value => console.log(value))
+  .catch(err => console.error(err));
+```
+
+## Reactive
+
+Calling the `ComputedPromise` as a function inside an `effect` or `computed` tracks it as a reactive dependency:
+
+- **Pending** → returns `undefined`
+- **Fulfilled** → returns the resolved value
+- **Rejected** → throws the rejection reason
+
+```ts
+import { effect } from "elements-kit/signals";
+
+effect(() => {
+  try {
+    const value = cp(); // undefined while pending, T when fulfilled
+    console.log("value:", value);
+  } catch (err) {
+    console.error("error:", err);
+  }
+});
+```
+
+## State Properties
+
+All three state properties are reactive — reading them inside an `effect` or `computed` subscribes to changes:
+
+```ts
+cp.state;  // "pending" | "fulfilled" | "rejected"
+cp.value;  // T | undefined
+cp.reason; // E | undefined
+```
+
+## Result
+
+`.result` is a convenience property that returns `T | E | undefined` — the resolved value when fulfilled, the rejection reason when rejected, or `undefined` while pending. Useful when you don't need to distinguish between fulfilled and rejected but just want the current value:
+
+```ts
+effect(() => {
+  console.log("current result:", cp.result);
+});
+```
+
+## `ReactivePromise`
+
+`ReactivePromise` is the lower-level class that powers `ComputedPromise`. Use it directly when you need to construct or wrap a promise and expose its reactive state without the `Computed` callable interface:
+
+```ts
+import { ReactivePromise } from "elements-kit/utilities/promise";
+
+// From an executor
+const rp = new ReactivePromise<number>((resolve, reject) => {
+  fetch("/api/data")
+    .then(res => res.json())
+    .then(resolve)
+    .catch(reject);
+});
+
+// Wrap an existing promise
+const rp = ReactivePromise.from(fetch("/api/data"));
+
+rp.state;  // "pending" | "fulfilled" | "rejected"
+rp.value;  // T | undefined
+rp.reason; // E | undefined
+rp.result; // PromiseResult<T, E>
+```
+
+`cp instanceof ReactivePromise` returns `true` for any `ComputedPromise`.

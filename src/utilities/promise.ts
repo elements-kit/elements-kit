@@ -1,5 +1,23 @@
-import { Computed, computed, signal } from "@/signals";
+import { batch, Computed, computed, signal } from "@/signals";
 
+/**
+ * A `Promise` subclass that exposes its state as reactive signals.
+ *
+ * Prefer the {@link promise} factory for most use cases — it returns a
+ * `ComputedPromise` that is both awaitable and callable as a signal.
+ * Use `ReactivePromise` directly when you need the lower-level class —
+ * for example, to wrap a promise and expose `.state`, `.value`, `.reason`,
+ * and `.result` without the `Computed` callable interface.
+ *
+ * @example
+ * ```ts
+ * const rp = ReactivePromise.from(fetch("/api/data"));
+ *
+ * effect(() => {
+ *   if (rp.state === "fulfilled") console.log(rp.value);
+ * });
+ * ```
+ */
 export class ReactivePromise<T, E = unknown> extends Promise<T> {
   #state = signal<"pending" | "fulfilled" | "rejected">("pending");
   #value = signal<T | undefined>(undefined);
@@ -36,13 +54,21 @@ export class ReactivePromise<T, E = unknown> extends Promise<T> {
     super((res, rej) => {
       executor(
         async (value) => {
-          this.#state("fulfilled");
-          this.#value(await value);
+          const resolved = await value;
+          batch(() => {
+            this.#state("fulfilled");
+            this.#value(resolved);
+          });
           res(value);
         },
-        async (reason) => {
-          this.#state("rejected");
-          this.#reason(await reason);
+        async (_reason) => {
+          // async defers past super() so `this` is available, mirroring the
+          // resolve handler's `await value` which had the same effect
+          const reason = await _reason;
+          batch(() => {
+            this.#state("rejected");
+            this.#reason(reason);
+          });
           rej(reason);
         },
       );
@@ -67,7 +93,7 @@ const PROMISE_KEYS = new Set<PropertyKey>([
 ]);
 
 export type ComputedPromise<T, E = unknown> = ReactivePromise<T, E> &
-  Computed<T | E | undefined>;
+  Computed<T | undefined>;
 
 type Executor<T, E = unknown> = (
   resolve: (value: T | PromiseLike<T>) => void,
@@ -86,6 +112,25 @@ function resolvePromise<T, E = unknown>(
   return new ReactivePromise(from);
 }
 
+/**
+ * Wraps a promise, executor, or `ReactivePromise` into a `ComputedPromise` —
+ * an object that is both awaitable like a regular Promise and reactive like a
+ * `Computed` signal.
+ *
+ * **Awaitable:** `await promise(fetch(...))` resolves to the fulfilled value,
+ * or rejects with the rejection reason, just like a native Promise.
+ *
+ * **Reactive:** calling the returned value as a function (`cp()`) reads the
+ * current resolved value inside an `effect` or `computed`, tracking it as a
+ * dependency. Returns `undefined` while pending; returns the fulfilled value
+ * when resolved; throws the rejection reason when rejected.
+ *
+ * Reactive state is also accessible via:
+ * - `.state` — `"pending" | "fulfilled" | "rejected"`
+ * - `.value` — the resolved value (or `undefined` while pending)
+ * - `.reason` — the rejection reason (or `undefined` while pending/fulfilled)
+ * - `.result` — `T | E | undefined`; the resolved value, rejection reason, or `undefined` while pending
+ */
 export function promise<T, E = unknown>(
   p: ReactivePromise<T>,
 ): ComputedPromise<T, E>;
@@ -96,15 +141,6 @@ export function promise<T, E = unknown>(
   executor: Executor<T, E>,
 ): ComputedPromise<T, E>;
 
-/**
- * Creates a computed promise that tracks the state of the given promise or executor.
- * The returned object has the same API as a regular promise, but also includes reactive properties:
- * - `state`: "pending" | "fulfilled" | "rejected"
- * - `value`: the resolved value (if fulfilled)
- * - `reason`: the rejection reason (if rejected)
- * @param from The promise, reactive promise, or executor to track.
- * @returns A computed promise with reactive properties.
- */
 export function promise<T, E = unknown>(
   from: Executor<T, E> | Promise<T> | ReactivePromise<T, E>,
 ): ComputedPromise<T, E> {
