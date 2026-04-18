@@ -7,6 +7,8 @@ import {
   pluginMagicMove,
   magicMoveIntegration,
 } from "./src/expressive-code/magicMove.ts";
+import ecTwoSlash from "expressive-code-twoslash";
+import ts from "typescript";
 
 const siteDescription =
   "Universal reactive primitives for the web — signals, JSX, custom elements, and browser-API helpers.";
@@ -110,7 +112,22 @@ export default defineConfig({
 
       expressiveCode: {
         themes: ["github-light-default", "github-dark-default"],
-        plugins: [pluginMagicMove()],
+        plugins: [
+          pluginMagicMove(),
+          ecTwoSlash({
+            twoslashOptions: {
+              compilerOptions: {
+                jsx: ts.JsxEmit.ReactJSX,
+                jsxImportSource: "elements-kit",
+                target: ts.ScriptTarget.ESNext,
+                module: ts.ModuleKind.ESNext,
+                moduleResolution: ts.ModuleResolutionKind.Bundler,
+                strict: true,
+                experimentalDecorators: true,
+              },
+            },
+          }),
+        ],
         styleOverrides: {
           borderRadius: "0.25rem",
           frames: {

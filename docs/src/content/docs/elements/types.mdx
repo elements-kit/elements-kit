@@ -24,8 +24,9 @@ All type helpers are re-exported from `elements-kit/jsx-runtime`. `MaybeReactive
 
 Full JSX surface for a custom element. Composes attributes, flat properties, `prop:*`, events, slots, children, and standard DOM attributes.
 
-```tsx
-import { attributes, ATTRIBUTES } from "elements-kit/attributes";
+```tsx twoslash
+// @noErrors
+import { attributes, ATTRIBUTES, type Attributes } from "elements-kit/attributes";
 import { reactive } from "elements-kit/signals";
 import { SLOTS, Slots } from "elements-kit/slot";
 import type { ElementProps } from "elements-kit/jsx-runtime";
@@ -63,7 +64,7 @@ Attribute keys that also appear on the instance are removed from the attribute s
 
 Unified helper. Works on class instances, class constructors, or function components. Does **not** synthesize attribute / event / slot surfaces — use `ElementProps` for those.
 
-```ts
+```ts twoslash
 import type { Props } from "elements-kit/jsx-runtime";
 
 // 1. Class instance (lets a generic flow)
@@ -91,8 +92,10 @@ For `HTMLElement` subclasses, `Props<C>` returns only the user's public fields (
 
 For class components that accept props via the constructor parameter. Reads `ConstructorParameters<C>[0]`. Does not wrap reactively.
 
-```tsx
+```tsx twoslash
+// @noErrors
 import type { ComponentProps } from "elements-kit/jsx-runtime";
+import type { Child } from "elements-kit/jsx-runtime";
 
 class Card {
   constructor(public props: { title: string; children?: Child }) {}
@@ -109,7 +112,7 @@ Use `Props<C>` instead when props live on public instance fields.
 
 Wrap every prop in `MaybeReactive`. The runtime resolves the value on read, so you can pass static values or signals/computeds without changing your component code.
 
-```ts
+```ts twoslash
 import type { MaybeReactiveProps } from "elements-kit/jsx-runtime";
 
 type Raw = { count: number; label?: string; onClick: (e: Event) => void };
@@ -127,7 +130,7 @@ type Wrapped = MaybeReactiveProps<Raw>;
 
 A scalar value or a zero-arg getter that returns the value. Usually a `signal` or `computed`.
 
-```ts
+```ts twoslash
 import { signal, computed } from "elements-kit/signals";
 import type { MaybeReactive } from "elements-kit/signals";
 
@@ -145,7 +148,7 @@ Resolve with `resolve(value)`, detect with `isReactive(value)`. For a whole prop
 
 Promote specified keys of `P` to required. Leaves the rest unchanged.
 
-```ts
+```ts twoslash
 import type { Require } from "elements-kit/jsx-runtime";
 
 type Optional = { a?: number; b?: string; c?: boolean };
