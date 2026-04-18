@@ -2,7 +2,7 @@
 
 Reactive helpers over core primitives (`signal`, `computed`, `effect`, `effectScope`, `onCleanup`, `trigger`, `batch`, `untracked`).
 
-Overview → [README](../../README.md). Contracts (cleanup, quality bars, deps) → [SPEC](../../SPEC.md).
+Overview → [README](../../README.md). Contracts (cleanup, deps) → [ARCHITECTURE](../../ARCHITECTURE.md). Quality bars + versioning → [CONTRIBUTING](../../CONTRIBUTING.md).
 
 Each module = one subpath: `elements-kit/utilities/<name>`. Source files are authoritative — open a PR on drift.
 
@@ -199,7 +199,7 @@ Defined in [../integrations/react.ts](../integrations/react.ts), not under `util
 
 ## Cleanup
 
-Full rules → [SPEC §6](../../SPEC.md). Short version: `onCleanup` in current scope auto-disposes. Composite returns expose `[Symbol.dispose]` / `using`. Raw `Signal` / `Computed` never carry `Symbol.dispose`.
+Full rules → [ARCHITECTURE §6](../../ARCHITECTURE.md). Short version: `onCleanup` in current scope auto-disposes. Composite returns expose `[Symbol.dispose]` / `using`. Raw `Signal` / `Computed` never carry `Symbol.dispose`.
 
 ## Environment
 

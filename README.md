@@ -52,8 +52,10 @@ Every feature is a separate subpath export — import only what you use.
 - [src/](src/) — library source ([signals](src/signals/), [jsx-runtime](src/jsx-runtime/), [utilities](src/utilities/), [integrations](src/integrations/))
 - [docs/](docs/) — Astro + Starlight documentation site
 - [example/](example/) — Vite sandbox
+- [ARCHITECTURE.md](ARCHITECTURE.md) — how the library works (reactive model, JSX, custom elements, cleanup)
+- [CONTRIBUTING.md](CONTRIBUTING.md) — quick start, quality bars, versioning, PR checklist
+- [DOCS.md](DOCS.md) — doc-authoring rules
 - [AGENTS.md](AGENTS.md) — agent navigation map
-- [SPEC.md](SPEC.md) — technical spec and quality bars
 - [src/utilities/README.md](src/utilities/README.md) — utilities catalog and dependency graph
 
 ---
