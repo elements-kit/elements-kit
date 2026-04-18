@@ -1,4 +1,5 @@
-import { effect, isReactive, onCleanup } from "../signals";
+import { effect, isReactive } from "../signals";
+import { on } from "../utilities/event-listener.ts";
 import { Child, ComponentInstance } from "./types";
 import {
   ChildProperties,
@@ -23,7 +24,7 @@ export function applyProps(
     if (isReactive(value)) {
       if (isEventKey(key)) {
         effect(() => {
-          onCleanup(setEvent(node as Element, key, value()));
+          on(node as Element, eventName(key), value() as EventListener);
         });
         continue;
       }
@@ -33,7 +34,7 @@ export function applyProps(
 
     // ─ Events ─────────────────────────────────────────────────────────────────
     if (isEventKey(key)) {
-      onCleanup(setEvent(node as Element, key, value));
+      on(node as Element, eventName(key), value as EventListener);
       continue;
     }
 
@@ -141,11 +142,8 @@ function isEventKey(key: string): boolean {
   );
 }
 
-function setEvent(el: Element, key: string, handler: unknown): () => void {
-  const event = key.startsWith("on:")
+function eventName(key: string): string {
+  return key.startsWith("on:")
     ? key.slice(3)
     : key[2].toLowerCase() + key.slice(3); // onClick → click
-
-  el.addEventListener(event, handler as EventListener);
-  return () => el.removeEventListener(event, handler as EventListener);
 }

@@ -1,5 +1,5 @@
-import { type Signal, effect, onCleanup, signal } from "@/signals/index.ts";
-import { on } from "./event-listener.ts";
+import { type Signal } from "@/signals/index.ts";
+import { fromEvent, sync } from "./event-driven.ts";
 
 type ElementScrollResult = {
   /** Horizontal scroll position (writable — setting it scrolls the element). */
@@ -16,50 +16,26 @@ type ElementScrollResult = {
  */
 export function createElementScroll(target: Element): ElementScrollResult {
   const el = target;
-  const x = signal(el?.scrollLeft ?? 0);
-  const y = signal(el?.scrollTop ?? 0);
+  const scroll = fromEvent(el, "scroll");
 
-  let skipEvent = false;
-
-  const handler = () => {
-    if (skipEvent) {
-      skipEvent = false;
-      return;
-    }
-    if (!el) return;
-    x(el.scrollLeft);
-    y(el.scrollTop);
-  };
-
-  const cleanup = el ? on(el, "scroll", handler, { passive: true }) : () => {};
-
-  // Sync writes back to the element.
-  const stopX = effect(() => {
-    const val = x();
-    if (el && el.scrollLeft !== val) {
-      skipEvent = true;
-      el.scrollLeft = val;
-    }
-  });
-
-  const stopY = effect(() => {
-    const val = y();
-    if (el && el.scrollTop !== val) {
-      skipEvent = true;
-      el.scrollTop = val;
-    }
-  });
-
-  const dispose = () => {
-    cleanup();
-    stopX();
-    stopY();
-  };
-  onCleanup(dispose);
+  const [x] = sync(
+    scroll,
+    () => el.scrollLeft,
+    (v) => {
+      el.scrollLeft = v;
+    },
+  );
+  const [y] = sync(
+    scroll,
+    () => el.scrollTop,
+    (v) => {
+      el.scrollTop = v;
+    },
+  );
 
   return {
     x: x as Signal<number>,
     y: y as Signal<number>,
-    [Symbol.dispose]: dispose,
+    [Symbol.dispose]: () => {},
   };
 }

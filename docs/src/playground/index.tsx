@@ -76,23 +76,24 @@ function Playground({
       {...provider}
       files={{ ...SHARED_FILES, ...provider.files }}
     >
-      <SandpackLayout>
-        <SandpackCodeEditor
-          showTabs
-          showLineNumbers
-          style={{ height: 400 }}
-          {...editor}
-        />
-        {preview && (
-          <SandpackPreview
-            style={{ height: 400 }}
-            showNavigator={false}
-            showOpenInCodeSandbox={false}
-            {...preview}
+      <div className="ek-playground-frame">
+        <SandpackLayout>
+          <SandpackCodeEditor
+            showTabs
+            showLineNumbers
+            style={{ height: "100%", flex: 1 }}
+            {...editor}
           />
-        )}
-        {tests && <SandpackTests />}
-      </SandpackLayout>
+          {preview && (
+            <SandpackPreview
+              showNavigator={false}
+              showOpenInCodeSandbox={false}
+              {...preview}
+            />
+          )}
+          {tests && <SandpackTests />}
+        </SandpackLayout>
+      </div>
     </SandpackProvider>
   );
 }

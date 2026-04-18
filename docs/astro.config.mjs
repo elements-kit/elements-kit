@@ -2,12 +2,17 @@ import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 import cloudflare from "@astrojs/cloudflare";
 import react from "@astrojs/react";
+import starlightLlmsTxt from "starlight-llms-txt";
 import {
   pluginMagicMove,
   magicMoveIntegration,
 } from "./src/expressive-code/magicMove.ts";
 
+const siteDescription =
+  "Universal reactive primitives for the web — signals, JSX, custom elements, and browser-API helpers.";
+
 export default defineConfig({
+  site: "https://elements-kit.quba.co",
   output: "server",
   adapter: cloudflare(),
   integrations: [
@@ -15,7 +20,38 @@ export default defineConfig({
     react(),
     starlight({
       title: "ElementsKit",
-      description: "Universal reactive primitives for the web.",
+      description: siteDescription,
+      plugins: [starlightLlmsTxt()],
+      favicon: "/favicon.svg",
+      components: {
+        SiteTitle: "./src/components/SiteTitle.astro",
+      },
+      head: [
+        {
+          tag: "meta",
+          attrs: { name: "twitter:card", content: "summary_large_image" },
+        },
+        {
+          tag: "meta",
+          attrs: { name: "twitter:title", content: "ElementsKit" },
+        },
+        {
+          tag: "meta",
+          attrs: { name: "twitter:description", content: siteDescription },
+        },
+        {
+          tag: "meta",
+          attrs: { property: "og:image", content: "/og.svg" },
+        },
+        {
+          tag: "meta",
+          attrs: { name: "twitter:image", content: "/og.svg" },
+        },
+        {
+          tag: "meta",
+          attrs: { name: "theme-color", content: "#007d58" },
+        },
+      ],
 
       social: {
         github: "https://github.com/waelbettayeb/elements-kit",
@@ -26,7 +62,10 @@ export default defineConfig({
           label: "Getting Started",
           items: [
             { label: "Installation", slug: "getting-started/installation" },
-            { label: "First component", slug: "getting-started/first-component" },
+            {
+              label: "First component",
+              slug: "getting-started/first-component",
+            },
             { label: "Why ElementsKit", slug: "getting-started/why" },
           ],
         },
@@ -63,9 +102,7 @@ export default defineConfig({
         },
         {
           label: "Recipes",
-          items: [
-            { label: "Data fetching", slug: "recipes/data-fetching" },
-          ],
+          items: [{ label: "Data fetching", slug: "recipes/data-fetching" }],
         },
       ],
 

@@ -1,4 +1,4 @@
-import { onCleanup } from "@/signals/index.ts";
+import { observe } from "./_observe.ts";
 
 /**
  * Watches `target` for DOM mutations and calls `callback` with each batch of
@@ -9,13 +9,7 @@ export function createMutationObserver(
   options: MutationObserverInit,
   callback: (records: MutationRecord[]) => void,
 ): Disposable {
-  const observer = new MutationObserver((records) => callback(records));
-
-  const el = target;
-  if (el) observer.observe(el, options);
-
-  const cleanup = () => observer.disconnect();
-  onCleanup(cleanup);
-
-  return { [Symbol.dispose]: cleanup };
+  return observe(new MutationObserver((records) => callback(records)), (o) => {
+    if (target) o.observe(target, options);
+  });
 }

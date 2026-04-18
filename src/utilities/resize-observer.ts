@@ -1,4 +1,4 @@
-import { onCleanup } from "@/signals/index.ts";
+import { observe } from "./_observe.ts";
 
 /**
  * Raw `ResizeObserver` wrapper with automatic cleanup.
@@ -8,12 +8,7 @@ export function createResizeObserver(
   target: Element,
   callback: ResizeObserverCallback,
 ): Disposable {
-  const observer = new ResizeObserver(callback);
-
-  if (target) observer.observe(target);
-
-  const cleanup = () => observer.disconnect();
-  onCleanup(cleanup);
-
-  return { [Symbol.dispose]: cleanup };
+  return observe(new ResizeObserver(callback), (o) => {
+    if (target) o.observe(target);
+  });
 }

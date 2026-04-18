@@ -15,6 +15,7 @@ How-the-library-works: [ARCHITECTURE.md](ARCHITECTURE.md). Contributor rules: [C
 - Short paragraphs (1–3 sentences). Break before a new idea.
 - Inline code for identifiers. **Bold** only for rule-level emphasis — max one per paragraph.
 - No emojis in body text. No rhetorical-question headings.
+- Favor composition in examples. Show a multi-step build with named primitives (`sync(fromEvent(…), …)`, `on(el, …)`, `async(fn)`) over a single opaque factory call — it teaches the mental model and mirrors the library's own layering.
 
 ## Page skeleton
 

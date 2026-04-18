@@ -50,7 +50,7 @@ Package manager: **pnpm 10.33**, workspaces defined in [pnpm-workspace.yaml](pnp
 2. Add colocated `src/utilities/<name>.test.ts`.
 3. Entry is auto-exposed via the `"./utilities/*"` export pattern — no `package.json` edit required.
 4. Add a row + dep-graph entry to [src/utilities/README.md](src/utilities/README.md).
-5. Reuse `on`, `fromEvent` / `sync`, or the observer wrappers over raw DOM APIs.
+5. Reuse `on`, `fromEvent` / `sync`, the observer wrappers, and `async` / `promise` over raw DOM/Promise APIs. New utilities should decompose into these building blocks — a monolithic implementation needs justification in the PR description. See [element-scroll.ts](src/utilities/element-scroll.ts) (sync+fromEvent) and [long-press.ts](src/utilities/long-press.ts) (on+createTimeout) as references.
 6. Gate any module-level read of a DOM global (`window`, `document`, `screen`, `navigator`, `location`, `history`) through `isBrowser` from [src/utilities/environment.ts](src/utilities/environment.ts). Add a row to [src/utilities/ssr.test.ts](src/utilities/ssr.test.ts); singletons assert neutral defaults.
 
 ## Maintenance obligation

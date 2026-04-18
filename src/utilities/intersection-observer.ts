@@ -1,4 +1,4 @@
-import { onCleanup } from "@/signals/index.ts";
+import { observe } from "./_observe.ts";
 
 /**
  * Raw `IntersectionObserver` wrapper with automatic cleanup.
@@ -9,12 +9,7 @@ export function createIntersectionObserver(
   callback: IntersectionObserverCallback,
   options?: IntersectionObserverInit,
 ): Disposable {
-  const observer = new IntersectionObserver(callback, options);
-
-  if (target) observer.observe(target);
-
-  const cleanup = () => observer.disconnect();
-  onCleanup(cleanup);
-
-  return { [Symbol.dispose]: cleanup };
+  return observe(new IntersectionObserver(callback, options), (o) => {
+    if (target) o.observe(target);
+  });
 }

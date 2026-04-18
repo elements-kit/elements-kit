@@ -1,4 +1,8 @@
-# ElementsKit
+<p align="center">
+  <img src="docs/public/og.svg" alt="ElementsKit" width="600" />
+</p>
+
+# 🌱 ElementsKit
 
 **Universal reactive primitives for the web.** Signals, JSX, and custom elements that work anywhere — standalone, inside React, Vue, or any framework, or as the foundation of your own component model.
 
