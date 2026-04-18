@@ -28,7 +28,7 @@ describe("createTimeout", () => {
     expect(cb).toHaveBeenCalledOnce();
   });
 
-  it("isRunning becomes false after firing", () => {
+  it("pending becomes false after firing", () => {
     vi.useFakeTimers();
     let t!: ReturnType<typeof createTimeout>;
     effectScope(() => {

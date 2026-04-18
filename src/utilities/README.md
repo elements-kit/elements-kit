@@ -234,10 +234,10 @@ Reactive collection primitives.
 
 | Utility | Export | Returns | Dependencies |
 |---------|--------|---------|-------------|
-| **animation-frames** | `createAnimationFrames()` | `{ isRunning, delta, elapsed, start(), stop() } & Disposable` | — |
+| **animation-frames** | `createAnimationFrames()` | `{ pending, delta, elapsed, start(), stop() } & Disposable` | — |
 | **debounced** | `createDebounced(getter, delay)` | `Computed<T>` | — |
-| **interval** | `createInterval(callback, delay)` | `{ isRunning, start(), stop(), reset() } & Disposable` | — |
-| **raf** | `createRaf(callback)` | `{ isRunning, start(), stop() } & Disposable` | — |
+| **interval** | `createInterval(callback, delay)` | `{ pending, start(), stop(), reset() } & Disposable` | — |
+| **raf** | `createRaf(callback)` | `{ pending, start(), stop() } & Disposable` | — |
 | **throttled** | `createThrottled(getter, interval)` | `Computed<T>` | — |
 | **timeout** | `createTimeout(callback, delay)` | `{ isPending, start(), stop(), reset() } & Disposable` | — |
 | **timestamp** | `createTimestamp()` | `Computed<number>` | — |

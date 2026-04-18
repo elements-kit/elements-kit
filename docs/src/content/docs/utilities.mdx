@@ -15,8 +15,8 @@ Utilities are pre-built factories that wrap common browser APIs in signals — s
 | Utility | Import | Returns |
 |---------|--------|---------|
 | `createMediaQuery` | `utilities/media-query` | `Computed<boolean>` |
-| `createTimeout` | `utilities/timeout` | `{ isRunning, start, stop, reset } & Disposable` |
-| `createInterval` | `utilities/interval` | `{ isRunning, start, stop, reset } & Disposable` |
+| `createTimeout` | `utilities/timeout` | `{ pending, start, stop, reset } & Disposable` |
+| `createInterval` | `utilities/interval` | `{ pending, start, stop, reset } & Disposable` |
 | `createDebounced` | `utilities/debounced` | `Computed<T>` |
 | `createThrottled` | `utilities/throttled` | `Computed<T>` |
 | `on` | `utilities/event-listener` | `() => void` |
@@ -200,7 +200,7 @@ Reactive `setTimeout` wrapper. Fires `callback` once after `delay` ms. Starts im
 ```ts
 import { createTimeout } from "elements-kit/utilities/timeout";
 
-const { isRunning, stop, reset } = createTimeout(() => {
+const { pending, stop, reset } = createTimeout(() => {
   console.log("fired");
 }, 1000);
 ```
@@ -210,7 +210,7 @@ function createTimeout(
   callback: () => void,
   delay: number | (() => number),
   immediate?: boolean,
-): { isRunning: Computed<boolean>; start(): void; stop(): void; reset(): void } & Disposable
+): { pending: Computed<boolean>; start(): void; stop(): void; reset(): void } & Disposable
 ```
 
 ### createInterval
@@ -220,7 +220,7 @@ Pausable `setInterval` wrapper. Starts running immediately on creation.
 ```ts
 import { createInterval } from "elements-kit/utilities/interval";
 
-const { isRunning, stop } = createInterval(() => {
+const { pending, stop } = createInterval(() => {
   console.log("tick");
 }, 1000);
 
@@ -231,7 +231,7 @@ stop(); // pause
 function createInterval(
   callback: () => void,
   delay: number | (() => number),
-): { isRunning: Computed<boolean>; start(): void; stop(): void; reset(): void } & Disposable
+): { pending: Computed<boolean>; start(): void; stop(): void; reset(): void } & Disposable
 ```
 
 ### createDebounced

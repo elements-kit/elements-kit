@@ -2,10 +2,7 @@
 title: Async
 ---
 
-
-The `async` utility in ElementsKit is a **promise factory and controller**. It lets you create, control, and observe the lifecycle of promises in a reactive way. You can start, stop, and rerun async operations, and track their state, value, and errors with fine-grained reactivity.
-
-It provides a reactive, signal-based wrapper for asynchronous operations. It enables you to manage loading, error, and result states in a fine-grained, composable way.
+The `async` utility wraps an async function into a reactive, awaitable controller. You can start, stop, and rerun async operations, and read their state, value, and errors as reactive signals.
 
 ## Basic Usage
 
@@ -14,160 +11,148 @@ import { async } from "elements-kit/utilities/async";
 
 const fetchItems = async(() => fetch("/api/items").then((res) => res.json()));
 
-fetchItems.run();
+fetchItems.start(); // begin reactive execution
+```
+
+## Control Methods
+
+```ts
+op.start(); // run and track reactive dependencies — reruns when signals change
+op.run();   // run once without tracking — does not rerun on signal changes
+op.stop();  // stop reactive reruns and run cleanup logic
 ```
 
 ## Reactive State Properties
 
-`Async` exposes reactive state properties mirroring a promise, which update automatically:
+`Async` exposes the same reactive state interface as `ReactivePromise`:
 
 ```ts
-op.state;  // "pending" | "fulfilled" | "rejected"
-op.value;  // resolved value (if fulfilled)
-op.reason; // error (if rejected)
-op.result; // value or error
-op.pending; // true if pending
+op.state;   // "pending" | "fulfilled" | "rejected"
+op.value;   // resolved value (T | undefined)
+op.reason;  // rejection reason (E | undefined)
+op.result;  // value if fulfilled, reason if rejected, undefined if pending
+op.pending; // true while pending
 ```
 
-These properties are tracked and can be used in effects or templates.
+All properties are reactive — reading them inside an `effect` or `computed` subscribes to changes.
+
+## Callable Signal
+
+An `Async` instance is also callable as a signal. Calling `op()` returns `op.result` and tracks it as a reactive dependency:
 
 ```ts
-// And control methods:
-op.start() // start auto-reruns on signals or fn changes and run cleanup logic on change.
-op.stop(); // Stop auto-reruns, and run cleanup logic
-op.run();  // run cleanup logic, and run once
+import { effect } from "elements-kit/signals";
+
+effect(() => {
+  const result = op(); // undefined while pending, T when fulfilled, E when rejected
+  console.log(result);
+});
 ```
+
+This makes `Async` composable with `computed` and templates.
 
 ## Awaitable
 
-You can `await` an `Async` instance directly, or after calling `run()`:
+`Async` implements `.then`, `.catch`, and `.finally`, so you can `await` it directly:
 
 ```ts
 const op = async(() => Promise.resolve(123)).start();
 const value = await op; // 123
+```
 
-// Or run with arguments and await
+## Mutation Pattern
+
+Use `run()` for one-shot operations (e.g. mutations). `await op.run(args)` resolves to the fulfilled value:
+
+```ts
 const mutation = async((id: number) =>
   fetch(`/api/todos/${id}`, { method: "DELETE" }).then((r) => r.json()),
 );
-const result = await mutation.run(42); // await result of mutation
-```
 
-This works because `Async` implements `.then`, `.catch`, and `.finally`.
+const result = await mutation.run(42);
+```
 
 ## Cache Pattern
 
 ```ts
-import { async } from "elements-kit/utilities/async";
 import { storage } from "elements-kit/utilities/storage";
 
 const cache = storage("todos"); // persists across reloads
 const query = async(() =>
   fetch("/api/todos")
     .then((r) => r.json())
-    .then(cache), // cache is passed through and also saved to storage
-).start(); // query.value updates reactively; cache persists across reloads
+    .then(cache), // value flows through and is saved to storage
+).start();
 ```
 
-## Mutation Pattern
+## Reactive Reruns with `start()`
+
+Read signals inside the async function to make it re-execute when they change. Only signal reads **before the first `await`** are tracked.
 
 ```ts
-const mutation = async((id: number) =>
-  fetch(`/api/todos/${id}`, { method: "DELETE" }).then(res => res.json())
-);
-
-const result = await mutation.run(123); // fire once, await result
-```
-
-## Using Parameters
-
-You can define an async operation that takes an input parameter. The input type is inferred from your function signature:
-
-```ts
-import { async } from "elements-kit/utilities/async";
-
-const fetchTodo = async((id: number) => {
-  return fetch(`https://jsonplaceholder.typicode.com/todos/${id}`)
-    .then(res => {
-      if (!res.ok) throw new Error("Not OK");
-      return res.json();
-    });
-});
-
-fetchTodo.run(1);
-```
-
-## Reactive Reruns
-
-Pass a signal value into `run()` inside an `effect` to automatically re-fetch when it changes:
-
-```ts
-import { signal, effect } from "elements-kit/signals";
-
-const todoId = signal(1);
-
-effect(() => {
-  fetchTodo.run(todoId()); // re-fetches when todoId changes
-});
-```
-
-Or read the signal directly inside the async function:
-
-```ts
-import { async } from "elements-kit/utilities/async";
 import { signal } from "elements-kit/signals";
 
 const id = signal(1);
 
-const fetchTodo = async(() => {
-  return fetch(`https://jsonplaceholder.typicode.com/todos/${id()}`)
-    .then(res => {
-      if (!res.ok) throw new Error("Not OK");
-      return res.json();
-    });
-}).start(); // re-fetches automatically when id changes
+const fetchTodo = async(() =>
+  fetch(`https://jsonplaceholder.typicode.com/todos/${id()}`) // tracked
+    .then((res) => res.json()),
+).start(); // re-fetches automatically when id changes
+
+id(2); // triggers a new fetch
 ```
 
 :::caution[Signals aren't tracked after an `await`]
-Signals are only tracked up to the first `await` in your async function. Read all reactive values before the first `await` if you want reruns on change.
-
 ```ts
-const id = signal(1);
-
 // ❌ Not reactive — id() is read after an await
-const op = async(async function () {
+const op = async(async () => {
   await someAsyncSetup();
   const currentId = id(); // not tracked
 });
 
 // ✅ Reactive — id() is read before any await
-const op = async(async function () {
+const op = async(async () => {
   const currentId = id(); // tracked
   await fetch(`/todos/${currentId}`);
 });
 ```
 :::
 
+## Reactive Reruns with `run()`
+
+`run()` is untracked — signals inside the fn do not trigger re-runs. To get reactive reruns with explicit parameters, wrap it in an external `effect`:
+
+```ts
+import { effect, signal } from "elements-kit/signals";
+
+const todoId = signal(1);
+
+effect(() => {
+  fetchTodo.run(todoId()); // re-fetches when todoId changes (tracked by outer effect)
+});
+```
 
 ## Cleanups
 
-Register cleanup logic inside your async function (e.g., for aborting fetches):
+Register cleanup logic inside your async function using `onCleanup`. It runs when `stop()` is called or when `start()` re-runs due to a signal change:
 
 ```ts
-import { oncleanup } from "elements-kit/signals";
+import { onCleanup } from "elements-kit/signals";
 
 const query = async((id: number) => {
   const controller = new AbortController();
-  oncleanup(() => controller.abort()); // runs when stop() is called or effect re-runs
+  onCleanup(() => controller.abort());
   return fetch(`/api/todos/${id}`, { signal: controller.signal }).then((r) =>
     r.json(),
   );
 }).start();
 ```
 
-## Interval Polling Example
+`onCleanup` also works inside `run()` — the cleanup fires when `stop()` is called or when the next `run()` replaces it.
 
-You can combine `createInterval` with `async` to automatically refetch data on a schedule. By reading `timer.timestamp()` inside your async function, you make it rerun every time the timer ticks (e.g., every 10 seconds), as well as when any other reactive dependency changes.
+## Interval Polling
+
+Read `timer.timestamp()` inside the async function to re-execute on every tick:
 
 ```ts
 import { signal } from "elements-kit/signals";
@@ -175,15 +160,10 @@ import { async } from "elements-kit/utilities/async";
 import { createInterval } from "elements-kit/utilities/interval";
 
 const id = signal(1);
-
-// Create a polling timer that ticks every 10 seconds
 const timer = createInterval(10_000);
 
-// The async function will re-run every time timer.timestamp() changes (every 10s)
 const fetchTodo = async(() => {
-  timer.timestamp(); // track timer for polling
-  return fetch(`https://jsonplaceholder.typicode.com/todos/${id()}`)
-}).start(); // also re-fetches automatically when id changes
-
-// Now, fetchTodo.value will update every 10 seconds and whenever id changes
+  timer.timestamp(); // re-runs every 10 seconds
+  return fetch(`https://jsonplaceholder.typicode.com/todos/${id()}`);
+}).start();
 ```

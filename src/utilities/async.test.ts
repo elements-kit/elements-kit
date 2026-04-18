@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { effect, signal } from "@/signals/index.ts";
+import { effect, onCleanup, signal } from "@/signals/index.ts";
 import { Async, async as asyncOp } from "./async.ts";
 
 function deferred<T>() {
@@ -216,5 +216,49 @@ describe("Async", () => {
     id(2); // should not trigger re-run
     await Promise.resolve();
     expect(calls).toEqual([1]);
+  });
+
+  it("onCleanup inside run() fires when stop() is called", () => {
+    const cleaned: number[] = [];
+    const op = asyncOp(() => {
+      onCleanup(() => cleaned.push(1));
+      return Promise.resolve();
+    });
+    op.run();
+    expect(cleaned).toEqual([]);
+    op.stop();
+    expect(cleaned).toEqual([1]);
+  });
+
+  it("onCleanup inside start() fires on each re-run", async () => {
+    const id = signal(1);
+    const cleaned: number[] = [];
+    const op = asyncOp(() => {
+      const current = id(); // track and capture
+      onCleanup(() => cleaned.push(current));
+      return Promise.resolve();
+    });
+    op.start();
+    await op;
+    id(2); // triggers re-run → previous cleanup fires with captured value 1
+    await op;
+    op.stop();
+    expect(cleaned[0]).toBe(1);
+  });
+
+  it("state and value update atomically — no inconsistent intermediate state", async () => {
+    const op = asyncOp(() => Promise.resolve(7));
+    const snapshots: Array<{ state: string; value: number | undefined }> = [];
+    const stop = effect(() => {
+      snapshots.push({ state: op.state, value: op.value as number | undefined });
+    });
+    op.start();
+    await op;
+    stop();
+    const inconsistent = snapshots.find(
+      (s) => s.state === "fulfilled" && s.value === undefined,
+    );
+    expect(inconsistent).toBeUndefined();
+    expect(snapshots.at(-1)).toEqual({ state: "fulfilled", value: 7 });
   });
 });
