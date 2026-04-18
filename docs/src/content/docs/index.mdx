@@ -23,8 +23,9 @@ ElementsKit is a set of **universal reactive primitives** for building web UI. I
 </CardGrid>
 
 ```tsx
-import { signal, computed, reactive } from "elements-kit/signals";
+import { computed, reactive } from "elements-kit/signals";
 import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
+import { render } from "elements-kit/render";
 
 @attributes
 class CounterElement extends HTMLElement {
@@ -37,14 +38,21 @@ class CounterElement extends HTMLElement {
   @reactive() count = 0;
   doubled = computed(() => this.count * 2);
 
+  #unmount?: () => void;
+
   connectedCallback() {
-    this.appendChild(
+    this.#unmount = render(this, () => (
       <section>
         <p><strong>{() => this.count}</strong> × 2 = <strong>{this.doubled}</strong></p>
         <button onClick={() => this.count++}>+1</button>{" "}
         <button onClick={() => this.count--}>−1</button>
-      </section> as Element,
-    );
+      </section>
+    ) as Element);
+  }
+
+  disconnectedCallback() {
+    this.#unmount?.();
+    this.#unmount = undefined;
   }
 }
 

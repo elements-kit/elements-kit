@@ -288,7 +288,7 @@ declare module "elements-kit/custom-elements" {
 // Now `<x-counter count={5} />` is fully typed — no hand-written `declare global` block.
 ```
 
-See [Types](docs/src/content/docs/writing-ui/types.mdx) for the full set of prop-inference helpers.
+See [Types](docs/src/content/docs/elements/types.mdx) for the full set of prop-inference helpers.
 
 ---
 
@@ -461,7 +461,7 @@ import { For } from "elements-kit/for";
 
 ## Prop types
 
-Six type helpers derive JSX prop shapes from your components — no parallel `declare global` block to maintain. Full guide at [docs/src/content/docs/writing-ui/types.mdx](docs/src/content/docs/writing-ui/types.mdx).
+Six type helpers derive JSX prop shapes from your components — no parallel `declare global` block to maintain. Full guide at [docs/src/content/docs/elements/types.mdx](docs/src/content/docs/elements/types.mdx).
 
 | Helper | For |
 | ------ | --- |

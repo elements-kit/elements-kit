@@ -100,7 +100,7 @@ One concept per page. Current map:
 | `stores.mdx` | `@reactive` class pattern | how-to | top |
 | `elements.mdx` | JSX → DOM, prop namespaces, live bindings | concept | top |
 | `components.mdx` | `render()` classes | how-to | top |
-| `writing-ui/for.mdx` | `For` — keyed list rendering | reference | top |
+| `elements/for.mdx` | `For` — keyed list rendering | reference | top |
 | `custom-elements.mdx` | `HTMLElement` + overview | concept | bottom |
 | `custom-elements/attributes.mdx` | `@attributes`, `ATTRIBUTES` | reference | top |
 | `custom-elements/slots.mdx` | `Slot`, named slots | how-to | top |

@@ -69,6 +69,7 @@ class Counter {
 ---
 // Use @reactive for natural property access — same ergonomics, less boilerplate
 import { reactive, computed } from "elements-kit/signals";
+import { render } from "elements-kit/render";
 
 class Counter {
   @reactive() count = 0;
@@ -86,7 +87,7 @@ class Counter {
   }
 }
 
-document.getElementById("app")!.appendChild(new Counter().render());
+const unmount = render(document.getElementById("app")!, () => new Counter().render());
 ```
 
 ## Share state across components
@@ -134,7 +135,7 @@ The same `counter` instance can also drive a React component or a custom element
 
 ## Rendering lists
 
-For keyed list rendering, use the `For` component — it reconciles a reactive array into the DOM without re-rendering stable rows. See [`For`](/writing-ui/for) for the full API.
+For keyed list rendering, use the `For` component — it reconciles a reactive array into the DOM without re-rendering stable rows. See [`For`](/elements/for) for the full API.
 
 ## Function components
 
@@ -162,6 +163,6 @@ Each key on the returned object is a `Computed<T>` — call it to read, wrap the
 ## See also
 
 - [Elements](/elements) — JSX → DOM, prop namespaces.
-- [For](/writing-ui/for) — keyed list rendering.
+- [For](/elements/for) — keyed list rendering.
 - [Stores](/stores) — shared reactive state.
 - [Custom elements](/custom-elements) — components as native HTML tags.

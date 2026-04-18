@@ -1,4 +1,5 @@
 import { reactive, computed } from "elements-kit/signals";
+import { render } from "elements-kit/render";
 
 // ── Stylesheet — created once, shared by all instances ────────────────────────
 const sheet = new CSSStyleSheet();
@@ -28,27 +29,32 @@ class CounterElement extends HTMLElement {
   @reactive() count = 0;
   doubled = computed(() => this.count * 2);
 
+  #unmount?: () => void;
+
   connectedCallback() {
     // Shadow DOM — styles are scoped, sheet is shared
     const shadow = this.attachShadow({ mode: "open" });
     shadow.adoptedStyleSheets = [sheet];
 
-    shadow.appendChild(
-      (
-        <div>
-          <p>
-            <strong>{() => this.count}</strong>
-            {" × 2 = "}
-            <strong>{this.doubled}</strong>
-          </p>
-          <div class="controls">
-            <button onClick={() => this.count++}>+1</button>
-            <button onClick={() => this.count--}>−1</button>
-            <button onClick={() => (this.count = 0)}>Reset</button>
-          </div>
+    this.#unmount = render(shadow, () => (
+      <div>
+        <p>
+          <strong>{() => this.count}</strong>
+          {" × 2 = "}
+          <strong>{this.doubled}</strong>
+        </p>
+        <div class="controls">
+          <button onClick={() => this.count++}>+1</button>
+          <button onClick={() => this.count--}>−1</button>
+          <button onClick={() => (this.count = 0)}>Reset</button>
         </div>
-      ) as Element,
-    );
+      </div>
+    ) as Element);
+  }
+
+  disconnectedCallback() {
+    this.#unmount?.();
+    this.#unmount = undefined;
   }
 }
 

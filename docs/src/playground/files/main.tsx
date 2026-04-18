@@ -1,5 +1,6 @@
 import { signal, reactive, computed } from "elements-kit/signals";
 import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
+import { render } from "elements-kit/render";
 
 @attributes
 class Counter extends HTMLElement {
@@ -16,8 +17,10 @@ class Counter extends HTMLElement {
 
   readonly doubled = computed(() => this.count * 2);
 
+  #unmount?: () => void;
+
   connectedCallback() {
-    this.appendChild(
+    this.#unmount = render(this, () => (
       <section style="margin-bottom: 24px">
         <h2>Counter</h2>
         <p>
@@ -27,8 +30,13 @@ class Counter extends HTMLElement {
         <button onClick={() => this.count++}>+1</button>{" "}
         <button onClick={() => this.count--}>−1</button>{" "}
         <button onClick={() => (this.count = 0)}>Reset</button>
-      </section>,
-    );
+      </section>
+    ));
+  }
+
+  disconnectedCallback() {
+    this.#unmount?.();
+    this.#unmount = undefined;
   }
 }
 customElements.define("x-counter", Counter);

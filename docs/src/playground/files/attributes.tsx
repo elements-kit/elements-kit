@@ -1,6 +1,7 @@
 import { reactive, computed } from "elements-kit/signals";
 import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
 import { defineElement } from "elements-kit/custom-elements";
+import { render } from "elements-kit/render";
 
 @attributes
 class RangeDisplay extends HTMLElement {
@@ -30,35 +31,40 @@ class RangeDisplay extends HTMLElement {
     Math.round(((this.value - this.min) / (this.max - this.min)) * 100),
   );
 
+  #unmount?: () => void;
+
   connectedCallback() {
     this.style.display = "block";
     this.style.fontFamily = "sans-serif";
     this.style.padding = "1rem";
 
-    this.appendChild(
-      (
-        <div>
-          <label style="display: block; margin-bottom: 0.5rem">
-            {() => this.label || "Value"}: <strong>{() => this.value}</strong> (
-            {() => this.percent}%)
-          </label>
-          <input
-            type="range"
-            min={computed(() => String(this.min))}
-            max={computed(() => String(this.max))}
-            value={computed(() => String(this.value))}
-            on:input={(e: Event) =>
-              (this.value = Number((e.target as HTMLInputElement).value))
-            }
-            style="width: 100%"
-          />
-          <div style="display: flex; justify-content: space-between; font-size: 0.8em; color: #888">
-            <span>{() => this.min}</span>
-            <span>{() => this.max}</span>
-          </div>
+    this.#unmount = render(this, () => (
+      <div>
+        <label style="display: block; margin-bottom: 0.5rem">
+          {() => this.label || "Value"}: <strong>{() => this.value}</strong> (
+          {() => this.percent}%)
+        </label>
+        <input
+          type="range"
+          min={computed(() => String(this.min))}
+          max={computed(() => String(this.max))}
+          value={computed(() => String(this.value))}
+          on:input={(e: Event) =>
+            (this.value = Number((e.target as HTMLInputElement).value))
+          }
+          style="width: 100%"
+        />
+        <div style="display: flex; justify-content: space-between; font-size: 0.8em; color: #888">
+          <span>{() => this.min}</span>
+          <span>{() => this.max}</span>
         </div>
-      ) as Element,
-    );
+      </div>
+    ) as Element);
+  }
+
+  disconnectedCallback() {
+    this.#unmount?.();
+    this.#unmount = undefined;
   }
 }
 

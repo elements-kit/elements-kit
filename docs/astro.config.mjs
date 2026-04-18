@@ -70,22 +70,22 @@ export default defineConfig({
           ],
         },
         {
-          label: "Signals (Reference)",
+          label: "Reactivity",
           items: [
-            { label: "Primitives", slug: "signals" },
+            { label: "Signals", slug: "signals" },
             { label: "Stores", slug: "stores" },
             { label: "Promise", slug: "promise" },
             { label: "Async", slug: "async" },
-            { label: "Scopes & cleanup", slug: "scopes" },
+            { label: "Scopes", slug: "scopes" },
           ],
         },
         {
-          label: "Writing UI",
+          label: "Elements",
           items: [
             { label: "JSX & Elements", slug: "elements" },
             { label: "Components", slug: "components" },
-            { label: "For (list rendering)", slug: "writing-ui/for" },
-            { label: "Types", slug: "writing-ui/types" },
+            { label: "Lists", slug: "elements/for" },
+            { label: "Types", slug: "elements/types" },
           ],
         },
         {

@@ -71,6 +71,7 @@ Use JSX instead of `innerHTML` to build the shadow tree — the `<slot>` element
 
 ```tsx
 import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
+import { render } from "elements-kit/render";
 
 @attributes
 class CardElement extends HTMLElement {
@@ -80,11 +81,13 @@ class CardElement extends HTMLElement {
     },
   };
 
+  #unmount?: () => void;
+
   connectedCallback() {
     const shadow = this.attachShadow({ mode: "open" });
     shadow.adoptedStyleSheets = [cardSheet];
 
-    shadow.appendChild(
+    this.#unmount = render(shadow, () => (
       <article>
         {/* Named slot — consumer fills with slot="header" */}
         <header>
@@ -97,8 +100,13 @@ class CardElement extends HTMLElement {
         <footer>
           <slot name="footer" />
         </footer>
-      </article> as Element,
-    );
+      </article>
+    ) as Element);
+  }
+
+  disconnectedCallback() {
+    this.#unmount?.();
+    this.#unmount = undefined;
   }
 }
 ```

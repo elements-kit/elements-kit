@@ -4,8 +4,9 @@ test("runs before each rerun", () => {
   const a = signal(0);
   const events: string[] = [];
   const stop = effect(() => {
-    events.push(`run:${a()}`);
-    onCleanup(() => events.push(`cleanup:${a()}`));
+    const v = a();
+    events.push(`run:${v}`);
+    onCleanup(() => events.push(`cleanup:${v}`));
   });
   a(1);
   a(2);

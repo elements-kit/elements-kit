@@ -64,19 +64,28 @@ sheet.replaceSync(`
 Adopt it in Shadow DOM:
 
 ```tsx
+import { render } from "elements-kit/render";
+
 class CounterElement extends HTMLElement {
+  #unmount?: () => void;
+
   connectedCallback() {
     const shadow = this.attachShadow({ mode: "open" });
 
     // All instances share the same parsed sheet — zero extra parsing
     shadow.adoptedStyleSheets = [sheet];
 
-    shadow.appendChild(
+    this.#unmount = render(shadow, () => (
       <section>
         <p>Count: <strong>{this.#count}</strong></p>
         <button onClick={() => this.#count(this.#count() + 1)}>+1</button>
-      </section> as Element,
-    );
+      </section>
+    ) as Element);
+  }
+
+  disconnectedCallback() {
+    this.#unmount?.();
+    this.#unmount = undefined;
   }
 }
 ```
@@ -128,21 +137,29 @@ counterSheet.replaceSync(css);
 ```tsx
 // counter.ts
 import { reactive, computed } from "elements-kit/signals";
+import { render } from "elements-kit/render";
 import { counterSheet } from "./counter.styles";
 
 class CounterElement extends HTMLElement {
   @reactive() count = 0;
 
+  #unmount?: () => void;
+
   connectedCallback() {
     const shadow = this.attachShadow({ mode: "open" });
     shadow.adoptedStyleSheets = [counterSheet];
 
-    shadow.appendChild(
+    this.#unmount = render(shadow, () => (
       <section>
         <p>Count: <strong>{() => this.count}</strong></p>
         <button onClick={() => this.count++}>+1</button>
-      </section> as Element,
-    );
+      </section>
+    ) as Element);
+  }
+
+  disconnectedCallback() {
+    this.#unmount?.();
+    this.#unmount = undefined;
   }
 }
 ```
@@ -166,12 +183,19 @@ sheet.replaceSync(css);
 let adopted = false;
 
 class CounterElement extends HTMLElement {
+  #unmount?: () => void;
+
   connectedCallback() {
     if (!adopted) {
       document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
       adopted = true;
     }
-    this.appendChild(/* render */ as Element);
+    this.#unmount = render(this, () => /* JSX tree */ as Element);
+  }
+
+  disconnectedCallback() {
+    this.#unmount?.();
+    this.#unmount = undefined;
   }
 }
 ```
@@ -193,9 +217,16 @@ function injectStyles() {
 }
 
 class CounterElement extends HTMLElement {
+  #unmount?: () => void;
+
   connectedCallback() {
     injectStyles();
-    this.appendChild(/* render */ as Element);
+    this.#unmount = render(this, () => /* JSX tree */ as Element);
+  }
+
+  disconnectedCallback() {
+    this.#unmount?.();
+    this.#unmount = undefined;
   }
 }
 ```
@@ -208,22 +239,30 @@ JSX renders into a shadow root the same way it renders into a regular element �
 
 ```tsx
 import { reactive } from "elements-kit/signals";
+import { render } from "elements-kit/render";
 import { counterSheet } from "./counter.styles";
 
 class CounterElement extends HTMLElement {
   @reactive() count = 0;
 
+  #unmount?: () => void;
+
   connectedCallback() {
     const shadow = this.attachShadow({ mode: "open" });
     shadow.adoptedStyleSheets = [counterSheet];
 
-    // Append JSX directly into the shadow root
-    shadow.appendChild(
+    // render into the shadow root — same target type as a light-DOM element
+    this.#unmount = render(shadow, () => (
       <div>
         <p>Count: <strong>{() => this.count}</strong></p>
         <button onClick={() => this.count++}>+1</button>
-      </div> as Element,
-    );
+      </div>
+    ) as Element);
+  }
+
+  disconnectedCallback() {
+    this.#unmount?.();
+    this.#unmount = undefined;
   }
 }
 ```
