@@ -43,11 +43,13 @@ Every feature is a separate subpath export — import only what you use.
 
 | Entry | Purpose |
 |-------|---------|
-| `elements-kit` | `For` and core re-exports |
-| `elements-kit/signals` | `signal`, `computed`, `effect`, `effectScope`, `batch`, `untracked`, `trigger`, `onCleanup`, `@reactive` |
-| `elements-kit/attributes` | `@attributes` decorator + `ATTRIBUTES` symbol for custom elements |
-| `elements-kit/slot` | `Slot` class — comment-marker DOM regions |
-| `elements-kit/jsx-runtime` | JSX factory (configure via `jsxImportSource`) |
+| `elements-kit` | `For` component and core re-exports |
+| `elements-kit/signals` | `signal`, `computed`, `effect`, `effectScope`, `batch`, `untracked`, `trigger`, `onCleanup`, `MaybeReactive`, `resolve`, `resolveProps`, `@reactive` |
+| `elements-kit/attributes` | `@attributes` decorator + `ATTRIBUTES` symbol |
+| `elements-kit/slot` | `Slot`, `Slots`, `SLOTS` symbol — comment-marker DOM regions |
+| `elements-kit/custom-elements` | `defineElement`, `CustomElementRegistry`, `renderScope`, `connectedScope`, `disconnectedScope` |
+| `elements-kit/for` | `For` keyed-list component |
+| `elements-kit/jsx-runtime` | JSX factory + type helpers (`ElementProps`, `Props`, `ComponentProps`, `MaybeReactiveProps`, `Require`) — configure via `jsxImportSource` |
 | `elements-kit/integrations/react` | `useSignal`, `useScope` React bridge hooks |
 | `elements-kit/utilities/*` | Reactive browser-API utilities — see [src/utilities/README.md](src/utilities/README.md) |
 
@@ -258,6 +260,26 @@ customElements.define("x-counter", CounterElement);
 
 `<x-counter count="5" />` — attribute bound, reactive, works in any HTML context.
 
+### Typed JSX for custom elements
+
+Register the tag and augment the `CustomElementRegistry` interface — JSX infers the full prop shape (attributes, events, slots, children) from the class itself.
+
+```ts
+import { defineElement } from "elements-kit/custom-elements";
+
+defineElement("x-counter", CounterElement);
+
+declare module "elements-kit/custom-elements" {
+  interface CustomElementRegistry {
+    "x-counter": typeof CounterElement;
+  }
+}
+
+// Now `<x-counter count={5} />` is fully typed — no hand-written `declare global` block.
+```
+
+See [Types](docs/src/content/docs/writing-ui/types.mdx) for the full set of prop-inference helpers.
+
 ---
 
 ## React Integration
@@ -408,7 +430,7 @@ effect(() => console.log(fetchTodo.state, fetchTodo.value));
 
 ## `For` — Keyed List Rendering
 
-Reconciles a reactive array into the DOM. Each item renders once per key — no full re-renders on reorder, add, or remove.
+Reconciles a reactive array into the DOM. Each item renders once per key — no full re-renders on reorder, add, or remove. `T` is inferred from `each`.
 
 ```tsx
 import { For } from "elements-kit/for";
@@ -423,6 +445,33 @@ import { For } from "elements-kit/for";
     )}
   </For>
 </ul>
+```
+
+---
+
+## Prop types
+
+Six type helpers derive JSX prop shapes from your components — no parallel `declare global` block to maintain. Full guide at [docs/src/content/docs/writing-ui/types.mdx](docs/src/content/docs/writing-ui/types.mdx).
+
+| Helper | For |
+| ------ | --- |
+| `ElementProps<typeof Cls>` | `HTMLElement` subclass — full surface (attrs, events, slots, children) |
+| `Props<C>` | Class instance, constructor, or function component — unified |
+| `ComponentProps<typeof Cls>` | Class components with `constructor(props: P)` |
+| `MaybeReactiveProps<P>` | Wrap every prop in `MaybeReactive` |
+| `MaybeReactive<T>` | Scalar value-or-getter (from `elements-kit/signals`) |
+| `Require<P, K>` | Promote optional keys to required |
+
+Function components pair `MaybeReactiveProps<P>` on the signature with `resolveProps` at the top of the body — each key becomes a callable getter, subscribing to updates on read:
+
+```tsx
+import { resolveProps } from "elements-kit/signals";
+import type { MaybeReactiveProps } from "elements-kit/jsx-runtime";
+
+function Greeting(raw: MaybeReactiveProps<{ name: string }>) {
+  const props = resolveProps(raw);
+  return <p>Hello, {props.name}</p>;
+}
 ```
 
 ---
@@ -465,6 +514,26 @@ class MyElement extends HTMLElement {
 }
 ```
 
+For typed slots, attach a `[SLOTS]` instance field — pass the key list with `as const` so TS can narrow:
+
+```ts
+import { SLOTS, Slots } from "elements-kit/slot";
+
+class Card extends HTMLElement {
+  [SLOTS] = Slots.new(["header", "footer"] as const);
+}
+// ElementProps<typeof Card> now includes `slot:header` / `slot:footer`
+```
+
+For typed events, declare a `static events` map:
+
+```ts
+class XPicker extends HTMLElement {
+  declare static events: { commit: CustomEvent<number> };
+}
+// ElementProps<typeof XPicker> now includes `on:commit` / `onCommit`
+```
+
 ---
 
 ## Roadmap
@@ -473,4 +542,3 @@ class MyElement extends HTMLElement {
 - [ ] UI library — pre-built reactive components built on ElementsKit primitives
 - [ ] More framework integrations (Vue, Solid, Angular, …)
 - [ ] Tutorial — building a full app from scratch
-- [ ] Complete TypeScript strict-mode coverage
