@@ -2,22 +2,48 @@
 title: Signals
 description: Fine-grained reactivity with signal, computed, effect, and more.
 ---
+import { Tabs, TabItem } from "@astrojs/starlight/components";
 import Playground from "@/playground/Playground.astro";
-import PLAYGROUND_FILE from "@/playground/files/signals.tsx?raw";
+import COUNTER from "@/playground/files/signals-counter.tsx?raw";
+import BATCH from "@/playground/files/signals-batch.tsx?raw";
+import CLEANUP from "@/playground/files/signals-cleanup.tsx?raw";
+import EFFECT_SCOPE from "@/playground/files/signals-effect-scope.tsx?raw";
+import UNTRACKED from "@/playground/files/signals-untracked.tsx?raw";
 
 Signals are the reactive core of ElementsKit. Every UI update, derived value, and side effect is driven by three primitives: `signal`, `computed`, and `effect`.
 
-<Playground
-  provider={{
-    files: {
-      "/main.tsx": {
-        code: PLAYGROUND_FILE,
-        active: true,
-      },
-    },
-  }}
-  preview={{}}
-/>
+<Tabs>
+  <TabItem label="Counter">
+    <Playground
+      provider={{ files: { "/main.tsx": { code: COUNTER, active: true } } }}
+      preview={{}}
+    />
+  </TabItem>
+  <TabItem label="Batch">
+    <Playground
+      provider={{ files: { "/main.tsx": { code: BATCH, active: true } } }}
+      preview={{}}
+    />
+  </TabItem>
+  <TabItem label="onCleanup">
+    <Playground
+      provider={{ files: { "/main.tsx": { code: CLEANUP, active: true } } }}
+      preview={{}}
+    />
+  </TabItem>
+  <TabItem label="effectScope">
+    <Playground
+      provider={{ files: { "/main.tsx": { code: EFFECT_SCOPE, active: true } } }}
+      preview={{}}
+    />
+  </TabItem>
+  <TabItem label="untracked">
+    <Playground
+      provider={{ files: { "/main.tsx": { code: UNTRACKED, active: true } } }}
+      preview={{}}
+    />
+  </TabItem>
+</Tabs>
 
 ## signal
 
