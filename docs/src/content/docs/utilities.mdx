@@ -33,6 +33,9 @@ Utilities are pre-built factories that wrap common browser APIs in signals — s
 | `createMediaDevices` | `utilities/media-devices` | `Computed<MediaDeviceInfo[]>` |
 | `windowSize` | `utilities/window-size` | `{ width, height } & Disposable` |
 | `orientation` | `utilities/orientation` | `{ angle, type } & Disposable` |
+| `online` | `utilities/network` | `Computed<boolean>` |
+| `windowFocused` | `utilities/window-focus` | `Computed<boolean>` |
+| `retry` | `utilities/retry` | `() => Promise<T>` |
 | `createLocalStorage` | `utilities/storage` | `Signal<T>` |
 | `createSessionStorage` | `utilities/storage` | `Signal<T>` |
 | `createMediaPlayer` | `utilities/media-player` | `{ playing, muted, volume, … } & Disposable` |
@@ -498,6 +501,58 @@ Module-level singleton. Reactive `screen.orientation` angle and type.
 import { orientation } from "elements-kit/utilities/orientation";
 
 effect(() => console.log(orientation.type(), orientation.angle()));
+```
+
+### online
+
+Module-level singleton. `Computed<boolean>` — `true` when `navigator.onLine` is `true`. Reacts to `online` / `offline` window events.
+
+```ts
+import { online } from "elements-kit/utilities/network";
+
+effect(() => {
+  if (!online()) showOfflineBanner();
+});
+```
+
+### retry
+
+Wraps a `() => Promise<T>` with retry logic. Retries up to `attempts` times on failure. The optional `delay` is inserted **between** failures only — not after the final one. Each attempt runs in an effect scope, so `onCleanup` inside the function fires before each retry.
+
+```ts
+import { retry } from "elements-kit/utilities/retry";
+
+const fn = retry(
+  () => fetch("/api/data").then((r) => r.json()),
+  3,           // up to 3 attempts
+  (n) => n * 500, // 0ms, 500ms, 1000ms between failures
+);
+
+await fn(); // retries automatically on failure
+```
+
+```ts
+function retry<T>(
+  fn: () => Promise<T>,
+  attempts: number,
+  delay?: number | ((attempt: number) => number),
+): () => Promise<T>
+```
+
+Compose with `async()` for reactive retries:
+
+```ts
+import { async } from "elements-kit/utilities/async";
+import { retry } from "elements-kit/utilities/retry";
+import { onCleanup } from "elements-kit/signals";
+
+const fetchTodo = async((id: number) =>
+  retry(() => {
+    const controller = new AbortController();
+    onCleanup(() => controller.abort()); // aborts before each retry
+    return fetch(`/api/todos/${id}`, { signal: controller.signal }).then((r) => r.json());
+  }, 3, 500)(),
+).start();
 ```
 
 ### createLocalStorage

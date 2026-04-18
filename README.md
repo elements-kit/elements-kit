@@ -250,6 +250,44 @@ The same `cart` store drives custom elements, React trees, and plain scripts —
 Pre-built signal factories for common browser APIs:
 
 ```ts
+import { signal, effect, untracked, onCleanup } from "elements-kit/signals";
+import { createMediaQuery } from "elements-kit/utilities/media-query";
+import { async } from "elements-kit/utilities/async";
+import { retry } from "elements-kit/utilities/retry";
+import { online } from "elements-kit/utilities/network";
+import { windowFocused } from "elements-kit/utilities/window-focus";
+import { storage } from "elements-kit/utilities/storage";
+
+const id = signal(1);
+const cache = storage("todos"); // persists across reloads, used as initial value
+
+// Query — retries on failure, refetches when back online or tab regains focus
+const fetchTodo = async(() => {
+  if (!online()) return untracked(cache); // pause while offline, return stale value
+  windowFocused();                        // refetch on tab focus
+  return retry(() => {
+    const controller = new AbortController();
+    onCleanup(() => controller.abort());  // abort before each retry
+    return fetch(`/api/todos/${id()}`, { signal: controller.signal })
+      .then((r) => r.json())
+      .then(cache);                       // update cache on success
+  }, 3, (n) => n * 500)();               // 0 ms, 500 ms, 1000 ms backoff
+}).start();
+
+effect(() => console.log(fetchTodo.state, fetchTodo.value));
+
+// Mutation — run once, no reactive tracking
+const deleteTodo = async((todoId: number) =>
+  fetch(`/api/todos/${todoId}`, { method: "DELETE" }).then((r) => r.json()),
+);
+
+const result = await deleteTodo.run(42);
+```
+
+`createMediaQuery` wraps `window.matchMedia` into a reactive signal — reads inside effects or computeds re-run automatically when the media query result changes.
+
+```tsx
+import { effect } from "elements-kit/signals";
 import { createMediaQuery } from "elements-kit/utilities/media-query";
 
 const isDark = createMediaQuery("(prefers-color-scheme: dark)");

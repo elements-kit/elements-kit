@@ -90,6 +90,10 @@ export class Async<TInput = undefined, TOutput = unknown> {
     return this;
   }
 
+  [Symbol.dispose](): void {
+    this.stop();
+  }
+
   /**
    * Starts a new reactive async operation, stopping any currently active one.
    */
@@ -117,6 +121,7 @@ const ASYNC_KEYS = new Set<PropertyKey>([
   "run",
   "fn",
   "raw",
+  Symbol.dispose,
 ]);
 
 export function async<TInput = any, TOutput = undefined>(
