@@ -28,7 +28,7 @@ export default defineConfig({
             { label: "Primitives", slug: "signals" },
             { label: "Stores", slug: "stores" },
             { label: "Promise", slug: "promise" },
-            { label: "Async", slug: "async" },
+            { label: "Async", slug: "async", badge: "experimental" },
           ],
         },
         {

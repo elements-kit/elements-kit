@@ -95,11 +95,11 @@ describe("promise()", () => {
     expect(cp()).toBe(42);
   });
 
-  it("throws the rejection reason when rejected", async () => {
+  it("returns the rejection reason when rejected", async () => {
     const err = new Error("fail");
     const cp = promise<number>((_, reject) => reject(err));
     await cp.catch(() => {});
-    expect(() => cp()).toThrow(err);
+    expect(cp()).toBe(err);
   });
 
   it("wraps an existing Promise", async () => {
@@ -141,26 +141,34 @@ describe("promise()", () => {
     expect(await cp.catch((e) => e)).toBe(err);
   });
 
+  it("cp.catch handler runs on rejection", async () => {
+    const err = new Error("caught");
+    const cp = promise<number>((_, reject) => reject(err));
+    const caught: unknown[] = [];
+    await cp.catch((e) => caught.push(e));
+    expect(caught).toEqual([err]);
+  });
+
   it("is reactive — effect reruns on fulfillment", async () => {
     const cp = promise<number>((resolve) => resolve(1));
     const values: Array<number | undefined> = [];
     const stop = effect(() => {
-      values.push(cp());
+      values.push(cp.value);
     });
     await cp;
     stop();
     expect(values).toEqual([undefined, 1]);
   });
 
-  it("is reactive — cp.reason updates on rejection", async () => {
+  it("is reactive — effect reruns on rejection", async () => {
     const err = new Error("x");
     const cp = promise<number>((_, reject) => reject(err));
-    const reasons: unknown[] = [];
+    const results: unknown[] = [];
     const stop = effect(() => {
-      reasons.push(cp.reason);
+      results.push(cp());
     });
     await cp.catch(() => {});
     stop();
-    expect(reasons).toEqual([undefined, err]);
+    expect(results).toEqual([undefined, err]);
   });
 });

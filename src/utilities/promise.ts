@@ -93,7 +93,7 @@ const PROMISE_KEYS = new Set<PropertyKey>([
 ]);
 
 export type ComputedPromise<T, E = unknown> = ReactivePromise<T, E> &
-  Computed<T | undefined>;
+  Computed<T | E | undefined>;
 
 type Executor<T, E = unknown> = (
   resolve: (value: T | PromiseLike<T>) => void,
@@ -121,9 +121,9 @@ function resolvePromise<T, E = unknown>(
  * or rejects with the rejection reason, just like a native Promise.
  *
  * **Reactive:** calling the returned value as a function (`cp()`) reads the
- * current resolved value inside an `effect` or `computed`, tracking it as a
- * dependency. Returns `undefined` while pending; returns the fulfilled value
- * when resolved; throws the rejection reason when rejected.
+ * current result inside an `effect` or `computed`, tracking it as a dependency.
+ * Equivalent to `.result` — returns `undefined` while pending, the fulfilled
+ * value when resolved, or the rejection reason when rejected.
  *
  * Reactive state is also accessible via:
  * - `.state` — `"pending" | "fulfilled" | "rejected"`
@@ -145,20 +145,11 @@ export function promise<T, E = unknown>(
   from: Executor<T, E> | Promise<T> | ReactivePromise<T, E>,
 ): ComputedPromise<T, E> {
   const p = resolvePromise(from);
-
-  const $value = computed(() => {
-    if (p.state === "pending") {
-      return;
-    } else if (p.state === "fulfilled") {
-      return p.value;
-    } else {
-      throw p.reason;
-    }
-  });
+  const $value = computed(() => p.result);
 
   return new Proxy($value, {
-    apply(target) {
-      return target();
+    apply() {
+      return $value();
     },
     get(target, prop, receiver) {
       if (PROMISE_KEYS.has(prop)) {
