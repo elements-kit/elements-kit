@@ -3,14 +3,90 @@ title: Async Utility
 ---
 
 
-The `async` utility in ElementsKit provides a reactive, signal-based wrapper for asynchronous operations. It enables you to manage loading, error, and result states in a fine-grained, composable way.
+The `async` utility in ElementsKit is a **promise factory and controller**. It lets you create, control, and observe the lifecycle of promises in a reactive way. You can start, stop, and rerun async operations, and track their state, value, and errors with fine-grained reactivity.
+
+It provides a reactive, signal-based wrapper for asynchronous operations. It enables you to manage loading, error, and result states in a fine-grained, composable way.
 
 ## Basic Usage
 
 ```ts
-import { async, Async } from "elements-kit/utilities/async";
+import { async } from "elements-kit/utilities/async";
 
-const promise = async(() => fetch("/api/items"));
+const fetchItems = async(() => fetch("/api/items").then((res) => res.json()));
+
+fetchItems.run();
+```
+
+## Reactive State Properties
+
+`Async` exposes reactive state properties mirroring a promise, which update automatically:
+
+```ts
+fetchItems.state;  // "pending" | "fulfilled" | "rejected"
+fetchItems.value;  // resolved value (if fulfilled)
+fetchItems.reason; // error (if rejected)
+fetchItems.result; // value or error
+fetchItems.pending; // true if pending
+```
+
+These properties are tracked and can be used in effects or templates.
+
+## Awaitable
+
+You can `await` an `Async` instance directly, or after calling `run()`:
+
+```ts
+const op = async(() => Promise.resolve(123));
+op.start();
+const value = await op; // 123
+
+// Or run with arguments and await
+const mutation = async((id: number) =>
+  fetch(`/api/todos/${id}`, { method: "DELETE" }).then((r) => r.json()),
+);
+const result = await mutation.run(42); // await result of mutation
+```
+
+This works because `Async` implements `.then`, `.catch`, and `.finally`.
+
+## Cache Pattern
+
+```ts
+import { async } from "elements-kit/utilities/async";
+import { storage } from "elements-kit/utilities/storage";
+
+const cache = storage("todos"); // persists across reloads
+const query = async(() =>
+  fetch("/api/todos")
+    .then((r) => r.json())
+    .then(cache), // cache is passed through and also saved to storage
+).start(); // query.value updates reactively; cache persists across reloads
+```
+
+## Mutation Pattern
+
+```ts
+const mutation = async((id: number) =>
+  fetch(`/api/todos/${id}`, { method: "DELETE" }).then(res => res.json())
+);
+
+const result = await mutation.run(123); // fire once, await result
+```
+
+## oncleanup Example
+
+Register cleanup logic inside your async function (e.g., for aborting fetches):
+
+```ts
+import { oncleanup } from "elements-kit/signals";
+
+const query = async((id: number) => {
+  const controller = new AbortController();
+  oncleanup(() => controller.abort()); // runs when stop() is called or effect re-runs
+  return fetch(`/api/todos/${id}`, { signal: controller.signal }).then((r) =>
+    r.json(),
+  );
+}).start();
 ```
 
 ## Using Parameters
@@ -18,143 +94,74 @@ const promise = async(() => fetch("/api/items"));
 You can define an async operation that takes an input parameter. The input type is inferred from your function signature:
 
 ```ts
-import { signal, effect } from "elements-kit/signals";
-
-const todoId = signal(1);
+import { async } from "elements-kit/utilities/async";
 
 const fetchTodo = async((id: number) => {
   return fetch(`https://jsonplaceholder.typicode.com/todos/${id}`)
     .then(res => {
-        if (!res.ok) throw new Error("Not OK");
-        return res.json();
-    })
+      if (!res.ok) throw new Error("Not OK");
+      return res.json();
+    });
 });
+
+fetchTodo.run(1);
+```
+
+## Reactive Reruns
+
+Pass a signal value into `run()` inside an `effect` to automatically re-fetch when it changes:
+
+```ts
+import { signal, effect } from "elements-kit/signals";
+
+const todoId = signal(1);
 
 effect(() => {
   fetchTodo.run(todoId()); // re-fetches when todoId changes
 });
 ```
 
-:::caution[Signals aren't tracked after an `await`]
-Signals or computed values are only tracked up to the first `await` in your async function. If you call `id()` before an `await`, changes to `id` will trigger a rerun. If you call `id()` after an `await`, it will not be tracked for reactivity.
+Or read the signal directly inside the async function:
 
 ```ts
-const id = signal(1);
-
-const promise = async(async function (this: Async) {
-  await someAsyncSetup();
-  // This is NOT reactive:
-  const currentId = id(); // Not tracked for reactivity
-  // ...
-});
-```
-
-**Best Practice:**
-Always read reactive parameters (signals) before the first `await` if you want the async operation to rerun when they change.
-
-```ts
-const promise = async(async function (this: Async) {
-  const currentId = id(); // Tracked for reactivity
-  await fetch(...);
-  // ...
-});
-```
-:::
-
-You can use a signal as the input to your async operation and trigger reruns automatically:
-
-```ts
-import { async, Async } from "elements-kit/utilities/async";
-import { signal, effect } from "elements-kit/signals";
+import { async } from "elements-kit/utilities/async";
+import { signal } from "elements-kit/signals";
 
 const id = signal(1);
 
 const fetchTodo = async(() => {
   return fetch(`https://jsonplaceholder.typicode.com/todos/${id()}`)
     .then(res => {
-        if (!res.ok) throw new Error("Not OK");
-        return res.json();
-    })
-});
-
-fetchTodo.run()
+      if (!res.ok) throw new Error("Not OK");
+      return res.json();
+    });
+}).start(); // re-fetches automatically when id changes
 ```
 
-## Error Handling: Throw or Assign
-
-You can either throw an error or assign it to `this.error`:
+:::caution[Signals aren't tracked after an `await`]
+Signals are only tracked up to the first `await` in your async function. Read all reactive values before the first `await` if you want reruns on change.
 
 ```ts
-const promise = async(function (this: Async) {
-    return fetch(...)
-        .then(res => {
-            this.error = new Error("Network error"); // assign
-            throw new Error("Network error");        // or throw
-            return res.json();
-        })
+const id = signal(1);
+
+// ❌ Not reactive — id() is read after an await
+const op = async(async function () {
+  await someAsyncSetup();
+  const currentId = id(); // not tracked
+});
+
+// ✅ Reactive — id() is read before any await
+const op = async(async function () {
+  const currentId = id(); // tracked
+  await fetch(`/todos/${currentId}`);
 });
 ```
-
-## Cleaning Error on Success / Data on Error
-
-```ts
-const promise = async(function (this: Async) {
-    return fetch(...)
-        .then(res => {
-            const res = await fetch(...);
-            if (!res.ok) throw new Error("fail");
-            this.error = null; // clean error on success
-            return res.json();
-        })
-        .catch(err => {
-            this.data = null; // clean data on error
-            this.error = err;
-            throw err;
-        })
-});
-```
-
-## Enabled and Disabled State
-
-By default, an async instance is **disabled**—it will not run automatically until you explicitly call `run()`.
-
-- **Enabled:** When you call `promise.run()`, the async operation is enabled and will execute.
-- **Disabled:** You can disable the async operation at any time by calling `promise.stop()`. This prevents further automatic execution (such as from effects or autorun logic).
-
-**Example:**
-
-```ts
-const promise = async(...);
-const enabledPromise = async(...).run(); // create and enables the async operation
-
-promise.run();   // enables and starts the async operation
-promise.stop();  // disables further runs
-```
-
-This gives you fine-grained control over when your async logic is active.
+:::
 
 ## Rerun with Clean
 
-To rerun and reset state:
-
 ```ts
-promise.run(); // triggers auto-run
-promise.reset().run(); // resets data/error and triggers async
-promise.run().stop(); // run once, then stop autorun
-promise.reset().run().stop(); // resets data/error and run once
-promise.data = null; // clean data 
-promise.error = null; // clean error
+op.start() // start auto-reruns on signals or fn changes and run cleanup logic on change.
+op.stop(); // Stop auto-reruns, and run cleanup logic
+op.run();  // run cleanup logic, and run once
 ```
-
-## Disable Autorun with .finally(() => this.stop())
-
-If you want to stop autorun after completion:
-
-```ts
-const promise = async(async function (this: Async) {
-    return fetch(...).finally(() => this.stop());
-});
-```
-
----
-

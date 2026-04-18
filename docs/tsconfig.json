@@ -5,5 +5,5 @@
       "@/*": ["./src/*"]
     }
   },
-  "exclude": ["src/playground/files/**/*"]
+  "exclude": ["src/playground/files/**/*", "node_modules", "dist"]
 }
