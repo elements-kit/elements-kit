@@ -653,7 +653,7 @@ describe("type guards", () => {
     stop();
   });
 
-  it("effectOper is branded with $effect symbol", () => {
+  it("effectOper is branded with EFFECT symbol", () => {
     const stop = effect(() => {});
     expect((stop as any)[EFFECT]).toBe(true);
     stop();

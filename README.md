@@ -45,7 +45,7 @@ Every feature is a separate subpath export — import only what you use.
 | `elements-kit/slot` | `Slot` class — comment-marker DOM regions |
 | `elements-kit/jsx-runtime` | JSX factory (configure via `jsxImportSource`) |
 | `elements-kit/integrations/react` | `useSignal`, `useScope` React bridge hooks |
-| `elements-kit/utilities/*` | 50+ reactive browser-API utilities — see [src/utilities/README.md](src/utilities/README.md) (catalog under audit) |
+| `elements-kit/utilities/*` | Reactive browser-API utilities — see [src/utilities/README.md](src/utilities/README.md) |
 
 ## Repository
 

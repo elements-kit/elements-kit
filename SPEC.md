@@ -131,7 +131,7 @@ Each subpath is a stable import entry declared in [package.json](package.json) `
 3. Helpers returning raw `Signal<T>` / `Computed<T>` rely **only** on `onCleanup`. Core reactive types must not carry `Symbol.dispose`.
 4. When no enclosing `effectScope` exists, cleanup is the caller's responsibility via the disposer returned by `effectScope` or by explicitly disposing the `Disposable`.
 
-Full dependency and returns matrix: [src/utilities/README.md](src/utilities/README.md). ⚠️ Catalog currently under audit — the source files are authoritative; see the banner at the top of that README.
+Full dependency and returns matrix: [src/utilities/README.md](src/utilities/README.md).
 
 ## 7. Quality bars
 
@@ -140,7 +140,7 @@ Full dependency and returns matrix: [src/utilities/README.md](src/utilities/READ
 - **Dependencies**: exactly one runtime dep (`dom-expressions`). React is `peerDependencies` and optional.
 - **Bundle shape**: subpath imports are tree-shakeable. Each utility module ships as its own entry so consumers pay only for what they import.
 - **No cycles**: utilities must follow the graph in [src/utilities/README.md](src/utilities/README.md). Add to the graph when introducing a new module.
-- **No `console.*` in library code**. Applies to everything under [src/](src/): no console output from production paths, no warnings, no info. Brand symbols (`SIGNAL`, `COMPUTED`, `EFFECT`, `EFFECT_SCOPE`) do not log — they are pure identity markers. Playground, example, test files ([docs/src/playground/files/](docs/src/playground/files/), [example/](example/), `*.test.ts`) and JSDoc code examples are exempt — they exist to demonstrate behavior and may log freely.
+- **No `console.*` in library code**. Applies to everything under [src/](src/): no console output from production paths, no warnings, no info. Playground, example, test files ([docs/src/playground/files/](docs/src/playground/files/), [example/](example/), `*.test.ts`) and JSDoc code examples are exempt — they exist to demonstrate behavior and may log freely.
 - **API additions**: new exports require an entry in the relevant `index.ts`, a doc page or utilities-README row, and colocated tests.
 
 ## 8. Browser support

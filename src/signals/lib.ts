@@ -259,7 +259,7 @@ export function endBatch() {
 /**
  * Returns `true` if `fn` is a signal handle created by {@link signal}.
  *
- * Relies on `$signal` matching the internal `signalOper` function name.
+ * Relies on the SIGNAL symbol.
  */
 export function isSignal(fn: unknown): boolean {
   return fn != null && (fn as any)[SIGNAL] === true;
@@ -268,7 +268,7 @@ export function isSignal(fn: unknown): boolean {
 /**
  * Returns `true` if `fn` is a computed handle created by {@link computed}.
  *
- * Relies on `$computed` matching the internal `computedOper` function name.
+ * Relies on the COMPUTED symbol.
  */
 export function isComputed(fn: unknown): boolean {
   return fn != null && (fn as any)[COMPUTED] === true;
@@ -277,7 +277,7 @@ export function isComputed(fn: unknown): boolean {
 /**
  * Returns `true` if `fn` is an effect cleanup handle created by {@link effect}.
  *
- * Relies on the $effect symbol branding.
+ * Relies on the EFFECT symbol.
  */
 export function isEffect(fn: unknown): boolean {
   return fn != null && (fn as any)[EFFECT] === true;

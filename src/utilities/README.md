@@ -4,301 +4,209 @@ Reactive utilities built on top of the core signal primitives (`signal`, `comput
 
 See [root README](../../README.md) for library overview and [SPEC.md](../../SPEC.md) for the cleanup convention, quality bars, and module-dependency rules that apply to every helper listed below.
 
-> ⚠️ **This catalog is under audit.** Export names in the tables below may lag the source. Treat the files in this directory as the source of truth; open an issue or PR when you spot drift. Known-correct corrections already applied: `on` (not `createEventListener`), `onClickOutside`, `createFocusWithin`, `activeElement` (singleton), `createSearchParam`, `online` / `createOnline`.
+Each utility is its own subpath: `elements-kit/utilities/<name>`. Files are the source of truth; this catalog is kept in sync manually — open a PR if you spot drift.
 
 ---
 
-## Dependency Graph
+## Dependency graph
 
 ```text
-Core Primitives (signal, computed, effect, onCleanup, trigger …)
-├── event-listener.ts ─── createEventListener
-│   ├── before-unload.ts
-│   ├── draggable.ts
-│   ├── drop-zone.ts
+Core primitives (signal, computed, effect, onCleanup, trigger, batch, untracked)
+├── event-listener.ts ─── on
 │   ├── element-scroll.ts
+│   ├── focus-within.ts
 │   ├── hover.ts
-│   ├── is-focus-within.ts
-│   ├── is-idle.ts
-│   ├── key-press.ts
 │   ├── long-press.ts
 │   ├── media-devices.ts
-│   ├── motion.ts
-│   ├── mouse-position.ts
-│   ├── mouse-wheel.ts
-│   ├── network-state.ts
-│   ├── focus-trap.ts
+│   ├── network.ts
 │   ├── on-click-outside.ts
-│   ├── page-leave.ts
-│   ├── pressed-keys.ts
-│   ├── scroll-state.ts
-│   ├── scrolling.ts
 │   ├── search-params.ts
-│   ├── start-typing.ts
-│   ├── swipe.ts
-│   └── text-selection.ts
+│   └── window-focus.ts
 │
 ├── event-driven.ts ─── fromEvent / sync
 │   ├── active-element.ts
-│   ├── fullscreen.ts
-│   ├── hash.ts
-│   ├── media.ts
-│   ├── media-player.ts (+ createAudio / createVideo aliases)
+│   ├── location.ts
+│   ├── media-player.ts
 │   ├── orientation.ts
 │   └── window-size.ts
 │
 ├── resize-observer.ts ─── createResizeObserver
-│   ├── element-rect.ts
-│   └── element-size.ts
+│   └── element-rect.ts
 │
 ├── intersection-observer.ts ─── createIntersectionObserver
-│   ├── element-visibility.ts
-│   ├── infinite-scroll.ts
-│   └── is-in-viewport.ts
 │
-└── (standalone — no lib/ dependencies)
-    ├── animation-frames.ts
-    ├── async-retry.ts
-    ├── async-state.ts
-    ├── broadcast-channel.ts
-    ├── clipboard.ts
-    ├── css-var.ts
+├── mutation-observer.ts ─── createMutationObserver
+│
+├── media-query.ts ─── createMediaQuery, isBrowser
+│
+├── promise.ts ─── promise, ReactivePromise
+│   └── async.ts ─── async, Async
+│
+└── standalone (no intra-utilities deps)
     ├── debounced.ts
-    ├── document-title.ts
-    ├── event-source.ts
-    ├── eye-dropper.ts
-    ├── favicon.ts
-    ├── finite-state-machine.ts
-    ├── geolocation.ts
     ├── interval.ts
-    ├── list.ts
-    ├── lock-body-scroll.ts
-    ├── map.ts
-    ├── memo.ts
-    ├── mutation-observer.ts
-    ├── permission.ts
     ├── previous.ts
-    ├── queue.ts
-    ├── raf.ts
-    ├── resource.ts
-    ├── set.ts
-    ├── share.ts
-    ├── state-history.ts
-    ├── state-validator.ts
+    ├── retry.ts
+    ├── routing.ts
+    ├── storage.ts
     ├── throttled.ts
-    ├── timeout.ts
-    ├── timestamp.ts
-    ├── wake-lock.ts
-    ├── web-notification.ts
-    ├── web-socket.ts
-    ├── watch.ts
-    └── storage.ts (+ createLocalStorage / createSessionStorage)
+    └── timeout.ts
 ```
 
 ---
 
-## Core Utilities
+## Core
 
-These are the foundational building blocks used by many other helpers.
+Foundations used by other helpers.
 
-| Utility | Export | Description |
-|---------|--------|-------------|
-| **event-listener** | `on(target, type, handler, options?)` | Attaches a type-safe event listener with auto-cleanup via `onCleanup`. Supports reactive getter targets (re-registers when target changes). |
-| **event-driven** | `Subscribe`, `fromEvent(target, events)`, `sync(subscribe, getter, setter?)` | Declarative DOM-state-to-signal bridge. `fromEvent` creates a `Subscribe` for DOM events; `sync` keeps a `Computed` (or writable `Signal` with setter) in sync with an external source. |
-| **resize-observer** | `createResizeObserver(target, callback)` | Wraps `ResizeObserver` with auto-cleanup via `onCleanup`. |
-| **intersection-observer** | `createIntersectionObserver(target, callback, options?)` | Wraps `IntersectionObserver` with auto-cleanup via `onCleanup`. |
-| **mutation-observer** | `createMutationObserver(target, options, callback)` | Wraps `MutationObserver` with auto-cleanup via `onCleanup`. |
+| Module | Export | Description |
+|--------|--------|-------------|
+| **event-listener** | `on(target, type, handler, options?)` | Type-safe event listener with auto-cleanup via `onCleanup`. Target may be a reactive getter (re-registers when target changes). |
+| **event-driven** | `fromEvent(target, events)`, `sync(subscribe, getter, setter?)`, `Subscribe` type | Declarative DOM-state-to-signal bridge. `fromEvent` builds a `Subscribe` from DOM events; `sync` keeps a `Computed<T>` (or writable `Signal<T>` if a setter is given) aligned with an external source. |
+| **resize-observer** | `createResizeObserver(target, callback)` | `ResizeObserver` with auto-cleanup. |
+| **intersection-observer** | `createIntersectionObserver(target, callback, options?)` | `IntersectionObserver` with auto-cleanup. |
+| **mutation-observer** | `createMutationObserver(target, options, callback)` | `MutationObserver` with auto-cleanup. |
+| **media-query** | `createMediaQuery(query, defaultState?)`, `isBrowser` | `window.matchMedia` as a `Computed<boolean>`. `isBrowser` is the shared environment guard. |
 
 ### When to use which
 
-- **`sync` + `fromEvent`** — When you want to read DOM state on events (getter pattern). The signal is a lazy `computed` that re-reads the getter when events fire.
-- **`on`** — When you need the event object itself (e.g. `e.clientX`, `e.key`) or need listener options like `{ passive: true }`.
+- **`sync` + `fromEvent`** — DOM state read via getter on events. Signal is a lazy `computed` that re-reads on each event.
+- **`on`** — when you need the event object itself (`e.clientX`, `e.key`) or listener options (`{ passive: true }`).
 
 ---
 
-## DOM Events
+## DOM events
 
-Helpers that track DOM event-driven state.
-
-| Utility | Export | Returns | Dependencies |
-|---------|--------|---------|-------------|
-| **active-element** | `activeElement` (singleton `Computed<Element \| null>`) | `Computed<Element \| null>` | `event-driven` |
-| **hover** | `createHover(target)` | `Computed<boolean>` | `event-listener` |
+| Module | Export | Returns | Deps |
+|--------|--------|---------|------|
+| **active-element** | `activeElement` (singleton) | `Computed<Element \| null>` | `event-driven` |
 | **focus-within** | `createFocusWithin(target)` | `Computed<boolean>` | `event-listener` |
-| **key-press** | `createKeyPress(key)` | `{ pressed: Computed<boolean> } & Disposable` | `event-listener` |
+| **hover** | `createHover(target)` | `Computed<boolean>` | `event-listener` |
 | **long-press** | `createLongPress(target, handler, options?)` | `Disposable` | `event-listener` |
-| **mouse-position** | `createMousePosition()` | `{ x, y: Computed<number> } & Disposable` | `event-listener` |
-| **mouse-wheel** | `createMouseWheel()` | `Computed<number>` | `event-listener` |
 | **on-click-outside** | `onClickOutside(target, handler)` | `void` | `event-listener` |
-| **pressed-keys** | `createPressedKeys()` | `Computed<ReadonlySet<string>>` | `event-listener` |
-| **draggable** | `createDraggable(target)` | `{ x, y, isDragging } & Disposable` | `event-listener` |
-| **drop-zone** | `createDropZone(target, onDrop?)` | `{ isOver, files } & Disposable` | `event-listener` |
-| **start-typing** | `createStartTyping(handler, idleMs?)` | `Disposable` | `event-listener` |
-| **focus-trap** | `createFocusTrap(target)` | `Disposable` | `event-listener` |
-| **swipe** | `createSwipe(target?, threshold?)` | `{ direction, isSwiping, deltaX, deltaY } & Disposable` | `event-listener` |
-| **text-selection** | `createTextSelection()` | `{ text, ranges }` | `event-listener` |
 
 ---
 
-## Browser APIs
+## Window / environment
 
-Helpers that wrap browser APIs as reactive signals.
+Page-level singletons. Importing is safe — reading before DOM is available returns neutral defaults.
 
-| Utility | Export | Returns | Dependencies |
-|---------|--------|---------|-------------|
-| **broadcast-channel** | `createBroadcastChannel<T>(name)` | `{ data, post() } & Disposable` | — |
-| **clipboard** | `createClipboard(resetDelay?)` | `{ copied, value, copy() }` | — |
-| **css-var** | `createCSSVar(name, initialValue?, target?)` | `Signal<string>` | — |
-| **event-source** | `createEventSource<T>(url, options?)` | `{ data, event, lastEventId, status, error, close } & Disposable` | — |
-| **eye-dropper** | `createEyeDropper()` | `{ isSupported, color, open() }` | — |
-| **fullscreen** | `createFullscreen(target?)` | `{ isFullscreen, enter(), exit(), toggle() } & Disposable` | `event-driven` |
-| **geolocation** | `createGeolocation(options?)` | `{ position, error, loading } & Disposable` | — |
-| **hash** | `createHash()` | `Signal<string>` | `event-driven` |
-| **lock-body-scroll** | `createLockBodyScroll()` | `Disposable` | — |
-| **media** | `createMediaQuery(query, defaultState?)` | `Computed<boolean>` | `event-driven` |
-| **media-devices** | `createMediaDevices()` | `Computed<MediaDeviceInfo[]>` | `event-listener` |
-| **motion** | `createMotion()` | `{ acceleration, rotationRate, interval, … } & Disposable` | `event-listener` |
-| **network** | `online` (singleton `Computed<boolean>`), `createOnline()` | `Computed<boolean>` | `event-listener` |
-| **orientation** | `createOrientation()` | `{ angle, type } & Disposable` | `event-driven` |
-| **permission** | `createPermission(descriptor)` | `{ state } & Disposable` | — |
-| **url-pattern** | `createURLPattern(source, input?, options?)` | `Computed<URLPatternResult \| null>` | — |
-| **search-params** | `createSearchParam(key)` | `Computed<string \| null>` | `event-listener` |
-| **share** | `createShare()` | `{ isSupported, isSharing, share() }` | — |
-| **wake-lock** | `createWakeLock()` | `{ isActive, isSupported, request(), release() } & Disposable` | — |
-| **web-notification** | `createWebNotification()` | `{ permission, isSupported, requestPermission(), notify() }` | — |
-| **web-socket** | `createWebSocket<T>(url, options?)` | `{ data, status, send, close, open } & Disposable` | — |
-| **window-size** | `createWindowSize()` | `{ width, height } & Disposable` | `event-driven` |
+| Module | Export | Returns |
+|--------|--------|---------|
+| **active-element** | `activeElement` | `Computed<Element \| null>` |
+| **location** | `currentLocation`, `createLocation()` | `{ href, pathname, search, hash }` (each `Computed<string>`) |
+| **media-devices** | `createMediaDevices()` | `Computed<MediaDeviceInfo[]>` |
+| **network** | `online` | `Computed<boolean>` |
+| **orientation** | `orientation` | `{ angle, type }` |
+| **window-focus** | `windowFocused` | `Computed<boolean>` |
+| **window-size** | `windowSize` | `{ width, height }` |
 
 ---
 
-## Element Observation
+## Element observation
 
-Helpers that observe element properties using browser observers.
-
-| Utility | Export | Returns | Dependencies |
-|---------|--------|---------|-------------|
+| Module | Export | Returns | Deps |
+|--------|--------|---------|------|
 | **element-rect** | `createElementRect(target)` | `{ x, y, width, height, top, right, bottom, left } & Disposable` | `resize-observer` |
-| **element-size** | `createElementSize(target)` | `{ width, height } & Disposable` | `resize-observer` |
-| **element-visibility** | `createElementVisibility(target, options?)` | `Computed<number>` (0–1 ratio) | `intersection-observer` |
-| **is-in-viewport** | `createIsInViewport(target, options?)` | `Computed<boolean>` | `intersection-observer` |
-
----
-
-## Media Elements
-
-Reactive wrappers for `<audio>` and `<video>` elements.
-
-| Utility | Export | Returns | Dependencies |
-|---------|--------|---------|-------------|
-| **media-player** | `createMediaPlayer(element)` | `{ element, playing, muted, volume, duration, time, ended, play(), pause(), toggle() } & Disposable` | `event-driven` |
-
-`createAudio` and `createVideo` are deprecated aliases for `createMediaPlayer`.
-
-`muted`, `volume`, and `time` are writable `Signal<T>` — writing them updates the underlying element. `playing`, `duration`, and `ended` are read-only `Computed<T>`.
 
 ---
 
 ## Scrolling
 
-| Utility | Export | Returns | Dependencies |
-|---------|--------|---------|-------------|
-| **element-scroll** | `createElementScroll(target)` | `{ x: Signal, y: Signal } & Disposable` | `event-listener` |
-| **infinite-scroll** | `createInfiniteScroll(sentinel, handler, options?)` | `Disposable` | `intersection-observer` |
-| **scroll-state** | `createScrollState(target?)` | `{ x, y, directionX, directionY } & Disposable` | `event-listener` |
-| **scrolling** | `createScrolling(target?, delay?)` | `Computed<boolean>` | `event-listener` |
+| Module | Export | Returns | Deps |
+|--------|--------|---------|------|
+| **element-scroll** | `createElementScroll(target)` | `{ x: Signal<number>, y: Signal<number> } & Disposable` | `event-listener` |
 
 ---
 
-## Page Lifecycle
+## Media elements
 
-| Utility | Export | Returns | Dependencies |
-|---------|--------|---------|-------------|
-| **before-unload** | `createBeforeUnload(message?)` | `Disposable` | `event-listener` |
-| **document-title** | `createDocumentTitle(initial?)` | `Signal<string>` | — |
-| **favicon** | `createFavicon(initial?)` | `Signal<string>` | — |
-| **is-idle** | `createIsIdle(timeout?)` | `Computed<boolean>` | `event-listener` |
-| **page-leave** | `createPageLeave(handler)` | `Disposable` | `event-listener` |
+| Module | Export | Returns | Deps |
+|--------|--------|---------|------|
+| **media-player** | `createMediaPlayer(element)` | `{ element, playing, muted, volume, duration, time, ended, play(), pause(), toggle() } & Disposable` | `event-driven` |
+
+`muted`, `volume`, `time` are writable `Signal<T>` — assignment drives the underlying `<audio>` / `<video>`. `playing`, `duration`, `ended` are read-only `Computed<T>`.
 
 ---
 
-## Data Structures
+## Forms / URL
 
-Reactive collection primitives.
+| Module | Export | Returns | Deps |
+|--------|--------|---------|------|
+| **search-params** | `createSearchParam(key)` | `Computed<string \| null>` | `event-listener` |
 
-| Utility | Export | Returns | Dependencies |
-|---------|--------|---------|-------------|
-| **list** | `createList(initial?)` | `{ items, push(), pop(), remove(), filter(), set(), clear(), size }` | — |
-| **map** | `createMap(initial?)` | `{ entries, get(), set(), delete(), has(), clear(), size }` | — |
-| **queue** | `createQueue(initial?)` | `{ items, add(), remove(), peek(), clear(), size }` | — |
-| **set** | `createSet(initial?)` | `{ entries, add(), remove(), toggle(), has(), clear(), size }` | — |
+---
+
+## Routing
+
+| Module | Export | Description |
+|--------|--------|-------------|
+| **routing** | `patchHistory()` | Patches `history.pushState` / `replaceState` to fire events consumable by `matches` / `match`. |
+| **routing** | `navigate(url, options?)` | Client-side navigation. |
+| **routing** | `isLocalNavigationEvent(e)` | Predicate for anchor clicks (same-origin, no modifiers). |
+| **routing** | `matches(pattern)` | `Computed<boolean>` — true when current URL matches. |
+| **routing** | `match(pattern)` | `Computed<URLPatternResult \| null>` — full match result. |
+
+Uses `URLPattern`. Consumers on browsers without native support must load a polyfill themselves (e.g. `urlpattern-polyfill`).
 
 ---
 
 ## Timing
 
-| Utility | Export | Returns | Dependencies |
-|---------|--------|---------|-------------|
-| **animation-frames** | `createAnimationFrames()` | `{ pending, delta, elapsed, start(), stop() } & Disposable` | — |
-| **debounced** | `createDebounced(getter, delay)` | `Computed<T>` | — |
-| **interval** | `createInterval(callback, delay)` | `{ pending, start(), stop(), reset() } & Disposable` | — |
-| **raf** | `createRaf(callback)` | `{ pending, start(), stop() } & Disposable` | — |
-| **throttled** | `createThrottled(getter, interval)` | `Computed<T>` | — |
-| **timeout** | `createTimeout(callback, delay)` | `{ isPending, start(), stop(), reset() } & Disposable` | — |
-| **timestamp** | `createTimestamp()` | `Computed<number>` | — |
+| Module | Export | Returns |
+|--------|--------|---------|
+| **debounced** | `createDebounced(getter, delay)` | `Computed<T>` |
+| **interval** | `createInterval(callback?, delay)` | `{ pending, start(), stop(), reset() } & Disposable` |
+| **throttled** | `createThrottled(getter, interval)` | `Computed<T>` |
+| **timeout** | `createTimeout(callback, delay)` | `{ isPending, start(), stop(), reset() } & Disposable` |
 
 ---
 
-## State Management
+## State
 
-| Utility | Export | Returns | Dependencies |
-|---------|--------|---------|-------------|
-| **finite-state-machine** | `createFiniteStateMachine(initial, transitions, options?)` | `{ state, send(), can() }` | — |
-| **storage** | `createLocalStorage(key, initialValue, options?)` | `Signal<T>` | `event-listener` |
-| **storage** | `createSessionStorage(key, initialValue, options?)` | `Signal<T>` | — |
-| **previous** | `createPrevious(getter, isEqual?)` | `Computed<T \| undefined>` | — |
-| **state-history** | `createStateHistory(getter, capacity?)` | `{ history, index, canUndo, canRedo, undo(), redo(), clear() }` | — |
-| **state-validator** | `createStateValidator(getter, validator)` | `{ errors, isValid }` | — |
-| **memo** | `createMemo(fn, keyFn?)` | `{ call(), result, clear() }` | — |
-| **watch** | `createWatch(source, callback)` | `() => void` (stop function) | — |
+| Module | Export | Returns |
+|--------|--------|---------|
+| **previous** | `createPrevious(getter, isEqual?)` | `Computed<T \| undefined>` |
+| **storage** | `createLocalStorage<T>(key, initialValue, options?)` | `Signal<T>` |
+| **storage** | `createSessionStorage<T>(key, initialValue, options?)` | `Signal<T>` |
 
 ---
 
 ## Async
 
-| Utility | Export | Returns | Dependencies |
-|---------|--------|---------|-------------|
-| **async-retry** | `createAsyncRetry(source, fetcher, options?)` | `{ data, loading, error, retry(), attempt }` | — |
-| **async-state** | `createAsyncState(producer, options?)` | `{ data, loading, error, execute() }` | — |
-| **resource** | `createResource(source, fetcher, options?)` | `{ data, loading, error, refetch() }` | — |
+| Module | Export | Description |
+|--------|--------|-------------|
+| **promise** | `promise(fn \| Promise<T>)` | Wraps a promise/async fn as a `ComputedPromise<T>` — awaitable and callable as reactive state with `.state`, `.value`, `.reason`, `.result`. |
+| **promise** | `ReactivePromise<T, E>` | Class form. Use when you need the state getters without the `Computed` callable. |
+| **async** | `async(fn)` | Returns an `Async` controller. Reactive wrapper over `promise`. |
+| **async** | `Async<TInput, TOutput>` | `.start()` / `.run(input?)` / `.stop()` / `Symbol.dispose`; getters `.state`, `.value`, `.reason`, `.result`, `.pending`, `.raw`; thenable. |
+| **retry** | `retry(fn, attempts, backoff?)` | Returns a function that retries on rejection with backoff. |
 
 ---
 
-## React Integration
+## React integration
 
-| Utility | Export | Description |
-|---------|--------|-------------|
-| **react** | `useSignal(value)` | Subscribes a React component to a signal/computed via `useSyncExternalStore`. |
-| **react** | `useScope(callback)` | Creates an `effectScope` that lives for the component's lifetime. |
+Defined in [../integrations/react.ts](../integrations/react.ts), not under `utilities/`, but commonly composed with utilities.
 
----
-
-## Cleanup Convention
-
-All helpers that allocate resources follow these patterns:
-
-1. **`onCleanup`** — Every helper registers teardown with the current `effectScope`. When the scope disposes, all listeners/observers/timers are removed automatically.
-2. **`Disposable`** — Helpers that return plain objects (not `Computed`/`Signal`) include `[Symbol.dispose]` for explicit teardown or `using` syntax.
-3. **Scope-only cleanup** — Single-value helpers (returning `Computed<T>` or `Signal<T>`) rely solely on `onCleanup` — they do **not** implement `Disposable`, since mutating core signal types with `Symbol.dispose` would be unsafe.
-
-When called inside an `effectScope`, cleanup happens automatically on scope disposal. For explicit teardown, dispose the scope itself (call the function returned by `effectScope`).
+| Export | Description |
+|--------|-------------|
+| `useSignal(reader)` | Subscribes a React component to a `Signal<T>`, `Computed<T>`, or `() => T` via `useSyncExternalStore`. |
+| `useScope(callback)` | `effectScope` tied to the component's lifetime. |
 
 ---
 
-## TODO — catalog audit
+## Cleanup convention
 
-Pending work before removing the banner at the top:
+Every helper that allocates a resource follows these rules (see [SPEC.md §6](../../SPEC.md)):
 
-- Audit remaining rows against `src/utilities/*.ts` and update return-type / signature drift.
-- Add missing entries for: `retry` (`retry.ts`), `async` + `Async` (`async.ts`), `promise` + `ReactivePromise` (`promise.ts`), `routing` (`patchHistory`, `navigate`, `matches`, `match`, `isLocalNavigationEvent`), `location` (`createLocation` + `currentLocation` singleton), `window-focus` (`windowFocused` singleton + `createWindowFocused`).
-- Mark singletons explicitly where applicable (`windowSize`, `orientation`, `currentLocation`, etc.).
-- Verify every entry in the dependency graph matches an actual file.
+1. **`onCleanup`** — teardown is registered with the current `effect` / `effectScope` / `computed`. Scope disposal removes all listeners / observers / timers automatically.
+2. **`Disposable`** — helpers that return composite objects expose `[Symbol.dispose]` for explicit teardown or `using`.
+3. **No `Disposable` on core reactive values** — helpers returning raw `Signal<T>` / `Computed<T>` rely on `onCleanup` only. Attaching `Symbol.dispose` to the callable would be unsafe.
+
+When called inside an `effectScope`, cleanup happens on scope disposal. For explicit teardown, dispose the scope (call the function returned by `effectScope`) or the `Disposable`.
+
+---
+
+## Environment safety
+
+The six module-level singletons (`activeElement`, `currentLocation`, `online`, `orientation`, `windowFocused`, `windowSize`) currently touch DOM globals at module load. See the SSR safety plan for the import-safety work in progress. Until that lands, these modules throw when imported in Node. All factory-style utilities (`createX`) are import-safe — DOM access happens only when the factory is called.
