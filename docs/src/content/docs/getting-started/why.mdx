@@ -23,6 +23,9 @@ The pieces are independent and composable — not a strict hierarchy. Signals ar
     S["signals
     signal · computed · effect · @reactive · stores"]
 
+    U["utilities
+    on · fromEvent · sync · observers · media-query · storage · async"]
+
     E["elements  JSX → DOM
     div · {signal} · on:click · style:color"]
 
@@ -32,8 +35,12 @@ The pieces are independent and composable — not a strict hierarchy. Signals ar
     FW["framework integrations
     useSignal · useScope"]
 
+    S -->|"built on signals"| U
     S -->|"powers live bindings"| E
     S -->|"powers @reactive / computed"| CE
+    U -.->|"reactive browser APIs"| E
+    U -.->|"reactive browser APIs"| CE
+    U -.->|"subscribed via useSignal"| FW
     E -.->|"JSX renders CE internals"| CE
     CE -->|"native HTML tag"| FW
     S -->|"useSignal / useScope"| FW`} />
