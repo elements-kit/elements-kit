@@ -28,7 +28,7 @@ const read = (prop: keyof Location): string =>
  *
  * Outside a browser, every signal reads the empty string.
  */
-export function createLocation(): LocationResult {
+function createLocation(): LocationResult {
   if (!isBrowser) {
     return {
       hash: computed(() => ""),
@@ -43,12 +43,27 @@ export function createLocation(): LocationResult {
   const cleanup = fromEvent(window, EVENTS)(() => trigger(tick));
   onCleanup(cleanup);
 
-  const hash = computed(() => { tick(); return read("hash"); });
-  const href = computed(() => { tick(); return read("href"); });
-  const pathname = computed(() => { tick(); return read("pathname"); });
-  const search = computed(() => { tick(); return read("search"); });
+  const hash = computed(() => {
+    tick();
+    return read("hash");
+  });
+  const href = computed(() => {
+    tick();
+    return read("href");
+  });
+  const pathname = computed(() => {
+    tick();
+    return read("pathname");
+  });
+  const search = computed(() => {
+    tick();
+    return read("search");
+  });
 
-  hash(); href(); pathname(); search();
+  hash();
+  href();
+  pathname();
+  search();
 
   return { hash, href, pathname, search };
 }

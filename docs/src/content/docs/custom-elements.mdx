@@ -192,6 +192,15 @@ class ClockElement extends HTMLElement {
 
 ---
 
+## When NOT to use custom elements
+
+Custom elements are the right tool for **reusable, framework-agnostic UI**. They're the wrong tool when:
+
+- **The UI is a one-off.** A class component or inline JSX has lower overhead — no registration, no attribute wiring.
+- **You need SSR.** Custom elements are client-only.
+- **Parent-to-child data is complex.** Attributes are strings; properties work but lose the HTML-first contract. Complex data bridges best via stores.
+- **Shadow DOM style isolation is a hard requirement and you're not ready for it.** Start with light DOM; add shadow only when style collisions actually bite.
+
 ## Go deeper
 
 | Topic | What it covers |
@@ -215,3 +224,11 @@ class ClockElement extends HTMLElement {
   }}
   preview={{}}
 />
+
+## See also
+
+- [Attributes](/custom-elements/attributes)
+- [Styling](/custom-elements/styling)
+- [Slots](/custom-elements/slots)
+- [Signals](/signals)
+- [Elements](/elements)

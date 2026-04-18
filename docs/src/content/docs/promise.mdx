@@ -1,5 +1,6 @@
 ---
 title: Promise
+description: Wrap a Promise as a ComputedPromise — awaitable and reactive.
 ---
 
 The `promise` utility wraps any native `Promise`, executor function, or `ReactivePromise` into a `ComputedPromise` — an object that is both **awaitable** like a regular promise and **reactive** like a signal.
@@ -95,3 +96,9 @@ rp.result; // PromiseResult<T, E>
 ```
 
 `cp instanceof ReactivePromise` returns `true` for any `ComputedPromise`.
+
+## See also
+
+- [Async](/async) — higher-level controller with `start` / `stop` / `run`.
+- [Data fetching](/recipes/data-fetching) — composed async recipe.
+- [Signals](/signals)

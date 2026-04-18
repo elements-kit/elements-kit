@@ -1,10 +1,11 @@
 ---
 title: Async
+description: Reactive, awaitable async controllers — start, stop, rerun, and read state as signals.
 ---
 
 The `async` utility wraps an async function into a reactive, awaitable controller. You can start, stop, and rerun async operations, and read their state, value, and errors as reactive signals.
 
-## Basic Usage
+## Basic usage
 
 ```ts
 import { async } from "elements-kit/utilities/async";
@@ -14,7 +15,9 @@ const fetchItems = async(() => fetch("/api/items").then((res) => res.json()));
 fetchItems.start(); // begin reactive execution
 ```
 
-## Control Methods
+## Control methods
+
+Start for reactive execution, run for one-shot, stop to tear down.
 
 ```ts
 op.start(); // run and track reactive dependencies — reruns when signals change
@@ -22,7 +25,7 @@ op.run();   // run once without tracking — does not rerun on signal changes
 op.stop();  // stop reactive reruns and run cleanup logic
 ```
 
-`Async` implements `Symbol.dispose`, so you can use the `using` keyword to stop it automatically when it goes out of scope:
+`Async` implements `Symbol.dispose`, so `using` stops it automatically when it goes out of scope:
 
 ```ts
 {
@@ -32,7 +35,7 @@ op.stop();  // stop reactive reruns and run cleanup logic
 } // op.stop() called automatically here
 ```
 
-## Reactive State Properties
+## Reactive state
 
 `Async` exposes the same reactive state interface as `ReactivePromise`:
 
@@ -46,9 +49,9 @@ op.pending; // true while pending
 
 All properties are reactive — reading them inside an `effect` or `computed` subscribes to changes.
 
-## Callable Signal
+## Callable signal
 
-An `Async` instance is also callable as a signal. Calling `op()` returns `op.result` and tracks it as a reactive dependency:
+An `Async` instance is also callable as a signal. `op()` returns `op.result` and tracks it as a reactive dependency:
 
 ```ts
 import { effect } from "elements-kit/signals";
@@ -70,32 +73,7 @@ const op = async(() => Promise.resolve(123)).start();
 const value = await op; // 123
 ```
 
-## Mutation Pattern
-
-Use `run()` for one-shot operations (e.g. mutations). `await op.run(args)` resolves to the fulfilled value:
-
-```ts
-const mutation = async((id: number) =>
-  fetch(`/api/todos/${id}`, { method: "DELETE" }).then((r) => r.json()),
-);
-
-const result = await mutation.run(42);
-```
-
-## Cache Pattern
-
-```ts
-import { storage } from "elements-kit/utilities/storage";
-
-const cache = storage("todos"); // persists across reloads
-const query = async(() =>
-  fetch("/api/todos")
-    .then((r) => r.json())
-    .then(cache), // value flows through and is saved to storage
-).start();
-```
-
-## Reactive Reruns with `start()`
+## Reactive reruns
 
 Read signals inside the async function to make it re-execute when they change. Only signal reads **before the first `await`** are tracked.
 
@@ -128,8 +106,6 @@ const op = async(async () => {
 ```
 :::
 
-## Reactive Reruns with `run()`
-
 `run()` is untracked — signals inside the fn do not trigger re-runs. To get reactive reruns with explicit parameters, wrap it in an external `effect`:
 
 ```ts
@@ -160,67 +136,8 @@ const query = async((id: number) => {
 
 `onCleanup` also works inside `run()` — the cleanup fires when `stop()` is called or when the next `run()` replaces it.
 
-## Retry
+## See also
 
-Compose with `retry` from `elements-kit/utilities/retry` to automatically retry on failure. Pass an optional delay for backoff between attempts:
-
-```ts
-import { async } from "elements-kit/utilities/async";
-import { retry } from "elements-kit/utilities/retry";
-import { onCleanup } from "elements-kit/signals";
-
-const fetchTodo = async((id: number) =>
-  retry(() => {
-    const controller = new AbortController();
-    onCleanup(() => controller.abort()); // aborts before each retry
-    return fetch(`/api/todos/${id}`, { signal: controller.signal }).then((r) => r.json());
-  }, 3, (n) => n * 500)(), // 0ms, 500ms, 1000ms between failures
-).start();
-```
-
-## Refetch on Network Reconnect
-
-Read `online()` inside the async function. When connectivity is lost and restored, `start()` re-runs automatically:
-
-```ts
-import { async } from "elements-kit/utilities/async";
-import { online } from "elements-kit/utilities/network";
-
-const data = signal()
-const query = async(() => {
-  if (!online()) return untracked(data); // returns stale value while offline
-  return fetch("/api/data").then((r) => r.json()).then(data);
-}).start();
-```
-
-## Refetch on Window Focus
-
-Read `windowFocused()` inside the async function to re-execute whenever the user returns to the tab:
-
-```ts
-import { async } from "elements-kit/utilities/async";
-import { windowFocused } from "elements-kit/utilities/window-focus";
-
-const query = async(() => {
-  windowFocused(); // re-runs when window regains focus
-  return fetch("/api/data").then((r) => r.json());
-}).start();
-```
-
-## Interval Polling
-
-Read `timer.timestamp()` inside the async function to re-execute on every tick:
-
-```ts
-import { signal } from "elements-kit/signals";
-import { async } from "elements-kit/utilities/async";
-import { createInterval } from "elements-kit/utilities/interval";
-
-const id = signal(1);
-const timer = createInterval(10_000);
-
-const fetchTodo = async(() => {
-  timer.timestamp(); // re-runs every 10 seconds
-  return fetch(`https://jsonplaceholder.typicode.com/todos/${id()}`);
-}).start();
-```
+- [Promise](/promise) — the underlying `ComputedPromise` / `ReactivePromise` primitive.
+- [Data fetching](/recipes/data-fetching) — full recipe composing retry, online, window-focus.
+- [Signals](/signals) — `onCleanup`, `untracked`.

@@ -14,7 +14,23 @@ Signals are framework-agnostic — they work the same whether you're in a custom
 import { useSignal, useScope } from "elements-kit/integrations/react";
 ```
 
----
+<Playground
+  provider={{
+    template: "react-ts",
+    customSetup: {
+      dependencies: {
+        "elements-kit": "latest",
+        "react": "^19",
+        "react-dom": "^19",
+      },
+    },
+    files: {
+      "/App.tsx": { code: REACT_COUNTER_CODE, active: true },
+      "/tsconfig.json": { code: REACT_TSCONFIG, hidden: true },
+    },
+  }}
+  preview={{}}
+/>
 
 ## useSignal
 
@@ -245,22 +261,7 @@ The store doesn't know about React. The same `counter` instance can drive a cust
 
 ---
 
-## Playground
+## See also
 
-<Playground
-  provider={{
-    template: "react-ts",
-    customSetup: {
-      dependencies: {
-        "elements-kit": "latest",
-        "react": "^19",
-        "react-dom": "^19",
-      },
-    },
-    files: {
-      "/App.tsx": { code: REACT_COUNTER_CODE, active: true },
-      "/tsconfig.json": { code: REACT_TSCONFIG, hidden: true },
-    },
-  }}
-  preview={{}}
-/>
+- [Signals](/signals)
+- [Stores](/stores)

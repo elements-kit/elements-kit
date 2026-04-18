@@ -23,24 +23,28 @@ export default defineConfig({
       sidebar: [
         { label: "Introduction", slug: "index" },
         {
-          label: "Signals",
+          label: "Getting Started",
           items: [
-            { label: "Primitives", slug: "signals" },
-            { label: "Stores", slug: "stores" },
+            { label: "Installation", slug: "getting-started/installation" },
+            { label: "First component", slug: "getting-started/first-component" },
+            { label: "Why ElementsKit", slug: "getting-started/why" },
           ],
         },
         {
-          label: "Async Primitives",
+          label: "Signals (Reference)",
           items: [
+            { label: "Primitives", slug: "signals" },
+            { label: "Stores", slug: "stores" },
             { label: "Promise", slug: "promise" },
             { label: "Async", slug: "async" },
           ],
         },
         {
-          label: "Building UI",
+          label: "Writing UI",
           items: [
-            { label: "Elements", slug: "elements" },
+            { label: "JSX & Elements", slug: "elements" },
             { label: "Components", slug: "components" },
+            { label: "For (list rendering)", slug: "writing-ui/for" },
           ],
         },
         {
@@ -52,11 +56,17 @@ export default defineConfig({
             { label: "Slots", slug: "custom-elements/slots" },
           ],
         },
+        { label: "Utilities", slug: "utilities" },
         {
           label: "Integrations",
           items: [{ label: "React", slug: "integrations/react" }],
         },
-        { label: "Utilities", slug: "utilities" },
+        {
+          label: "Recipes",
+          items: [
+            { label: "Data fetching", slug: "recipes/data-fetching" },
+          ],
+        },
       ],
 
       expressiveCode: {

@@ -8,6 +8,20 @@ import STORES_FILE from "@/playground/files/stores.tsx?raw";
 
 A **store** is a plain class whose fields are made reactive with `@reactive`. It holds state — no `render()`, no DOM. Any component, effect, or framework integration that reads a store field tracks it as a signal dependency and re-runs when it changes.
 
+<Playground
+  provider={{
+    files: {
+      "/main.tsx": {
+        code: STORES_FILE,
+        active: true,
+      },
+    },
+  }}
+  preview={{}}
+/>
+
+## Create a shared store
+
 ```ts
 import { reactive, computed } from "elements-kit/signals";
 
@@ -139,16 +153,8 @@ export const ui = new UIStore();
 
 ---
 
-## Playground
+## See also
 
-<Playground
-  provider={{
-    files: {
-      "/main.tsx": {
-        code: STORES_FILE,
-        active: true,
-      },
-    },
-  }}
-  preview={{}}
-/>
+- [Signals](/signals)
+- [Components](/components)
+- [React integration](/integrations/react)

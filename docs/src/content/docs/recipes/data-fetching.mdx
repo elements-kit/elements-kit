@@ -1,0 +1,104 @@
+---
+title: Data fetching
+description: Compose async + retry + online + windowFocused into a resilient query that refetches on reconnect and tab focus.
+---
+
+Build a data-fetching query that retries on failure, pauses while offline, and refetches when the tab regains focus. Everything is composable reactive primitives — no query-library runtime.
+
+## The recipe
+
+```ts
+import { signal, effect, untracked, onCleanup } from "elements-kit/signals";
+import { async } from "elements-kit/utilities/async";
+import { retry } from "elements-kit/utilities/retry";
+import { online } from "elements-kit/utilities/network";
+import { windowFocused } from "elements-kit/utilities/window-focus";
+import { createLocalStorage } from "elements-kit/utilities/storage";
+
+const id = signal(1);
+const cache = createLocalStorage<unknown>("todo-cache", null);
+
+const fetchTodo = async(() => {
+  if (!online()) return untracked(cache);   // pause while offline, return stale value
+  windowFocused();                          // refetch on tab focus
+
+  return retry(() => {
+    const controller = new AbortController();
+    onCleanup(() => controller.abort());    // abort before each retry
+    return fetch(`/api/todos/${id()}`, { signal: controller.signal })
+      .then((r) => r.json())
+      .then((value) => (cache(value), value));
+  }, 3, (n) => n * 500)();                  // 0 ms → 500 ms → 1000 ms backoff
+}).start();
+
+effect(() => console.log(fetchTodo.state, fetchTodo.value));
+```
+
+## How each piece contributes
+
+| Primitive | Role |
+|-----------|------|
+| `async(…).start()` | Reactive controller. Reruns the body whenever a tracked signal changes. |
+| `online()` | Pauses the fetch and returns the cached value while offline. |
+| `windowFocused()` | Refetches when the user returns to the tab. |
+| `retry(fn, 3, …)` | Retries on rejection with exponential backoff. |
+| `onCleanup(abort)` | Cancels the in-flight request before each retry or re-run. |
+| `createLocalStorage(…)` | Persists the last-known-good value across reloads. |
+
+## Variations
+
+**One-shot mutation** — use `.run()` with an argument. Untracked by default:
+
+```ts
+const deleteTodo = async((todoId: number) =>
+  fetch(`/api/todos/${todoId}`, { method: "DELETE" }).then((r) => r.json()),
+);
+
+await deleteTodo.run(42);
+```
+
+**Interval polling** — read a timestamp signal inside the body:
+
+```ts
+import { createInterval } from "elements-kit/utilities/interval";
+
+const timer = createInterval(10_000);
+
+const poll = async(() => {
+  timer.timestamp();                      // re-runs every 10s
+  return fetch("/api/status").then((r) => r.json());
+}).start();
+```
+
+**Drop the cache** — `createLocalStorage` is optional. The body can return `undefined` while offline if stale values aren't useful.
+
+## Gotchas
+
+:::caution[Signals aren't tracked after an `await`]
+`async`'s body tracks signals **only** up to the first `await`. Reads after that are untracked.
+
+```ts
+// ❌ id() is read after an await — not tracked
+const op = async(async () => {
+  await someSetup();
+  return fetch(`/todos/${id()}`);
+});
+
+// ✅ id() is read before any await — tracked
+const op = async(async () => {
+  const currentId = id();
+  return fetch(`/todos/${currentId}`);
+});
+```
+:::
+
+:::caution[`online` / `windowFocused` must be read synchronously]
+Same rule — read them at the top of the body, not inside a `.then()` callback.
+:::
+
+## See also
+
+- [Async](/async) — full `async` / `Async` reference.
+- [Promise](/promise) — the underlying reactive-promise primitive.
+- [Signals](/signals) — `onCleanup`, `untracked`.
+- [Utilities](/utilities) — `online`, `windowFocused`, `createLocalStorage`, `retry`, `createInterval`.

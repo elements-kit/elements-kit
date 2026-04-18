@@ -1,0 +1,65 @@
+---
+title: First component
+description: Build a reactive counter with signals, JSX, and a custom element.
+---
+
+Build a reactive counter to see signals, JSX, and custom elements working together. Ten lines of code, no framework, no build-step magic — just standard browser APIs with reactive glue.
+
+## The counter
+
+```tsx
+import { signal, computed, reactive } from "elements-kit/signals";
+import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
+
+@attributes
+class CounterElement extends HTMLElement {
+  static [attr] = {
+    count(this: CounterElement, value: string | null) {
+      this.count = Number(value ?? 0);
+    },
+  };
+
+  @reactive() count = 0;
+  doubled = computed(() => this.count * 2);
+
+  connectedCallback() {
+    this.appendChild(
+      <section>
+        <p>
+          <strong>{() => this.count}</strong> × 2 = <strong>{this.doubled}</strong>
+        </p>
+        <button onClick={() => this.count++}>+1</button>{" "}
+        <button onClick={() => this.count--}>−1</button>
+      </section> as Element,
+    );
+  }
+}
+
+customElements.define("x-counter", CounterElement);
+```
+
+Use it like any built-in HTML element:
+
+```html
+<x-counter count="5"></x-counter>
+```
+
+## What's happening
+
+- **`@reactive() count = 0`** — makes `this.count` a reactive signal. Reads subscribe, writes notify.
+- **`computed(() => this.count * 2)`** — derived value, recomputed only when `count` changes.
+- **`{() => this.count}`** — the `() =>` wrapper creates a live text node that updates in place.
+- **`@attributes` + static `[attr]`** — wires the `count` HTML attribute to the reactive property.
+- **No framework runtime** — `CounterElement` is a plain `HTMLElement` usable in React, Vue, or raw HTML.
+
+## Next steps
+
+- Learn the signal primitives in depth → [Signals](/signals).
+- Understand JSX → DOM compilation → [Elements](/elements).
+- Layer on attributes, slots, and styling → [Custom elements](/custom-elements).
+
+## See also
+
+- [Installation](/getting-started/installation)
+- [Why ElementsKit](/getting-started/why)
+- [Custom elements](/custom-elements)

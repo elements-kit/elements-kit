@@ -39,7 +39,7 @@ Utilities are pre-built factories that wrap common browser APIs in signals — s
 | `createLocalStorage` | `utilities/storage` | `Signal<T>` |
 | `createSessionStorage` | `utilities/storage` | `Signal<T>` |
 | `createMediaPlayer` | `utilities/media-player` | `{ playing, muted, volume, … } & Disposable` |
-| `createLocation` / `currentLocation` | `utilities/location` | `{ hash, href, pathname, search }` |
+| `currentLocation` | `utilities/location` | `{ hash, href, pathname, search }` |
 | `createSearchParam` | `utilities/search-params` | `Computed<string \| null>` |
 | `navigate` | `utilities/routing` | `void` |
 | `isLocalNavigationEvent` | `utilities/routing` | `boolean` |
@@ -644,21 +644,17 @@ for (const method of ["pushState", "replaceState"] as const) {
 
 Without this patch, signals still update on back/forward — only programmatic navigation via `pushState`/`replaceState` won't be reflected.
 
-### createLocation / currentLocation
+### currentLocation
 
 Returns reactive signals for `hash`, `href`, `pathname`, and `search` — all sharing a single event listener set.
 
-`currentLocation` is a module-level singleton suitable for most apps. Use the `createLocation()` factory when you need a scoped or testable instance.
+`currentLocation` is a module-level singleton suitable for most apps.
 
 ```ts
-import { currentLocation, createLocation } from "elements-kit/utilities/location";
+import { currentLocation } from "elements-kit/utilities/location";
 
 // Singleton — shared across the app
 effect(() => console.log(currentLocation.pathname()));
-
-// Factory — create a scoped instance
-const loc = createLocation();
-effect(() => console.log(loc.search()));
 ```
 
 ```ts
@@ -669,7 +665,6 @@ type LocationResult = {
   search: Computed<string>;
 };
 
-function createLocation(): LocationResult
 const currentLocation: LocationResult
 ```
 
@@ -904,16 +899,8 @@ function sync<T>(subscribe: Subscribe, getter: () => T, setter: (v: T) => void):
 
 ---
 
-## Playground
+## See also
 
-<Playground
-  provider={{
-    files: {
-      "/main.tsx": {
-        code: PLAYGROUND_FILE,
-        active: true,
-      },
-    },
-  }}
-  preview={{}}
-/>
+- [Signals](/signals)
+- [Data fetching](/recipes/data-fetching)
+- Full catalog: [src/utilities/README.md](https://github.com/waelbettayeb/elements-kit/blob/main/src/utilities/README.md)

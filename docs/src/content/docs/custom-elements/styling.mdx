@@ -8,7 +8,17 @@ import PLAYGROUND_FILE from "@/playground/files/styling.tsx?raw";
 
 Custom elements can be styled two ways: with **global CSS** (light DOM) or **scoped CSS** inside a Shadow DOM. In both cases, using a `CSSStyleSheet` object avoids parsing the same CSS for every element instance.
 
----
+<Playground
+  provider={{
+    files: {
+      "/main.tsx": {
+        code: PLAYGROUND_FILE,
+        active: true,
+      },
+    },
+  }}
+  preview={{}}
+/>
 
 ## The problem with per-instance `<style>`
 
@@ -222,16 +232,7 @@ Note: with Shadow DOM, styles scoped to `:host` and descendant selectors are ful
 
 ---
 
-## Playground
+## See also
 
-<Playground
-  provider={{
-    files: {
-      "/main.tsx": {
-        code: PLAYGROUND_FILE,
-        active: true,
-      },
-    },
-  }}
-  preview={{}}
-/>
+- [Custom elements](/custom-elements)
+- [Elements](/elements)

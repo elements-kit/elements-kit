@@ -1,0 +1,62 @@
+---
+title: Why ElementsKit
+description: The problem ElementsKit solves — reactivity and rendering as separate, composable primitives.
+---
+
+import Diagram from "@/components/Diagram.astro";
+
+Modern UI frameworks bundle reactivity and rendering. You adopt the whole system or none of it. ElementsKit separates the two so you can mix one piece with any framework, or build your own component model from the parts.
+
+## What you get
+
+- **Signals** are the reactive core — fine-grained, framework-agnostic, composable with any rendering model.
+- **JSX** compiles to real `document.createElement` calls — no virtual DOM, no diffing, no runtime overhead.
+- **Custom elements** are native browser components — ElementsKit enhances them with signals and JSX without wrapping or abstracting the platform.
+
+Use one piece, or all three. Integrate with React for complex UIs. Build web components that work anywhere HTML does.
+
+## How the pieces fit
+
+The pieces are independent and composable — not a strict hierarchy. Signals are the shared language that connects everything.
+
+<Diagram code={`flowchart TB
+    S["signals
+    signal · computed · effect · @reactive · stores"]
+
+    E["elements  JSX → DOM
+    div · {signal} · on:click · style:color"]
+
+    CE["custom elements
+    HTMLElement · @attributes · Slot / Slots"]
+
+    FW["framework integrations
+    useSignal · useScope"]
+
+    S -->|"powers live bindings"| E
+    S -->|"powers @reactive / computed"| CE
+    E -.->|"JSX renders CE internals"| CE
+    CE -->|"native HTML tag"| FW
+    S -->|"useSignal / useScope"| FW`} />
+
+- **Signals** power live DOM bindings in JSX and reactive properties in custom elements. They can also be subscribed to directly from any framework.
+- **Elements** are a pattern built on top of signals and JSX. The result is a reactive DOM.
+- **Custom elements** are a native browser standard. React, Vue, and plain HTML can all use `<x-counter />` as a regular HTML tag — no adapter, no wrapper.
+- **Framework integrations** get both sides: shared signal state via `useSignal` / `useScope`, and any custom element as a native HTML tag.
+
+## Which pattern should I use?
+
+| Pattern | When to use it |
+|---------|----------------|
+| Plain signals | Pure logic, no UI. Node scripts, workers, utilities that need reactive state. |
+| Elements / JSX | Inline reactive UI in scripts. Quick components appended directly to the DOM. |
+| Components | Class-based UI with `render()`. Share state across multiple elements via stores. |
+| Custom elements | Reusable across frameworks. Native HTML integration, Shadow DOM, framework-agnostic distribution. |
+
+Start with the simplest option that fits — you can always combine patterns.
+
+## See also
+
+- [Installation](/getting-started/installation)
+- [First component](/getting-started/first-component)
+- [Signals](/signals)
+- [Elements](/elements)

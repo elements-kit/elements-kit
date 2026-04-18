@@ -1,0 +1,84 @@
+---
+title: Installation
+description: Install ElementsKit and configure JSX in your TypeScript project.
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+
+Install the package and point TypeScript at the ElementsKit JSX runtime. No build-step config on the consumer side — everything runs through your existing bundler.
+
+## Install
+
+<Tabs>
+  <TabItem label="pnpm">
+    ```sh
+    pnpm add elements-kit
+    ```
+  </TabItem>
+  <TabItem label="npm">
+    ```sh
+    npm install elements-kit
+    ```
+  </TabItem>
+  <TabItem label="yarn">
+    ```sh
+    yarn add elements-kit
+    ```
+  </TabItem>
+  <TabItem label="bun">
+    ```sh
+    bun add elements-kit
+    ```
+  </TabItem>
+  <TabItem label="deno">
+    ```sh
+    deno add npm:elements-kit
+    ```
+  </TabItem>
+  <TabItem label="CDN">
+    ```html title="index.html"
+    <script type="module">
+      import { signal } from "https://esm.sh/elements-kit/signals";
+    </script>
+    ```
+  </TabItem>
+</Tabs>
+
+## Configure JSX
+
+Point TypeScript at the ElementsKit JSX runtime. Required if you write JSX; skip otherwise.
+
+```json title="tsconfig.json"
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "elements-kit"
+  }
+}
+```
+
+Per-file pragma is also supported if you need JSX from a different source elsewhere in the project:
+
+```tsx
+/* @jsxImportSource elements-kit */
+```
+
+## Verify
+
+A minimal script confirms the install works:
+
+```ts
+import { signal, effect } from "elements-kit/signals";
+
+const count = signal(0);
+effect(() => console.log("count:", count()));
+
+count(1); // → count: 1
+count(2); // → count: 2
+```
+
+## See also
+
+- [First component](/getting-started/first-component)
+- [Why ElementsKit](/getting-started/why)
+- [Signals](/signals)

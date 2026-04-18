@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { createLocation, currentLocation } from "./location.ts";
+import { currentLocation } from "./location.ts";
 
 afterEach(() => {
   location.hash = "";
@@ -48,9 +48,9 @@ describe("currentLocation (singleton)", () => {
   });
 });
 
-describe("createLocation (factory)", () => {
+describe("currentLocation (singleton)", () => {
   it("returns independent location signals", () => {
-    const loc = createLocation();
+    const loc = currentLocation;
     expect(typeof loc.hash()).toBe("string");
     expect(typeof loc.href()).toBe("string");
     expect(typeof loc.pathname()).toBe("string");
@@ -58,7 +58,7 @@ describe("createLocation (factory)", () => {
   });
 
   it("all four properties update from a single event", () => {
-    const loc = createLocation();
+    const loc = currentLocation;
     history.replaceState(null, "", "/factory-test?q=1#section");
     window.dispatchEvent(new PopStateEvent("popstate"));
     expect(loc.pathname()).toBe("/factory-test");

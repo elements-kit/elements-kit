@@ -8,9 +8,19 @@ import PLAYGROUND_FILE from "@/playground/files/attributes.tsx?raw";
 
 HTML elements have two distinct ways to receive data: **attributes** and **properties**. Understanding the difference is essential before using `@attributes` — which bridges the two for custom elements.
 
----
+<Playground
+  provider={{
+    files: {
+      "/main.tsx": {
+        code: PLAYGROUND_FILE,
+        active: true,
+      },
+    },
+  }}
+  preview={{}}
+/>
 
-## Attributes vs Properties
+## Attributes vs properties
 
 **Attributes** live in the HTML markup. They are always strings (or absent). The browser parses them from the HTML source and exposes them via `setAttribute` / `getAttribute`.
 
@@ -174,16 +184,7 @@ class TextInput extends BaseInput {
 
 ---
 
-## Playground
+## See also
 
-<Playground
-  provider={{
-    files: {
-      "/main.tsx": {
-        code: PLAYGROUND_FILE,
-        active: true,
-      },
-    },
-  }}
-  preview={{}}
-/>
+- [Custom elements](/custom-elements)
+- [Signals](/signals)

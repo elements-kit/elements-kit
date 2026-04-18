@@ -3,8 +3,7 @@ title: Introduction
 description: Universal reactive primitives for the web — signals, JSX, and custom elements.
 ---
 
-import { Tabs, TabItem, Card, CardGrid, LinkCard } from "@astrojs/starlight/components";
-import Diagram from "@/components/Diagram.astro";
+import { Card, CardGrid, LinkCard } from "@astrojs/starlight/components";
 
 ElementsKit is a set of **universal reactive primitives** for building web UI. It works standalone, inside React or Vue, or as the foundation of your own component model — no framework required, no virtual DOM.
 
@@ -22,58 +21,6 @@ ElementsKit is a set of **universal reactive primitives** for building web UI. I
     Connect signals and stores to React via `useSignal` and `useScope`. More framework integrations planned — Vue, Solid, and beyond.
   </Card>
 </CardGrid>
-
----
-
-## Get started
-
-<Tabs>
-  <TabItem label="pnpm">
-    ```sh
-    pnpm add elements-kit
-    ```
-  </TabItem>
-  <TabItem label="npm">
-    ```sh
-    npm install elements-kit
-    ```
-  </TabItem>
-  <TabItem label="yarn">
-    ```sh
-    yarn add elements-kit
-    ```
-  </TabItem>
-  <TabItem label="bun">
-    ```sh
-    bun add elements-kit
-    ```
-  </TabItem>
-  <TabItem label="deno">
-    ```sh
-    deno add npm:elements-kit
-    ```
-  </TabItem>
-  <TabItem label="CDN">
-    ```html title="index.html"
-    <script type="module">
-      import { signal } from "https://esm.sh/elements-kit/signals";
-    </script>
-    ```
-  </TabItem>
-</Tabs>
-
-If you are using JSX to build elements or custom elements, configure your `tsconfig.json` to point to the ElementsKit JSX runtime:
-
-```json title="tsconfig.json"
-{
-  "compilerOptions": {
-    "jsx": "react-jsx",
-    "jsxImportSource": "elements-kit"
-  }
-}
-```
-
-Then use it in a component:
 
 ```tsx
 import { signal, computed, reactive } from "elements-kit/signals";
@@ -93,9 +40,7 @@ class CounterElement extends HTMLElement {
   connectedCallback() {
     this.appendChild(
       <section>
-        <p>
-          <strong>{() => this.count}</strong> × 2 = <strong>{this.doubled}</strong>
-        </p>
+        <p><strong>{() => this.count}</strong> × 2 = <strong>{this.doubled}</strong></p>
         <button onClick={() => this.count++}>+1</button>{" "}
         <button onClick={() => this.count--}>−1</button>
       </section> as Element,
@@ -106,80 +51,25 @@ class CounterElement extends HTMLElement {
 customElements.define("x-counter", CounterElement);
 ```
 
-```html
-<!-- Works in any HTML file, no build step for consumers -->
-<x-counter count="5"></x-counter>
-```
+Try it in a live playground at [Signals](/signals).
 
----
+## Start here
 
-## How it fits together
-
-The pieces are independent and composable — not a strict hierarchy. Signals are the shared language that connects everything.
-
-<Diagram code={`flowchart TB
-    S["signals
-    signal · computed · effect · @reactive · stores"]
-
-    E["elements  JSX → DOM
-    div · {signal} · on:click · style:color"]
-
-    CE["custom elements
-    HTMLElement · @attributes · Slot / Slots"]
-
-    FW["framework integrations
-    useSignal · useScope"]
-
-    S -->|"powers live bindings"| E
-    S -->|"powers @reactive / computed"| CE
-    E -.->|"JSX renders CE internals"| CE
-    CE -->|"native HTML tag"| FW
-    S -->|"useSignal / useScope"| FW`} />
-
-- **Signals** power live DOM bindings in JSX and reactive properties in custom elements. They can also be subscribed to directly from any framework.
-- **Elements** are a pattern built on top of signals and JSX. the result is a reactive DOM.
-- **Custom elements** are a native browser standard. React, Vue, and plain HTML can all use `<x-counter />` as a regular HTML tag — no adapter, no wrapper.
-- **Framework integrations** get both sides: shared signal state via `useSignal`/`useScope`, and any custom element as a native HTML tag.
-
-Use only what you need — each piece is independent:
-
----
-
-## Which pattern should I use?
-
-| Pattern | When to use it |
-|---------|---------------|
-| **Plain signals** | Pure logic, no UI. Node.js scripts, workers, utilities that need reactive state. |
-| **Elements / JSX** | Inline reactive UI in scripts. Quick components appended directly to the DOM. |
-| **Components** | Class-based UI with `render()`. Share state across multiple elements via stores. |
-| **Custom elements** | Reusable across frameworks. Native HTML integration, Shadow DOM, framework-agnostic distribution. |
-
-Start with the simplest option that fits your needs — you can always combine patterns:
-
-```tsx
-// Just need reactive state? Use signals standalone
-const count = signal(0);
-
-// Building UI? Add JSX for declarative DOM
-document.body.appendChild(<button onClick={() => count(count() + 1)}>{count}</button> as Element);
-
-// Need reusable components? Add class components
-class Counter { @reactive() count = 0; render() { return <button onClick={() => this.count++}>{this.count}</button>; } }
-
-// Sharing across pages/frameworks? Package as custom elements
-@attributes class MyElement extends HTMLElement { ... }
-```
-
----
+<CardGrid>
+  <LinkCard title="Installation" href="/getting-started/installation" description="Install the package and configure JSX in your TypeScript project." />
+  <LinkCard title="First component" href="/getting-started/first-component" description="Build a reactive counter in 30 lines of code." />
+  <LinkCard title="Why ElementsKit" href="/getting-started/why" description="The problem this library solves and which pattern to reach for." />
+</CardGrid>
 
 ## Explore
 
 <CardGrid>
   <LinkCard title="Signals" href="/signals" description="signal · computed · effect · @reactive · batch · onCleanup" />
   <LinkCard title="Stores" href="/stores" description="Class-based reactive stores — share state across components and frameworks" />
-  <LinkCard title="Utilities" href="/utilities" description="createMediaQuery and other pre-built signal factories for browser APIs" />
   <LinkCard title="Elements" href="/elements" description="JSX → real DOM, live bindings, reactive props, event listeners" />
-  <LinkCard title="Components" href="/components" description="Class components — store + render pattern, For list rendering" />
+  <LinkCard title="Components" href="/components" description="Class components — store + render pattern" />
   <LinkCard title="Custom Elements" href="/custom-elements" description="Native HTMLElement enhanced with signals, JSX, and decorators" />
+  <LinkCard title="Utilities" href="/utilities" description="Pre-built signal factories for browser APIs" />
   <LinkCard title="React" href="/integrations/react" description="useSignal · useScope — connect any signal or store to React" />
+  <LinkCard title="Data fetching recipe" href="/recipes/data-fetching" description="Compose async + retry + online + window-focus" />
 </CardGrid>

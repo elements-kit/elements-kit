@@ -8,7 +8,17 @@ import PLAYGROUND_FILE from "@/playground/files/slots.tsx?raw";
 
 Slots let consumers inject content into a component's layout. ElementsKit supports two approaches: **native `<slot>`** (browser-managed, Shadow DOM only) and **`Slot`** (ElementsKit-managed, works with or without Shadow DOM).
 
----
+<Playground
+  provider={{
+    files: {
+      "/main.tsx": {
+        code: PLAYGROUND_FILE,
+        active: true,
+      },
+    },
+  }}
+  preview={{}}
+/>
 
 ## Native slots — Shadow DOM
 
@@ -59,7 +69,7 @@ The standard `slot` HTML attribute routes each child into the matching named slo
 
 Use JSX instead of `innerHTML` to build the shadow tree — the `<slot>` elements work the same:
 
-```ts
+```tsx
 import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
 
 @attributes
@@ -207,16 +217,8 @@ Choose native `<slot>` when you need style encapsulation or are building a reusa
 
 ---
 
-## Playground
+## See also
 
-<Playground
-  provider={{
-    files: {
-      "/main.tsx": {
-        code: PLAYGROUND_FILE,
-        active: true,
-      },
-    },
-  }}
-  preview={{}}
-/>
+- [Custom elements](/custom-elements)
+- [Elements](/elements)
+- [Components](/components)

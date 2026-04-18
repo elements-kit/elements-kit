@@ -96,7 +96,7 @@ Page-level singletons. Importing is safe — reading before DOM is available ret
 | Module | Export | Returns |
 |--------|--------|---------|
 | **active-element** | `activeElement` | `Computed<Element \| null>` |
-| **location** | `currentLocation`, `createLocation()` | `{ href, pathname, search, hash }` (each `Computed<string>`) |
+| **location** | `currentLocation` | `{ href, pathname, search, hash }` (each `Computed<string>`) |
 | **media-devices** | `createMediaDevices()` | `Computed<MediaDeviceInfo[]>` |
 | **network** | `online` | `Computed<boolean>` |
 | **orientation** | `orientation` | `{ angle, type }` |

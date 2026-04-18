@@ -1,0 +1,71 @@
+---
+title: For
+description: Keyed list rendering — each item renders once per key, no re-renders on reorder.
+---
+
+`For` reconciles a reactive array into the DOM. Each item renders once per unique key — no full re-renders on reorder, add, or remove. The render callback runs only for new keys.
+
+## API
+
+```tsx
+import { For } from "elements-kit";
+
+<ul>
+  <For each={todos} by={(todo) => todo.id}>
+    {(todo) => (
+      <li style:text-decoration={computed(() => todo.done ? "line-through" : "none")}>
+        <input
+          type="checkbox"
+          checked={computed(() => todo.done)}
+          on:change={() => (todo.done = !todo.done)}
+        />{" "}
+        {todo.text}
+      </li>
+    )}
+  </For>
+</ul>
+```
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `each` | `T[] \| (() => T[])` | Reactive array to render. |
+| `by` | `(item: T, index: number) => string \| number` | Key function. Defaults to the index. |
+| `children` | `(item: T, index: number) => Element` | Render function. Called once per new key. |
+
+## How reconciliation works
+
+On each array change, `For` compares the new keys to the previous ones:
+
+- **Existing key** → reuses the rendered node. No teardown, no recreate.
+- **New key** → calls the render function once and mounts the result.
+- **Missing key** → unmounts the node.
+- **Moved key** → reorders the DOM in place.
+
+Complexity is O(n + m) where n is the old array length and m is the new.
+
+## Keys
+
+Keys must be unique within `each`. Duplicate keys produce undefined reordering. If your data doesn't have a natural identifier, generate one at insertion time; don't rely on index as a key for mutable lists.
+
+:::caution[The render callback isn't reactive]
+`For`'s render function runs once per new key — it's not an effect. If you want a row to react to changes in `todo.done`, read it through `() => todo.done` or `computed(() => todo.done)` inside the returned JSX. A bare `{todo.done}` captures a snapshot.
+:::
+
+## Non-reactive arrays
+
+`each` accepts both a plain array and a signal / getter. A plain array renders once; passing a signal makes the list live:
+
+```tsx
+// Static — rendered once
+<For each={[1, 2, 3]} by={(n) => n}>{(n) => <li>{n}</li>}</For>
+
+// Reactive — reruns on signal change
+const items = signal<string[]>([]);
+<For each={items} by={(x) => x}>{(x) => <li>{x}</li>}</For>
+```
+
+## See also
+
+- [Elements](/elements)
+- [Components](/components)
+- [Signals](/signals)

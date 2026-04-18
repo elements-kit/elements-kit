@@ -6,23 +6,21 @@ description: Class components — reactive state and element rendering in one pl
 import Playground from "@/playground/Playground.astro";
 import COMPONENTS_FILE from "@/playground/files/components.tsx?raw";
 
-A **component** is a class with a `render()` method that returns an `Element`. It combines a [store](/store) (reactive state) with element construction (JSX). The simplest possible component:
+A **component** is a class with a `render()` method that returns an `Element`. It combines a [store](/stores) (reactive state) with element construction (JSX). The simplest possible component:
 
-```tsx
-class Greeting {
-  name = "world";
+<Playground
+  provider={{
+    files: {
+      "/main.tsx": {
+        code: COMPONENTS_FILE,
+        active: true,
+      },
+    },
+  }}
+  preview={{}}
+/>
 
-  render() {
-    return <h1>Hello, {this.name}!</h1>;
-  }
-}
-
-document.getElementById("app")!.appendChild(new Greeting().render());
-```
-
----
-
-## Store + render
+## Write a component that owns its state
 
 A typical component owns its state and produces elements from it. `@reactive` turns class fields into signals; JSX reads them as live bindings.
 
@@ -45,7 +43,7 @@ class CounterStore {
   #count = signal(0);
   get count() { return this.#count() }
   set count(value: number) { this.#count(value) }
-  
+
   doubled = computed(() => this.count * 2);
 }
 ---
@@ -56,7 +54,7 @@ class Counter {
   #count = signal(0);
   get count() { return this.#count() }
   set count(value: number) { this.#count(value) }
-  
+
   doubled = computed(() => this.count * 2);
 
   render() {
@@ -69,7 +67,7 @@ class Counter {
   }
 }
 ---
-// use @reactive decorator for natural property access (no () on reads)
+// Use @reactive for natural property access — same ergonomics, less boilerplate
 import { reactive, computed } from "elements-kit/signals";
 
 class Counter {
@@ -91,11 +89,9 @@ class Counter {
 document.getElementById("app")!.appendChild(new Counter().render());
 ```
 
----
+## Share state across components
 
-## Sharing state
-
-When state needs to be **shared** across components, move it into a standalone [store](/store) — a class with `@reactive` fields and no `render()`. Components read from the store; the store holds no reference to components.
+When state needs to be **shared** across components, move it into a standalone [store](/stores) — a class with `@reactive` fields and no `render()`. Components read from the store; the store holds no reference to components.
 
 ```ts
 // counter-store.ts — state only
@@ -134,51 +130,15 @@ class CounterControls {
 }
 ```
 
-The same `counter` instance can also drive a React component or a custom element — see [Store](/store) and [React integration](/integrations/react#store).
+The same `counter` instance can also drive a React component or a custom element — see [Stores](/stores) and [React integration](/integrations/react).
 
----
+## Rendering lists
 
-## `For` — keyed list rendering
+For keyed list rendering, use the `For` component — it reconciles a reactive array into the DOM without re-rendering stable rows. See [`For`](/writing-ui/for) for the full API.
 
-`For` reconciles a reactive array into the DOM. Each item renders **once** per unique key — no full re-renders on reorder, add, or remove.
+## See also
 
-```tsx
-import { For } from "elements-kit";
-
-<ul>
-  <For each={todos} by={(todo) => todo.id}>
-    {(todo) => (
-      <li style:text-decoration={computed(() => todo.done ? "line-through" : "none")}>
-        <input
-          type="checkbox"
-          checked={computed(() => todo.done)}
-          on:change={() => (todo.done = !todo.done)}
-        />{" "}
-        {todo.text}
-      </li>
-    )}
-  </For>
-</ul>
-```
-
-| Prop | Type | Description |
-|------|------|-------------|
-| `each` | `T[] \| (() => T[])` | Reactive array to render |
-| `by` | `(item: T, index: number) => string \| number` | Key function — defaults to index |
-| `children` | `(item: T, index: number) => Element` | Render function, called once per new key |
-
----
-
-## Playground
-
-<Playground
-  provider={{
-    files: {
-      "/main.tsx": {
-        code: COMPONENTS_FILE,
-        active: true,
-      },
-    },
-  }}
-  preview={{}}
-/>
+- [Elements](/elements) — JSX → DOM, prop namespaces.
+- [For](/writing-ui/for) — keyed list rendering.
+- [Stores](/stores) — shared reactive state.
+- [Custom elements](/custom-elements) — components as native HTML tags.
