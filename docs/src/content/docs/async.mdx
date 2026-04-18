@@ -5,12 +5,18 @@ description: Reactive, awaitable async controllers — start, stop, rerun, and r
 
 import Playground from "@/playground/Playground.astro";
 import ASYNC_FLOW from "@/playground/files/async-flow.tsx?raw";
+import ASYNC_TESTS from "@/playground/files/async.test.ts?raw";
 
 The `async` utility wraps an async function into a reactive, awaitable controller. You can start, stop, and rerun async operations, and read their state, value, and errors as reactive signals.
 
 <Playground
   provider={{ files: { "/main.tsx": { code: ASYNC_FLOW, active: true } } }}
   preview={{}}
+/>
+
+<Playground
+  provider={{ template: "test-ts", files: { "/main.test.ts": { code: ASYNC_TESTS, active: true } } }}
+  tests={{ verbose: true }}
 />
 
 ## Basic usage

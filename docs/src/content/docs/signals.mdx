@@ -9,6 +9,14 @@ import BATCH from "@/playground/files/signals-batch.tsx?raw";
 import CLEANUP from "@/playground/files/signals-cleanup.tsx?raw";
 import EFFECT_SCOPE from "@/playground/files/signals-effect-scope.tsx?raw";
 import UNTRACKED from "@/playground/files/signals-untracked.tsx?raw";
+import TEST_SIGNAL from "@/playground/files/signals-signal.test.ts?raw";
+import TEST_COMPUTED from "@/playground/files/signals-computed.test.ts?raw";
+import TEST_EFFECT from "@/playground/files/signals-effect.test.ts?raw";
+import TEST_EFFECT_SCOPE from "@/playground/files/signals-effect-scope.test.ts?raw";
+import TEST_ON_CLEANUP from "@/playground/files/signals-on-cleanup.test.ts?raw";
+import TEST_BATCH from "@/playground/files/signals-batch.test.ts?raw";
+import TEST_UNTRACKED from "@/playground/files/signals-untracked.test.ts?raw";
+import TEST_REACTIVE from "@/playground/files/signals-reactive.test.ts?raw";
 
 Signals are the reactive core of ElementsKit. Every UI update, derived value, and side effect is driven by three primitives: `signal`, `computed`, and `effect`.
 
@@ -100,6 +108,11 @@ In JSX, signal/computed values must be wrapped in a function:
 ```
 :::
 
+<Playground
+  provider={{ template: "test-ts", files: { "/main.test.ts": { code: TEST_SIGNAL, active: true } } }}
+  tests={{ verbose: true }}
+/>
+
 ## computed
 
 A `computed` derives a value from one or more signals. It is **lazy** — only re-evaluates when a dependency has changed and the value is read again. Results are cached between reads.
@@ -147,6 +160,11 @@ fullName(); // "Grace Lovelace"
 ```
 
 A `computed` is read-only — you can only call it with no arguments.
+
+<Playground
+  provider={{ template: "test-ts", files: { "/main.test.ts": { code: TEST_COMPUTED, active: true } } }}
+  tests={{ verbose: true }}
+/>
 
 ---
 
@@ -224,6 +242,11 @@ effect(() => console.log(name()));
 ```
 :::
 
+<Playground
+  provider={{ template: "test-ts", files: { "/main.test.ts": { code: TEST_EFFECT, active: true } } }}
+  tests={{ verbose: true }}
+/>
+
 ## effectScope
 
 Groups multiple effects under a single lifecycle. Calling the returned stop function disposes **all** effects at once.
@@ -247,6 +270,11 @@ stop(); // Both effects disposed — silence
 ```
 
 Use `effectScope` when you want to start and stop a group of related effects together — e.g. tied to a component's lifetime.
+
+<Playground
+  provider={{ template: "test-ts", files: { "/main.test.ts": { code: TEST_EFFECT_SCOPE, active: true } } }}
+  tests={{ verbose: true }}
+/>
 
 ---
 
@@ -297,7 +325,10 @@ const derived = computed(() => {
 
 This ensures that any resources created inside the computed are always cleaned up at the right time.
 
-
+<Playground
+  provider={{ template: "test-ts", files: { "/main.test.ts": { code: TEST_ON_CLEANUP, active: true } } }}
+  tests={{ verbose: true }}
+/>
 
 ---
 
@@ -321,6 +352,11 @@ batch(() => {
 });
 // → 10 20  (single run)
 ```
+
+<Playground
+  provider={{ template: "test-ts", files: { "/main.test.ts": { code: TEST_BATCH, active: true } } }}
+  tests={{ verbose: true }}
+/>
 
 ---
 
@@ -387,6 +423,11 @@ trigger(user);
 ```
 :::
 
+<Playground
+  provider={{ template: "test-ts", files: { "/main.test.ts": { code: TEST_UNTRACKED, active: true } } }}
+  tests={{ verbose: true }}
+/>
+
 ---
 
 ## @reactive decorator
@@ -419,6 +460,11 @@ class Store {
   count = 0;
 }
 ```
+
+<Playground
+  provider={{ template: "test-ts", files: { "/main.test.ts": { code: TEST_REACTIVE, active: true } } }}
+  tests={{ verbose: true }}
+/>
 
 ---
 

@@ -5,12 +5,18 @@ description: Wrap a Promise as a ComputedPromise — awaitable and reactive.
 
 import Playground from "@/playground/Playground.astro";
 import PROMISE_BASIC from "@/playground/files/promise-basic.tsx?raw";
+import PROMISE_TESTS from "@/playground/files/promise.test.ts?raw";
 
 The `promise` utility wraps any native `Promise`, executor function, or `ReactivePromise` into a `ComputedPromise` — an object that is both **awaitable** like a regular promise and **reactive** like a signal.
 
 <Playground
   provider={{ files: { "/main.tsx": { code: PROMISE_BASIC, active: true } } }}
   preview={{}}
+/>
+
+<Playground
+  provider={{ template: "test-ts", files: { "/main.test.ts": { code: PROMISE_TESTS, active: true } } }}
+  tests={{ verbose: true }}
 />
 
 ## Basic Usage
