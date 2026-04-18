@@ -70,7 +70,7 @@ export class App extends TodoStore {
         </div>
 
         <ul style="padding: 0; list-style: none">
-          <For each={this.visible} by={(t: Todo) => t.id}>
+          <For each={this.visible} by={(t) => t.id}>
             {(todo: Todo) => (
               <li style="display: flex; gap: 8px; align-items: center; padding: 4px 0">
                 <input

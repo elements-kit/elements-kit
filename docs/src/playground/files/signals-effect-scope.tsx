@@ -52,8 +52,8 @@ export class App {
                 "font-size": "0.85em",
               }}
             >
-              <For each={scopeLogs} by={(_log: string, i: number) => i}>
-                {(log: string) => <div>{log}</div>}
+              <For each={scopeLogs} by={(_log, i) => i}>
+                {(log) => <div>{log}</div>}
               </For>
             </div>
           </div>

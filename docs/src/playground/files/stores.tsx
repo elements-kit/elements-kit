@@ -62,8 +62,8 @@ export class App {
         </div>
 
         <ul style="padding: 0; list-style: none">
-          <For each={cart.items} by={(i: CartItem) => i.name}>
-            {(item: CartItem) => (
+          <For each={cart.items} by={(i) => i.name}>
+            {(item) => (
               <li style="display: flex; justify-content: space-between; padding: 4px 0">
                 <span>
                   {item.name} × {() => item.qty}

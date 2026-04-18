@@ -57,8 +57,8 @@ export class App {
                 "font-size": "0.85em",
               }}
             >
-              <For each={batchLogs} by={(log: string) => log}>
-                {(log: string) => <div>{log}</div>}
+              <For each={batchLogs} by={(log) => log}>
+                {(log) => <div>{log}</div>}
               </For>
             </div>
           </div>
