@@ -8,6 +8,18 @@ import PLAYGROUND_FILE from "@/playground/files/elements.tsx?raw";
 
 An **element** is a real DOM node. JSX in ElementsKit compiles directly to `document.createElement` — there is no virtual DOM, no diffing, no reconciliation. Every expression produces an actual node you can hold in a variable, append to the DOM, or pass to a function.
 
+<Playground
+  provider={{
+    files: {
+      "/main.tsx": {
+        code: PLAYGROUND_FILE,
+        active: true,
+      },
+    },
+  }}
+  preview={{}}
+/>
+
 Configure JSX once in `tsconfig.json`:
 
 ```json
@@ -234,20 +246,6 @@ class BadgeElement extends HTMLElement {
 ```
 
 ---
-
-## Playground
-
-<Playground
-  provider={{
-    files: {
-      "/main.tsx": {
-        code: PLAYGROUND_FILE,
-        active: true,
-      },
-    },
-  }}
-  preview={{}}
-/>
 
 ## See also
 
