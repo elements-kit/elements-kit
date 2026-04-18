@@ -160,9 +160,11 @@ ElementsKit extends standard HTML props with namespaced prefixes for common reac
 | `class:active={bool}` | Reactive class toggle | `effect(() => el.classList.toggle("active", bool()))` |
 | `style:color={value}` | Reactive inline style | `effect(() => el.style.color = value())` |
 | `prop:foo={val}` | Force property assignment | `el.foo = val` (skips `setAttribute`) |
-| `[$ref]={fn}` | Ref callback | `fn(el)` after element is created |
+| `ref={fn}` | Ref callback | `fn(el)` after element is created |
 
 ```tsx
+
+
 const active = signal(false);
 const color = signal("blue");
 
@@ -170,7 +172,7 @@ const color = signal("blue");
   class:active={active}
   style:color={color}
   on:click={() => active(!active())}
-  [$ref]={(el) => console.log("mounted:", el)}
+  ref={(el) => console.log("Button element:", el)}
 >
   Toggle
 </button>

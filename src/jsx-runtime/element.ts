@@ -6,7 +6,6 @@ import {
   Disposer,
 } from "./types";
 import { applyProps } from "./properties";
-import { $ref } from "./ref";
 import { effectScope, untracked } from "../signals";
 import "../polyfill";
 
@@ -14,14 +13,11 @@ import "../polyfill";
 
 export function createElement(
   type: string | Element | DocumentFragment | ComponentClass | ComponentFn,
-  rawProps: Record<string | symbol, unknown> = {},
+  {
+    ref,
+    ...props
+  }: Record<string | symbol, unknown> & { ref?: (el: Element) => void } = {},
 ): Element | DocumentFragment | null {
-  // Extract $ref manually — esbuild drops computed Symbol keys in destructuring.
-  const ref = rawProps[$ref] as ((el: Element) => void) | undefined;
-  const props = Object.fromEntries(
-    Object.entries(rawProps as Record<string, unknown>),
-  ) as Record<string, unknown>;
-
   if (typeof type === "function" && !type.prototype?.render) {
     return createFunctionElement(
       type as (

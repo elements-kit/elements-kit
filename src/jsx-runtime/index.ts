@@ -1,6 +1,5 @@
 import { Child, ComponentClass } from "./types";
 import { createElement } from "./element";
-import { $ref } from "./ref";
 import type { JSX as DomJSX } from "dom-expressions/src/jsx-h";
 
 export {
@@ -47,7 +46,7 @@ export type Attrs<K extends keyof JSX.IntrinsicElements> =
 
 /** Extra props injected into every intrinsic element beyond dom-expressions defaults. */
 type OurProps = {
-  [$ref]?: (el: Element) => void;
+  ref?: (el: Element) => void;
   [slot: `slot:${string}`]: Child;
   [cls: `class:${string}`]: FunctionMaybe<boolean>;
   [sty: `style:${string}`]: FunctionMaybe<string | null>;
