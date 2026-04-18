@@ -3,7 +3,15 @@ title: Data fetching
 description: Compose async + retry + online + windowFocused into a resilient query that refetches on reconnect and tab focus.
 ---
 
+import Playground from "@/playground/Playground.astro";
+import DATA_FETCHING from "@/playground/files/data-fetching.tsx?raw";
+
 Build a data-fetching query that retries on failure, pauses while offline, and refetches when the tab regains focus. Everything is composable reactive primitives — no query-library runtime.
+
+<Playground
+  provider={{ files: { "/main.tsx": { code: DATA_FETCHING, active: true } } }}
+  preview={{}}
+/>
 
 ## The recipe
 
