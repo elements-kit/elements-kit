@@ -28,7 +28,7 @@ describe("createInterval", () => {
     iv.stop();
     vi.advanceTimersByTime(500);
     expect(cb).toHaveBeenCalledTimes(0);
-    expect(iv.isRunning()).toBe(false);
+    expect(iv.pending()).toBe(false);
   });
 
   it("start() resumes after stop", () => {

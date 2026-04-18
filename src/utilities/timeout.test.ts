@@ -15,7 +15,7 @@ describe("createTimeout", () => {
     effectScope(() => {
       t = createTimeout(cb, 500);
     });
-    expect(t.isRunning()).toBe(true);
+    expect(t.pending()).toBe(true);
   });
 
   it("fires callback after delay", () => {
@@ -35,7 +35,7 @@ describe("createTimeout", () => {
       t = createTimeout(vi.fn(), 200);
     });
     vi.advanceTimersByTime(300);
-    expect(t.isRunning()).toBe(false);
+    expect(t.pending()).toBe(false);
   });
 
   it("stop() cancels the timeout", () => {

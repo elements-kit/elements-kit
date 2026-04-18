@@ -1,37 +1,42 @@
-import { type Computed, onCleanup, signal } from "@/signals/index.ts";
+import { computed, type Computed, onCleanup, signal } from "@/signals/index.ts";
 
 type IntervalResult = {
-  isRunning: Computed<boolean>;
+  timestamp: Computed<number>;
+  pending: Computed<boolean>;
   start(): void;
   stop(): void;
   reset(): void;
 } & Disposable;
 
+type Fn = () => void;
+type Delay = number | (() => number);
+
 /**
  * Pausable `setInterval` wrapper.  Starts running immediately on creation.
- *
- * @param callback - Called on each tick.
- * @param delay    - Interval delay in ms (or a reactive getter).
  */
-export function createInterval(
-  callback: () => void,
-  delay: number | (() => number),
-): IntervalResult {
-  const isRunning = signal(true);
+export function createInterval(delay: Delay): IntervalResult;
+export function createInterval(callback: Fn, delay: Delay): IntervalResult;
+export function createInterval(arg1: Fn | Delay, arg2?: Delay): IntervalResult {
+  const [callback, delay] = resolveArgs(arg1, arg2);
+  const pending = signal(true);
   let id: ReturnType<typeof setInterval> | undefined;
+  const timestamp = signal(Date.now());
 
   const getDelay = typeof delay === "function" ? delay : () => delay;
 
   const start = () => {
     if (id !== undefined) return;
-    isRunning(true);
-    id = setInterval(() => callback(), getDelay());
+    pending(true);
+    id = setInterval(() => {
+      callback?.();
+      timestamp(Date.now());
+    }, getDelay());
   };
 
   const stop = () => {
     clearInterval(id);
     id = undefined;
-    isRunning(false);
+    pending(false);
   };
 
   const reset = () => {
@@ -45,10 +50,18 @@ export function createInterval(
   onCleanup(cleanup);
 
   return {
-    isRunning: isRunning as Computed<boolean>,
+    timestamp,
+    pending,
     start,
     stop,
     reset,
     [Symbol.dispose]: cleanup,
   };
+}
+
+function resolveArgs(arg1: Fn | Delay, arg2?: Delay): [Fn, Delay] {
+  if (arguments.length === 1) {
+    [undefined, arg1 as number | (() => number)];
+  }
+  return [arg1, arg2] as [Fn, Delay];
 }

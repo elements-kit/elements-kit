@@ -1,7 +1,7 @@
 import { type Computed, onCleanup, signal } from "@/signals/index.ts";
 
 type TimeoutResult = {
-  isRunning: Computed<boolean>;
+  pending: Computed<boolean>;
   start(): void;
   stop(): void;
   reset(): void;
@@ -17,21 +17,21 @@ export function createTimeout(
   delay: number | (() => number),
   immediate = true,
 ): TimeoutResult {
-  const isRunning = signal(false);
+  const pending = signal(false);
   let id: ReturnType<typeof setTimeout> | undefined;
   const getDelay = typeof delay === "function" ? delay : () => delay;
 
   const stop = () => {
     clearTimeout(id);
     id = undefined;
-    isRunning(false);
+    pending(false);
   };
 
   const start = () => {
-    if (isRunning()) return;
-    isRunning(true);
+    if (pending()) return;
+    pending(true);
     id = setTimeout(() => {
-      isRunning(false);
+      pending(false);
       id = undefined;
       callback();
     }, getDelay());
@@ -48,7 +48,7 @@ export function createTimeout(
   onCleanup(cleanup);
 
   return {
-    isRunning: isRunning as Computed<boolean>,
+    pending,
     start,
     stop,
     reset,
