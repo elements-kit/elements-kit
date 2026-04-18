@@ -3,9 +3,7 @@ import { ComputedPromise, promise } from "./promise";
 
 export type Fn<TInput, TOutput> = (input: TInput) => Promise<TOutput>;
 
-export class Async<TInput = undefined, TOutput = unknown> extends Promise<
-  TOutput | undefined
-> {
+export class Async<TInput = undefined, TOutput = unknown> {
   #fn = signal<Fn<TInput, TOutput>>(async () =>
     Promise.resolve(undefined as unknown as TOutput),
   );
@@ -58,11 +56,6 @@ export class Async<TInput = undefined, TOutput = unknown> extends Promise<
   }
 
   constructor(fn: MaybeReactive<Fn<TInput, TOutput>>) {
-    super((res, rej) => {
-      this.#current(promise(() => {})); // initialize with pending promise
-      this.#fn(resolve(fn));
-      this.then(res, rej);
-    });
     this.#fn(resolve(fn));
   }
 
