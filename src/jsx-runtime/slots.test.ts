@@ -1,18 +1,18 @@
 import { describe, it, expect, vi } from "vitest";
 import { signal, effect } from "../signals";
 import { createElement, disposeElement } from "./element";
-import { $slots, Slots, Slot } from "../slot";
+import { SLOTS, Slots, Slot } from "../slot";
 
 // ─ Helpers ────────────────────────────────────────────────────────────────────
 
-/** Class component with $slots. */
+/** Class component with SLOTS. */
 class Card {
-  [$slots] = Slots.new(["header", "body"]);
+  [SLOTS] = Slots.new(["header", "body"]);
 
   render() {
     const div = document.createElement("div");
-    div.appendChild(this[$slots].header());
-    div.appendChild(this[$slots].body());
+    div.appendChild(this[SLOTS].header());
+    div.appendChild(this[SLOTS].body());
     return div;
   }
 }
@@ -30,9 +30,9 @@ class Panel {
   }
 }
 
-// ─ $slots ─────────────────────────────────────────────────────────────────────
+// ─ SLOTS ─────────────────────────────────────────────────────────────────────
 
-describe("$slots — Slots.new()", () => {
+describe("SLOTS — Slots.new()", () => {
   it("fills a named slot with a static element", () => {
     const header = document.createElement("h1");
     header.textContent = "Hello";
@@ -77,7 +77,10 @@ describe("$slots — Slots.new()", () => {
     const s = signal(0);
 
     const child = createElement(() => {
-      effect(() => { s(); spy(); });
+      effect(() => {
+        s();
+        spy();
+      });
       return document.createElement("span");
     }, {}) as Element;
 

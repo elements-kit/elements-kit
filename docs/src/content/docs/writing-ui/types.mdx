@@ -27,7 +27,7 @@ Full JSX surface for a custom element. Composes attributes, flat properties, `pr
 ```tsx
 import { attributes, ATTRIBUTES } from "elements-kit/attributes";
 import { reactive } from "elements-kit/signals";
-import { $slots, Slots } from "elements-kit/slot";
+import { SLOTS, Slots } from "elements-kit/slot";
 import type { ElementProps } from "elements-kit/jsx-runtime";
 
 @attributes
@@ -36,7 +36,7 @@ class XRange extends HTMLElement {
     min(this: XRange, v) { this.min = Number(v ?? 0); },
   };
   declare static events: { commit: CustomEvent<number> };
-  [$slots] = Slots.new(["label"] as const);
+  [SLOTS] = Slots.new(["label"] as const);
 
   @reactive() min = 0;
 }

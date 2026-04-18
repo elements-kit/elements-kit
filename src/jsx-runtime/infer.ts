@@ -1,5 +1,5 @@
 import type { ATTRIBUTES, AttrChangeHandler } from "../attributes";
-import type { $slots, Slots } from "../slot";
+import type { SLOTS, Slots } from "../slot";
 import type { Child, ComponentClass, ComponentInstance } from "./types";
 import type { MaybeReactive } from "../signals";
 import type { JSX as DomJSX } from "dom-expressions/src/jsx-h";
@@ -82,15 +82,16 @@ type AttrMap<C> = C extends { [ATTRIBUTES]: infer M } ? M : never;
 
 type HandlerValue<H> = H extends AttrChangeHandler<any> ? string | null : H;
 
-type AttrsOf<C> = AttrMap<C> extends infer M
-  ? M extends Record<string, unknown>
-    ? {
-        [K in Exclude<keyof M & string, PropKeysOf<C>>]?: MaybeReactive<
-          HandlerValue<M[K]>
-        >;
-      }
-    : {}
-  : {};
+type AttrsOf<C> =
+  AttrMap<C> extends infer M
+    ? M extends Record<string, unknown>
+      ? {
+          [K in Exclude<keyof M & string, PropKeysOf<C>>]?: MaybeReactive<
+            HandlerValue<M[K]>
+          >;
+        }
+      : {}
+    : {};
 
 type FlatPropsOf<C> = MaybeReactiveProps<InstancePropsOf<C>>;
 
@@ -104,27 +105,29 @@ type Capitalize1<S extends string> = S extends `${infer H}${infer R}`
   ? `${Uppercase<H>}${R}`
   : S;
 
-type EventsOf<C> = EventMapOf<C> extends infer E
-  ? E extends Record<string, Event>
-    ? {
-        [K in keyof E & string as `on:${K}`]?: MaybeReactive<
-          (ev: E[K]) => void
-        >;
-      } & {
-        [K in keyof E & string as `on${Capitalize1<K>}`]?: MaybeReactive<
-          (ev: E[K]) => void
-        >;
-      }
-    : {}
-  : {};
+type EventsOf<C> =
+  EventMapOf<C> extends infer E
+    ? E extends Record<string, Event>
+      ? {
+          [K in keyof E & string as `on:${K}`]?: MaybeReactive<
+            (ev: E[K]) => void
+          >;
+        } & {
+          [K in keyof E & string as `on${Capitalize1<K>}`]?: MaybeReactive<
+            (ev: E[K]) => void
+          >;
+        }
+      : {}
+    : {};
 
-type SlotKeys<I> = I extends { [$slots]: Slots<infer K> } ? K : never;
+type SlotKeys<I> = I extends { [SLOTS]: Slots<infer K> } ? K : never;
 
-type SlotsOf<C> = SlotKeys<Inst<C>> extends infer K
-  ? [K] extends [string]
-    ? { [P in K as `slot:${P}`]?: Child }
-    : {}
-  : {};
+type SlotsOf<C> =
+  SlotKeys<Inst<C>> extends infer K
+    ? [K] extends [string]
+      ? { [P in K as `slot:${P}`]?: Child }
+      : {}
+    : {};
 
 type ChildrenOf<C> = C extends { children: never } ? {} : { children?: Child };
 
@@ -149,7 +152,7 @@ type Namespaces = {
  * - **`prop:*`** — explicit property assignment for every field.
  * - **Events** — keys from `declare static events: { ... }` produce both
  *   `on:${K}` and `on${Capitalize<K>}` typed handlers.
- * - **Slots** — keys from `[$slots] = Slots.new([...] as const)` produce `slot:${K}`.
+ * - **Slots** — keys from `[SLOTS] = Slots.new([...] as const)` produce `slot:${K}`.
  * - **Children** — `children?: Child` unless `static children: never`.
  * - **DOM attrs** — the standard dom-expressions surface (`class`, `style`, `ref`, …).
  *
@@ -161,7 +164,7 @@ type Namespaces = {
  * class XRange extends HTMLElement {
  *   static [ATTRIBUTES]: Attributes<XRange> = { min(v) { this.min = +v! } };
  *   declare static events: { commit: CustomEvent<number> };
- *   [$slots] = Slots.new(["label"] as const);
+ *   [SLOTS] = Slots.new(["label"] as const);
  *   @reactive() min = 0;
  * }
  *

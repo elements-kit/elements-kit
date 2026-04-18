@@ -126,28 +126,28 @@ slot.parent();    // the <section> element
 
 ### Named slots with `Slots<K>`
 
-For components with multiple named regions, use `Slots<K>` — a typed keyed collection of `Slot` instances. Attach it to your component instance via the `$slots` symbol so JSX's `slot:name` prop wiring works automatically.
+For components with multiple named regions, use `Slots<K>` — a typed keyed collection of `Slot` instances. Attach it to your component instance via the `SLOTS` symbol so JSX's `slot:name` prop wiring works automatically.
 
 ```tsx
-import { Slot, Slots, $slots } from "elements-kit/slot";
+import { Slot, Slots, SLOTS } from "elements-kit/slot";
 
 class CardComponent {
   // Declare named slots — keys become typed JSX props
-  [$slots] = Slots.new(["header", "footer"] as const);
+  [SLOTS] = Slots.new(["header", "footer"] as const);
 
   render() {
     return (
       <article>
         <header>
           {/* Mount slot — "Default header" renders until filled */}
-          {this[$slots].header("Default header")}
+          {this[SLOTS].header("Default header")}
         </header>
         <main>
           {/* Children passed directly as default slot */}
           <slot />
         </main>
         <footer>
-          {this[$slots].footer()}
+          {this[SLOTS].footer()}
         </footer>
       </article>
     ) as Element;

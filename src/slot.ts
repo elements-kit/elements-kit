@@ -142,7 +142,7 @@ export type SlotInstance = ReturnType<typeof Slot.new>;
  * Symbol key for attaching a `Slots` instance to a custom element instance.
  * This prevent collisions with Element properties and are not meant to be treated as JSX children.
  */
-export const $slots: unique symbol = Symbol("slots");
+export const SLOTS: unique symbol = Symbol("slots");
 
 const $map: unique symbol = Symbol("map");
 const $keys: unique symbol = Symbol("keys");
@@ -202,11 +202,11 @@ export class Slots<K extends string> implements Iterable<[K, SlotInstance]> {
    * ```ts
    * class Card extends HTMLElement {
    *   // ✅ literal keys flow through — "header" | "footer"
-   *   [$slots] = Slots.new(["header", "footer"] as const);
+   *   [SLOTS] = Slots.new(["header", "footer"] as const);
    * }
    *
    * // ❌ widens to string; no typed slot:* props
-   * // [$slots] = Slots.new(["header", "footer"]);
+   * // [SLOTS] = Slots.new(["header", "footer"]);
    * ```
    */
   static new<K extends string>(

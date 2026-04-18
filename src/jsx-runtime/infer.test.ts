@@ -1,6 +1,6 @@
 import { it, expect } from "vitest";
 import { ATTRIBUTES, type Attributes } from "../attributes";
-import { $slots, Slots } from "../slot";
+import { SLOTS, Slots } from "../slot";
 import type { Child } from "./types";
 import type { MaybeReactive } from "../signals";
 import type { JSX } from "./index";
@@ -35,7 +35,7 @@ class XRange extends HTMLElement {
     commit: CustomEvent<void>;
     ready: CustomEvent<number>;
   };
-  declare [$slots]: Slots<"header" | "footer">;
+  declare [SLOTS]: Slots<"header" | "footer">;
 
   min = 0;
   max = 100;
@@ -83,12 +83,8 @@ type _MR = MaybeReactiveProps<{
   label?: string;
   onClick: () => void;
 }>;
-type _MR_Count = Assert<
-  Equal<_MR["count"], MaybeReactive<number> | undefined>
->;
-type _MR_Label = Assert<
-  Equal<_MR["label"], MaybeReactive<string> | undefined>
->;
+type _MR_Count = Assert<Equal<_MR["count"], MaybeReactive<number> | undefined>>;
+type _MR_Label = Assert<Equal<_MR["label"], MaybeReactive<string> | undefined>>;
 // Functions are also wrapped — JSX runtime supports computed/signal handlers
 type _MR_OnClick = Assert<Equal<_MR["onClick"], MaybeReactive<() => void>>>;
 
@@ -97,9 +93,7 @@ type _MR_OnClick = Assert<Equal<_MR["onClick"], MaybeReactive<() => void>>>;
 type XP = ElementProps<typeof XRange>;
 // Flat `min` / `value` carry PROPERTY type (number-wrapped reactive),
 // not the attribute handler's string type.
-type _EP_FlatMin = Assert<
-  Equal<NonNullable<XP["min"]>, MaybeReactive<number>>
->;
+type _EP_FlatMin = Assert<Equal<NonNullable<XP["min"]>, MaybeReactive<number>>>;
 type _EP_FlatValue = Assert<
   Equal<NonNullable<XP["value"]>, MaybeReactive<number>>
 >;

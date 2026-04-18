@@ -1,15 +1,15 @@
 import { effect, effectScope, onCleanup } from "../signals";
 import { Component, Child } from "./types";
-import { $slots, Slots, Slot } from "../slot";
+import { SLOTS, Slots, Slot } from "../slot";
 import { PrimitiveNodeType, resolveNode } from "../lib";
 
-// ─ Typed $slots accessor ──────────────────────────────────────────────────────
+// ─ Typed SLOTS accessor ──────────────────────────────────────────────────────
 
 type SlotsMap = Slots<string> & Record<string, Slot>;
-type WithSlots = Component & { [$slots]: SlotsMap };
+type WithSlots = Component & { [SLOTS]: SlotsMap };
 
 function hasSlots(node: Component): node is WithSlots {
-  return $slots in node;
+  return SLOTS in node;
 }
 
 // ─ Public API ─────────────────────────────────────────────────────────────────
@@ -23,7 +23,7 @@ export function isChildrenProperty(node: Component, key: string): boolean {
 
   if (hasSlots(node)) {
     const slotName = key.replace(/^slot:/, "");
-    if (Slots.has(node[$slots], slotName)) return true;
+    if (Slots.has(node[SLOTS], slotName)) return true;
     // fall through — still check "children" and direct Slot properties
   }
 
@@ -35,11 +35,11 @@ export function applyChildren(
   key: string,
   value: Child,
 ): void {
-  // ─ $slots ─────────────────────────────────────────────────────────────────
+  // ─ SLOTS ─────────────────────────────────────────────────────────────────
   if (hasSlots(node)) {
     const slotName = key.replace(/^slot:/, "");
-    if (Slots.has(node[$slots], slotName)) {
-      applySlot(node[$slots][slotName], value);
+    if (Slots.has(node[SLOTS], slotName)) {
+      applySlot(node[SLOTS][slotName], value);
       return;
     }
   }
@@ -81,14 +81,14 @@ function applySlot(slot: Slot, value: Child): void {
     }
     // Dispose the current slot content when the parent scope tears down.
     // Intermediate replacements are already handled by slot.set() → slot.clear().
-    onCleanup(() => { dispose?.(); slot.clear(); });
+    onCleanup(() => {
+      dispose?.();
+      slot.clear();
+    });
   });
 }
 
-function mountChildren(
-  el: Element | DocumentFragment,
-  value: Child,
-): void {
+function mountChildren(el: Element | DocumentFragment, value: Child): void {
   for (const child of ensureFlatArray(value)) {
     if (typeof child === "function") {
       // Reactive child: a slot proxies the dynamic content. Each child gets its
@@ -108,7 +108,10 @@ function mountChildren(
     const dispose = (node as unknown as Partial<Disposable>)[Symbol.dispose];
     el.appendChild(node);
     // Own effectScope per child: prevents onCleanup overwrite across siblings.
-    if (dispose) effectScope(() => { onCleanup(dispose); });
+    if (dispose)
+      effectScope(() => {
+        onCleanup(dispose);
+      });
   }
 }
 
