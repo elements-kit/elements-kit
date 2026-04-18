@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { effect, isReactive, signal } from "../signals";
+import { effect, isReactive, onCleanup, signal } from "../signals";
 import { For } from "./for";
 
 // ─ Helpers ────────────────────────────────────────────────────────────────────
@@ -162,6 +162,28 @@ describe("For", () => {
       // prepend — suffix [3] should be untouched
       src([{ id: "0", label: "zero" }, ...src()]);
       expect(container.querySelector("li#3")).toBe(before3);
+    });
+  });
+
+  describe("per-item effectScope", () => {
+    it("runs onCleanup registered inside render when that item is removed", () => {
+      const cleaned: string[] = [];
+      const container = document.createElement("div");
+      const list = new For<{ id: string }>();
+      list.by = (it) => it.id;
+      list.children = (it) => {
+        onCleanup(() => cleaned.push(it.id));
+        const li = document.createElement("li");
+        li.id = it.id;
+        return li;
+      };
+      list.each = [{ id: "a" }, { id: "b" }, { id: "c" }];
+      container.appendChild(list.render());
+      expect(cleaned).toEqual([]);
+      list.each = [{ id: "a" }, { id: "c" }];
+      expect(cleaned).toEqual(["b"]);
+      list.each = [{ id: "c" }];
+      expect(cleaned).toEqual(["b", "a"]);
     });
   });
 

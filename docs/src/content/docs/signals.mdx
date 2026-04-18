@@ -271,6 +271,10 @@ stop(); // Both effects disposed — silence
 
 Use `effectScope` when you want to start and stop a group of related effects together — e.g. tied to a component's lifetime.
 
+:::note[JSX already scopes for you]
+Function components, intrinsic elements, fragments, and `<For>` items each create their own `effectScope`. You only need to create one by hand in custom-element lifecycle hooks or other non-JSX entry points — see [Scopes & cleanup](/scopes/).
+:::
+
 <Playground
   provider={{ template: "test-ts", files: { "/main.test.ts": { code: TEST_EFFECT_SCOPE, active: true } } }}
   tests={{ verbose: true }}

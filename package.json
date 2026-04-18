@@ -43,6 +43,11 @@
       "import": "./dist/attributes.mjs",
       "types": "./dist/attributes.d.ts"
     },
+    "./custom-elements": {
+      "source": "./src/custom-elements.ts",
+      "import": "./dist/custom-elements.mjs",
+      "types": "./dist/custom-elements.d.ts"
+    },
     "./jsx-runtime": {
       "source": "./src/jsx-runtime/index.ts",
       "import": "./dist/jsx-runtime/index.mjs",

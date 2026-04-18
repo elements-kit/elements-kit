@@ -51,6 +51,10 @@ On each array change, `For` compares the new keys to the previous ones:
 
 Complexity is O(n + m) where n is the old array length and m is the new.
 
+## Per-item scope
+
+Each item's render callback runs inside its own `effectScope`. `onCleanup` calls and nested effects registered during render belong to that scope and fire when the item's key leaves `each` — not only when the whole list unmounts. Use this to bind row-level resources (subscriptions, intervals, observers) to the row's real lifetime. See [Scopes & cleanup](/scopes/).
+
 ## Keys
 
 Keys must be unique within `each`. Duplicate keys produce undefined reordering. If your data doesn't have a natural identifier, generate one at insertion time; don't rely on index as a key for mutable lists.

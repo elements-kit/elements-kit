@@ -76,6 +76,7 @@ export default defineConfig({
             { label: "Stores", slug: "stores" },
             { label: "Promise", slug: "promise" },
             { label: "Async", slug: "async" },
+            { label: "Scopes & cleanup", slug: "scopes" },
           ],
         },
         {

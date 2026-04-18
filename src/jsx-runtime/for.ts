@@ -1,4 +1,11 @@
-import { effect, onCleanup, signal, trigger, untracked } from "../signals";
+import {
+  effect,
+  effectScope,
+  onCleanup,
+  signal,
+  trigger,
+  untracked,
+} from "../signals";
 import { disposeElement } from "./element";
 
 type KeyFn<T> = (item: T, index: number) => string | number;
@@ -12,6 +19,8 @@ interface Entry {
   start: Comment;
   /** Marks the end of this item's DOM range. */
   end: Comment;
+  /** Disposes effects/onCleanup registered by the render callback for this item. */
+  dispose: () => void;
 }
 
 /**
@@ -125,13 +134,8 @@ export class For<T = unknown> {
       let cursor: Node = after;
       for (let i = bEnd - 1; i >= bStart; i--) {
         const key = b[i];
-        const entry = this.#makeEntry(key);
-        insertEntry(
-          parent,
-          entry,
-          cursor,
-          untracked(() => this.children(items[i], i)),
-        );
+        const { entry, rendered } = this.#makeEntry(key, items[i], i);
+        insertEntry(parent, entry, cursor, rendered);
         this.#cache.set(key, entry);
         cursor = entry.start;
       }
@@ -148,13 +152,9 @@ export class For<T = unknown> {
       let entry = this.#cache.get(key);
 
       if (!entry) {
-        entry = this.#makeEntry(key);
-        insertEntry(
-          parent,
-          entry,
-          cursor,
-          untracked(() => this.children(items[i], i)),
-        );
+        const made = this.#makeEntry(key, items[i], i);
+        entry = made.entry;
+        insertEntry(parent, entry, cursor, made.rendered);
         this.#cache.set(key, entry);
       } else if (entry.end.nextSibling !== cursor) {
         moveEntry(parent, entry, cursor);
@@ -167,10 +167,32 @@ export class For<T = unknown> {
     this.#order = [...b];
   }
 
-  #makeEntry(key: string | number): Entry {
+  // Each item's render runs inside its own effectScope. onCleanup calls and
+  // nested effects created during render are scoped to that entry — disposed
+  // when the item is removed, not only on full list teardown.
+  #makeEntry(
+    key: string | number,
+    item: T,
+    index: number,
+  ): { entry: Entry; rendered: Node | null } {
+    let rendered: Node | null = null;
+    let dispose!: () => void;
+    // untracked prevents the scope from being linked to the enclosing
+    // reconcile effect — otherwise the scope would be torn down when the
+    // effect re-runs (on the next list change) instead of when the item
+    // is actually removed.
+    untracked(() => {
+      dispose = effectScope(() => {
+        rendered = this.children(item, index) as Node | null;
+      });
+    });
     return {
-      start: document.createComment(`[${key}]`),
-      end: document.createComment(`[/${key}]`),
+      entry: {
+        start: document.createComment(`[${key}]`),
+        end: document.createComment(`[/${key}]`),
+        dispose,
+      },
+      rendered,
     };
   }
 }
@@ -197,6 +219,7 @@ function cleanEntry(entry: Entry): void {
     if (node instanceof Element) disposeElement(node);
     node = next;
   }
+  entry.dispose();
 }
 
 // Dispose reactive children AND remove the entry's DOM range — used during
@@ -208,6 +231,7 @@ function removeEntry(entry: Entry): void {
     if (node instanceof Element) disposeElement(node);
     node = next;
   }
+  entry.dispose();
   const range = document.createRange();
   range.setStartBefore(entry.start);
   range.setEndAfter(entry.end);

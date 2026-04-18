@@ -1,0 +1,80 @@
+---
+title: Scopes and cleanup
+description: Where effects live, when they dispose, and how to attach reactive code to custom elements.
+---
+
+Every `effect`, `computed`, and `onCleanup` belongs to a **scope**. When the scope disposes, everything inside it tears down. Most JSX boundaries create a scope for you — knowing which ones, and where that scope is missing, is the whole contract.
+
+## The table
+
+| Boundary | Auto-scoped | Disposed when |
+|----------|-------------|---------------|
+| Function component body — `(props) => <el/>` | yes | the element is removed |
+| Intrinsic or class element — `<div/>`, `<MyClass/>` | yes | the element is removed |
+| Fragment — `<>...</>` | yes (via the JSX transform) | the fragment's disposables run |
+| Reactive child slot — `{() => signal()}` | yes | the slot updates or its parent unmounts |
+| `<For>` render callback, per item | yes | the item's key leaves `each`, or the list unmounts |
+| Custom element `connectedCallback` | **no** — opt in with `connectedScope` | you call `disconnectedScope` (or the returned `dispose`) |
+
+If you write `onCleanup(...)` or `effect(...)` inside any of the first five rows, the library owns its lifetime. In a custom element you own it yourself.
+
+## Custom elements
+
+Use `connectedScope` and `disconnectedScope` for the common case. They store one dispose handle per element and let reconnects replace it cleanly.
+
+```ts
+import { effect, onCleanup } from "elements-kit/signals";
+import { connectedScope, disconnectedScope } from "elements-kit/custom-elements";
+
+class Clock extends HTMLElement {
+  connectedCallback() {
+    connectedScope(this, () => {
+      const id = setInterval(() => (this.textContent = String(Date.now())), 1000);
+      onCleanup(() => clearInterval(id));
+    });
+  }
+
+  disconnectedCallback() {
+    disconnectedScope(this);
+  }
+}
+```
+
+:::caution[Effects must live inside the scope callback]
+Put every `effect` and `onCleanup` **inside** the `connectedScope` (or `renderScope`) callback. Anything created outside — in the constructor, a field initializer, or `attributeChangedCallback` — has no owning scope and will not stop when the element disconnects. The same rule applies to effects you start from inside a function passed to a timer or event handler: create them inside the scope callback, not on first event. `computed` is exempt — it's lazy and disposes itself when it has no subscribers, so a class-field `computed` is fine.
+:::
+
+When you need the scope's result (e.g. a rendered element) or want to manage the handle yourself, use `renderScope` directly:
+
+```ts
+import { renderScope } from "elements-kit/custom-elements";
+
+const { result, dispose } = renderScope(() => {
+  effect(() => /* ... */);
+  return document.createElement("div");
+});
+// later
+dispose();
+```
+
+`renderScope` runs `setup` inside an `effectScope` that is detached from any enclosing effect. Re-running an outer effect will not tear your scope down — only calling `dispose()` will.
+
+## Why `For` items get their own scope
+
+Each `<For>` item runs its render callback inside its own `effectScope`. `onCleanup` registered during render fires when that item's key leaves `each` — not only on full-list unmount. This keeps per-row resources (subscriptions, intervals, observers) bound to the row's actual lifetime.
+
+```tsx
+<For each={rows} by={(r) => r.id}>
+  {(row) => {
+    const off = subscribe(row.id);
+    onCleanup(off); // fires when this row is removed
+    return <li>{row.label}</li>;
+  }}
+</For>
+```
+
+## See also
+
+- [Signals](/signals/) — `effect`, `effectScope`, `onCleanup`.
+- [For (list rendering)](/writing-ui/for/) — per-item scope details.
+- [Custom elements overview](/custom-elements/) — lifecycle hooks.

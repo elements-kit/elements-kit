@@ -19,6 +19,7 @@ Each subpath is a stable import entry declared in [package.json](package.json) `
 | `elements-kit` | `For`, core re-exports | stable |
 | `elements-kit/signals` | `signal`, `computed`, `effect`, `effectScope`, `batch`, `untracked`, `trigger`, `onCleanup`, `isSignal`, `isComputed`, `isEffect`, `isEffectScope`, `isReactive`, `resolve`, `reactive`, `@reactive`, brand symbols `SIGNAL` / `COMPUTED` / `EFFECT` / `EFFECT_SCOPE` (type-narrowing markers — not debug variants, no logging); types `Signal<T>`, `Computed<T>`, `MaybeReactive<T>` | stable |
 | `elements-kit/attributes` | `@attributes`, `ATTRIBUTES`, `dispatchAttrChange`, `observedAttributes`; types `Attributes<T>`, `AttrChangeHandler<T>` | stable |
+| `elements-kit/custom-elements` | `renderScope` — run setup in a detached `effectScope`, return `{ result, dispose }`. `connectedScope(el, setup)` / `disconnectedScope(el)` — convenience pair for `connectedCallback`/`disconnectedCallback` that stores the dispose handle per-element. | stable |
 | `elements-kit/slot` | `Slot` | stable |
 | `elements-kit/jsx-runtime` | `jsx`, `jsxs`, `jsxDEV`, `h`, `Fragment` | stable (JSX contract) |
 | `elements-kit/integrations/react` | `useSignal`, `useScope` | stable |
@@ -85,7 +86,9 @@ Each subpath is a stable import entry declared in [package.json](package.json) `
 - `@attributes` on a class wires a static `[ATTRIBUTES]` map into `observedAttributes` and `attributeChangedCallback`.
 - Inheritance merges maps; subclass entries override. `observedAttributes(cls)` resolves the final set.
 - `@reactive()` on instance fields backs them with signals; works in both plain classes and `HTMLElement` subclasses.
-- No constructor-mounted rendering. Mount in `connectedCallback`, dispose in `disconnectedCallback` (typically by disposing an `effectScope` captured at connect).
+- No constructor-mounted rendering. Mount in `connectedCallback`, dispose in `disconnectedCallback`.
+- Use `renderScope` from `elements-kit/custom-elements` to capture a scope at connect: it runs `setup` inside an `effectScope` detached from any enclosing effect and returns `{ result, dispose }`. Store `dispose` on the instance and call it from `disconnectedCallback`. Effects, `onCleanup` callbacks and reactive reads inside `setup` are bound to that scope.
+- For the common case of "run setup on connect, dispose on disconnect", `connectedScope(this, setup)` + `disconnectedScope(this)` wrap `renderScope` and store the dispose handle per element — no instance field needed. Calling `connectedScope` twice on the same element disposes the previous scope first, so reconnect works correctly.
 
 ### 5a. Store pattern
 
@@ -106,7 +109,8 @@ Each subpath is a stable import entry declared in [package.json](package.json) `
 - Signature: `<For each={array | Signal<array>} by={(item, index) => key}>{(item, index) => child}</For>`.
 - Keys must be unique within `each`. Duplicate keys produce undefined reordering.
 - On array change: existing keys reuse their rendered nodes (no teardown, no recreate). New keys mount; missing keys unmount; moves reorder DOM in place.
-- The render callback runs once per unique key — it is **not** a reactive context. Read signals with `() => signal()` inside returned JSX if you want live bindings per row.
+- The render callback runs once per unique key inside its own `effectScope`. `onCleanup` callbacks and nested effects registered during render are bound to that per-item scope and fire when the item's key leaves `each` (or when the enclosing component unmounts).
+- The render callback is **not** a reactive context for dependency tracking — read signals with `() => signal()` inside returned JSX if you want live bindings per row.
 - Complexity: O(n + m) where n=old length, m=new length (udomdiff-style reconciliation).
 
 ### 5d. Slot semantics
@@ -129,6 +133,22 @@ Each subpath is a stable import entry declared in [package.json](package.json) `
 2. Helpers returning composite objects implement `[Symbol.dispose]` for explicit / `using` teardown.
 3. Helpers returning raw `Signal<T>` / `Computed<T>` rely **only** on `onCleanup`. Core reactive types must not carry `Symbol.dispose`.
 4. When no enclosing `effectScope` exists, cleanup is the caller's responsibility via the disposer returned by `effectScope` or by explicitly disposing the `Disposable`.
+
+### 6a. Scope contract at element boundaries
+
+`onCleanup` only registers when called inside a reactive context. The JSX runtime wraps most element-creation paths in an `effectScope` automatically — the table below is the contract users can rely on when deciding where to place effects and cleanup.
+
+| Boundary | Auto-scoped? | Disposed when |
+|----------|--------------|---------------|
+| Function component body (`(props) => <el/>`) | ✓ — inside `createElement` | The returned element is disposed (via `disposeElement` or an enclosing scope teardown). |
+| Intrinsic / class element (`<div/>`, `<MyClass/>`) | ✓ — inside `createElement` | Same as above. |
+| Fragment (`<>...</>`) | ✓ — via the surrounding `createElement` call the JSX transform emits | The fragment's disposables fire through the enclosing scope. |
+| Per-child and reactive-child slots (e.g. `{() => signal()}`) | ✓ — each slot owns a scope | The slot is replaced or its parent is disposed. |
+| `<For>` render callback (per item) | ✓ — per-entry scope | The item's key leaves `each`, or the list unmounts. |
+| Custom element `connectedCallback` | ✗ by default — opt in with `renderScope` | `dispose()` is called (typically from `disconnectedCallback`). |
+| Direct calls to `Fragment({ children })` (non-JSX) | ✗ | Caller owns the scope. |
+
+Effects created outside an auto-scoped boundary leak unless the caller captures and disposes an `effectScope` manually (or uses `renderScope`).
 
 Full dependency and returns matrix: [src/utilities/README.md](src/utilities/README.md).
 
