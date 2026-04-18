@@ -165,3 +165,26 @@ op.start() // start auto-reruns on signals or fn changes and run cleanup logic o
 op.stop(); // Stop auto-reruns, and run cleanup logic
 op.run();  // run cleanup logic, and run once
 ```
+
+## Interval Polling Example
+
+You can combine `createInterval` with `async` to automatically refetch data on a schedule. By reading `timer.timestamp()` inside your async function, you make it rerun every time the timer ticks (e.g., every 10 seconds), as well as when any other reactive dependency changes.
+
+```ts
+import { signal } from "elements-kit/signals";
+import { async } from "elements-kit/utilities/async";
+import { createInterval } from "elements-kit/utilities/interval";
+
+const id = signal(1);
+
+// Create a polling timer that ticks every 10 seconds
+const timer = createInterval(10_000);
+
+// The async function will re-run every time timer.timestamp() changes (every 10s)
+const fetchTodo = async(() => {
+  timer.timestamp(); // track timer for polling
+  return fetch(`https://jsonplaceholder.typicode.com/todos/${id()}`)
+}).start(); // also re-fetches automatically when id changes
+
+// Now, fetchTodo.value will update every 10 seconds and whenever id changes
+```
