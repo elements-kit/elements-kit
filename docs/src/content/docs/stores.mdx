@@ -95,7 +95,7 @@ class TodoComponent {
   store = new TodoStore(); // private, scoped to this component
 
   render() {
-    return <ul>{() => this.store.todos.map(...)}</ul> as Element;
+    return <ul>{() => this.store.todos.map(...)}</ul>;
   }
 }
 ```

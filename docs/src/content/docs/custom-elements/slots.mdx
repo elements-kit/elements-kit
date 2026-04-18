@@ -125,7 +125,7 @@ import { Slot } from "elements-kit/slot";
 const slot = Slot.new();
 
 // Mounts the comment markers + optional default content
-const section = <section>{slot("Loading…")}</section> as Element;
+const section = <section>{slot("Loading…")}</section>;
 
 // Later — replace content in place
 slot.set(<p>Content loaded!</p>);

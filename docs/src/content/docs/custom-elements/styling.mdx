@@ -189,7 +189,7 @@ let adopted = false;
 class CounterElement extends HTMLElement {
   #unmount?: () => void;
 
-  #template = () => /* JSX tree */ as Element;
+  #template = () => /* JSX tree */;
 
   connectedCallback() {
     if (!adopted) {
@@ -225,7 +225,7 @@ function injectStyles() {
 class CounterElement extends HTMLElement {
   #unmount?: () => void;
 
-  #template = () => /* JSX tree */ as Element;
+  #template = () => /* JSX tree */;
 
   connectedCallback() {
     injectStyles();

@@ -233,7 +233,7 @@ class ClockElement extends HTMLElement {
   #template = () => {
     const id = setInterval(() => this.#time(new Date()), 1000);
     onCleanup(() => clearInterval(id));
-    return <time>{() => this.#time().toLocaleTimeString()}</time> as Element;
+    return <time>{() => this.#time().toLocaleTimeString()}</time>;
   }
 
   connectedCallback() {
