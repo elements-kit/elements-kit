@@ -22,11 +22,15 @@ fetchItems.run();
 `Async` exposes reactive state properties mirroring a promise, which update automatically:
 
 ```ts
-fetchItems.state;  // "pending" | "fulfilled" | "rejected"
-fetchItems.value;  // resolved value (if fulfilled)
-fetchItems.reason; // error (if rejected)
-fetchItems.result; // value or error
-fetchItems.pending; // true if pending
+op.state;  // "pending" | "fulfilled" | "rejected"
+op.value;  // resolved value (if fulfilled)
+op.reason; // error (if rejected)
+op.result; // value or error
+op.pending; // true if pending
+// And control methods:
+op.start() // start auto-reruns on signals or fn changes and run cleanup logic on change.
+op.stop(); // Stop auto-reruns, and run cleanup logic
+op.run();  // run cleanup logic, and run once
 ```
 
 These properties are tracked and can be used in effects or templates.
@@ -73,7 +77,7 @@ const mutation = async((id: number) =>
 const result = await mutation.run(123); // fire once, await result
 ```
 
-## oncleanup Example
+## Cleanups
 
 Register cleanup logic inside your async function (e.g., for aborting fetches):
 
@@ -158,13 +162,6 @@ const op = async(async function () {
 ```
 :::
 
-## Rerun with Clean
-
-```ts
-op.start() // start auto-reruns on signals or fn changes and run cleanup logic on change.
-op.stop(); // Stop auto-reruns, and run cleanup logic
-op.run();  // run cleanup logic, and run once
-```
 
 ## Interval Polling Example
 
