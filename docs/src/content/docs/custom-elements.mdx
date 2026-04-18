@@ -175,18 +175,20 @@ class CounterElement extends HTMLElement {
   doubled = computed(() => this.count * 2);
   #unmount?: () => void;
 
+  #template = () => (
+    <section>
+      <p>
+        <strong>{() => this.count}</strong>
+        {" × 2 = "}
+        <strong>{this.doubled}</strong>
+      </p>
+      <button onClick={() => this.count++}>+1</button>{" "}
+      <button onClick={() => this.count--}>−1</button>
+    </section>
+  );
+
   connectedCallback() {
-    this.#unmount = render(this, () => (
-      <section>
-        <p>
-          <strong>{() => this.count}</strong>
-          {" × 2 = "}
-          <strong>{this.doubled}</strong>
-        </p>
-        <button onClick={() => this.count++}>+1</button>{" "}
-        <button onClick={() => this.count--}>−1</button>
-      </section>
-    ));
+    this.#unmount = render(this, this.#template);
   }
 
   disconnectedCallback() {
@@ -228,12 +230,14 @@ class ClockElement extends HTMLElement {
   #time = signal(new Date());
   #unmount?: () => void;
 
+  #template = () => {
+    const id = setInterval(() => this.#time(new Date()), 1000);
+    onCleanup(() => clearInterval(id));
+    return <time>{() => this.#time().toLocaleTimeString()}</time> as Element;
+  }
+
   connectedCallback() {
-    this.#unmount = render(this, () => {
-      const id = setInterval(() => this.#time(new Date()), 1000);
-      onCleanup(() => clearInterval(id));
-      return <time>{() => this.#time().toLocaleTimeString()}</time> as Element;
-    });
+    this.#unmount = render(this, this.#template);
   }
 
   disconnectedCallback() {

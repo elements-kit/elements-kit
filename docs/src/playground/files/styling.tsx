@@ -31,25 +31,27 @@ class CounterElement extends HTMLElement {
 
   #unmount?: () => void;
 
+  #template = () => (
+    <div>
+      <p>
+        <strong>{() => this.count}</strong>
+        {" × 2 = "}
+        <strong>{this.doubled}</strong>
+      </p>
+      <div class="controls">
+        <button onClick={() => this.count++}>+1</button>
+        <button onClick={() => this.count--}>−1</button>
+        <button onClick={() => (this.count = 0)}>Reset</button>
+      </div>
+    </div>
+  ) as Element;
+
   connectedCallback() {
     // Shadow DOM — styles are scoped, sheet is shared
     const shadow = this.attachShadow({ mode: "open" });
     shadow.adoptedStyleSheets = [sheet];
 
-    this.#unmount = render(shadow, () => (
-      <div>
-        <p>
-          <strong>{() => this.count}</strong>
-          {" × 2 = "}
-          <strong>{this.doubled}</strong>
-        </p>
-        <div class="controls">
-          <button onClick={() => this.count++}>+1</button>
-          <button onClick={() => this.count--}>−1</button>
-          <button onClick={() => (this.count = 0)}>Reset</button>
-        </div>
-      </div>
-    ) as Element);
+    this.#unmount = render(shadow, this.#template);
   }
 
   disconnectedCallback() {

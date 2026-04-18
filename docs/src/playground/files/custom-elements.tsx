@@ -26,45 +26,47 @@ class TemperatureElement extends HTMLElement {
 
   #unmount?: () => void;
 
+  #template = () => (
+    <div>
+      <h2>{this.label}</h2>
+      <label style="display:block; margin-bottom:1rem">
+        °C:{" "}
+        <input
+          type="range"
+          min="-30"
+          max="50"
+          value={computed(() => String(this.celsius))}
+          on:input={(e: Event) =>
+            (this.celsius = Number((e.target as HTMLInputElement).value))
+          }
+          style="width:180px"
+        />{" "}
+        <strong>{() => this.celsius}</strong>
+      </label>
+      <table>
+        <tr>
+          <td>Fahrenheit</td>
+          <td>
+            <strong>{() => this.fahrenheit().toFixed(1)} °F</strong>
+          </td>
+        </tr>
+        <tr>
+          <td>Kelvin</td>{" "}
+          <td>
+            <strong>{() => this.kelvin().toFixed(2)} K</strong>
+          </td>
+        </tr>
+      </table>
+    </div>
+  ) as Element;
+
   connectedCallback() {
     this.style.display = "block";
     this.style.fontFamily = "sans-serif";
     this.style.padding = "1.5rem";
     this.style.maxWidth = "320px";
 
-    this.#unmount = render(this, () => (
-      <div>
-        <h2>{this.label}</h2>
-        <label style="display:block; margin-bottom:1rem">
-          °C:{" "}
-          <input
-            type="range"
-            min="-30"
-            max="50"
-            value={computed(() => String(this.celsius))}
-            on:input={(e: Event) =>
-              (this.celsius = Number((e.target as HTMLInputElement).value))
-            }
-            style="width:180px"
-          />{" "}
-          <strong>{() => this.celsius}</strong>
-        </label>
-        <table>
-          <tr>
-            <td>Fahrenheit</td>
-            <td>
-              <strong>{() => this.fahrenheit().toFixed(1)} °F</strong>
-            </td>
-          </tr>
-          <tr>
-            <td>Kelvin</td>{" "}
-            <td>
-              <strong>{() => this.kelvin().toFixed(2)} K</strong>
-            </td>
-          </tr>
-        </table>
-      </div>
-    ) as Element);
+    this.#unmount = render(this, this.#template);
   }
 
   disconnectedCallback() {

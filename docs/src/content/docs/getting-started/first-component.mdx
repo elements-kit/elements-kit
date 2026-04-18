@@ -1,32 +1,22 @@
 ---
 title: First component
-description: Build a reactive counter with signals, JSX, and a custom element.
+description: Build a reactive counter with signals, JSX, and a class component.
 ---
 
-Build a reactive counter to see signals, JSX, and custom elements working together. Ten lines of code, no framework, no build-step magic — just standard browser APIs with reactive glue.
+Build a reactive counter to see signals, JSX, and class components working together. Under twenty lines of code, no framework, no build-step magic — just standard browser APIs with reactive glue.
 
 ## The counter
 
-```tsx
+```tsx twoslash
 import { computed, reactive } from "elements-kit/signals";
-import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
 import { render } from "elements-kit/render";
 
-@attributes
-class CounterElement extends HTMLElement {
-  static [attr] = {
-    count(this: CounterElement, value: string | null) {
-      this.count = Number(value ?? 0);
-    },
-  };
-
+class Counter {
   @reactive() count = 0;
   doubled = computed(() => this.count * 2);
 
-  #unmount?: () => void;
-
-  connectedCallback() {
-    this.#unmount = render(this, () => (
+  render() {
+    return (
       <section>
         <p>
           <strong>{() => this.count}</strong> × 2 = <strong>{this.doubled}</strong>
@@ -34,22 +24,20 @@ class CounterElement extends HTMLElement {
         <button onClick={() => this.count++}>+1</button>{" "}
         <button onClick={() => this.count--}>−1</button>
       </section>
-    ) as Element);
-  }
-
-  disconnectedCallback() {
-    this.#unmount?.();
-    this.#unmount = undefined;
+    ) as Element;
   }
 }
 
-customElements.define("x-counter", CounterElement);
+const unmount = render(
+  document.getElementById("app")!,
+  () => new Counter().render(),
+);
 ```
 
-Use it like any built-in HTML element:
+Mount it into any page container:
 
 ```html
-<x-counter count="5"></x-counter>
+<div id="app"></div>
 ```
 
 ## What's happening
@@ -57,17 +45,17 @@ Use it like any built-in HTML element:
 - **`@reactive() count = 0`** — makes `this.count` a reactive signal. Reads subscribe, writes notify.
 - **`computed(() => this.count * 2)`** — derived value, recomputed only when `count` changes.
 - **`{() => this.count}`** — the `() =>` wrapper creates a live text node that updates in place.
-- **`@attributes` + static `[attr]`** — wires the `count` HTML attribute to the reactive property.
-- **No framework runtime** — `CounterElement` is a plain `HTMLElement` usable in React, Vue, or raw HTML.
+- **`render(target, setup)`** — runs `setup` inside an [`effectScope`](/scopes), appends the returned node to `target`, and hands back a single `unmount` thunk that removes the node and tears down every effect inside.
+- **No framework runtime** — `Counter` is a plain class. JSX compiles to real `document.createElement` calls.
 
 ## Next steps
 
 - Learn the signal primitives in depth → [Signals](/signals).
 - Understand JSX → DOM compilation → [Elements](/elements).
-- Layer on attributes, slots, and styling → [Custom elements](/custom-elements).
+- Wrap the same pattern in a native custom element → [Custom elements](/custom-elements).
 
 ## See also
 
 - [Installation](/getting-started/installation)
 - [Why ElementsKit](/getting-started/why)
-- [Custom elements](/custom-elements)
+- [Scopes](/scopes)

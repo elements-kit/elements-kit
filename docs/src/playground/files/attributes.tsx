@@ -33,33 +33,35 @@ class RangeDisplay extends HTMLElement {
 
   #unmount?: () => void;
 
+  #template = () => (
+    <div>
+      <label style="display: block; margin-bottom: 0.5rem">
+        {() => this.label || "Value"}: <strong>{() => this.value}</strong> (
+        {() => this.percent}%)
+      </label>
+      <input
+        type="range"
+        min={computed(() => String(this.min))}
+        max={computed(() => String(this.max))}
+        value={computed(() => String(this.value))}
+        on:input={(e: Event) =>
+          (this.value = Number((e.target as HTMLInputElement).value))
+        }
+        style="width: 100%"
+      />
+      <div style="display: flex; justify-content: space-between; font-size: 0.8em; color: #888">
+        <span>{() => this.min}</span>
+        <span>{() => this.max}</span>
+      </div>
+    </div>
+  ) as Element;
+
   connectedCallback() {
     this.style.display = "block";
     this.style.fontFamily = "sans-serif";
     this.style.padding = "1rem";
 
-    this.#unmount = render(this, () => (
-      <div>
-        <label style="display: block; margin-bottom: 0.5rem">
-          {() => this.label || "Value"}: <strong>{() => this.value}</strong> (
-          {() => this.percent}%)
-        </label>
-        <input
-          type="range"
-          min={computed(() => String(this.min))}
-          max={computed(() => String(this.max))}
-          value={computed(() => String(this.value))}
-          on:input={(e: Event) =>
-            (this.value = Number((e.target as HTMLInputElement).value))
-          }
-          style="width: 100%"
-        />
-        <div style="display: flex; justify-content: space-between; font-size: 0.8em; color: #888">
-          <span>{() => this.min}</span>
-          <span>{() => this.max}</span>
-        </div>
-      </div>
-    ) as Element);
+    this.#unmount = render(this, this.#template);
   }
 
   disconnectedCallback() {

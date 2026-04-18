@@ -19,19 +19,21 @@ class Counter extends HTMLElement {
 
   #unmount?: () => void;
 
+  #template = () => (
+    <section style="margin-bottom: 24px">
+      <h2>Counter</h2>
+      <p>
+        Count: <strong>{this.#count}</strong> — Doubled:{" "}
+        <strong>{this.doubled}</strong>
+      </p>
+      <button onClick={() => this.count++}>+1</button>{" "}
+      <button onClick={() => this.count--}>−1</button>{" "}
+      <button onClick={() => (this.count = 0)}>Reset</button>
+    </section>
+  );
+
   connectedCallback() {
-    this.#unmount = render(this, () => (
-      <section style="margin-bottom: 24px">
-        <h2>Counter</h2>
-        <p>
-          Count: <strong>{this.#count}</strong> — Doubled:{" "}
-          <strong>{this.doubled}</strong>
-        </p>
-        <button onClick={() => this.count++}>+1</button>{" "}
-        <button onClick={() => this.count--}>−1</button>{" "}
-        <button onClick={() => (this.count = 0)}>Reset</button>
-      </section>
-    ));
+    this.#unmount = render(this, this.#template);
   }
 
   disconnectedCallback() {

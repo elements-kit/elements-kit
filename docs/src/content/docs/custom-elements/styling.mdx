@@ -69,18 +69,20 @@ import { render } from "elements-kit/render";
 class CounterElement extends HTMLElement {
   #unmount?: () => void;
 
+  #template = () => (
+    <section>
+      <p>Count: <strong>{this.#count}</strong></p>
+      <button onClick={() => this.#count(this.#count() + 1)}>+1</button>
+    </section>
+  ) as Element;
+
   connectedCallback() {
     const shadow = this.attachShadow({ mode: "open" });
 
     // All instances share the same parsed sheet — zero extra parsing
     shadow.adoptedStyleSheets = [sheet];
 
-    this.#unmount = render(shadow, () => (
-      <section>
-        <p>Count: <strong>{this.#count}</strong></p>
-        <button onClick={() => this.#count(this.#count() + 1)}>+1</button>
-      </section>
-    ) as Element);
+    this.#unmount = render(shadow, this.#template);
   }
 
   disconnectedCallback() {
@@ -145,16 +147,18 @@ class CounterElement extends HTMLElement {
 
   #unmount?: () => void;
 
+  #template = () => (
+    <section>
+      <p>Count: <strong>{() => this.count}</strong></p>
+      <button onClick={() => this.count++}>+1</button>
+    </section>
+  ) as Element;
+
   connectedCallback() {
     const shadow = this.attachShadow({ mode: "open" });
     shadow.adoptedStyleSheets = [counterSheet];
 
-    this.#unmount = render(shadow, () => (
-      <section>
-        <p>Count: <strong>{() => this.count}</strong></p>
-        <button onClick={() => this.count++}>+1</button>
-      </section>
-    ) as Element);
+    this.#unmount = render(shadow, this.#template);
   }
 
   disconnectedCallback() {
@@ -185,12 +189,14 @@ let adopted = false;
 class CounterElement extends HTMLElement {
   #unmount?: () => void;
 
+  #template = () => /* JSX tree */ as Element;
+
   connectedCallback() {
     if (!adopted) {
       document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
       adopted = true;
     }
-    this.#unmount = render(this, () => /* JSX tree */ as Element);
+    this.#unmount = render(this, this.#template);
   }
 
   disconnectedCallback() {
@@ -219,9 +225,11 @@ function injectStyles() {
 class CounterElement extends HTMLElement {
   #unmount?: () => void;
 
+  #template = () => /* JSX tree */ as Element;
+
   connectedCallback() {
     injectStyles();
-    this.#unmount = render(this, () => /* JSX tree */ as Element);
+    this.#unmount = render(this, this.#template);
   }
 
   disconnectedCallback() {
@@ -247,17 +255,19 @@ class CounterElement extends HTMLElement {
 
   #unmount?: () => void;
 
+  #template = () => (
+    <div>
+      <p>Count: <strong>{() => this.count}</strong></p>
+      <button onClick={() => this.count++}>+1</button>
+    </div>
+  ) as Element;
+
   connectedCallback() {
     const shadow = this.attachShadow({ mode: "open" });
     shadow.adoptedStyleSheets = [counterSheet];
 
     // render into the shadow root — same target type as a light-DOM element
-    this.#unmount = render(shadow, () => (
-      <div>
-        <p>Count: <strong>{() => this.count}</strong></p>
-        <button onClick={() => this.count++}>+1</button>
-      </div>
-    ) as Element);
+    this.#unmount = render(shadow, this.#template);
   }
 
   disconnectedCallback() {

@@ -83,25 +83,27 @@ class CardElement extends HTMLElement {
 
   #unmount?: () => void;
 
+  #template = () => (
+    <article>
+      {/* Named slot — consumer fills with slot="header" */}
+      <header>
+        <slot name="header" />
+      </header>
+      <main>
+        {/* Default slot — consumer children with no slot attribute */}
+        <slot />
+      </main>
+      <footer>
+        <slot name="footer" />
+      </footer>
+    </article>
+  ) as Element;
+
   connectedCallback() {
     const shadow = this.attachShadow({ mode: "open" });
     shadow.adoptedStyleSheets = [cardSheet];
 
-    this.#unmount = render(shadow, () => (
-      <article>
-        {/* Named slot — consumer fills with slot="header" */}
-        <header>
-          <slot name="header" />
-        </header>
-        <main>
-          {/* Default slot — consumer children with no slot attribute */}
-          <slot />
-        </main>
-        <footer>
-          <slot name="footer" />
-        </footer>
-      </article>
-    ) as Element);
+    this.#unmount = render(shadow, this.#template);
   }
 
   disconnectedCallback() {
