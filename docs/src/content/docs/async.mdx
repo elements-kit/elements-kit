@@ -1,5 +1,5 @@
 ---
-title: Async Utility
+title: Async
 ---
 
 
@@ -27,21 +27,23 @@ op.value;  // resolved value (if fulfilled)
 op.reason; // error (if rejected)
 op.result; // value or error
 op.pending; // true if pending
+```
+
+These properties are tracked and can be used in effects or templates.
+
+```ts
 // And control methods:
 op.start() // start auto-reruns on signals or fn changes and run cleanup logic on change.
 op.stop(); // Stop auto-reruns, and run cleanup logic
 op.run();  // run cleanup logic, and run once
 ```
 
-These properties are tracked and can be used in effects or templates.
-
 ## Awaitable
 
 You can `await` an `Async` instance directly, or after calling `run()`:
 
 ```ts
-const op = async(() => Promise.resolve(123));
-op.start();
+const op = async(() => Promise.resolve(123)).start();
 const value = await op; // 123
 
 // Or run with arguments and await
@@ -75,22 +77,6 @@ const mutation = async((id: number) =>
 );
 
 const result = await mutation.run(123); // fire once, await result
-```
-
-## Cleanups
-
-Register cleanup logic inside your async function (e.g., for aborting fetches):
-
-```ts
-import { oncleanup } from "elements-kit/signals";
-
-const query = async((id: number) => {
-  const controller = new AbortController();
-  oncleanup(() => controller.abort()); // runs when stop() is called or effect re-runs
-  return fetch(`/api/todos/${id}`, { signal: controller.signal }).then((r) =>
-    r.json(),
-  );
-}).start();
 ```
 
 ## Using Parameters
@@ -162,6 +148,22 @@ const op = async(async function () {
 ```
 :::
 
+
+## Cleanups
+
+Register cleanup logic inside your async function (e.g., for aborting fetches):
+
+```ts
+import { oncleanup } from "elements-kit/signals";
+
+const query = async((id: number) => {
+  const controller = new AbortController();
+  oncleanup(() => controller.abort()); // runs when stop() is called or effect re-runs
+  return fetch(`/api/todos/${id}`, { signal: controller.signal }).then((r) =>
+    r.json(),
+  );
+}).start();
+```
 
 ## Interval Polling Example
 
