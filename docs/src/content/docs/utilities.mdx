@@ -113,7 +113,7 @@ function ThemeToggle() {
 
 Creates a `Computed<boolean>` that tracks a [CSS media query](https://developer.mozilla.org/en-US/docs/Web/API/Window/matchMedia). Returns `true` when the query matches, `false` otherwise.
 
-```ts
+```ts twoslash
 import { createMediaQuery } from "elements-kit/utilities/media-query";
 
 const isDark = createMediaQuery("(prefers-color-scheme: dark)");
@@ -241,7 +241,8 @@ function createInterval(
 
 Returns a `Computed<T>` that mirrors `getter` but only updates after `delay` ms of silence.
 
-```ts
+```ts twoslash
+// @noErrors
 import { createDebounced } from "elements-kit/utilities/debounced";
 import { signal } from "elements-kit/signals";
 
@@ -559,7 +560,7 @@ const fetchTodo = async((id: number) =>
 
 Returns a `Signal<T>` persisted to `localStorage`. Writes in other tabs/windows are synchronised automatically via `StorageEvent`.
 
-```ts
+```ts twoslash
 import { createLocalStorage } from "elements-kit/utilities/storage";
 
 const theme = createLocalStorage("theme", "light");

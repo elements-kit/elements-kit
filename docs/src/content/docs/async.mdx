@@ -21,7 +21,8 @@ The `async` utility wraps an async function into a reactive, awaitable controlle
 
 ## Basic usage
 
-```ts
+```ts twoslash
+// @noErrors
 import { async } from "elements-kit/utilities/async";
 
 const fetchItems = async(() => fetch("/api/items").then((res) => res.json()));
@@ -91,8 +92,10 @@ const value = await op; // 123
 
 Read signals inside the async function to make it re-execute when they change. Only signal reads **before the first `await`** are tracked.
 
-```ts
+```ts twoslash
+// @noErrors
 import { signal } from "elements-kit/signals";
+import { async } from "elements-kit/utilities/async";
 
 const id = signal(1);
 

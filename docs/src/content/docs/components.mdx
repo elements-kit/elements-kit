@@ -94,7 +94,8 @@ const unmount = render(document.getElementById("app")!, () => <Counter/>);
 
 When state needs to be **shared** across components, move it into a standalone [store](/stores) — a class with `@reactive` fields and no `render()`. Components read from the store; the store holds no reference to components.
 
-```ts
+```ts twoslash
+// @noErrors
 // counter-store.ts — state only
 import { reactive, computed } from "elements-kit/signals";
 
@@ -141,7 +142,8 @@ For keyed list rendering, use the `For` component — it reconciles a reactive a
 
 A function component is a plain function that returns an `Element`. The JSX runtime auto-wraps the props bag, so every key on `props` arrives as a callable getter — call it to read, pass it (or wrap a call in a getter) into JSX to subscribe.
 
-```tsx
+```tsx twoslash
+// @noErrors
 import type { ReactiveProps } from "elements-kit/jsx-runtime";
 
 function Greeting(

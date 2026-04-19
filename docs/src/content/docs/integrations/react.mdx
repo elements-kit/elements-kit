@@ -81,7 +81,7 @@ function Counter() {
 setInterval(() => count(count() + 1), 1000);
 ```
 
-```tsx
+```tsx twoslash
 import { signal, computed } from "elements-kit/signals";
 import { useSignal } from "elements-kit/integrations/react";
 
@@ -219,7 +219,8 @@ function ExpensiveMetrics() {
 
 A [store](/stores) is a plain class with `@reactive` fields — framework-agnostic reactive state. Reading from a store inside `useSignal` or `useScope` creates a live subscription exactly like reading a signal directly.
 
-```ts
+```ts twoslash
+// @noErrors
 // store.ts
 import { reactive, computed } from "elements-kit/signals";
 

@@ -21,7 +21,8 @@ The `promise` utility wraps any native `Promise`, executor function, or `Reactiv
 
 ## Basic Usage
 
-```ts
+```ts twoslash
+// @noErrors
 import { promise } from "elements-kit/utilities/promise";
 
 // From an executor
@@ -30,7 +31,7 @@ const cp = promise<number>((resolve) => {
 });
 
 // From an existing Promise
-const cp = promise(fetch("/api/data").then(res => res.json()));
+const cp2 = promise(fetch("/api/data").then(res => res.json()));
 ```
 
 ## Awaitable
@@ -89,7 +90,8 @@ effect(() => {
 
 `ReactivePromise` is the lower-level class that powers `ComputedPromise`. Use it directly when you need to construct or wrap a promise and expose its reactive state without the `Computed` callable interface:
 
-```ts
+```ts twoslash
+// @noErrors
 import { ReactivePromise } from "elements-kit/utilities/promise";
 
 // From an executor
@@ -101,7 +103,7 @@ const rp = new ReactivePromise<number>((resolve, reject) => {
 });
 
 // Wrap an existing promise
-const rp = ReactivePromise.from(fetch("/api/data"));
+const rp2 = ReactivePromise.from(fetch("/api/data"));
 
 rp.state;  // "pending" | "fulfilled" | "rejected"
 rp.value;  // T | undefined

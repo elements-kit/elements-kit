@@ -102,7 +102,8 @@ This is repetitive. Every attribute needs a manual type conversion, a branch in 
 
 `@attributes` reads a static `[ATTRIBUTES]` map on the class and wires up `observedAttributes` and `attributeChangedCallback` automatically. Each key in the map is an observed attribute name; the value is a handler called with `this` bound to the element instance.
 
-```ts
+```ts twoslash
+// @noErrors
 import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
 import { reactive } from "elements-kit/signals";
 

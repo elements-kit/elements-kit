@@ -27,7 +27,8 @@ If you write `onCleanup(...)` or `effect(...)` inside any of the first five rows
 
 Typical entry point — mount a root component into the page container and keep a reference to the `unmount` thunk (e.g. for hot-module replacement):
 
-```tsx
+```tsx twoslash
+// @noErrors
 import { render } from "elements-kit/render";
 import { App } from "./App";
 

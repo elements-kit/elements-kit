@@ -66,7 +66,8 @@ No framework runtime is involved. The element is a plain `HTMLButtonElement` the
 
 When you pass a **signal** or a **`() => T` function** as a prop, ElementsKit creates an `effect` behind the scenes that keeps the DOM in sync. Every time the signal changes, the effect re-runs and re-assigns the property — just like writing it manually with `effect`.
 
-```tsx
+```tsx twoslash
+// @noErrors
 import { signal, effect } from "elements-kit/signals";
 
 const label = signal("Save");

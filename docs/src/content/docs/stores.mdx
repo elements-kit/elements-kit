@@ -22,7 +22,8 @@ A **store** is a plain class whose fields are made reactive with `@reactive`. It
 
 ## Create a shared store
 
-```ts
+```ts twoslash
+// @noErrors
 import { reactive, computed } from "elements-kit/signals";
 
 export class CartStore {
@@ -106,7 +107,8 @@ class TodoComponent {
 
 Group mutations as methods. Methods are plain functions — they write to `@reactive` fields and the reactivity system handles the rest.
 
-```ts
+```ts twoslash
+// @noErrors
 import { reactive, computed } from "elements-kit/signals";
 
 export class AuthStore {
