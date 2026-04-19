@@ -95,19 +95,34 @@ type _MR_OnClick = Assert<Equal<_MR["onClick"], MaybeReactive<() => void>>>;
 // ─ ElementProps: attribute vs property precedence ────────────────────────────
 
 type XP = ElementProps<typeof XRange>;
-// Flat `min` / `value` carry PROPERTY type (number-wrapped reactive),
-// not the attribute handler's string type.
-type _EP_FlatMin = Assert<Equal<NonNullable<XP["min"]>, MaybeReactive<number>>>;
-type _EP_FlatValue = Assert<
-  Equal<NonNullable<XP["value"]>, MaybeReactive<number>>
->;
-// Attribute-only key (`variant`, no instance field) stays string-ish.
+// Flat `min` / `value` carry the raw PROPERTY type. `MaybeReactive` wrapping
+// is applied at the JSX layer (see `JSX.IntrinsicElements` tests below).
+type _EP_FlatMin = Assert<Equal<NonNullable<XP["min"]>, number>>;
+type _EP_FlatValue = Assert<Equal<NonNullable<XP["value"]>, number>>;
+// Attribute-only key (`variant`, no instance field) carries the raw attribute
+// value type — `string | null`.
 type _EP_AttrOnly = Assert<
-  Equal<Exclude<XP["variant"], undefined>, MaybeReactive<string | null>>
+  Equal<Exclude<XP["variant"], undefined>, string | null>
 >;
 // `prop:*` namespace keeps the raw property type.
 type _EP_PropNs = Assert<Equal<NonNullable<XP["prop:min"]>, number>>;
 type _EP_PropValueNs = Assert<Equal<NonNullable<XP["prop:value"]>, number>>;
+
+// JSX layer wraps `ElementProps<C>` in `MaybeReactiveProps` so call-site
+// attributes accept value-or-reactive (parallel to function components).
+type _XJsx = JSX.IntrinsicElements["x-range"];
+const _xj_static: _XJsx = { min: 0, max: 100, value: 50 };
+const _xj_signal: _XJsx = {
+  min: () => 0,
+  max: () => 100,
+  value: () => 50,
+};
+const _xj_attr_static: _XJsx = { variant: "primary" };
+const _xj_attr_signal: _XJsx = { variant: () => "primary" };
+void _xj_static;
+void _xj_signal;
+void _xj_attr_static;
+void _xj_attr_signal;
 
 // ─ ElementProps: events ──────────────────────────────────────────────────────
 // Assignability check: a handler with the declared event type must fit the

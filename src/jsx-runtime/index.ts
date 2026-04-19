@@ -2,7 +2,12 @@ import { Child, Component } from "./types";
 import { createElement } from "./element";
 import type { JSX as DomJSX } from "dom-expressions/src/jsx-h";
 import type { CustomElementRegistry } from "../custom-elements";
-import type { AnyElementCtor, ElementProps, ResolveProps } from "./infer";
+import type {
+  AnyElementCtor,
+  ElementProps,
+  MaybeReactiveProps,
+  ResolveProps,
+} from "./infer";
 import { Computed } from "../signals";
 
 export type {
@@ -91,7 +96,7 @@ export namespace JSX {
   export type LibraryManagedAttributes<C, P> = ResolveProps<C, P>;
   type RegisteredElements = {
     [K in keyof CustomElementRegistry]: CustomElementRegistry[K] extends AnyElementCtor
-      ? ElementProps<CustomElementRegistry[K]>
+      ? MaybeReactiveProps<ElementProps<CustomElementRegistry[K]>>
       : never;
   };
 

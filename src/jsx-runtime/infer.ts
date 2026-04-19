@@ -127,14 +127,12 @@ type AttrsOf<C> =
   AttrMap<C> extends infer M
     ? M extends Record<string, unknown>
       ? {
-          [K in Exclude<keyof M & string, PropKeysOf<C>>]?: MaybeReactive<
-            HandlerValue<M[K]>
-          >;
+          [K in Exclude<keyof M & string, PropKeysOf<C>>]?: HandlerValue<M[K]>;
         }
       : {}
     : {};
 
-type FlatPropsOf<C> = MaybeReactiveProps<InstancePropsOf<C>>;
+type FlatPropsOf<C> = InstancePropsOf<C>;
 
 type PropNamespacedOf<C> = {
   [K in PropKeysOf<C> as `prop:${K}`]?: NonNullable<InstancePropsOf<C>[K]>;
@@ -150,13 +148,11 @@ type EventsOf<C> =
   EventMapOf<C> extends infer E
     ? E extends Record<string, Event>
       ? {
-          [K in keyof E & string as `on:${K}`]?: MaybeReactive<
-            (ev: E[K]) => void
-          >;
+          [K in keyof E & string as `on:${K}`]?: (ev: E[K]) => void;
         } & {
-          [K in keyof E & string as `on${Capitalize1<K>}`]?: MaybeReactive<
-            (ev: E[K]) => void
-          >;
+          [K in keyof E & string as `on${Capitalize1<K>}`]?: (
+            ev: E[K],
+          ) => void;
         }
       : {}
     : {};
@@ -179,12 +175,10 @@ type ChildrenOf<C> = C extends { children: never } ? {} : { children?: Child };
 
 type BaseDOMAttrs = DomJSX.DOMAttributes<HTMLElement>;
 
-type Namespaces = {
-  ref?: (el: Element) => void;
-  [cls: `class:${string}`]: MaybeReactive<boolean>;
-  [sty: `style:${string}`]: MaybeReactive<string | null>;
-  [prop: `prop:${string}`]: unknown;
-};
+// Namespaces (`class:`, `style:`, `prop:`, `slot:`, `ref`) are added at the
+// JSX layer via `OurProps` in [src/jsx-runtime/index.ts]. They're not part of
+// the raw `ElementProps<C>` shape — that one only carries the element's
+// declared surface (attrs, instance fields, events, slots, children).
 
 // ─ Public composed types ─────────────────────────────────────────────────────
 
@@ -234,8 +228,7 @@ export type ElementProps<C extends AnyElementCtor> = BaseDOMAttrs &
   PropNamespacedOf<C> &
   EventsOf<C> &
   SlotsOf<C> &
-  ChildrenOf<C> &
-  Namespaces;
+  ChildrenOf<C>;
 
 /**
  * Props of a class component that receives them via its constructor:
