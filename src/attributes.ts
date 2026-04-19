@@ -97,7 +97,11 @@ export type Attributes<T> = Record<string, AttrChangeHandler<T>>;
  * @param cls The custom element class constructor
  * @returns Array of unique attribute names to observe
  */
-export function observedAttributes(cls: { [ATTRIBUTES]?: Record<string, unknown>; observedAttributes?: string[]; prototype: unknown }) {
+export function observedAttributes(cls: {
+  [ATTRIBUTES]?: Record<string, unknown>;
+  observedAttributes?: string[];
+  prototype: unknown;
+}) {
   const s = new Set<string>(Object.keys(cls[ATTRIBUTES] || {}));
   let _cls = Object.getPrototypeOf(cls);
   while (_cls) {
@@ -109,24 +113,6 @@ export function observedAttributes(cls: { [ATTRIBUTES]?: Record<string, unknown>
   return Array.from(s);
 }
 
-/**
- * A class decorator that automatically wires up `observedAttributes` and `attributeChangedCallback`
- * from a static `[ATTRIBUTES]` map.
- *
- * The `this` type inside attribute handlers is automatically inferred from the decorated class.
- *
- * @example
- * ```ts
- * @attributes
- * class MyElement extends HTMLElement {
- *   static [ATTRIBUTES] = {
- *     count(this: MyElement, value: string | null) {
- *       this.count = Number(value);
- *     },
- *   };
- * }
- * ```
- */
 /**
  * Pre-decoration shape required by `@attributes` — a class constructor
  * carrying a static `[ATTRIBUTES]` handler map.
@@ -150,6 +136,24 @@ export type AttributeDecorated<
     ): void;
   }) & { observedAttributes: string[] };
 
+/**
+ * A class decorator that automatically wires up `observedAttributes` and `attributeChangedCallback`
+ * from a static `[ATTRIBUTES]` map.
+ *
+ * The `this` type inside attribute handlers is automatically inferred from the decorated class.
+ *
+ * @example
+ * ```ts
+ * \@attributes
+ * class MyElement extends HTMLElement {
+ *   static [ATTRIBUTES] = {
+ *     count(this: MyElement, value: string | null) {
+ *       this.count = Number(value);
+ *     },
+ *   };
+ * }
+ * ```
+ */
 export function attributes<
   T extends abstract new (...args: any[]) => HTMLElement,
 >(

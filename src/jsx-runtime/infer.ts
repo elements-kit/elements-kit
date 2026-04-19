@@ -210,12 +210,12 @@ type BaseDOMAttrs = DomJSX.DOMAttributes<HTMLElement>;
  *
  * @example
  * ```ts
- * @attributes
+ * \@attributes
  * class XRange extends HTMLElement {
  *   static [ATTRIBUTES]: Attributes<XRange> = { min(v) { this.min = +v! } };
  *   declare static events: { commit: CustomEvent<number> };
  *   [SLOTS] = Slots.new(["label"] as const);
- *   @reactive() min = 0;
+ *   \@reactive() min = 0;
  * }
  *
  * type Props = ElementProps<typeof XRange>;

@@ -74,8 +74,7 @@ export type Signal<T> = Updater<T> & Computed<T>;
  * @example
  * ```ts
  * class Counter {
- *   @reactive()
- *   count: number = 0;
+ *   \@reactive() count: number = 0;
  * }
  *
  * const counter = new Counter();
