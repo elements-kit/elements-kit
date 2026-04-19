@@ -13,6 +13,7 @@ import type {
   RawProps,
   ReactiveProps,
   Require,
+  ResolveProps,
 } from "./infer";
 import type { Computed } from "../signals";
 
@@ -229,6 +230,141 @@ const _cls_handler: _ClsAttrs = { onToggle: (v: boolean) => void v };
 void _cls_static;
 void _cls_signal;
 void _cls_handler;
+
+// Constructor-class with explicit MaybeReactiveProps param — passes through,
+// generic stays inferable. Mirrors the `For<T>` pattern used in the library.
+class Listy<T> {
+  constructor(_props?: MaybeReactiveProps<{ items: T[] }>) {}
+  items: T[] = [];
+  render() {
+    return null;
+  }
+}
+type _ListyAttrs = JSX.LibraryManagedAttributes<
+  typeof Listy<string>,
+  ConstructorParameters<typeof Listy<string>>[0]
+>;
+const _listy_static: _ListyAttrs = { items: ["a", "b"] };
+const _listy_signal: _ListyAttrs = { items: () => ["a", "b"] };
+// @ts-expect-error — wrong element type
+const _listy_wrong: _ListyAttrs = { items: [1, 2] };
+void _listy_static;
+void _listy_signal;
+void _listy_wrong;
+
+// ─ ResolveProps branches ─────────────────────────────────────────────────────
+
+// 1) branded function-component param → MaybeReactiveProps<Raw>
+type _RA_Branded = ResolveProps<typeof FnGreeting, _RP>;
+const _ra_branded: _RA_Branded = { name: "x" };
+const _ra_branded_sig: _RA_Branded = { name: () => "x", excited: true };
+void _ra_branded;
+void _ra_branded_sig;
+
+// 2) empty constructor param → falls back to Props<C>
+type _RA_Empty = ResolveProps<typeof Toggle, {}>;
+const _ra_empty: _RA_Empty = { open: () => true };
+void _ra_empty;
+
+// 3) non-empty constructor param → passed through unchanged (preserves T)
+type _RA_PassThrough = ResolveProps<
+  typeof Listy<number>,
+  ConstructorParameters<typeof Listy<number>>[0]
+>;
+const _ra_pass: _RA_PassThrough = { items: [1, 2, 3] };
+void _ra_pass;
+
+// ─ IntrinsicElements: HTML attributes & properties ───────────────────────────
+
+// Standard HTML attribute slots accept value or reactive
+type _DivAttrs = JSX.IntrinsicElements["div"];
+const _div_id: _DivAttrs = { id: "x" };
+const _div_id_sig: _DivAttrs = { id: () => "x" };
+const _div_class_static: _DivAttrs = { class: "a b" };
+const _div_class_sig: _DivAttrs = { class: () => "a b" };
+const _div_style_str: _DivAttrs = { style: "color: red" };
+const _div_style_obj: _DivAttrs = { style: { color: "red" } };
+void _div_id;
+void _div_id_sig;
+void _div_class_static;
+void _div_class_sig;
+void _div_style_str;
+void _div_style_obj;
+
+// `class:foo` and `style:foo` are getter-only (Computed<T>) — by design
+const _div_class_ns: _DivAttrs = { "class:active": () => true };
+const _div_style_ns: _DivAttrs = { "style:color": () => "red" };
+const _div_style_ns_null: _DivAttrs = { "style:color": () => null };
+void _div_class_ns;
+void _div_style_ns;
+void _div_style_ns_null;
+// @ts-expect-error — static boolean rejected; must be a getter
+const _div_class_static_rejected: _DivAttrs = { "class:active": true };
+// @ts-expect-error — static string rejected; must be a getter
+const _div_style_static_rejected: _DivAttrs = { "style:color": "red" };
+void _div_class_static_rejected;
+void _div_style_static_rejected;
+
+// `prop:foo` is getter-only (Computed<unknown>) — for direct property assignment
+const _div_prop_ns: _DivAttrs = { "prop:custom": () => ({ any: "shape" }) };
+void _div_prop_ns;
+
+// `slot:foo` is also getter-only (Computed<Child>)
+const _div_slot_ns: _DivAttrs = { "slot:header": () => "title text" };
+void _div_slot_ns;
+// @ts-expect-error — static Child rejected; must be a getter
+const _div_slot_static_rejected: _DivAttrs = { "slot:header": "title text" };
+void _div_slot_static_rejected;
+
+// `ref` callback receives the element
+const _div_ref: _DivAttrs = { ref: (_el: Element) => void 0 };
+void _div_ref;
+
+// Input value/checked are reactive
+type _InputAttrs = JSX.IntrinsicElements["input"];
+const _input_value: _InputAttrs = { value: "x", checked: false };
+const _input_value_sig: _InputAttrs = { value: () => "x", checked: () => true };
+void _input_value;
+void _input_value_sig;
+
+// Event handlers — `on:click` for known DOM events
+const _btn_click: JSX.IntrinsicElements["button"] = {
+  "on:click": (_e: MouseEvent) => void 0,
+};
+void _btn_click;
+// Standard HTML intrinsics don't expose `on:custom-event` — that's
+// custom-element territory (declared via `static events` on the class).
+const _btn_custom_rejected: JSX.IntrinsicElements["button"] = {
+  // @ts-expect-error — arbitrary `on:my-event` not allowed on intrinsic <button>
+  "on:my-event": (_e: Event) => void 0,
+};
+void _btn_custom_rejected;
+
+// Unregistered custom-element tags accept any string-keyed props (loose fallback)
+const _custom_loose: JSX.IntrinsicElements["my-widget"] = {
+  anything: "goes",
+  "on:foo": () => {},
+};
+void _custom_loose;
+
+// Registered custom elements get typed attribute slots
+type _XRangeAttrs = JSX.IntrinsicElements["x-range"];
+const _xr_min: _XRangeAttrs = { min: 0, max: 100, value: 50 };
+const _xr_min_sig: _XRangeAttrs = {
+  min: () => 0,
+  max: () => 100,
+  value: () => 50,
+};
+const _xr_prop_ns: _XRangeAttrs = { "prop:value": () => 42 };
+const _xr_event: _XRangeAttrs = {
+  "on:commit": (_e: CustomEvent<void>) => void 0,
+};
+const _xr_slot: _XRangeAttrs = { "slot:header": () => "title" };
+void _xr_min;
+void _xr_min_sig;
+void _xr_prop_ns;
+void _xr_event;
+void _xr_slot;
 
 // ─ Tiny runtime anchor so vitest picks the file up ───────────────────────────
 
