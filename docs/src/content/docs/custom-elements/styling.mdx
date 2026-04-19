@@ -72,7 +72,7 @@ class CounterElement extends HTMLElement {
   #template = () => (
     <section>
       <p>Count: <strong>{this.#count}</strong></p>
-      <button onClick={() => this.#count(this.#count() + 1)}>+1</button>
+      <button on:click={() => this.#count(this.#count() + 1)}>+1</button>
     </section>
   );
 
@@ -150,7 +150,7 @@ class CounterElement extends HTMLElement {
   #template = () => (
     <section>
       <p>Count: <strong>{() => this.count}</strong></p>
-      <button onClick={() => this.count++}>+1</button>
+      <button on:click={() => this.count++}>+1</button>
     </section>
   );
 
@@ -258,7 +258,7 @@ class CounterElement extends HTMLElement {
   #template = () => (
     <div>
       <p>Count: <strong>{() => this.count}</strong></p>
-      <button onClick={() => this.count++}>+1</button>
+      <button on:click={() => this.count++}>+1</button>
     </div>
   );
 

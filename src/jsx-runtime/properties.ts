@@ -132,14 +132,9 @@ function setAttribute(el: Element, key: string, value: unknown): void {
 }
 
 function isEventKey(key: string): boolean {
-  return (
-    key.startsWith("on:") ||
-    (key.length > 2 && key.startsWith("on") && key[2] >= "A" && key[2] <= "Z")
-  );
+  return key.startsWith("on:");
 }
 
 function eventName(key: string): string {
-  return key.startsWith("on:")
-    ? key.slice(3)
-    : key[2].toLowerCase() + key.slice(3); // onClick → click
+  return key.slice(3);
 }

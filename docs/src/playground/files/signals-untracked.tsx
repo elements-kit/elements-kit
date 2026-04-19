@@ -23,17 +23,17 @@ export class App {
             secret: <strong>{() => secret()}</strong>
           </p>
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <button onClick={() => count2(count2() + 1)}>
+            <button on:click={() => count2(count2() + 1)}>
               count +1 (tracked)
             </button>
             <button
-              onClick={() =>
+              on:click={() =>
                 secret(secret() === "hidden" ? "visible" : "hidden")
               }
             >
               Toggle secret
             </button>
-            <button onClick={() => untrackedLogs([])}>Clear logs</button>
+            <button on:click={() => untrackedLogs([])}>Clear logs</button>
           </div>
           <div style="margin-top: 1rem;">
             <strong>Logs (secret changes don't trigger re-run):</strong>

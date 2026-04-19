@@ -28,9 +28,9 @@ export class App {
             Doubled: <strong>{doubled}</strong>
           </p>
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <button onClick={() => count(count() + 1)}>+1</button>
-            <button onClick={() => count(count() - 1)}>−1</button>
-            <button onClick={() => count(0)}>Reset</button>
+            <button on:click={() => count(count() + 1)}>+1</button>
+            <button on:click={() => count(count() - 1)}>−1</button>
+            <button on:click={() => count(0)}>Reset</button>
           </div>
           <div style="margin-top: 1rem;">
             <strong>Effect logs:</strong>

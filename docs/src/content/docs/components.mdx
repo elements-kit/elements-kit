@@ -61,7 +61,7 @@ class Counter {
     return (
       <div>
         <p>Count: {() => this.count} — Doubled: {this.doubled}</p>
-        <button onClick={() => this.count++}>+1</button>
+        <button on:click={() => this.count++}>+1</button>
       </div>
     );
   }
@@ -79,9 +79,9 @@ class Counter {
     return (
       <div>
         <p>Count: {() => this.count} — Doubled: {this.doubled}</p>
-        <button onClick={() => this.count++}>+1</button>
-        <button onClick={() => this.count--}>−1</button>
-        <button onClick={() => (this.count = 0)}>Reset</button>
+        <button on:click={() => this.count++}>+1</button>
+        <button on:click={() => this.count--}>−1</button>
+        <button on:click={() => (this.count = 0)}>Reset</button>
       </div>
     );
   }
@@ -123,8 +123,8 @@ class CounterControls {
   render() {
     return (
       <div>
-        <button onClick={() => counter.increment()}>+1</button>
-        <button onClick={() => counter.reset()}>Reset</button>
+        <button on:click={() => counter.increment()}>+1</button>
+        <button on:click={() => counter.reset()}>Reset</button>
       </div>
     );
   }

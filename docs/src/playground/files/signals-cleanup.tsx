@@ -34,9 +34,9 @@ export class App {
             Abort count: <strong>{abortCount}</strong>
           </p>
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <button onClick={() => url("/api/data")}>Fetch /api/data</button>
-            <button onClick={() => url("/api/users")}>Fetch /api/users</button>
-            <button onClick={() => url("/api/posts")}>Fetch /api/posts</button>
+            <button on:click={() => url("/api/data")}>Fetch /api/data</button>
+            <button on:click={() => url("/api/users")}>Fetch /api/users</button>
+            <button on:click={() => url("/api/posts")}>Fetch /api/posts</button>
           </div>
           <div style="margin-top: 1rem;">
             <strong>Fetch logs:</strong>

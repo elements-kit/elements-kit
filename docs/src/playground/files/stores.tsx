@@ -54,7 +54,7 @@ export class App {
           {PRODUCTS.map((p) => (
             <button
               style="margin: 4px"
-              onClick={() => cart.add(p.name, p.price)}
+              on:click={() => cart.add(p.name, p.price)}
             >
               + {p.name} (${p.price})
             </button>
@@ -70,7 +70,7 @@ export class App {
                 </span>
                 <span>
                   ${() => (item.price * item.qty).toFixed(2)}{" "}
-                  <button onClick={() => cart.remove(item.name)}>✕</button>
+                  <button on:click={() => cart.remove(item.name)}>✕</button>
                 </span>
               </li>
             )}

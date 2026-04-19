@@ -44,8 +44,8 @@ class CounterElement extends HTMLElement {
     this.#unmount = render(this, () => (
       <section>
         <p><strong>{() => this.count}</strong> × 2 = <strong>{this.doubled}</strong></p>
-        <button onClick={() => this.count++}>+1</button>{" "}
-        <button onClick={() => this.count--}>−1</button>
+        <button on:click={() => this.count++}>+1</button>{" "}
+        <button on:click={() => this.count--}>−1</button>
       </section>
     ) as Element);
   }

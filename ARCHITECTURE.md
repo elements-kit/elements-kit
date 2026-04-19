@@ -63,7 +63,7 @@ Each subpath is a stable import entry declared in [package.json](package.json) `
 - Compiles to `document.createElement` + direct DOM mutations. No intermediate tree.
 - **Live binding**: a `Signal<T>`, `Computed<T>`, or `() => T` passed as a child creates a live text node that updates in place. Passed as an attribute value, it keeps that attribute in sync.
 - **Prop namespaces**:
-  - `onEvent={fn}` and `on:event={fn}` — event listener (camelCase lowers; `on:` preserves case).
+  - `on:event={fn}` — event listener (case-preserving; `on:click`, `on:MyCustomEvent`, etc.).
   - `class:name={bool | signal}` — reactive `classList.toggle`.
   - `style:prop={value | signal}` — reactive inline style property.
   - `prop:name={value}` — forces property assignment, bypasses `setAttribute`.

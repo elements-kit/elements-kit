@@ -1,9 +1,14 @@
-import { reactive, signal } from "elements-kit/signals";
+import { signal } from "elements-kit/signals";
 import { Slot, Slots, SLOTS } from "elements-kit/slot";
-import type { SlotProps } from "elements-kit/jsx-runtime";
+import type { Props } from "elements-kit/jsx-runtime";
 
 // ── Card Component with named slots ───────────────────────────────────────────
+export type CardProps = Props<CardComponent>;
+
 class CardComponent {
+  // Phantom constructor: JSX reads this signature to infer accepted props.
+  constructor(_props?: CardProps) {}
+
   [SLOTS] = Slots.new(["header", "actions"] as const);
 
   children = Slot.new();
@@ -42,10 +47,10 @@ export class App {
           slot:header={<h2 style="margin: 0">{cardTitle}</h2>}
           slot:actions={
             <>
-              <button onClick={() => cardTitle("Updated!")}>
+              <button on:click={() => cardTitle("Updated!")}>
                 Update title
               </button>
-              <button onClick={() => cardTitle("My Card")}>Reset</button>
+              <button on:click={() => cardTitle("My Card")}>Reset</button>
             </>
           }
         >

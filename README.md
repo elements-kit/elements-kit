@@ -25,8 +25,8 @@ class CounterElement extends HTMLElement {
     this.appendChild(
       <section>
         <p>Count: <strong>{() => this.count}</strong> — Doubled: <strong>{this.doubled}</strong></p>
-        <button onClick={() => this.count++}>+1</button>{" "}
-        <button onClick={() => this.count--}>−1</button>
+        <button on:click={() => this.count++}>+1</button>{" "}
+        <button on:click={() => this.count--}>−1</button>
       </section> as Element,
     );
   }
@@ -169,7 +169,7 @@ JSX compiles directly to `document.createElement`. No virtual DOM, no diffing.
 
 ```tsx
 // This:
-const el = <button onClick={() => count(count() + 1)}>{count}</button>;
+const el = <button on:click={() => count(count() + 1)}>{count}</button>;
 
 // Is equivalent to:
 const el = document.createElement("button");
@@ -193,8 +193,7 @@ const name = signal("Alice");
 | Syntax | Effect |
 |--------|--------|
 | `{signal}` / `{() => fn()}` | Live-bound reactive child |
-| `onClick={fn}` | Event listener (camelCase → `onclick`) |
-| `on:click={fn}` | Explicit event namespace |
+| `on:click={fn}` | Event listener (case-preserving event name) |
 | `class:active={bool}` | Reactive `classList.toggle` |
 | `style:color={value}` | Reactive inline style property |
 | `prop:foo={val}` | Force property assignment (skips `setAttribute`) |
@@ -217,7 +216,7 @@ class Counter {
     return (
       <section>
         <p>{() => this.count} × 2 = {this.doubled}</p>
-        <button onClick={() => this.count++}>+1</button>
+        <button on:click={() => this.count++}>+1</button>
       </section>
     ) as Element;
   }
@@ -254,7 +253,7 @@ class CounterElement extends HTMLElement {
     this.#unmount = render(this, () => (
       <section>
         <p>{() => this.count} × 2 = {this.doubled}</p>
-        <button onClick={() => this.count++}>+1</button>
+        <button on:click={() => this.count++}>+1</button>
       </section>
     ));
   }
@@ -541,7 +540,7 @@ For typed events, declare a `static events` map:
 class XPicker extends HTMLElement {
   declare static events: { commit: CustomEvent<number> };
 }
-// ElementProps<typeof XPicker> now includes `on:commit` / `onCommit`
+// ElementProps<typeof XPicker> now includes `on:commit`
 ```
 
 ---

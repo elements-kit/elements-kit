@@ -22,8 +22,8 @@ export class App {
         <h2 style="margin-top: 0;">Data fetching — async + reactive input</h2>
         <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; display: grid; gap: 0.5rem;">
           <div style="display: flex; gap: 8px;">
-            <button onClick={() => id(id() + 1)}>next id</button>
-            <button onClick={() => fetchTodo.start()}>refetch</button>
+            <button on:click={() => id(id() + 1)}>next id</button>
+            <button on:click={() => fetchTodo.start()}>refetch</button>
           </div>
           <p>
             id: <strong>{() => id()}</strong>

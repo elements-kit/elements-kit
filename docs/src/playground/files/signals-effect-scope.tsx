@@ -28,16 +28,16 @@ export class App {
             theme: <strong>{() => theme()}</strong>
           </p>
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <button onClick={() => user(user() === "Alice" ? "Bob" : "Alice")}>
+            <button on:click={() => user(user() === "Alice" ? "Bob" : "Alice")}>
               Toggle user
             </button>
             <button
-              onClick={() => theme(theme() === "light" ? "dark" : "light")}
+              on:click={() => theme(theme() === "light" ? "dark" : "light")}
             >
               Toggle theme
             </button>
-            <button onClick={() => stop()}>Stop all effects</button>
-            <button onClick={() => scopeLogs([])}>Clear logs</button>
+            <button on:click={() => stop()}>Stop all effects</button>
+            <button on:click={() => scopeLogs([])}>Clear logs</button>
           </div>
           <div style="margin-top: 1rem;">
             <strong>Scope logs (stop = silence):</strong>

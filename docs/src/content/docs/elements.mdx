@@ -46,7 +46,7 @@ Every JSX tag is a `createElement` call. Props become attributes or event listen
 ```tsx
 // This JSX:
 const el = (
-  <button class="primary" onClick={() => submit()}>
+  <button class="primary" on:click={() => submit()}>
     Save
   </button>
 );
@@ -167,8 +167,7 @@ ElementsKit extends standard HTML props with namespaced prefixes for common reac
 
 | Syntax | Effect | Equivalent |
 |--------|--------|------------|
-| `onClick={fn}` | Event listener | `el.addEventListener("click", fn)` |
-| `on:click={fn}` | Explicit event | `el.addEventListener("click", fn)` |
+| `on:click={fn}` | Event listener (case-preserving) | `el.addEventListener("click", fn)` |
 | `class:active={bool}` | Reactive class toggle | `effect(() => el.classList.toggle("active", bool()))` |
 | `style:color={value}` | Reactive inline style | `effect(() => el.style.color = value())` |
 | `prop:foo={val}` | Force property assignment | `el.foo = val` (skips `setAttribute`) |

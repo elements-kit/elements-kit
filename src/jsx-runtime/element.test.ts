@@ -297,3 +297,34 @@ describe("createElement (function component) — effectScope lifecycle", () => {
     expect(bodyCleanup).not.toHaveBeenCalled();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Event handlers: only `on:event` syntax is supported
+// ---------------------------------------------------------------------------
+
+describe("event handlers", () => {
+  it("attaches a listener for `on:click={fn}`", () => {
+    const spy = vi.fn();
+    const btn = createElement("button", { "on:click": spy }) as HTMLButtonElement;
+    btn.click();
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it("does NOT attach a listener for `onClick={fn}` (legacy syntax removed)", () => {
+    const spy = vi.fn();
+    const btn = createElement("button", { onClick: spy }) as HTMLButtonElement;
+    btn.click();
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("preserves event-name case under `on:`", () => {
+    const spy = vi.fn();
+    const el = createElement("div", { "on:MyEvent": spy }) as HTMLDivElement;
+    el.dispatchEvent(new CustomEvent("MyEvent"));
+    expect(spy).toHaveBeenCalledTimes(1);
+    // Case-sensitive: lowercase does not match.
+    spy.mockClear();
+    el.dispatchEvent(new CustomEvent("myevent"));
+    expect(spy).not.toHaveBeenCalled();
+  });
+});

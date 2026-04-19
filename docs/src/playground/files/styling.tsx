@@ -27,7 +27,10 @@ button:hover { background: #f7fafc; }
 // ── Element ───────────────────────────────────────────────────────────────────
 class CounterElement extends HTMLElement {
   @reactive() count = 0;
-  doubled = computed(() => this.count * 2);
+
+  // Private: excluded from ElementProps so JSX doesn't type `doubled` as a
+  // settable prop. Public readers should expose it via a getter if needed.
+  readonly #doubled = computed(() => this.count * 2);
 
   #unmount?: () => void;
 
@@ -36,12 +39,12 @@ class CounterElement extends HTMLElement {
       <p>
         <strong>{() => this.count}</strong>
         {" × 2 = "}
-        <strong>{this.doubled}</strong>
+        <strong>{this.#doubled}</strong>
       </p>
       <div class="controls">
-        <button onClick={() => this.count++}>+1</button>
-        <button onClick={() => this.count--}>−1</button>
-        <button onClick={() => (this.count = 0)}>Reset</button>
+        <button on:click={() => this.count++}>+1</button>
+        <button on:click={() => this.count--}>−1</button>
+        <button on:click={() => (this.count = 0)}>Reset</button>
       </div>
     </div>
   );
@@ -60,24 +63,21 @@ class CounterElement extends HTMLElement {
   }
 }
 
-customElements.define("x-counter", CounterElement);
+customElements.define("x-counter2", CounterElement);
 
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      "x-counter": Record<string, unknown>;
-    }
+declare module "elements-kit/custom-elements" {
+  interface CustomElementRegistry {
+    "x-counter2": typeof CounterElement;
   }
 }
-
 // Mount three instances — all share the same parsed stylesheet
 export class App {
   render() {
     return (
       <div style="display: flex; gap: 1rem; flex-wrap: wrap; padding: 1rem">
-        <x-counter />
-        <x-counter />
-        <x-counter />
+        <x-counter2 />
+        <x-counter2 />
+        <x-counter2 />
       </div>
     );
   }

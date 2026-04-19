@@ -30,10 +30,10 @@ export class App {
             y: <strong>{() => y()}</strong>
           </p>
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <button onClick={() => x(x() + 1)}>x +1</button>
-            <button onClick={() => y(y() + 1)}>y +1</button>
+            <button on:click={() => x(x() + 1)}>x +1</button>
+            <button on:click={() => y(y() + 1)}>y +1</button>
             <button
-              onClick={() =>
+              on:click={() =>
                 batch(() => {
                   x(x() + 10);
                   y(y() + 10);
@@ -42,7 +42,7 @@ export class App {
             >
               Batch (x+10, y+10)
             </button>
-            <button onClick={() => batchLogs([])}>Clear logs</button>
+            <button on:click={() => batchLogs([])}>Clear logs</button>
           </div>
           <div style="margin-top: 1rem;">
             <strong>Effect logs (batch = 1 log, separate = 2 logs):</strong>

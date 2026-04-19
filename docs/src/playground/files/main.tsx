@@ -26,9 +26,9 @@ class Counter extends HTMLElement {
         Count: <strong>{this.#count}</strong> — Doubled:{" "}
         <strong>{this.doubled}</strong>
       </p>
-      <button onClick={() => this.count++}>+1</button>{" "}
-      <button onClick={() => this.count--}>−1</button>{" "}
-      <button onClick={() => (this.count = 0)}>Reset</button>
+      <button on:click={() => this.count++}>+1</button>{" "}
+      <button on:click={() => this.count--}>−1</button>{" "}
+      <button on:click={() => (this.count = 0)}>Reset</button>
     </section>
   );
 
@@ -43,11 +43,9 @@ class Counter extends HTMLElement {
 }
 customElements.define("x-counter", Counter);
 
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      "x-counter": Counter;
-    }
+declare module "elements-kit/custom-elements" {
+  interface CustomElementRegistry {
+    "x-counter": typeof Counter;
   }
 }
 

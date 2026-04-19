@@ -62,7 +62,7 @@ export class App extends TodoStore {
               style:font-weight={computed(() =>
                 this.filter === f ? "bold" : "normal",
               )}
-              onClick={() => (this.filter = f)}
+              on:click={() => (this.filter = f)}
             >
               {f}
             </button>
@@ -85,7 +85,7 @@ export class App extends TodoStore {
                 >
                   {todo.text}
                 </span>
-                <button onClick={() => this.remove(todo.id)}>✕</button>
+                <button on:click={() => this.remove(todo.id)}>✕</button>
               </li>
             )}
           </For>

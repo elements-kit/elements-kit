@@ -1,5 +1,5 @@
 import type { ATTRIBUTES, AttrChangeHandler } from "../attributes";
-import type { SLOTS, Slots } from "../slot";
+import type { SLOTS, Slot, Slots } from "../slot";
 import type { Child, ComponentClass, ComponentInstance } from "./types";
 import type { MaybeReactive } from "../signals";
 import type { JSX as DomJSX } from "dom-expressions/src/jsx-h";
@@ -14,18 +14,27 @@ type Inst<C> = C extends abstract new (...args: any[]) => infer I ? I : never;
 
 /**
  * When the instance extends `HTMLElement`, drop the DOM surface so only the
- * user's own fields remain. Plain classes keep all their keys.
+ * user's own fields remain. Plain class components also drop `render` — it's
+ * the internal rendering method, not a JSX prop.
  */
 type PublicPropKeys<I> = I extends HTMLElement
   ? Exclude<keyof I, keyof HTMLElement | symbol>
-  : Exclude<keyof I, symbol>;
+  : Exclude<keyof I, symbol | "render">;
+
+/**
+ * Instance fields typed as `Slot` are default-slot mounts at runtime — the JSX
+ * consumer passes DOM content, which `applyChildren` routes via `applySlot`.
+ * Surface them as `Child` in the JSX prop shape so callers type-check.
+ */
+type PropValueFor<V> = V extends Slot ? Child : V;
 
 /**
  * Public instance fields of `I` — all optional. For `HTMLElement` subclasses
  * the DOM surface is excluded; for plain classes, all own keys are kept.
+ * `Slot`-typed fields are mapped to `Child` (see {@link PropValueFor}).
  */
 export type PropsOfInstance<I> = {
-  [K in PublicPropKeys<I> & string]?: I[K];
+  [K in PublicPropKeys<I> & string]?: PropValueFor<I[K]>;
 };
 
 /**
@@ -78,7 +87,10 @@ type InstancePropsOf<C> = Inst<C> extends infer I ? PropsOfInstance<I> : {};
 
 type PropKeysOf<C> = keyof InstancePropsOf<C> & string;
 
-type AttrMap<C> = C extends { [ATTRIBUTES]: infer M } ? M : never;
+// Defaults to `{}` (not `never`) for classes without `[ATTRIBUTES]` — `never`
+// would poison downstream conditional types via distribution, collapsing the
+// whole `ElementProps<>` intersection to `never`.
+type AttrMap<C> = C extends { [ATTRIBUTES]: infer M } ? M : {};
 
 type HandlerValue<H> = H extends AttrChangeHandler<any> ? string | null : H;
 
@@ -122,8 +134,13 @@ type EventsOf<C> =
 
 type SlotKeys<I> = I extends { [SLOTS]: Slots<infer K> } ? K : never;
 
+// If C is a constructor, extract the instance type; otherwise treat C as an
+// instance directly. This lets SlotsOf<> work for `Props<Constructor>` AND
+// `Props<InstanceType>` (the common case when a class name is used as a type).
+type InstanceOf<C> = C extends abstract new (...args: any[]) => infer I ? I : C;
+
 type SlotsOf<C> =
-  SlotKeys<Inst<C>> extends infer K
+  SlotKeys<InstanceOf<C>> extends infer K
     ? [K] extends [string]
       ? { [P in K as `slot:${P}`]?: Child }
       : {}
@@ -253,12 +270,15 @@ export type ComponentProps<C extends ComponentClass<any>> =
  * @see {@link ComponentProps} — constructor-param-based class components.
  * @see {@link MaybeReactiveProps}
  */
-export type Props<C> = C extends abstract new (...args: any[]) => infer I
-  ? MaybeReactiveProps<PropsOfInstance<I>>
-  : C extends (props: infer P, ...rest: any[]) => any
-    ? P extends object
-      ? MaybeReactiveProps<P>
-      : {}
-    : MaybeReactiveProps<PropsOfInstance<C>>;
+export type Props<C> = (
+  C extends abstract new (...args: any[]) => infer I
+    ? MaybeReactiveProps<PropsOfInstance<I>>
+    : C extends (props: infer P, ...rest: any[]) => any
+      ? P extends object
+        ? MaybeReactiveProps<P>
+        : {}
+      : MaybeReactiveProps<PropsOfInstance<C>>
+) &
+  SlotsOf<C>;
 
 export type { AnyElementCtor, ComponentInstance };

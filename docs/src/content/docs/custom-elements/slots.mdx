@@ -140,10 +140,25 @@ For components with multiple named regions, use `Slots<K>` — a typed keyed col
 
 ```tsx
 import { Slot, Slots, SLOTS } from "elements-kit/slot";
+import type { Child, Props } from "elements-kit/jsx-runtime";
+
+/**
+ * Props for `<CardComponent>` — derived from its public instance fields
+ * (via `Props<>`) and the `[SLOTS]` declaration.
+ */
+export type CardProps = Props<CardComponent>;
 
 class CardComponent {
-  // Declare named slots — keys become typed JSX props
+  // Phantom signature: JSX reads it to infer accepted props. Runtime
+  // constructs with no args — createElement assigns each prop via
+  // property set afterwards.
+  constructor(_props?: CardProps) {}
+
+  // Named slots — keys flow into `CardProps` as `slot:header` / `slot:footer`.
   [SLOTS] = Slots.new(["header", "footer"] as const);
+
+  // Default slot — CardProps picks this up as a typed `children` key.
+  children: Child =  Slot.new();;
 
   render() {
     return (
@@ -152,13 +167,8 @@ class CardComponent {
           {/* Mount slot — "Default header" renders until filled */}
           {this[SLOTS].header("Default header")}
         </header>
-        <main>
-          {/* Children passed directly as default slot */}
-          <slot />
-        </main>
-        <footer>
-          {this[SLOTS].footer()}
-        </footer>
+        <main>{this.children()}</main>
+        <footer>{this[SLOTS].footer()}</footer>
       </article>
     );
   }
@@ -195,14 +205,15 @@ title("Updated Title");
 
 ### `SlotProps` type helper
 
-Use `SlotProps<K>` from the JSX runtime to type `slot:name` props on function or class components:
+`Props<CardComponent>` already infers slots from `[SLOTS]` — prefer that when you have a concrete class to point at. `SlotProps<K>` is the **fallback** for cases where you can't derive from an instance: function components, components that don't declare `[SLOTS]`, or hand-written prop interfaces.
 
 ```tsx
-import type { SlotProps } from "elements-kit/jsx-runtime";
+import type { Child, SlotProps } from "elements-kit/jsx-runtime";
 
-// Declare which slot names are accepted
+// Declare which slot names are accepted alongside your own props
 interface CardProps extends SlotProps<"header" | "footer"> {
   title?: string;
+  children?: Child;
 }
 
 // TypeScript now knows slot:header and slot:footer are valid

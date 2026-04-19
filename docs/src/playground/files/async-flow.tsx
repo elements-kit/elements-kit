@@ -23,14 +23,14 @@ export class App {
             input:{" "}
             <input
               value={query}
-              onInput={(e: Event) =>
+              on:input={(e: Event) =>
                 query((e.target as HTMLInputElement).value)
               }
             />
           </label>
           <div>
-            <button onClick={() => search.start()}>start</button>
-            <button onClick={() => search.stop()}>stop</button>
+            <button on:click={() => search.start()}>start</button>
+            <button on:click={() => search.stop()}>stop</button>
           </div>
           <p>
             state: <strong>{() => search.state}</strong>

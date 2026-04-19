@@ -4,7 +4,7 @@
  *
  * @example
  * ```ts
- * declare module "elements-kit" {
+ * declare module "elements-kit/custom-elements" {
  *   interface CustomElementRegistry {
  *     "x-range": typeof XRange;
  *   }
