@@ -10,8 +10,11 @@ import type {
   MaybeReactiveProps,
   Props,
   PropsOfInstance,
+  RawProps,
+  ReactiveProps,
   Require,
 } from "./infer";
+import type { Computed } from "../signals";
 
 // ─ Type-level assertion helpers ───────────────────────────────────────────────
 
@@ -172,6 +175,60 @@ const _p_fn_missing: _P_Fn = {};
 void _p_fn_ok;
 void _p_fn_getter;
 void _p_fn_missing;
+
+// ─ ReactiveProps + LibraryManagedAttributes ─────────────────────────────────
+
+// Per-key getter shape inside a function-component body
+type _RP = ReactiveProps<{ name: string; excited?: boolean }>;
+type _RP_Name = Assert<Equal<_RP["name"], Computed<string>>>;
+type _RP_Excited = Assert<
+  Equal<_RP["excited"], Computed<boolean | undefined> | undefined>
+>;
+
+// RawProps unwraps the brand (assignable both ways)
+type _Raw = RawProps<_RP>;
+const _raw_in: _Raw = { name: "x" };
+const _raw_in2: _Raw = { name: "x", excited: true };
+const _raw_back: { name: string; excited?: boolean } = {} as _Raw;
+void _raw_in;
+void _raw_in2;
+void _raw_back;
+// Without brand, RawProps is the identity
+type _RPP_Plain = Assert<Equal<RawProps<{ a: number }>, { a: number }>>;
+
+// Function component declared with ReactiveProps — JSX call-site type
+function FnGreeting(
+  _props: ReactiveProps<{ name: string; excited?: boolean }>,
+): Element | null {
+  return null;
+}
+type _FnAttrs = JSX.LibraryManagedAttributes<
+  typeof FnGreeting,
+  Parameters<typeof FnGreeting>[0]
+>;
+// Static value, signal, and computed all assignable; required key enforced
+const _fn_static: _FnAttrs = { name: "wael" };
+const _fn_signal: _FnAttrs = { name: () => "wael" };
+const _fn_with_excited: _FnAttrs = { name: "x", excited: () => true };
+// @ts-expect-error — name is required
+const _fn_missing: _FnAttrs = {};
+// @ts-expect-error — wrong scalar type
+const _fn_wrong: _FnAttrs = { name: 42 };
+void _fn_static;
+void _fn_signal;
+void _fn_with_excited;
+void _fn_missing;
+void _fn_wrong;
+
+// Instance-field class — JSX attrs derived from public fields
+// (TS extracts `{}` for classes without a constructor signature.)
+type _ClsAttrs = JSX.LibraryManagedAttributes<typeof Toggle, {}>;
+const _cls_static: _ClsAttrs = { open: true };
+const _cls_signal: _ClsAttrs = { open: () => false };
+const _cls_handler: _ClsAttrs = { onToggle: (v: boolean) => void v };
+void _cls_static;
+void _cls_signal;
+void _cls_handler;
 
 // ─ Tiny runtime anchor so vitest picks the file up ───────────────────────────
 

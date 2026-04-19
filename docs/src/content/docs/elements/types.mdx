@@ -13,9 +13,10 @@ Derive JSX prop types from your components — attributes, events, slots, childr
 | Class component with public instance fields | [`Props<Cls<T>>`](#propsc) |
 | Class component with `constructor(props: P)` | [`ComponentProps<typeof Cls>`](#componentpropsc) |
 | Function component | [`Props<typeof Fn>`](#propsc) |
-| Any object-shaped props, want reactive wrapping | [`MaybeReactiveProps<P>`](#maybereactivepropsp) |
+| Wrap caller-passed props in reactive | [`MaybeReactiveProps<P>`](#maybereactivepropsp) |
+| Function-component received props (auto-wrapped) | [`ReactiveProps<P>`](#reactivepropsp) |
 | Scalar value-or-getter | [`MaybeReactive<T>`](#maybereactivet) |
-| Function-component runtime prop reader | [`resolveProps`](/components#function-components) |
+| Manual prop bag → getters (non-JSX) | [`resolveProps`](/components#function-components) |
 | Make optional keys required | [`Require<P, K>`](#requirep-k) |
 
 All type helpers are re-exported from `elements-kit/jsx-runtime`. `MaybeReactive` also lives in `elements-kit/signals`.
@@ -110,7 +111,7 @@ Use `Props<C>` instead when props live on public instance fields.
 
 ## `MaybeReactiveProps<P>`
 
-Wrap every prop in `MaybeReactive`. The runtime resolves the value on read, so you can pass static values or signals/computeds without changing your component code.
+Caller-facing — wrap every prop in `MaybeReactive`. Describes what parents pass into a component (a value or a signal/computed per key).
 
 ```ts twoslash
 import type { MaybeReactiveProps } from "elements-kit/jsx-runtime";
@@ -122,6 +123,18 @@ type Wrapped = MaybeReactiveProps<Raw>;
 //   label?:   MaybeReactive<string>;
 //   onClick:  MaybeReactive<(e: Event) => void>;
 // }
+```
+
+## `ReactiveProps<P>`
+
+Component-facing — every prop becomes a callable `Computed<T>` getter. The JSX runtime auto-wraps function-component props into this shape, so you read `props.count()` and the read subscribes.
+
+```tsx
+import type { ReactiveProps } from "elements-kit/jsx-runtime";
+
+function Counter(props: ReactiveProps<{ count: number }>) {
+  return <p>{() => props.count()}</p>;
+}
 ```
 
 

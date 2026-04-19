@@ -50,7 +50,7 @@ Every feature is a separate subpath export — import only what you use.
 | `elements-kit/slot` | `Slot`, `Slots`, `SLOTS` symbol — comment-marker DOM regions |
 | `elements-kit/custom-elements` | `defineElement`, `CustomElementRegistry` |
 | `elements-kit/for` | `For` keyed-list component |
-| `elements-kit/jsx-runtime` | JSX factory + type helpers (`ElementProps`, `Props`, `ComponentProps`, `MaybeReactiveProps`, `Require`) — configure via `jsxImportSource` |
+| `elements-kit/jsx-runtime` | JSX factory + type helpers (`ElementProps`, `Props`, `ComponentProps`, `MaybeReactiveProps`, `ReactiveProps`, `Require`) — configure via `jsxImportSource` |
 | `elements-kit/integrations/react` | `useSignal`, `useScope` React bridge hooks |
 | `elements-kit/utilities/*` | Reactive browser-API utilities — see [src/utilities/README.md](src/utilities/README.md) |
 
@@ -467,21 +467,22 @@ Six type helpers derive JSX prop shapes from your components — no parallel `de
 | `ElementProps<typeof Cls>` | `HTMLElement` subclass — full surface (attrs, events, slots, children) |
 | `Props<C>` | Class instance, constructor, or function component — unified |
 | `ComponentProps<typeof Cls>` | Class components with `constructor(props: P)` |
-| `MaybeReactiveProps<P>` | Wrap every prop in `MaybeReactive` |
+| `MaybeReactiveProps<P>` | Caller-facing — wrap every prop in `MaybeReactive` (what parents pass) |
+| `ReactiveProps<P>` | Component-facing — every prop becomes a `Computed<T>` getter (what function components receive) |
 | `MaybeReactive<T>` | Scalar value-or-getter (from `elements-kit/signals`) |
 | `Require<P, K>` | Promote optional keys to required |
 
-Function components pair `MaybeReactiveProps<P>` on the signature with `resolveProps` at the top of the body — each key becomes a callable getter, subscribing to updates on read:
+The JSX runtime auto-wraps function-component props — each key arrives as a callable getter that subscribes on read. Pair the signature with `ReactiveProps<P>` and read `props.x()`:
 
 ```tsx
-import { resolveProps } from "elements-kit/signals";
-import type { MaybeReactiveProps } from "elements-kit/jsx-runtime";
+import type { ReactiveProps } from "elements-kit/jsx-runtime";
 
-function Greeting(raw: MaybeReactiveProps<{ name: string }>) {
-  const props = resolveProps(raw);
+function Greeting(props: ReactiveProps<{ name: string }>) {
   return <p>Hello, {props.name}</p>;
 }
 ```
+
+`resolveProps` stays exported for non-JSX call sites or nested prop bags.
 
 ---
 

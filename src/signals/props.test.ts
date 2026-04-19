@@ -46,3 +46,21 @@ it("mixes static and reactive props", () => {
   expect(props.name()).toBe("world");
   expect(props.excited()).toBe(true);
 });
+
+it("is spreadable into a new object as separate computed per key", () => {
+  const count = signal(0);
+  const props = resolveProps({ count, label: "n" });
+  const spread = { ...props };
+  expect(typeof spread.count).toBe("function");
+  expect(typeof spread.label).toBe("function");
+  expect(spread.count).toBe(count);
+  expect(spread.count()).toBe(0);
+  expect(spread.label()).toBe("n");
+  count(7);
+  expect(spread.count()).toBe(7);
+});
+
+it("Object.keys reflects underlying keys", () => {
+  const props = resolveProps({ a: 1, b: 2 });
+  expect(Object.keys(props).sort()).toEqual(["a", "b"]);
+});

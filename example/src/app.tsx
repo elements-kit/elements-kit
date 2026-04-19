@@ -7,8 +7,19 @@ import {
   effectScope,
   untracked,
   trigger,
+  reactive,
 } from "elements-kit/signals";
 import { For } from "elements-kit/for";
+import {
+  attributes,
+  ATTRIBUTES,
+  type Attributes,
+} from "elements-kit/attributes";
+import { defineElement } from "elements-kit/custom-elements";
+import type {
+  MaybeReactiveProps,
+  ReactiveProps,
+} from "elements-kit/jsx-runtime";
 
 // ============ Demo 1: Counter ============
 const count = signal(0);
@@ -66,11 +77,18 @@ export class App {
         <h2 style="margin-top: 0;">Signals Playground</h2>
 
         <div style="display: flex; gap: 4px; margin-bottom: 1rem; flex-wrap: wrap;">
-          <For<string>
-            each={["Counter", "Batch", "onCleanup", "effectScope", "untracked"]}
-            by={(log: string, i: number) => i}
+          <For
+            each={[
+              "Counter",
+              "Batch",
+              "onCleanup",
+              "effectScope",
+              "untracked",
+              "Props",
+            ]}
+            by={(_log, i) => i}
           >
-            {(name: string, i: number) => (
+            {(name, i) => (
               <button
                 on:click={() => activeTab(i)}
                 style:background={computed(() =>
@@ -97,6 +115,7 @@ export class App {
         {() => activeTab() === 2 && <DemoCleanup />}
         {() => activeTab() === 3 && <DemoEffectScope />}
         {() => activeTab() === 4 && <DemoUntracked />}
+        {() => activeTab() === 5 && <DemoProps />}
         <p style="font-size: 0.8em; color: #666; margin-top: 2rem;">
           Open the console to see effect logs.
         </p>
@@ -132,8 +151,8 @@ function DemoCounter() {
             "font-size": "0.85em",
           }}
         >
-          <For<string> each={logs} by={(log: string, i: number) => i}>
-            {(log: string) => <div>{log}</div>}
+          <For each={logs} by={(log, i) => i}>
+            {(log) => <div>{log}</div>}
           </For>
         </div>
       </div>
@@ -186,8 +205,8 @@ function DemoBatch() {
             "font-size": "0.85em",
           }}
         >
-          <For each={batchLogs} by={(log: string) => log}>
-            {(log: string) => <div>{log}</div>}
+          <For each={batchLogs} by={(log) => log}>
+            {(log) => <div>{log}</div>}
           </For>
         </div>
       </div>
@@ -222,8 +241,8 @@ function DemoCleanup() {
             "font-size": "0.85em",
           }}
         >
-          <For each={fetchLogs} by={(log: string, i: number) => i}>
-            {(log: string) => <div>{log}</div>}
+          <For each={fetchLogs} by={(log, i) => i}>
+            {(log) => <div>{log}</div>}
           </For>
         </div>
       </div>
@@ -277,8 +296,8 @@ function DemoEffectScope() {
             "font-size": "0.85em",
           }}
         >
-          <For each={scopeLogs} by={(log: string, i: number) => i}>
-            {(log: string) => <div>{log}</div>}
+          <For each={scopeLogs} by={(log, i) => i}>
+            {(log) => <div>{log}</div>}
           </For>
         </div>
       </div>
@@ -296,7 +315,9 @@ function DemoUntracked() {
         secret: <strong>{() => secret()}</strong>
       </p>
       <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-        <button on:click={() => count2(count2() + 1)}>count +1 (tracked)</button>
+        <button on:click={() => count2(count2() + 1)}>
+          count +1 (tracked)
+        </button>
         <button
           on:click={() => secret(secret() === "hidden" ? "visible" : "hidden")}
         >
@@ -317,10 +338,152 @@ function DemoUntracked() {
             "font-size": "0.85em",
           }}
         >
-          <For each={untrackedLogs} by={(log: string, i: number) => i}>
-            {(log: string) => <div>{log}</div>}
+          <For each={untrackedLogs} by={(log, i) => i}>
+            {(log) => <div>{log}</div>}
           </For>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ============ Demo 6: Props Matrix (fn / class / custom-element) ============
+
+const propsName = signal("Wael");
+const propsExcited = signal(false);
+const propsNameUpper = computed(() => propsName().toUpperCase());
+
+// — Function component — props auto-wrapped into per-key getters
+function FnGreeting(props: ReactiveProps<{ name: string; excited?: boolean }>) {
+  return (
+    <p style="margin: 0;">
+      <code>[fn]</code> Hello {() => props.name()}
+      {() => (props.excited?.() ? "!" : ".")}
+    </p>
+  );
+}
+
+// — Class component — constructor-typed props, applyProps assigns each key
+class ClassGreeting {
+  constructor(
+    _props?: MaybeReactiveProps<{ name?: string; excited?: boolean }>,
+  ) {}
+  @reactive() name: string = "world";
+  @reactive() excited: boolean = false;
+  render(): Element {
+    return (
+      <p style="margin: 0;">
+        <code>[class]</code> Hello {() => this.name}
+        {() => (this.excited ? "!" : ".")}
+      </p>
+    ) as Element;
+  }
+}
+
+// — Custom element — @attributes + @reactive fields, registered globally
+@attributes
+class CeGreeting extends HTMLElement {
+  @reactive() name: string = "world";
+  @reactive() excited: boolean = false;
+  static [ATTRIBUTES]: Attributes<CeGreeting> = {
+    name(v) {
+      this.name = v ?? "world";
+    },
+    excited(v) {
+      this.excited = v != null;
+    },
+  };
+  connectedCallback() {
+    const root = this.attachShadow({ mode: "open" });
+    root.appendChild(
+      (
+        <p style="margin: 0;">
+          <code>[ce]</code> Hello {() => this.name}
+          {() => (this.excited ? "!" : ".")}
+        </p>
+      ) as Element,
+    );
+  }
+}
+defineElement("ce-greeting", CeGreeting);
+declare module "elements-kit/custom-elements" {
+  interface CustomElementRegistry {
+    "ce-greeting": typeof CeGreeting;
+  }
+}
+
+function Row(props: { label: string; children?: unknown }) {
+  return (
+    <div style="display: grid; grid-template-columns: 140px 1fr; gap: 8px; align-items: center; padding: 4px 0; border-bottom: 1px dashed #e5e7eb;">
+      <strong style="font-size: 0.85em; color: #6b7280;">{props.label}</strong>
+      <div>{props.children as any}</div>
+    </div>
+  );
+}
+
+function DemoProps() {
+  return (
+    <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem;">
+      <h3 style="margin-top: 0;">Props matrix — fn / class / custom-element</h3>
+      <p style="font-size: 0.85em; color: #6b7280;">
+        Same prop combinations across three component shapes. Mutate the signals
+        below — every reactive variant updates; the static one stays put.
+      </p>
+
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1rem;">
+        <button
+          on:click={() => propsName(propsName() === "Wael" ? "Sam" : "Wael")}
+        >
+          Toggle name
+        </button>
+        <button on:click={() => propsExcited(!propsExcited())}>
+          Toggle excited
+        </button>
+      </div>
+
+      <h4 style="margin: 0 0 4px;">Function component</h4>
+      <div style="background: #f9fafb; padding: 8px; border-radius: 4px; margin-bottom: 12px;">
+        <Row label="static">
+          <FnGreeting name="static-fn" />
+        </Row>
+        <Row label="signal">
+          <FnGreeting name={propsName} />
+        </Row>
+        <Row label="computed + bool">
+          <FnGreeting name={propsNameUpper} excited />
+        </Row>
+        <Row label="signal + signal">
+          <FnGreeting name={propsName} excited={propsExcited} />
+        </Row>
+      </div>
+
+      <h4 style="margin: 0 0 4px;">Class component</h4>
+      <div style="background: #f9fafb; padding: 8px; border-radius: 4px; margin-bottom: 12px;">
+        <Row label="static">
+          <ClassGreeting name="static-class" />
+        </Row>
+        <Row label="signal">
+          <ClassGreeting name={propsName} />
+        </Row>
+        <Row label="computed + bool">
+          <ClassGreeting name={propsNameUpper} excited={true} />
+        </Row>
+        <Row label="signal + signal">
+          <ClassGreeting name={propsName} excited={propsExcited} />
+        </Row>
+      </div>
+
+      <h4 style="margin: 0 0 4px;">Custom element (attribute-bound)</h4>
+      <div style="background: #f9fafb; padding: 8px; border-radius: 4px;">
+        <Row label="static attr">
+          <ce-greeting name="static-ce" />
+        </Row>
+        <Row label="signal attr">
+          <ce-greeting name={propsName} />
+        </Row>
+        <Row label="computed attr">
+          <ce-greeting name={propsNameUpper} />
+        </Row>
       </div>
     </div>
   );

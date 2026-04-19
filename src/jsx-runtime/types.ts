@@ -1,5 +1,6 @@
 import type { PrimitiveNodeType } from "../lib";
 import type { JSX } from ".";
+import type { ReactiveProps } from "./infer";
 
 /** An instance created by a component class — must expose `render()`. */
 export interface ComponentInstance {
@@ -11,7 +12,7 @@ export type ComponentClass<P extends Record<PropertyKey, unknown> = any> = new (
   props: P,
 ) => ComponentInstance;
 export type ComponentFn<P extends Record<PropertyKey, unknown> = any> = (
-  props: P,
+  props: ReactiveProps<P>,
 ) => JSX.Element;
 
 /** Anything valid as the first arg to `createElement` / a JSX tag target. */
@@ -21,10 +22,8 @@ export type Component = NonNullable<JSX.Element> | ComponentClass | ComponentFn;
 export type PropsTarget = NonNullable<JSX.Element> | ComponentInstance;
 
 /** Anything that can appear as a JSX child. */
-type RenderableChild = PrimitiveNodeType | JSX.Element | RenderableChild[];
+export type Child = PrimitiveNodeType | JSX.Element | AnyFn | Child[];
 
-export type Child = RenderableChild | AnyFn;
-
-export type AnyFn = (...args: any[]) => RenderableChild;
+export type AnyFn = (...args: any[]) => Child;
 
 export type Disposer = () => void;

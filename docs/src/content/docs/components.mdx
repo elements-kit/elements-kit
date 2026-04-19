@@ -139,16 +139,14 @@ For keyed list rendering, use the `For` component — it reconciles a reactive a
 
 ## Function components
 
-A function component is a plain function that returns an `Element`. For reactive props, pair the signature with `MaybeReactiveProps<P>` and read them through `resolveProps` — each key becomes a getter you call on read, so JSX subscribes to whatever drives it.
+A function component is a plain function that returns an `Element`. The JSX runtime auto-wraps the props bag, so every key on `props` arrives as a callable getter — call it to read, pass it (or wrap a call in a getter) into JSX to subscribe.
 
 ```tsx
-import { resolveProps } from "elements-kit/signals";
-import type { MaybeReactiveProps } from "elements-kit/jsx-runtime";
+import type { ReactiveProps } from "elements-kit/jsx-runtime";
 
 function Greeting(
-  raw: MaybeReactiveProps<{ name: string; excited?: boolean }>,
+  props: ReactiveProps<{ name: string; excited?: boolean }>,
 ) {
-  const props = resolveProps(raw);
   return (
     <p>
       Hello, {props.name}
@@ -158,7 +156,7 @@ function Greeting(
 }
 ```
 
-Each key on the returned object is a `Computed<T>` — call it to read, wrap the call in a getter (`{() => props.excited() ? ... : ...}`) to subscribe inside JSX. Signals and computed pass through with identity preserved; static values become stable thunks.
+Each key on `props` is a `Computed<T>`. Signals and computed pass through with identity preserved; static values become stable thunks. For non-JSX call sites or nested prop bags you can still call [`resolveProps`](/elements/types) manually.
 
 ## See also
 

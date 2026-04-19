@@ -10,12 +10,14 @@ import type { Child } from "./types";
  * `effectScope`, which links to the enclosing `effectScope` created by
  * `createElement(Fragment, ...)` for disposal propagation.
  */
-export function Fragment(props: { children?: unknown }): DocumentFragment {
+export function Fragment(props: { children?: () => Child }): DocumentFragment {
   const fragment = document.createDocumentFragment();
-  const raw = props.children;
+  const raw = props.children?.();
   if (raw == null) return fragment;
 
-  const nodes = Array.isArray(raw) ? (raw as unknown[]).flat(Infinity) : [raw];
+  const nodes = Array.isArray(raw)
+    ? (raw as unknown[]).flat(Infinity)
+    : [raw];
   for (const child of nodes) mountChild(fragment, child as Child);
 
   return fragment;

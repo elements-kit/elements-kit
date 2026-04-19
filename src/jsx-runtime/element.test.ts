@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { signal, effect, effectScope, onCleanup } from "../signals";
+import { signal, computed, effect, effectScope, onCleanup } from "../signals";
 import { createElement, disposeElement } from "./element";
 import { For } from "@/for";
 
@@ -9,8 +9,8 @@ import { For } from "@/for";
 
 /** Minimal JSX-less way to call a function component through createElement. */
 function mount(
-  fn: (props: Record<string, unknown>) => Element | null,
-  props = {},
+  fn: (props: any) => Element | null,
+  props: Record<string, unknown> = {},
 ) {
   return createElement(fn, props) as Element | null;
 }
@@ -295,6 +295,123 @@ describe("createElement (function component) — effectScope lifecycle", () => {
     bodyCleanup.mockClear();
     s(99);
     expect(bodyCleanup).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Function component — props auto-resolution
+// ---------------------------------------------------------------------------
+
+describe("createElement (function component) — props are auto-wrapped", () => {
+  it("each prop is exposed as a callable getter that subscribes effects", () => {
+    const count = signal(0);
+    const seen: number[] = [];
+
+    mount(
+      (props: { count: () => number }) => {
+        effect(() => seen.push(props.count()));
+        return document.createElement("div");
+      },
+      { count },
+    );
+
+    count(1);
+    count(2);
+    expect(seen).toEqual([0, 1, 2]);
+  });
+
+  it("static prop becomes a stable thunk", () => {
+    let captured: unknown;
+    mount(
+      (props: { name: () => string }) => {
+        captured = props.name();
+        return document.createElement("div");
+      },
+      { name: "hi" },
+    );
+    expect(captured).toBe("hi");
+  });
+
+  it("forwarding a getter through a child function component stays reactive", () => {
+    const count = signal(10);
+    const seen: number[] = [];
+
+    const Child = (props: any) => {
+      effect(() => seen.push(props.value()));
+      return document.createElement("span");
+    };
+
+    mount(
+      (props: any) =>
+        createElement(Child, { value: props.count }) as Element,
+      { count },
+    );
+
+    count(11);
+    expect(seen).toEqual([10, 11]);
+  });
+
+  it("computed prop tracks upstream signal changes", () => {
+    const count = signal(2);
+    const double = computed(() => count() * 2);
+    const seen: number[] = [];
+
+    mount(
+      (props: any) => {
+        effect(() => seen.push(props.double()));
+        return document.createElement("div");
+      },
+      { double },
+    );
+
+    count(5);
+    expect(seen).toEqual([4, 10]);
+  });
+
+  it("signal/computed identity is preserved through resolveProps", () => {
+    const count = signal(0);
+    const double = computed(() => count() * 2);
+    let captured: any;
+
+    mount(
+      (props: any) => {
+        captured = props;
+        return document.createElement("div");
+      },
+      { count, double },
+    );
+
+    expect(captured.count).toBe(count);
+    expect(captured.double).toBe(double);
+  });
+
+  it("mixed static + signal props both resolve correctly", () => {
+    const count = signal(0);
+    let captured: any;
+
+    mount(
+      (props: any) => {
+        captured = { name: props.name(), count: props.count() };
+        return document.createElement("div");
+      },
+      { name: "wael", count },
+    );
+
+    expect(captured).toEqual({ name: "wael", count: 0 });
+  });
+
+  it("omitted optional prop yields a getter returning undefined", () => {
+    let captured: unknown = "untouched";
+
+    mount(
+      (props: any) => {
+        captured = props.excited?.();
+        return document.createElement("div");
+      },
+      {},
+    );
+
+    expect(captured).toBeUndefined();
   });
 });
 

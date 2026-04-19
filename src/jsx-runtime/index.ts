@@ -2,13 +2,17 @@ import { Child, Component } from "./types";
 import { createElement } from "./element";
 import type { JSX as DomJSX } from "dom-expressions/src/jsx-h";
 import type { CustomElementRegistry } from "../custom-elements";
-import type { AnyElementCtor, ElementProps } from "./infer";
+import type { AnyElementCtor, ElementProps, ResolveAttrs } from "./infer";
+import { Computed } from "../signals";
 
 export type {
   ComponentProps,
   ElementProps,
   MaybeReactiveProps,
   Props,
+  RawProps,
+  ReactiveProps,
+  ResolveAttrs,
   Require,
 } from "./infer";
 
@@ -32,9 +36,6 @@ export {
 export { Fragment } from "./fragment";
 
 // ─ Helpers: namespaced prop types ────────────────────────────────────────────
-
-/** A value or a reactive zero-argument getter. */
-export type FunctionMaybe<T> = DomJSX.FunctionMaybe<T>;
 
 /**
  * Maps slot names to `Child` content.
@@ -68,9 +69,9 @@ export type Attrs<K extends keyof JSX.IntrinsicElements> =
 /** Extra props injected into every intrinsic element beyond dom-expressions defaults. */
 type OurProps = {
   ref?: (el: Element) => void;
-  [slot: `slot:${string}`]: Child;
-  [cls: `class:${string}`]: FunctionMaybe<boolean>;
-  [sty: `style:${string}`]: FunctionMaybe<string | null>;
+  [slot: `slot:${string}`]: Computed<Child>;
+  [cls: `class:${string}`]: Computed<boolean>;
+  [sty: `style:${string}`]: Computed<string | null>;
   [prop: `prop:${string}`]: unknown;
 };
 
@@ -87,6 +88,7 @@ export namespace JSX {
   export interface IntrinsicAttributes {
     ref?: (el: Element) => void;
   }
+  export type LibraryManagedAttributes<C, P> = ResolveAttrs<C, P>;
   type RegisteredElements = {
     [K in keyof CustomElementRegistry]: CustomElementRegistry[K] extends AnyElementCtor
       ? ElementProps<CustomElementRegistry[K]>

@@ -18,6 +18,7 @@ export {
 } from "./lib";
 import { isSignal, isComputed, signal } from "./lib";
 import "../polyfill";
+import type { ReactiveProps } from "@/jsx-runtime/infer";
 export function isReactive<T>(value: MaybeReactive<T>): value is () => T {
   return isSignal(value as () => T) || isComputed(value as () => T);
 }
@@ -133,36 +134,47 @@ export function resolve<T>(value: MaybeReactive<T>): T {
  * drives it. Static values become stable thunks, signals and computed pass
  * through unchanged — so identity is preserved (`props.name === props.name`).
  *
- * @example
- * ```tsx
- * import { resolveProps } from "elements-kit/signals";
+ * The JSX runtime auto-applies this to function-component props — call
+ * directly only for non-JSX call sites or nested prop bags.
  *
- * function Greeting(raw: MaybeReactiveProps<{ name: string; excited?: boolean }>) {
- *   const props = resolveProps(raw);
- *   return (
- *     <p>
- *       Hello, {props.name}
- *       {() => (props.excited() ? "!" : ".")}
- *     </p>
- *   );
- * }
+ * @example
+ * ```ts
+ * import { resolveProps } from "elements-kit/signals";
+ * import { signal } from "elements-kit/signals";
+ *
+ * const count = signal(0);
+ * const props = resolveProps({ count, label: "n" });
+ * props.count();   // 0 — subscribes to count
+ * props.label();   // "n"
  * ```
  */
 export function resolveProps<P extends object>(raw: {
   [K in keyof P]: MaybeReactive<P[K]>;
-}): { readonly [K in keyof P]: Computed<P[K]> } {
+}): ReactiveProps<P> {
   const cache = new Map<PropertyKey, () => unknown>();
+  const get = (key: PropertyKey): (() => unknown) => {
+    let getter = cache.get(key);
+    if (!getter) {
+      const v = (raw as Record<PropertyKey, unknown>)[key];
+      getter = isReactive(v as MaybeReactive<unknown>)
+        ? (v as () => unknown)
+        : () => v;
+      cache.set(key, getter);
+    }
+    return getter;
+  };
   return new Proxy(raw, {
-    get(target, key) {
-      let getter = cache.get(key);
-      if (!getter) {
-        const v = (target as Record<PropertyKey, unknown>)[key];
-        getter = isReactive(v as MaybeReactive<unknown>)
-          ? (v as () => unknown)
-          : () => v;
-        cache.set(key, getter);
-      }
-      return getter;
-    },
-  }) as unknown as { readonly [K in keyof P]: Computed<P[K]> };
+    get: (_target, key) => get(key),
+    has: (_target, key) => key in raw,
+    ownKeys: (_target) => Reflect.ownKeys(raw),
+    getOwnPropertyDescriptor: (_target, key) =>
+      key in raw
+        ? {
+            enumerable: true,
+            configurable: true,
+            writable: false,
+            value: get(key),
+          }
+        : undefined,
+  }) as unknown as ReactiveProps<P>;
 }

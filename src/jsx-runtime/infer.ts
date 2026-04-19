@@ -1,7 +1,7 @@
 import type { ATTRIBUTES, AttrChangeHandler } from "../attributes";
 import type { SLOTS, Slot, Slots } from "../slot";
 import type { Child, ComponentClass, ComponentInstance } from "./types";
-import type { MaybeReactive } from "../signals";
+import type { Computed, MaybeReactive } from "../signals";
 import type { JSX as DomJSX } from "dom-expressions/src/jsx-h";
 
 // ─ Constructor helper ─────────────────────────────────────────────────────────
@@ -80,6 +80,32 @@ export type MaybeReactiveProps<P> = {
     ? MaybeReactive<Exclude<P[K], undefined>> | undefined
     : MaybeReactive<P[K]>;
 };
+
+declare const RAW_PROPS: unique symbol;
+
+export type ReactiveProps<P> = {
+  readonly [K in keyof P]: Computed<P[K]>;
+} & { readonly [RAW_PROPS]?: P };
+
+/** Recover the raw prop shape `P` from a `ReactiveProps<P>`. */
+export type RawProps<R> = R extends { readonly [RAW_PROPS]?: infer P }
+  ? P
+  : R;
+
+/**
+ * Resolve JSX call-site attribute type for a component:
+ * - branded `ReactiveProps<P>` (function components) → `MaybeReactiveProps<P>`
+ * - empty constructor param (instance-field classes) → `Props<C>`
+ * - otherwise pass the constructor param shape through (preserves generic
+ *   inference for classes like `For<T>` whose param is already shaped).
+ */
+export type ResolveAttrs<C, P, NN = NonNullable<P>> = NN extends {
+  readonly [RAW_PROPS]?: infer Raw;
+}
+  ? MaybeReactiveProps<Raw>
+  : [keyof NN] extends [never]
+    ? Props<C>
+    : NN;
 
 // ─ Internal composition pieces ───────────────────────────────────────────────
 
@@ -270,15 +296,13 @@ export type ComponentProps<C extends ComponentClass<any>> =
  * @see {@link ComponentProps} — constructor-param-based class components.
  * @see {@link MaybeReactiveProps}
  */
-export type Props<C> = (
-  C extends abstract new (...args: any[]) => infer I
-    ? MaybeReactiveProps<PropsOfInstance<I>>
-    : C extends (props: infer P, ...rest: any[]) => any
-      ? P extends object
-        ? MaybeReactiveProps<P>
-        : {}
-      : MaybeReactiveProps<PropsOfInstance<C>>
-) &
+export type Props<C> = (C extends abstract new (...args: any[]) => infer I
+  ? MaybeReactiveProps<PropsOfInstance<I>>
+  : C extends (props: infer P, ...rest: any[]) => any
+    ? P extends object
+      ? MaybeReactiveProps<RawProps<P>>
+      : {}
+    : MaybeReactiveProps<PropsOfInstance<C>>) &
   SlotsOf<C>;
 
 export type { AnyElementCtor, ComponentInstance };

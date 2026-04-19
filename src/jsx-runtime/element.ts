@@ -8,7 +8,7 @@ import type {
 } from "./types";
 import type { JSX } from ".";
 import { applyProps } from "./properties";
-import { effectScope, untracked } from "../signals";
+import { effectScope, resolveProps, untracked } from "../signals";
 import "../polyfill";
 
 // ─ Public API ─────────────────────────────────────────────────────────────────
@@ -51,7 +51,7 @@ function createFunctionElement(
 
   untracked(() => {
     dispose = effectScope(() => {
-      el = type(props);
+      el = type(resolveProps(props));
       if (typeof ref === "function" && el instanceof Element) ref(el);
     });
   });
