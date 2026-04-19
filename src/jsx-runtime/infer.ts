@@ -123,12 +123,22 @@ type AttrMap<C> = C extends { [ATTRIBUTES]: infer M } ? M : {};
 
 type HandlerValue<H> = H extends AttrChangeHandler<any> ? string | null : H;
 
+// Bail out when the attribute map is an open `Record<string, ...>` — keyof is
+// `string` (no literal keys to enumerate). Users get typed attribute slots
+// only when literal keys are preserved via `satisfies Attributes<T>`.
+// Without this guard, `Exclude<string, "min" | …>` collapses to `string` and
+// produces an index signature that overrides the typed property slots from
+// `FlatPropsOf`, breaking the property-over-attribute precedence rule.
 type AttrsOf<C> =
   AttrMap<C> extends infer M
     ? M extends Record<string, unknown>
-      ? {
-          [K in Exclude<keyof M & string, PropKeysOf<C>>]?: HandlerValue<M[K]>;
-        }
+      ? string extends keyof M
+        ? {}
+        : {
+            [K in Exclude<keyof M & string, PropKeysOf<C>>]?: HandlerValue<
+              M[K]
+            >;
+          }
       : {}
     : {};
 

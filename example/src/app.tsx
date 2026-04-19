@@ -366,7 +366,7 @@ function FnGreeting(props: ReactiveProps<{ name: string; excited?: boolean }>) {
 // — Class component — constructor-typed props, applyProps assigns each key
 class ClassGreeting {
   constructor(
-    _props?: MaybeReactiveProps<{ name?: string; excited?: boolean }>,
+    _props?: MaybeReactiveProps<{ name: string; excited?: boolean }>,
   ) {}
   @reactive() name: string = "world";
   @reactive() excited: boolean = false;
@@ -482,7 +482,7 @@ function DemoProps() {
           <ce-greeting name={propsName} />
         </Row>
         <Row label="computed attr">
-          <ce-greeting name={propsNameUpper} />
+          <ce-greeting name={propsNameUpper} excited={propsExcited} />
         </Row>
       </div>
     </div>

@@ -2,7 +2,7 @@ import { it, expect } from "vitest";
 import { ATTRIBUTES, type Attributes } from "../attributes";
 import { SLOTS, Slots } from "../slot";
 import type { Child } from "./types";
-import type { MaybeReactive } from "../signals";
+import { signal, type MaybeReactive } from "../signals";
 import type { JSX } from "./index";
 import type {
   ComponentProps,
@@ -30,11 +30,11 @@ type HasKey<O, K extends PropertyKey> = K extends keyof O ? true : false;
 // ─ Fixtures ───────────────────────────────────────────────────────────────────
 
 class XRange extends HTMLElement {
-  static [ATTRIBUTES]: Attributes<XRange> = {
-    min(_v) {},
-    max(_v) {},
-    variant(_v) {},
-  };
+  static [ATTRIBUTES] = {
+    min(this: XRange, _v: string | null) {},
+    max(this: XRange, _v: string | null) {},
+    variant(this: XRange, _v: string | null) {},
+  } satisfies Attributes<XRange>;
   declare static events: {
     commit: CustomEvent<void>;
     ready: CustomEvent<number>;
@@ -306,30 +306,32 @@ void _div_class_sig;
 void _div_style_str;
 void _div_style_obj;
 
-// `class:foo` and `style:foo` are getter-only (Computed<T>) — by design
-const _div_class_ns: _DivAttrs = { "class:active": () => true };
-const _div_style_ns: _DivAttrs = { "style:color": () => "red" };
-const _div_style_ns_null: _DivAttrs = { "style:color": () => null };
-void _div_class_ns;
-void _div_style_ns;
-void _div_style_ns_null;
-// @ts-expect-error — static boolean rejected; must be a getter
-const _div_class_static_rejected: _DivAttrs = { "class:active": true };
-// @ts-expect-error — static string rejected; must be a getter
-const _div_style_static_rejected: _DivAttrs = { "style:color": "red" };
-void _div_class_static_rejected;
-void _div_style_static_rejected;
+// `class:foo` and `style:foo` accept value or reactive (MaybeReactive<T>)
+const _div_class_ns_static: _DivAttrs = { "class:active": true };
+const _div_class_ns_sig: _DivAttrs = { "class:active": () => false };
+const _div_style_ns_static: _DivAttrs = { "style:color": "red" };
+const _div_style_ns_sig: _DivAttrs = { "style:color": () => null };
+void _div_class_ns_static;
+void _div_class_ns_sig;
+void _div_style_ns_static;
+void _div_style_ns_sig;
 
-// `prop:foo` is getter-only (Computed<unknown>) — for direct property assignment
-const _div_prop_ns: _DivAttrs = { "prop:custom": () => ({ any: "shape" }) };
-void _div_prop_ns;
+// `prop:foo` accepts any value — direct property assignment (no MaybeReactive)
+const _div_prop_static: _DivAttrs = { "prop:custom": { any: "shape" } };
+const _div_prop_sig: _DivAttrs = { "prop:custom": () => ({ any: "shape" }) };
+void _div_prop_static;
+void _div_prop_sig;
 
-// `slot:foo` is also getter-only (Computed<Child>)
-const _div_slot_ns: _DivAttrs = { "slot:header": () => "title text" };
-void _div_slot_ns;
-// @ts-expect-error — static Child rejected; must be a getter
-const _div_slot_static_rejected: _DivAttrs = { "slot:header": "title text" };
-void _div_slot_static_rejected;
+// `slot:foo` accepts any `Child` — reactive forms (getter, signal) work
+// because `Child` includes `AnyFn`. No `MaybeReactive` wrap needed.
+const _div_slot_string: _DivAttrs = { "slot:header": "title text" };
+const _div_slot_getter: _DivAttrs = { "slot:header": () => "title text" };
+const _div_slot_array: _DivAttrs = { "slot:header": ["a", "b"] };
+const _div_slot_signal: _DivAttrs = { "slot:header": signal("title") };
+void _div_slot_string;
+void _div_slot_getter;
+void _div_slot_array;
+void _div_slot_signal;
 
 // `ref` callback receives the element
 const _div_ref: _DivAttrs = { ref: (_el: Element) => void 0 };
@@ -370,16 +372,26 @@ const _xr_min_sig: _XRangeAttrs = {
   max: () => 100,
   value: () => 50,
 };
-const _xr_prop_ns: _XRangeAttrs = { "prop:value": () => 42 };
+const _xr_prop_ns: _XRangeAttrs = { "prop:value": 42 };
 const _xr_event: _XRangeAttrs = {
   "on:commit": (_e: CustomEvent<void>) => void 0,
 };
-const _xr_slot: _XRangeAttrs = { "slot:header": () => "title" };
+const _xr_slot: _XRangeAttrs = { "slot:header": "title" };
 void _xr_min;
 void _xr_min_sig;
 void _xr_prop_ns;
 void _xr_event;
 void _xr_slot;
+
+// ─ HTMLElement subclass with reactive-shaped fields ────────────────────────
+
+interface Probe extends HTMLElement {
+  name: string;
+  excited: boolean;
+}
+type _PI = PropsOfInstance<Probe>;
+type _PI_Excited = Assert<Equal<_PI["excited"], boolean | undefined>>;
+type _PI_Name = Assert<Equal<_PI["name"], string | undefined>>;
 
 // ─ Tiny runtime anchor so vitest picks the file up ───────────────────────────
 

@@ -15,6 +15,8 @@ Derive JSX prop types from your components — attributes, events, slots, childr
 | Function component | [`Props<typeof Fn>`](#propsc) |
 | Wrap caller-passed props in reactive | [`MaybeReactiveProps<P>`](#maybereactivepropsp) |
 | Function-component received props (auto-wrapped) | [`ReactiveProps<P>`](#reactivepropsp) |
+| Recover raw `P` from a branded `ReactiveProps<P>` | [`RawProps<R>`](#rawpropsr) |
+| Translate any component to its JSX call-site shape | [`ResolveProps<C, P>`](#resolvepropsc-p) |
 | Scalar value-or-getter | [`MaybeReactive<T>`](#maybereactivet) |
 | Manual prop bag → getters (non-JSX) | [`resolveProps`](/components#function-components) |
 | Make optional keys required | [`Require<P, K>`](#requirep-k) |
@@ -23,7 +25,7 @@ All type helpers are re-exported from `elements-kit/jsx-runtime`. `MaybeReactive
 
 ## `ElementProps<C>`
 
-Full JSX surface for a custom element. Composes attributes, flat properties, `prop:*`, events, slots, children, and standard DOM attributes.
+Raw JSX surface for a custom element. Composes attributes, flat properties, `prop:*`, events, slots, and children — **without** `MaybeReactive` wrapping. Use this when you need the underlying property/handler types directly (testing, manual property assignment, deriving sub-types).
 
 ```tsx twoslash
 // @noErrors
@@ -45,17 +47,27 @@ class XRange extends HTMLElement {
 
 type XRangeProps = ElementProps<typeof XRange>;
 // {
-//   min?: MaybeReactive<number>;
+//   min?: number;                                    // raw property type
 //   "prop:min"?: number;
 //   "on:commit"?: (e: CustomEvent<number>) => void;
 //   onCommit?:   (e: CustomEvent<number>) => void;
 //   "slot:label"?: Child;
 //   children?: Child;
-//   // …plus ref, class, class:*, style, style:*, standard DOM events
 // }
 ```
 
 Attribute keys that also appear on the instance are removed from the attribute slot, so the flat key carries the **property** type (e.g. `number`) rather than the handler's string type.
+
+At the JSX call site, the runtime wraps `ElementProps<C>` in `MaybeReactiveProps<...>` so parents may pass static values *or* signals/computed:
+
+```tsx
+// JSX layer wraps via `MaybeReactiveProps<ElementProps<C>>`
+<x-range min={0} />              // static
+<x-range min={() => 0} />        // getter
+<x-range min={signal(0)} />      // signal (a getter)
+```
+
+Plus the namespaced extras (`class:`, `style:`, `prop:`, `slot:`, `ref`) are layered on every intrinsic element via `JsxNamespaces` in [src/jsx-runtime/index.ts](https://github.com/wbettayeb/elements-kit/blob/main/src/jsx-runtime/index.ts).
 
 :::note[Slot keys need `as const`]
 `Slots.new(["label", "footer"])` widens to `string[]` — the key literals are lost. Always pass with `as const` so `ElementProps` can synthesize `slot:${K}` entries.
@@ -137,7 +149,29 @@ function Counter(props: ReactiveProps<{ count: number }>) {
 }
 ```
 
+`ReactiveProps<P>` carries a phantom `RAW_PROPS` brand so the JSX layer (`ResolveProps`) can recover the original `P` and translate the call-site type back to `MaybeReactiveProps<P>` for parents.
 
+## `RawProps<R>`
+
+Recovers the raw prop shape `P` from a branded `ReactiveProps<P>`. For non-branded inputs returns the input unchanged. Mostly useful internally inside `ResolveProps`, but exported for advanced typing.
+
+```ts
+import type { RawProps, ReactiveProps } from "elements-kit/jsx-runtime";
+
+type Branded = ReactiveProps<{ name: string }>;
+type Raw = RawProps<Branded>;     // { name: string }
+type Plain = RawProps<{ a: 1 }>;  // { a: 1 }  (passes through)
+```
+
+## `ResolveProps<C, P>`
+
+The JSX call-site translator wired into `JSX.LibraryManagedAttributes`. Decides what attributes the parent is allowed to write for any component (function or class):
+
+- Branded `ReactiveProps<P>` (function components) → `MaybeReactiveProps<P>`.
+- Empty constructor param (instance-field classes) → `Props<C>`.
+- Otherwise (e.g. `For<T>` with `constructor(_props?: ForProps<T>)`) → pass through, preserving generic inference.
+
+You rarely need to use `ResolveProps` directly — it runs implicitly for every component JSX expression. Custom-element JSX types come from `ElementProps<C>` instead (different code path).
 
 ## `MaybeReactive<T>`
 

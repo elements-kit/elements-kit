@@ -8,7 +8,7 @@ import type {
   MaybeReactiveProps,
   ResolveProps,
 } from "./infer";
-import { Computed } from "../signals";
+import type { MaybeReactive } from "../signals";
 
 export type {
   ComponentProps,
@@ -69,18 +69,29 @@ export type SlotProps<K extends string> = {
 export type Attrs<K extends keyof JSX.IntrinsicElements> =
   JSX.IntrinsicElements[K];
 
-// ─ Our additions on top of every dom-expressions element ─────────────────────
+// ─ JSX namespaces — extras layered onto every intrinsic element ─────────────
 
-/** Extra props injected into every intrinsic element beyond dom-expressions defaults. */
-type OurProps = {
+/**
+ * Namespaced JSX props added by elements-kit on top of dom-expressions.
+ *
+ * - `ref` — callback invoked with the mounted element.
+ * - `slot:foo` — accepts any `Child`. Reactive children come for free because
+ *   `Child` already includes `AnyFn` (so `() => content()` and `signal` both
+ *   typecheck and are wired as reactive slots by `mountChild`).
+ * - `class:foo` / `style:foo` — `MaybeReactive<T>` (value or zero-arg getter),
+ *   because their value types (`boolean` / `string | null`) are primitives
+ *   that don't otherwise allow function form.
+ * - `prop:foo` — any value, direct property assignment, no reactive coupling.
+ */
+type JsxNamespaces = {
   ref?: (el: Element) => void;
-  [slot: `slot:${string}`]: Computed<Child>;
-  [cls: `class:${string}`]: Computed<boolean>;
-  [sty: `style:${string}`]: Computed<string | null>;
-  [prop: `prop:${string}`]: Computed<unknown>;
+  [slot: `slot:${string}`]: Child;
+  [cls: `class:${string}`]: MaybeReactive<boolean>;
+  [sty: `style:${string}`]: MaybeReactive<string | null>;
+  [prop: `prop:${string}`]: unknown;
 };
 
-type WithOurProps<T> = T & OurProps;
+type WithJsxNamespaces<T> = T & JsxNamespaces;
 
 // ─ JSX namespace ─────────────────────────────────────────────────────────────
 
@@ -101,12 +112,12 @@ export namespace JSX {
   };
 
   export type IntrinsicElements = {
-    [K in keyof DomJSX.IntrinsicElements]: WithOurProps<
+    [K in keyof DomJSX.IntrinsicElements]: WithJsxNamespaces<
       DomJSX.IntrinsicElements[K]
     >;
   } & RegisteredElements & {
       /** Unregistered custom elements (`x-foo`, `my-component`, …) — loose fallback. */
-      [customElement: `${string}-${string}`]: WithOurProps<
+      [customElement: `${string}-${string}`]: WithJsxNamespaces<
         DomJSX.DOMAttributes<HTMLElement>
       > &
         Record<string, unknown>;
