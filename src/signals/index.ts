@@ -19,12 +19,50 @@ export {
 import { isSignal, isComputed, signal } from "./lib";
 import "../polyfill";
 import type { ReactiveProps } from "@/jsx-runtime/infer";
+
+/**
+ * Type-guard: `true` when `value` is a reactive source (`signal` or `computed`),
+ * `false` when it is a plain value.
+ *
+ * Use this when you accept {@link MaybeReactive} and need to branch on whether
+ * the caller passed a live source or a static value.
+ *
+ * @example
+ * ```ts
+ * import { signal, isReactive } from "elements-kit/signals";
+ *
+ * const a: MaybeReactive<number> = 5;
+ * const b: MaybeReactive<number> = signal(0);
+ * const c: () => number = () => 5;
+ *
+ * isReactive(a); // false
+ * isReactive(b); // true
+ * isReactive(c); // false
+ * ```
+ */
 export function isReactive<T>(value: MaybeReactive<T>): value is () => T {
   return isSignal(value as () => T) || isComputed(value as () => T);
 }
 
+/** Writer half of a {@link Signal}: `sig(next)` assigns a new value. */
 export type Updater<T> = (value: T) => void;
+
+/** Zero-arg getter that subscribes the current tracking scope on call. */
 export type Computed<T> = () => T;
+
+/**
+ * A reactive read/write cell — callable as both a getter (no args) and a
+ * setter (one arg).
+ *
+ * @example
+ * ```ts
+ * import { signal } from "elements-kit/signals";
+ *
+ * const count: Signal<number> = signal(0);
+ * count();   // read → 0 (subscribes the active scope)
+ * count(5);  // write → notifies subscribers
+ * ```
+ */
 export type Signal<T> = Updater<T> & Computed<T>;
 
 /**

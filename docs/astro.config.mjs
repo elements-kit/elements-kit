@@ -17,6 +17,25 @@ export default defineConfig({
   site: "https://elements-kit.quba.co",
   output: "server",
   adapter: cloudflare(),
+  vite: {
+    resolve: {
+      // Workspace packages (`elements-kit/integrations/react`) and the docs
+      // both import React. Without dedupe, Vite pre-bundles separate copies
+      // — useSyncExternalStore lands on a different React than render runs
+      // on, producing `resolveDispatcher() is null` and cascading
+      // `jsxDEV is not a function` failures in dev.
+      dedupe: ["react", "react-dom"],
+    },
+    optimizeDeps: {
+      include: [
+        "react",
+        "react-dom",
+        "react-dom/client",
+        "react/jsx-runtime",
+        "react/jsx-dev-runtime",
+      ],
+    },
+  },
   integrations: [
     magicMoveIntegration(),
     react(),

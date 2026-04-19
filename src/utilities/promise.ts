@@ -92,6 +92,12 @@ const PROMISE_KEYS = new Set<PropertyKey>([
   "result",
 ]);
 
+/**
+ * A {@link ReactivePromise} that is also callable as a `Computed<T | E | undefined>`.
+ *
+ * Invoking it (`p()`) reads the current `.result` — so it drops into any
+ * reactive context that expects a zero-arg getter.
+ */
 export type ComputedPromise<T, E = unknown> = ReactivePromise<T, E> &
   Computed<T | E | undefined>;
 

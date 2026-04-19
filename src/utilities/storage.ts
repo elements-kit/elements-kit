@@ -28,6 +28,15 @@ function readOrDefault<T>(
  *
  * Changes made in other tabs/windows are synchronised automatically via
  * the `StorageEvent`.
+ *
+ * @example
+ * ```ts
+ * import { createLocalStorage } from "elements-kit/utilities/storage";
+ *
+ * const theme = createLocalStorage<"light" | "dark">("theme", "light");
+ * theme();         // read current
+ * theme("dark");   // write — persists and notifies
+ * ```
  */
 export function createLocalStorage<T>(
   key: string,
@@ -75,6 +84,14 @@ export function createLocalStorage<T>(
  * Returns a `Signal` persisted to `sessionStorage`.
  *
  * Session storage is scoped to the current tab — no cross-tab sync.
+ *
+ * @example
+ * ```ts
+ * import { createSessionStorage } from "elements-kit/utilities/storage";
+ *
+ * const draft = createSessionStorage("draft", { title: "", body: "" });
+ * draft({ title: "hi", body: "…" });
+ * ```
  */
 export function createSessionStorage<T>(
   key: string,

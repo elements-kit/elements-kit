@@ -6,6 +6,17 @@ import { createTimeout } from "@/utilities/timeout.ts";
  * milliseconds of silence (i.e. no new values from `getter`).
  *
  * The initial value is read synchronously, so the computed is never undefined.
+ *
+ * @example
+ * ```ts
+ * import { signal } from "elements-kit/signals";
+ * import { createDebounced } from "elements-kit/utilities/debounced";
+ *
+ * const query = signal("");
+ * const debounced = createDebounced(query, 300);
+ *
+ * effect(() => fetch(`/search?q=${debounced()}`));
+ * ```
  */
 export function createDebounced<T>(
   getter: () => T,

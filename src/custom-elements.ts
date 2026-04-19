@@ -18,6 +18,24 @@ type AnyCtor = CustomElementConstructor;
 /**
  * Register a custom element with the browser and return its class.
  * Pair with a module augmentation of `CustomElementRegistry` to get typed JSX.
+ *
+ * @example
+ * ```tsx
+ * import { defineElement } from "elements-kit/custom-elements";
+ *
+ * class XCounter extends HTMLElement {}
+ *
+ * defineElement("x-counter", XCounter);
+ *
+ * declare module "elements-kit/custom-elements" {
+ *   interface CustomElementRegistry {
+ *     "x-counter": typeof XCounter;
+ *   }
+ * }
+ *
+ * // JSX now gets typed props + typed ref
+ * // <x-counter />
+ * ```
  */
 export function defineElement<
   Tag extends `${string}-${string}`,

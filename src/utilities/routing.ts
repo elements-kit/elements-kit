@@ -21,6 +21,17 @@ const patchHistoryMethod = (method: "pushState" | "replaceState") => {
   } as (typeof history)[typeof method];
 };
 
+/**
+ * Monkey-patches `history.pushState` / `history.replaceState` to dispatch
+ * `pushstate` and `replacestate` events on `window`.
+ *
+ * Needed because the platform only fires `popstate` on back/forward
+ * navigation — `currentLocation` and anything else that reacts to
+ * programmatic navigation needs these synthetic events.
+ *
+ * Call once at app boot (or before any router-driven navigation). Safe to
+ * call outside a browser — it no-ops.
+ */
 export function patchHistory(): void {
   if (typeof window !== "undefined" && typeof history !== "undefined") {
     patchHistoryMethod("pushState");

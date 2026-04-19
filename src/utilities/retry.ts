@@ -6,6 +6,21 @@ type RetryDelay = number | ((attempt: number) => number);
  * Wraps `fn` to retry up to `attempts` times on failure.
  * Delay (if provided) is inserted between failures only — not after the last.
  * Each attempt runs in an effect scope so `onCleanup` inside `fn` fires before each retry.
+ *
+ * @example
+ * ```ts
+ * import { retry } from "elements-kit/utilities/retry";
+ *
+ * // Constant 500ms delay between retries
+ * const load = retry(() => fetch("/api").then(r => r.json()), 3, 500);
+ *
+ * // Exponential backoff
+ * const loadBackoff = retry(
+ *   () => fetch("/api").then(r => r.json()),
+ *   5,
+ *   (attempt) => 2 ** attempt * 100,
+ * );
+ * ```
  */
 export function retry<T>(
   fn: () => Promise<T>,

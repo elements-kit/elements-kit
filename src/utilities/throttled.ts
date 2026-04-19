@@ -7,6 +7,17 @@ import { createTimeout } from "@/utilities/timeout.ts";
  * value is never lost.
  *
  * The initial value is read synchronously.
+ *
+ * @example
+ * ```ts
+ * import { signal } from "elements-kit/signals";
+ * import { createThrottled } from "elements-kit/utilities/throttled";
+ *
+ * const scrollY = signal(0);
+ * const sampled = createThrottled(scrollY, 100);
+ *
+ * effect(() => analytics.record(sampled()));
+ * ```
  */
 export function createThrottled<T>(
   getter: () => T,

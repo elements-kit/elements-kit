@@ -1,7 +1,28 @@
+/**
+ * Handler signature for a single observed attribute.
+ *
+ * `this` is bound to the element instance, letting the handler assign
+ * directly to reactive properties. `value` is the raw HTML string (or `null`
+ * when the attribute is removed) — conversion to typed JS is the handler's job.
+ */
 export interface AttrChangeHandler<T> {
   (this: T, value: string | null, oldValue?: string | null): void;
 }
 
+/**
+ * Static-field key used by the `@attributes` decorator (and
+ * {@link dispatchAttrChange} / {@link observedAttributes}) to locate the
+ * attribute handler map on a custom-element class.
+ *
+ * @example
+ * ```ts
+ * class MyElement extends HTMLElement {
+ *   static [ATTRIBUTES]: Attributes<MyElement> = {
+ *     name(value) { this.name = value ?? ""; },
+ *   };
+ * }
+ * ```
+ */
 export const ATTRIBUTES: unique symbol = Symbol("attributes");
 
 /**
@@ -40,6 +61,10 @@ export function dispatchAttrChange<
   }
 }
 
+/**
+ * Shape of the static `[ATTRIBUTES]` map: attribute name → handler bound to
+ * the element instance `T`.
+ */
 export type Attributes<T> = Record<string, AttrChangeHandler<T>>;
 
 /**
@@ -102,10 +127,18 @@ export function observedAttributes(cls: { [ATTRIBUTES]?: Record<string, unknown>
  * }
  * ```
  */
+/**
+ * Pre-decoration shape required by `@attributes` — a class constructor
+ * carrying a static `[ATTRIBUTES]` handler map.
+ */
 export type AttributeTarget<
   T extends abstract new (...args: any[]) => HTMLElement,
 > = T & { [ATTRIBUTES]: Record<string, AttrChangeHandler<InstanceType<T>>> };
 
+/**
+ * Post-decoration shape returned by `@attributes`: adds `observedAttributes`
+ * to the constructor and `attributeChangedCallback` to the prototype.
+ */
 export type AttributeDecorated<
   T extends abstract new (...args: any[]) => HTMLElement,
 > = T &

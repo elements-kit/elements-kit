@@ -134,9 +134,15 @@ export class Slot {
     }) as Slot & typeof instance.slot;
   }
 }
+/**
+ * A callable slot returned by {@link Slot.new}.
+ *
+ * - Invoke it (`slot()`) to render the slot region as a `DocumentFragment`,
+ *   optionally with default content on first mount.
+ * - Call `.set()` to replace current content, `.clear()` to empty it, and
+ *   `.isMounted()` / `.parent()` to inspect mount state.
+ */
 export type SlotInstance = ReturnType<typeof Slot.new>;
-
-/** A callable slot — invoke to render, or access `.set()` / `.isMounted()` / `.parent()` for management. */
 
 /**
  * Symbol key for attaching a `Slots` instance to a custom element instance.

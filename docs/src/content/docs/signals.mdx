@@ -85,10 +85,11 @@ count(5);   // Write — notify all dependents
 count();    // Read → 5
 ```
 
-```ts
+```ts twoslash
 import { signal } from "elements-kit/signals";
 
 const name = signal("Alice");
+//    ^?
 name();          // "Alice"
 name("Bob");     // write
 name();          // "Bob"
@@ -146,13 +147,14 @@ qty(1);
 total(); // → 20  (recomputed again)
 ```
 
-```ts
+```ts twoslash
 import { signal, computed } from "elements-kit/signals";
 
 const firstName = signal("Ada");
 const lastName  = signal("Lovelace");
 
 const fullName = computed(() => `${firstName()} ${lastName()}`);
+//    ^?
 fullName(); // "Ada Lovelace"
 
 firstName("Grace");
@@ -211,12 +213,14 @@ count(2); // → count: 2
 stop();   // Dispose — no more logs
 ```
 
-```ts
+```ts twoslash
+// @noErrors
 import { signal, effect } from "elements-kit/signals";
 
 const theme = signal("light");
 
 const stop = effect(() => {
+//    ^?
   // Reads theme — becomes a dependency automatically
   document.body.dataset.theme = theme();
 });
@@ -251,7 +255,7 @@ effect(() => console.log(name()));
 
 Groups multiple effects under a single lifecycle. Calling the returned stop function disposes **all** effects at once.
 
-```ts
+```ts twoslash
 import { signal, effect, effectScope } from "elements-kit/signals";
 
 const user  = signal("Alice");
@@ -259,6 +263,7 @@ const page  = signal("/home");
 
 // All effects inside are grouped together
 const stop = effectScope(() => {
+//    ^?
   effect(() => console.log("user:", user()));
   effect(() => console.log("page:", page()));
 });
@@ -438,7 +443,8 @@ trigger(user);
 
 Backs a class field with a signal transparently. The field reads and writes naturally — no `()` needed on the consumer side.
 
-```ts
+```ts twoslash
+// @noErrors
 import { reactive, computed } from "elements-kit/signals";
 
 class Counter {
@@ -446,6 +452,7 @@ class Counter {
   count = 0;
 
   doubled = computed(() => this.count * 2);
+  //        ^?
 }
 
 const c = new Counter();

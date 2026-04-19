@@ -6,6 +6,17 @@ import { Computed, effect, onCleanup } from "../signals/index.ts";
  * When called inside an `effect` or `effectScope` the listener is removed
  * when the scope is disposed.  When the target is a reactive getter the
  * listener is re-registered whenever the target changes.
+ *
+ * @example
+ * ```ts
+ * import { on } from "elements-kit/utilities/event-listener";
+ *
+ * // Static target — listener removed when the enclosing scope ends
+ * on(window, "resize", () => console.log(window.innerWidth));
+ *
+ * // Reactive target — listener follows the current element
+ * on(activeElement, "focus", () => console.log("focused"));
+ * ```
  */
 export function on<K extends keyof HTMLElementEventMap>(
   target: HTMLElement | Computed<HTMLElement | null>,

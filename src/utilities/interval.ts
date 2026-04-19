@@ -13,6 +13,19 @@ type Delay = number | (() => number);
 
 /**
  * Pausable `setInterval` wrapper.  Starts running immediately on creation.
+ *
+ * @example
+ * ```ts
+ * import { createInterval } from "elements-kit/utilities/interval";
+ *
+ * // Reactive clock — updates a signal every second
+ * const { timestamp, stop } = createInterval(1000);
+ * effect(() => console.log(new Date(timestamp())));
+ *
+ * // With a callback
+ * const beat = createInterval(() => beatCount(beatCount() + 1), 500);
+ * beat.stop();
+ * ```
  */
 export function createInterval(delay: Delay): IntervalResult;
 export function createInterval(callback: Fn, delay: Delay): IntervalResult;

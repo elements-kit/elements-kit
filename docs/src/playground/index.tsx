@@ -1,4 +1,5 @@
 /* @jsxImportSource react */
+import * as React from "react";
 import { createRoot } from "react-dom/client";
 import { signal, type Signal } from "elements-kit/signals";
 import { createMediaQuery } from "elements-kit/utilities/media-query";
@@ -105,6 +106,65 @@ function Playground({
   );
 }
 
+class PlaygroundErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { error: Error | null }
+> {
+  state = { error: null as Error | null };
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error("[playground] error:", error, info);
+  }
+  render() {
+    if (this.state.error) {
+      return React.createElement(
+        "div",
+        {
+          style: {
+            padding: "1rem",
+            border: "1px solid #f5b5b5",
+            borderRadius: "6px",
+            background: "#fff5f5",
+            color: "#7a1f1f",
+            fontFamily: "system-ui, sans-serif",
+            fontSize: "0.9em",
+          },
+        },
+        React.createElement(
+          "strong",
+          null,
+          "Playground failed to load.",
+        ),
+        React.createElement(
+          "p",
+          { style: { margin: "0.5rem 0" } },
+          this.state.error.message ||
+            "An unexpected error occurred while initializing the sandbox.",
+        ),
+        React.createElement(
+          "button",
+          {
+            type: "button",
+            onClick: () => location.reload(),
+            style: {
+              padding: "4px 10px",
+              border: "1px solid currentColor",
+              background: "transparent",
+              color: "inherit",
+              borderRadius: "4px",
+              cursor: "pointer",
+            },
+          },
+          "Reload",
+        ),
+      );
+    }
+    return this.props.children;
+  }
+}
+
 class PlaygroundElement extends HTMLElement {
   #root: ReturnType<typeof createRoot> | null = null;
 
@@ -145,15 +205,29 @@ class PlaygroundElement extends HTMLElement {
     this.style.display = "block";
     const div = document.createElement("div");
     this.appendChild(div);
-    this.#root = createRoot(div);
-    this.#root.render(
-      <Playground
-        provider={this.#provider}
-        editor={this.#editor}
-        preview={this.#preview}
-        tests={this.#tests}
-      />,
-    );
+    try {
+      this.#root = createRoot(div);
+      this.#root.render(
+        React.createElement(
+          PlaygroundErrorBoundary,
+          null,
+          React.createElement(Playground, {
+            provider: this.#provider,
+            editor: this.#editor,
+            preview: this.#preview,
+            tests: this.#tests,
+          }),
+        ),
+      );
+    } catch (error) {
+      console.error("[playground] mount failed:", error);
+      div.textContent =
+        "Playground failed to load. Try reloading the page.";
+      div.setAttribute(
+        "style",
+        "padding:1rem;border:1px solid #f5b5b5;border-radius:6px;background:#fff5f5;color:#7a1f1f;font-family:system-ui,sans-serif;font-size:.9em",
+      );
+    }
   }
 
   disconnectedCallback() {
@@ -163,7 +237,13 @@ class PlaygroundElement extends HTMLElement {
   }
 }
 
-globalThis.customElements.define("x-playground", PlaygroundElement);
+// Only register on the client — Astro SSR renders this module too, where
+// `customElements` doesn't exist and React hooks have no dispatcher.
+if (typeof window !== "undefined" && typeof customElements !== "undefined") {
+  if (!customElements.get("x-playground")) {
+    customElements.define("x-playground", PlaygroundElement);
+  }
+}
 
 declare global {
   namespace JSX {

@@ -1,8 +1,29 @@
 import { effect, MaybeReactive, resolve, signal, untracked } from "@/signals";
 import { ComputedPromise, promise } from "./promise";
 
+/** Shape of the async function driven by {@link Async} / {@link async}. */
 export type Fn<TInput, TOutput> = (input: TInput) => Promise<TOutput>;
 
+/**
+ * Reactive wrapper around an async function. Exposes the current run as
+ * reactive signals (`state`, `value`, `reason`, `result`, `pending`) and
+ * lets you `run`/`start`/`stop` the underlying task imperatively.
+ *
+ * Prefer the {@link async} factory — it returns an `Async` that is also
+ * callable as a signal (`op()` === `op.result`), which is what most call
+ * sites want. Use this class directly only when you need the object form.
+ *
+ * @example
+ * ```ts
+ * import { Async } from "elements-kit/utilities/async";
+ *
+ * const loader = new Async<string, User>(fetchUser);
+ * loader.run("alice");
+ * effect(() => {
+ *   if (loader.state === "fulfilled") console.log(loader.value);
+ * });
+ * ```
+ */
 export class Async<TInput = undefined, TOutput = unknown> {
   #fn = signal<Fn<TInput, TOutput>>(async () =>
     Promise.resolve(undefined as unknown as TOutput),
@@ -124,6 +145,23 @@ const ASYNC_KEYS = new Set<PropertyKey>([
   Symbol.dispose,
 ]);
 
+/**
+ * Create an {@link Async} that is also callable as a signal: invoking it
+ * (with no args) reads the current `result`, so it drops into any reactive
+ * context that expects a zero-arg getter.
+ *
+ * @example
+ * ```ts
+ * import { async } from "elements-kit/utilities/async";
+ *
+ * const load = async((id: string) => fetch(`/u/${id}`).then(r => r.json()));
+ * load.run("alice");
+ *
+ * // Read as a signal — subscribes to result changes
+ * effect(() => console.log(load()));
+ * await load; // Await the current run — works like a normal promise
+ * ```
+ */
 export function async<TInput = any, TOutput = undefined>(
   fn: MaybeReactive<(input: TInput) => Promise<TOutput>>,
 ): Async<TInput, TOutput> & ((...args: any[]) => TOutput | undefined) {

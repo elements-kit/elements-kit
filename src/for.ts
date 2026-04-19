@@ -52,9 +52,38 @@ import type { Props, Require } from "@/jsx-runtime/infer";
  * Props for `<For>`, derived from its public instance fields.
  * All props are optional — the class initializes sane defaults at runtime.
  * Non-function props also accept a reactive getter.
+ *
+ * @example
+ * ```tsx
+ * import { signal } from "elements-kit/signals";
+ * import { For } from "elements-kit";
+ *
+ * const todos = signal([{ id: 1, text: "write docs" }]);
+ *
+ * const props: ForProps<{ id: number; text: string }> = {
+ *   each: todos,
+ *   by: (t) => t.id,
+ *   children: (t) => <li>{t.text}</li>,
+ * };
+ * ```
  */
-export type ForProps<T> = Require<Props<For<T>>, "each" | "children">;
+type ForProps<T> = Require<Props<For<T>>, "each" | "children">;
 
+/**
+ * Keyed list renderer. See {@link ForProps} for prop details.
+ *
+ * @example
+ * ```tsx
+ * import { signal } from "elements-kit/signals";
+ * import { For } from "elements-kit";
+ *
+ * const todos = signal([{ id: 1, text: "write docs" }]);
+ *
+ * <For each={todos} by={(t) => t.id}>
+ *   {(t) => <li>{t.text}</li>}
+ * </For>
+ * ```
+ */
 export class For<T = unknown> {
   // Phantom signature: JSX reads it to infer T from props. Runtime constructs
   // with no args — createElement assigns each prop via property set afterwards.
