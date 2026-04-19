@@ -21,7 +21,7 @@ Each subpath is a stable import entry declared in [package.json](package.json) `
 | `elements-kit/attributes` | `@attributes`, `ATTRIBUTES`, `dispatchAttrChange`, `observedAttributes`; types `Attributes<T>`, `AttrChangeHandler<T>` | stable |
 | `elements-kit/custom-elements` | `renderScope` — run setup in a detached `effectScope`, return `{ result, dispose }`. `connectedScope(el, setup)` / `disconnectedScope(el)` — convenience pair for `connectedCallback`/`disconnectedCallback` that stores the dispose handle per-element. | stable |
 | `elements-kit/slot` | `Slot` | stable |
-| `elements-kit/jsx-runtime` | `jsx`, `jsxs`, `jsxDEV`, `h`, `Fragment` | stable (JSX contract) |
+| `elements-kit/jsx-runtime` | `jsx`, `jsxs`, `jsxDEV`, `h`, `Fragment`; types `Child`, `Component`, `PropsTarget`, `ComponentFn`, `ComponentClass`, `ComponentInstance`; `JSX` namespace (`Element`, `ElementType`, `IntrinsicAttributes`, `IntrinsicElements`) | stable (JSX contract) |
 | `elements-kit/integrations/react` | `useSignal`, `useScope` | stable |
 | `elements-kit/utilities/*` | one primary export per module — mix of `createX` factories, verb/imperative functions (`on`, `onClickOutside`, `retry`, `async`, `promise`, `navigate`, `patchHistory`), and pre-instantiated singletons (`online`, `windowFocused`, `activeElement`, `currentLocation`). Async primitives: `async` / `Async` ([src/utilities/async.ts](src/utilities/async.ts)) and `promise` / `ReactivePromise` / `ComputedPromise` ([src/utilities/promise.ts](src/utilities/promise.ts)) | stable per module |
 
@@ -67,7 +67,7 @@ Each subpath is a stable import entry declared in [package.json](package.json) `
   - `class:name={bool | signal}` — reactive `classList.toggle`.
   - `style:prop={value | signal}` — reactive inline style property.
   - `prop:name={value}` — forces property assignment, bypasses `setAttribute`.
-  - `ref={(el) => void | () => void}` — fires after the element is created and its props/children are attached, before it is inserted into its parent. The callback may return a cleanup function; cleanup runs when the surrounding reactive scope disposes.
+  - `ref={(el) => void | () => void}` — fires after the element is created and its props/children are attached, before it is inserted into its parent. Available on **every** JSX tag (intrinsic or component) via `JSX.IntrinsicAttributes`. The callback may return a cleanup function; cleanup runs when the surrounding reactive scope disposes.
 - **Lists**: use `<For each by>` for keyed reconciliation. Plain array children render once.
 - **Slots**: `slot:name={child}` assigns named slot content when mounting into custom-element hosts.
 - **`jsxImportSource`**: `"elements-kit"` with `"jsx": "react-jsx"` in tsconfig.
@@ -78,7 +78,7 @@ Each subpath is a stable import entry declared in [package.json](package.json) `
 - **`class:name={falsy}`** — removes the class. `true` / truthy adds it. Reactive bindings auto-toggle.
 - **`style:prop={falsy}`** — setting `undefined` / `null` / `""` removes the inline style property. Reactive bindings clear on falsy transitions.
 - **Event listeners** — attached via `addEventListener`; **not** removed on node removal; cleaned up when the enclosing `effectScope` disposes. Detached subtrees without a scope: call sites own cleanup.
-- **Fragment (`<>...</>`)** — a `DocumentFragment` whose children are appended into the parent on insertion. Fragment itself is empty after insertion (children move out). Reactive children maintain live bindings against the parent post-move.
+- **Fragment (`<>...</>`)** — a `DocumentFragment` whose children are appended into the parent on insertion. Accepts the same child shapes as any other JSX container: Nodes, strings, numbers, arrays, and reactive getters (`() => T` become live slots). Fragment itself is empty after insertion (children move out); reactive children maintain live bindings against the parent post-move.
 - **Import safety (Node)** — every module under `elements-kit/utilities/*` is import-safe in Node. Singletons that wrap browser APIs (`windowSize`, `online`, `windowFocused`, `activeElement`, `orientation`, `currentLocation`) return neutral values outside a browser: zeros, empty strings, `null`, or sensible defaults (`online` and `windowFocused` assume `true`; `orientation.type` defaults to `"portrait-primary"`). The JSX runtime and custom-element helpers touch the DOM only at call time, not at import. The shared `isBrowser` guard lives in [src/utilities/environment.ts](src/utilities/environment.ts). Full SSR rendering / hydration is not implemented — see §9.
 
 ## 5. Custom-element contract

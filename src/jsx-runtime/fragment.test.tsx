@@ -158,6 +158,63 @@ describe("Fragment (<>...</>) — JSX syntax", () => {
     expect(spy).not.toHaveBeenCalled();
   });
 
+  it("renders a string child as a Text node", () => {
+    const frag = (<>text</>) as DocumentFragment;
+    const host = document.createElement("div");
+    host.appendChild(frag);
+    expect(host.textContent).toBe("text");
+  });
+
+  it("renders a number child as text", () => {
+    const frag = (<>{42}</>) as DocumentFragment;
+    const host = document.createElement("div");
+    host.appendChild(frag);
+    expect(host.textContent).toBe("42");
+  });
+
+  it("renders a mix of strings and elements in order", () => {
+    const frag = (
+      <>
+        hello <span>mid</span> world
+      </>
+    ) as DocumentFragment;
+    const host = document.createElement("div");
+    host.appendChild(frag);
+    expect(host.textContent).toBe("hello mid world");
+    expect(host.querySelector("span")?.textContent).toBe("mid");
+  });
+
+  it("renders a reactive getter child and updates on signal change", () => {
+    const s = signal("A");
+    const frag = (<>{() => s()}</>) as DocumentFragment;
+    const host = document.createElement("div");
+    host.appendChild(frag);
+    expect(host.textContent).toBe("A");
+
+    s("B");
+    expect(host.textContent).toBe("B");
+
+    const dispose = (frag as any)[Symbol.dispose] as () => void;
+    dispose();
+    // After dispose the slot clears its content; subsequent writes have no effect.
+    const afterDispose = host.textContent;
+    s("C");
+    expect(host.textContent).toBe(afterDispose);
+  });
+
+  it("renders null / undefined children without throwing", () => {
+    expect(() => {
+      const frag = (
+        <>
+          {null}
+          {undefined}
+        </>
+      ) as DocumentFragment;
+      const host = document.createElement("div");
+      host.appendChild(frag);
+    }).not.toThrow();
+  });
+
   it("fragment inside element — disposed when parent element is disposed", () => {
     const spy = vi.fn();
     const s = signal(0);

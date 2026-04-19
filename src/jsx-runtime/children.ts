@@ -1,20 +1,20 @@
 import { effect, effectScope, onCleanup } from "../signals";
-import { Component, Child } from "./types";
+import { PropsTarget, Child } from "./types";
 import { SLOTS, Slots, Slot } from "../slot";
 import { PrimitiveNodeType, resolveNode } from "../lib";
 
 // ─ Typed SLOTS accessor ──────────────────────────────────────────────────────
 
 type SlotsMap = Slots<string> & Record<string, Slot>;
-type WithSlots = Component & { [SLOTS]: SlotsMap };
+type WithSlots = PropsTarget & { [SLOTS]: SlotsMap };
 
-function hasSlots(node: Component): node is WithSlots {
+function hasSlots(node: PropsTarget): node is WithSlots {
   return SLOTS in node;
 }
 
 // ─ Public API ─────────────────────────────────────────────────────────────────
 
-export function isChildrenProperty(node: Component, key: string): boolean {
+export function isChildrenProperty(node: PropsTarget, key: string): boolean {
   if (
     key === "children" &&
     (node instanceof Element || node instanceof DocumentFragment)
@@ -31,7 +31,7 @@ export function isChildrenProperty(node: Component, key: string): boolean {
 }
 
 export function applyChildren(
-  node: Component,
+  node: PropsTarget,
   key: string,
   value: Child,
 ): void {
@@ -89,30 +89,40 @@ function applySlot(slot: Slot, value: Child): void {
 }
 
 function mountChildren(el: Element | DocumentFragment, value: Child): void {
-  for (const child of ensureFlatArray(value)) {
-    if (typeof child === "function") {
-      // Reactive child: a slot proxies the dynamic content. Each child gets its
-      // own effectScope so onCleanup registrations don't overwrite each other
-      // (the signals lib supports only one onCleanup per subscriber).
-      const slot = Slot.new();
-      el.appendChild(slot());
-      effectScope(() => {
-        effect(() => slot.set(resolveChild(child())));
-        onCleanup(() => slot.clear());
-      });
-      continue;
-    }
-    const node = resolveChild(child as any);
-    // Extract Symbol.dispose before appendChild — DocumentFragment children are
-    // transferred on append, but the JS object and its dispose fn persist.
-    const dispose = (node as unknown as Partial<Disposable>)[Symbol.dispose];
-    el.appendChild(node);
-    // Own effectScope per child: prevents onCleanup overwrite across siblings.
-    if (dispose)
-      effectScope(() => {
-        onCleanup(dispose);
-      });
+  for (const child of ensureFlatArray<Child>(value)) {
+    mountChild(el, child);
   }
+}
+
+/**
+ * Mounts a single child into `el`. Reactive functions become live slots; other
+ * values append as-is. Each child owns its own `effectScope` so sibling
+ * `onCleanup` registrations don't overwrite each other (the signals lib
+ * supports only one onCleanup per subscriber).
+ *
+ * Also used by `createFunctionElement` when a component returns a reactive
+ * getter or primitive — keeps the component's `effectScope` alive for the
+ * lifetime of the fragment it mounts into.
+ */
+export function mountChild(el: Element | DocumentFragment, child: Child): void {
+  if (typeof child === "function") {
+    const slot = Slot.new();
+    el.appendChild(slot());
+    effectScope(() => {
+      effect(() => slot.set(resolveChild(child())));
+      onCleanup(() => slot.clear());
+    });
+    return;
+  }
+  const node = resolveChild(child as any);
+  // Extract Symbol.dispose before appendChild — DocumentFragment children are
+  // transferred on append, but the JS object and its dispose fn persist.
+  const dispose = (node as unknown as Partial<Disposable>)[Symbol.dispose];
+  el.appendChild(node);
+  if (dispose)
+    effectScope(() => {
+      onCleanup(dispose);
+    });
 }
 
 function resolveChild(value: Child): Node {

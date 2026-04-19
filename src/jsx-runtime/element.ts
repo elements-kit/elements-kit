@@ -1,10 +1,12 @@
-import {
+import type {
   Component,
   ComponentClass,
   ComponentFn,
   ComponentInstance,
+  PropsTarget,
   Disposer,
 } from "./types";
+import type { JSX } from ".";
 import { applyProps } from "./properties";
 import { effectScope, untracked } from "../signals";
 import "../polyfill";
@@ -12,12 +14,9 @@ import "../polyfill";
 // ─ Public API ─────────────────────────────────────────────────────────────────
 
 export function createElement(
-  type: string | Element | DocumentFragment | ComponentClass | ComponentFn,
-  {
-    ref,
-    ...props
-  }: Record<string | symbol, unknown> & { ref?: (el: Element) => void } = {},
-): Element | DocumentFragment | null {
+  type: string | Component,
+  { ref, ...props }: JSX.IntrinsicAttributes & Record<string, unknown> = {},
+): JSX.Element {
   if (typeof type === "function" && !type.prototype?.render) {
     return createFunctionElement(
       type as (
@@ -43,10 +42,10 @@ export function disposeElement(el: Element): void {
 // ─ Component creators ─────────────────────────────────────────────────────────
 
 function createFunctionElement(
-  type: (props: Record<string, unknown>) => Element | DocumentFragment | null,
+  type: ComponentFn,
   props: Record<string, unknown>,
   ref: ((el: Element) => void) | undefined,
-): Element | DocumentFragment | null {
+): JSX.Element {
   let el: Element | DocumentFragment | null | undefined;
   let dispose!: () => void;
 
@@ -67,10 +66,10 @@ function createFunctionElement(
 }
 
 function createNodeElement(
-  type: string | Element | DocumentFragment | ComponentClass,
+  type: JSX.ElementType,
   props: Record<string, unknown>,
   ref: ((el: Element) => void) | undefined,
-): Element | DocumentFragment | null {
+): JSX.Element {
   const node = resolveNode(type);
   if (!node) return null;
 
@@ -97,9 +96,7 @@ function createNodeElement(
 
 // ─ Node helpers ───────────────────────────────────────────────────────────────
 
-function resolveNode(
-  type: string | Element | DocumentFragment | ComponentClass,
-): ComponentInstance | Element | DocumentFragment | null {
+function resolveNode(type: JSX.ElementType): PropsTarget {
   if (typeof type === "string") return document.createElement(type);
   if (type instanceof Element || type instanceof DocumentFragment) return type;
   return new (type as new (...args: any[]) => ComponentInstance)();
@@ -115,11 +112,16 @@ function renderNode(
 
 // ─ Disposable attachment ──────────────────────────────────────────────────────
 
-function hasOwnDisposable(el: Component): el is Component & Disposable {
+function hasOwnDisposable(
+  el: Element | DocumentFragment,
+): el is (Element | DocumentFragment) & Disposable {
   return Object.hasOwn(el, Symbol.dispose);
 }
 
-function attachDisposables(el: Component, disposables: Set<Disposer>): void {
+function attachDisposables(
+  el: Element | DocumentFragment,
+  disposables: Set<Disposer>,
+): void {
   const existingDispose = hasOwnDisposable(el)
     ? el[Symbol.dispose].bind(el)
     : null;

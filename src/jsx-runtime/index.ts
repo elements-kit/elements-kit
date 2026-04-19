@@ -1,4 +1,4 @@
-import { Child, ComponentClass } from "./types";
+import { Child, Component } from "./types";
 import { createElement } from "./element";
 import type { JSX as DomJSX } from "dom-expressions/src/jsx-h";
 import type { CustomElementRegistry } from "../custom-elements";
@@ -11,6 +11,15 @@ export type {
   Props,
   Require,
 } from "./infer";
+
+export type {
+  Child,
+  Component,
+  ComponentClass,
+  ComponentFn,
+  ComponentInstance,
+  PropsTarget as PropsTarget,
+} from "./types";
 
 export type { MaybeReactive } from "../signals";
 
@@ -71,11 +80,13 @@ type WithOurProps<T> = T & OurProps;
 
 export namespace JSX {
   export type Element = globalThis.Element | globalThis.DocumentFragment | null;
-  export type ElementType = Child | ComponentClass;
+  export type ElementType = Child | Component;
   export interface ElementChildrenAttribute {
     children: {};
   }
-
+  export interface IntrinsicAttributes {
+    ref?: (el: Element) => void;
+  }
   type RegisteredElements = {
     [K in keyof CustomElementRegistry]: CustomElementRegistry[K] extends AnyElementCtor
       ? ElementProps<CustomElementRegistry[K]>

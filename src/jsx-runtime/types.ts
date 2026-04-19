@@ -1,31 +1,30 @@
-// ═══════════════════════════════════════════════════════════════════════════════
-// Child Types
-// ═══════════════════════════════════════════════════════════════════════════════
-
 import type { PrimitiveNodeType } from "../lib";
+import type { JSX } from ".";
 
 /** An instance created by a component class — must expose `render()`. */
 export interface ComponentInstance {
-  render(): Element | DocumentFragment | null;
+  render(): JSX.Element;
 }
 
 /** A class whose constructor returns a ComponentInstance. */
-export type ComponentClass<P = any> = new (props: P) => ComponentInstance;
-export type ComponentFn = (
-  props: Record<string | symbol, unknown>,
-) => null | Element | DocumentFragment;
+export type ComponentClass<P extends Record<PropertyKey, unknown> = any> = new (
+  props: P,
+) => ComponentInstance;
+export type ComponentFn<P extends Record<PropertyKey, unknown> = any> = (
+  props: P,
+) => JSX.Element;
 
-export type Component = Element | DocumentFragment | ComponentInstance;
+/** Anything valid as the first arg to `createElement` / a JSX tag target. */
+export type Component = NonNullable<JSX.Element> | ComponentClass | ComponentFn;
+
+/** A resolved runtime node — what `applyProps` / `applyChildren` operate on. */
+export type PropsTarget = NonNullable<JSX.Element> | ComponentInstance;
+
 /** Anything that can appear as a JSX child. */
-export type Child = PrimitiveNodeType | AnyFn | Child[];
+type RenderableChild = PrimitiveNodeType | JSX.Element | RenderableChild[];
+
+export type Child = RenderableChild | AnyFn;
+
+export type AnyFn = (...args: any[]) => RenderableChild;
 
 export type Disposer = () => void;
-
-/** A function that renders props into an element or fragment. */
-// export type ComponentFn<P = Record<string, unknown>> = (props?: P) => Child;
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// Types
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export type AnyFn = (...args: any[]) => any;

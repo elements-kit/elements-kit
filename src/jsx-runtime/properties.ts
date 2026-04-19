@@ -1,6 +1,6 @@
 import { effect, isReactive } from "../signals";
 import { on } from "../utilities/event-listener.ts";
-import { Child, ComponentInstance } from "./types";
+import { Child, PropsTarget } from "./types";
 import {
   ChildProperties,
   Properties,
@@ -10,7 +10,7 @@ import {
 import { applyChildren, isChildrenProperty } from "./children";
 
 export function applyProps(
-  node: Element | DocumentFragment | ComponentInstance,
+  node: PropsTarget,
   props: Record<string, unknown>,
 ): void {
   for (const [key, value] of Object.entries(props)) {
@@ -43,11 +43,7 @@ export function applyProps(
   }
 }
 
-function setProp(
-  node: Element | DocumentFragment | ComponentInstance,
-  key: string,
-  value: unknown,
-): void {
+function setProp(node: PropsTarget, key: string, value: unknown): void {
   // ─ Namespaced keys ────────────────────────────────────────────────────────
   const colonIdx = key.indexOf(":");
   if (colonIdx > -1) {
