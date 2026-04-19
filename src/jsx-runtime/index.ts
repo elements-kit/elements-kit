@@ -72,7 +72,7 @@ type OurProps = {
   [slot: `slot:${string}`]: Computed<Child>;
   [cls: `class:${string}`]: Computed<boolean>;
   [sty: `style:${string}`]: Computed<string | null>;
-  [prop: `prop:${string}`]: unknown;
+  [prop: `prop:${string}`]: Computed<unknown>;
 };
 
 type WithOurProps<T> = T & OurProps;
