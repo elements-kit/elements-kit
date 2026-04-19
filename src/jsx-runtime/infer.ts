@@ -93,13 +93,16 @@ export type RawProps<R> = R extends { readonly [RAW_PROPS]?: infer P }
   : R;
 
 /**
- * Resolve JSX call-site attribute type for a component:
+ * Resolve the JSX call-site prop type for a component (function or class).
+ * Wired into `JSX.LibraryManagedAttributes` so parents see the right shape:
  * - branded `ReactiveProps<P>` (function components) → `MaybeReactiveProps<P>`
  * - empty constructor param (instance-field classes) → `Props<C>`
  * - otherwise pass the constructor param shape through (preserves generic
  *   inference for classes like `For<T>` whose param is already shaped).
+ *
+ * Component props only — custom-element attributes go through {@link ElementProps}.
  */
-export type ResolveAttrs<C, P, NN = NonNullable<P>> = NN extends {
+export type ResolveProps<C, P, NN = NonNullable<P>> = NN extends {
   readonly [RAW_PROPS]?: infer Raw;
 }
   ? MaybeReactiveProps<Raw>
