@@ -4,11 +4,34 @@ description: How ElementsKit thinks — composable, explicit, framework-optional
 ---
 
 import Diagram from "@/components/Diagram.astro";
-import { Aside } from "@astrojs/starlight/components";
+import { Aside, Card, CardGrid } from "@astrojs/starlight/components";
 
 Modern UI frameworks bundle reactivity, rendering, and lifecycle. You adopt the whole system or none of it. ElementsKit unbundles it into primitives you import à la carte — signals, utilities, JSX, custom elements — and combine in any framework or none. Every module is a separate subpath, so bundlers ship only what you reference.
 
-<Diagram code={`flowchart LR
+## Principles
+
+Four threads run through every API choice:
+
+<CardGrid>
+  <Card title="Composability over configuration" icon="puzzle">
+    Import primitives, compose them — no idioms, no hidden config.
+  </Card>
+  <Card title="Close to the platform" icon="seti:html">
+    Thin or absent abstraction — JSX is `createElement`, custom elements *are* `HTMLElement`.
+  </Card>
+  <Card title="Readable by non-experts" icon="open-book">
+    `signal(0)` reactive, `let` not — no proxies, no hook-position rules.
+  </Card>
+  <Card title="Built for the AI age" icon="rocket">
+    Explicit contracts at the call site survive edits; magic doesn't.
+  </Card>
+</CardGrid>
+
+### Composability over configuration
+
+Frameworks ship one large system you configure with props, plugins, dependency arrays, and idioms. ElementsKit ships small primitives you import and combine. There's no convention to memorize and no hidden config — the call site is the contract. Want a query layer? Compose `async` + `retry` + storage. Want browser-API hooks? Import the utility you need.
+
+<Diagram code={`flowchart TB
     subgraph FW["Traditional framework"]
         direction TB
         MONO["reactivity + rendering + lifecycle
@@ -18,20 +41,14 @@ Modern UI frameworks bundle reactivity, rendering, and lifecycle. You adopt the 
     subgraph EK["ElementsKit"]
         direction TB
         S1["signals"]
-        S2["utilities"]
-        S3["JSX"]
-        S4["custom elements"]
+        S2["async"]
+        S3["utilities"]
+        S4["JSX"]
+        S5["custom elements"]
+        S6["Integrations"]
     end
 
     FW -.->|"unbundle"| EK`} />
-
-## Design
-
-Four threads run through every API choice:
-
-### Composability over configuration
-
-Frameworks ship one large system you configure with props, plugins, dependency arrays, and idioms. ElementsKit ships small primitives you import and combine. There's no convention to memorize and no hidden config — the call site is the contract. Want a query layer? Compose `async` + `retry` + storage. Want browser-API hooks? Import the utility you need.
 
 ### Close to the platform
 
