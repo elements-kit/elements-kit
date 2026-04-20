@@ -2,6 +2,7 @@ import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 import cloudflare from "@astrojs/cloudflare";
 import react from "@astrojs/react";
+import sitemap from "@astrojs/sitemap";
 import starlightLlmsTxt from "starlight-llms-txt";
 import {
   pluginMagicMove,
@@ -42,6 +43,7 @@ export default defineConfig({
   integrations: [
     magicMoveIntegration(),
     react(),
+    sitemap(),
     starlight({
       title: "ElementsKit",
       description: siteDescription,
@@ -69,11 +71,66 @@ export default defineConfig({
         },
         {
           tag: "meta",
+          attrs: { property: "og:image:alt", content: "ElementsKit" },
+        },
+        {
+          tag: "meta",
+          attrs: { property: "og:site_name", content: "ElementsKit" },
+        },
+        {
+          tag: "meta",
+          attrs: { property: "og:locale", content: "en_US" },
+        },
+        {
+          tag: "meta",
           attrs: { name: "twitter:image", content: "/og.svg" },
         },
         {
           tag: "meta",
+          attrs: { name: "twitter:image:alt", content: "ElementsKit" },
+        },
+        {
+          tag: "meta",
           attrs: { name: "theme-color", content: "#007d58" },
+        },
+        {
+          tag: "meta",
+          attrs: {
+            name: "keywords",
+            content:
+              "signals, reactive, JSX, custom elements, web components, TypeScript, DOM, frontend, framework-agnostic, ElementsKit",
+          },
+        },
+        {
+          tag: "meta",
+          attrs: { name: "author", content: "Wael Bettayeb" },
+        },
+        {
+          tag: "link",
+          attrs: {
+            rel: "sitemap",
+            type: "application/xml",
+            href: "/sitemap-index.xml",
+          },
+        },
+        {
+          tag: "script",
+          attrs: { type: "application/ld+json" },
+          content: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareSourceCode",
+            name: "ElementsKit",
+            description: siteDescription,
+            codeRepository: "https://github.com/waelbettayeb/elements-kit",
+            programmingLanguage: "TypeScript",
+            license: "https://opensource.org/licenses/MIT",
+            author: {
+              "@type": "Person",
+              name: "Wael Bettayeb",
+              url: "https://github.com/waelbettayeb",
+            },
+            url: "https://elements-kit.quba.co",
+          }),
         },
       ],
 
