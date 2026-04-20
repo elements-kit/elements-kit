@@ -7,6 +7,8 @@ import { Card, CardGrid, LinkCard, Tabs, TabItem } from "@astrojs/starlight/comp
 
 ElementsKit is a set of **universal reactive primitives** for building web UI. It works standalone, inside React or Vue, or as the foundation of your own component model — no framework required, no virtual DOM.
 
+**Import what you use.** Every module is a separate subpath — `elements-kit/signals`, `elements-kit/utilities/media-query`, `elements-kit/integrations/react`. Bundlers tree-shake the rest.
+
 <CardGrid>
   <Card title="Signals" icon="rocket">
     Fine-grained reactive state. `signal`, `computed`, `effect`, stores, and utilities like `createMediaQuery` — framework-agnostic, usable anywhere JS runs.

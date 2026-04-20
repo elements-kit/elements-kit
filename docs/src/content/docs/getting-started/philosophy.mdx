@@ -22,6 +22,7 @@ Every primitive ships ready to use. `signal`, `computed`, `@reactive`, `createMe
 - **Drop into what you already have.** A `signal` can drive a React component via `useSignal`. A custom element works as a plain HTML tag inside Vue, Svelte, Astro, or no framework at all — no adapter layer.
 - **Or stand alone.** Signals + elements + custom elements is a complete app runtime. There's no missing piece you have to glue in to ship.
 - **Same primitives either way.** The code you write in standalone mode is the code you write inside a React app. Switching contexts doesn't mean switching libraries.
+- **Pay only for what you import.** Every module is a separate subpath export — `elements-kit/signals`, `elements-kit/utilities/async`, `elements-kit/integrations/react`. Bundlers strip everything you don't reference. "Batteries included" doesn't mean "batteries shipped".
 
 ## How the pieces fit
 
