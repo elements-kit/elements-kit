@@ -22,44 +22,29 @@ ElementsKit is a set of **universal reactive primitives** for building web UI. I
   </Card>
 </CardGrid>
 
-```tsx
-import { computed, reactive } from "elements-kit/signals";
-import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
+```tsx twoslash
+// @noErrors
+import { signal, computed } from "elements-kit/signals";
 import { render } from "elements-kit/render";
+import type { ReactiveProps } from "elements-kit/jsx-runtime";
 
-@attributes
-class CounterElement extends HTMLElement {
-  static [attr] = {
-    count(this: CounterElement, value: string | null) {
-      this.count = Number(value ?? 0);
-    },
-  };
+function Counter(props: ReactiveProps<{ initial?: number }>) {
+  const count = signal(props.initial() ?? 0);
+  const doubled = computed(() => count() * 2);
 
-  @reactive() count = 0;
-  doubled = computed(() => this.count * 2);
-
-  #unmount?: () => void;
-
-  connectedCallback() {
-    this.#unmount = render(this, () => (
-      <section>
-        <p><strong>{() => this.count}</strong> × 2 = <strong>{this.doubled}</strong></p>
-        <button on:click={() => this.count++}>+1</button>{" "}
-        <button on:click={() => this.count--}>−1</button>
-      </section>
-    ) as Element);
-  }
-
-  disconnectedCallback() {
-    this.#unmount?.();
-    this.#unmount = undefined;
-  }
+  return (
+    <section>
+      <p><strong>{count}</strong> × 2 = <strong>{doubled}</strong></p>
+      <button on:click={() => count(count() + 1)}>+1</button>{" "}
+      <button on:click={() => count(count() - 1)}>−1</button>
+    </section>
+  );
 }
 
-customElements.define("x-counter", CounterElement);
+render(document.getElementById("app")!, () => <Counter initial={0} />);
 ```
 
-Try it in a live playground at [Signals](/signals).
+See the full progression — signals → element → function component → class → custom element — in [First component](/getting-started/first-component).
 
 :::note[For AI agents]
 Machine-readable index: [`/llms.txt`](/llms.txt) (short) · [`/llms-full.txt`](/llms-full.txt) (every page concatenated).

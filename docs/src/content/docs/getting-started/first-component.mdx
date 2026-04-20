@@ -1,53 +1,127 @@
 ---
 title: First component
-description: Build a reactive counter with signals, JSX, and a class component.
+description: From signals to custom elements — build the same counter five different ways.
 ---
 
-Build a reactive counter to see signals, JSX, and class components working together. Under twenty lines of code, no framework, no build-step magic — just standard browser APIs with reactive glue.
+Start with signals, grow into a component, end as a native HTML tag. Each step below adds one layer on top of the previous — the reactive core never changes, only how you package it.
 
-## The counter
+## From signal to custom element
 
-```tsx twoslash
-// @noErrors
-import { computed, reactive } from "elements-kit/signals";
+```tsx magic-move
+// 1. Just signals — reactive values, no DOM yet.
+import { signal, computed } from "elements-kit/signals";
+
+const count = signal(0);
+const doubled = computed(() => count() * 2);
+
+count(count() + 1);   // write
+console.log(count()); // read → 1
+console.log(doubled()); // → 2
+---
+// 2. Signal → element. JSX is the primitive; no component wrapper needed.
+import { signal, computed } from "elements-kit/signals";
+import { render } from "elements-kit/render";
+
+const count = signal(0);
+const doubled = computed(() => count() * 2);
+
+render(document.getElementById("app")!, () => (
+  <section>
+    <p><strong>{count}</strong> × 2 = <strong>{doubled}</strong></p>
+    <button on:click={() => count(count() + 1)}>+1</button>
+  </section>
+));
+---
+// 3. Function component. Props arrive as callable getters (Computed<T>).
+import { signal, computed } from "elements-kit/signals";
+import { render } from "elements-kit/render";
+import type { ReactiveProps } from "elements-kit/jsx-runtime";
+
+function Counter(props: ReactiveProps<{ initial?: number }>): Element {
+  const count = signal(props.initial() ?? 0);
+  const doubled = computed(() => count() * 2);
+
+  return (
+    <section>
+      <p><strong>{count}</strong> × 2 = <strong>{doubled}</strong></p>
+      <button on:click={() => count(count() + 1)}>+1</button>
+    </section>
+  );
+}
+
+render(document.getElementById("app")!, () => <Counter initial={0} />);
+---
+// 4. Class component. @reactive fields read/write like plain properties.
+import { reactive, computed } from "elements-kit/signals";
 import { render } from "elements-kit/render";
 
 class Counter {
   @reactive() count = 0;
   doubled = computed(() => this.count * 2);
 
-  render() {
+  render(): Element {
     return (
       <section>
         <p>
           <strong>{() => this.count}</strong> × 2 = <strong>{this.doubled}</strong>
         </p>
-        <button on:click={() => this.count++}>+1</button>{" "}
-        <button on:click={() => this.count--}>−1</button>
+        <button on:click={() => this.count++}>+1</button>
       </section>
     );
   }
 }
 
-const unmount = render(
-  document.getElementById("app")!,
-  () => <Counter/>
-);
-```
+render(document.getElementById("app")!, () => <Counter/>);
+---
+// 5. Custom element. The same counter, usable as <x-counter initial="3" />.
+import { reactive, computed } from "elements-kit/signals";
+import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
+import { render } from "elements-kit/render";
 
-Mount it into any page container:
+@attributes
+class CounterElement extends HTMLElement {
+  static [attr] = {
+    initial(this: CounterElement, v: string | null) {
+      this.count = Number(v ?? 0);
+    },
+  };
 
-```html
-<div id="app"></div>
+  @reactive() count = 0;
+  doubled = computed(() => this.count * 2);
+
+  #unmount?: () => void;
+
+  #template = () => (
+      <section>
+        <p>
+          <strong>{() => this.count}</strong> × 2 = <strong>{this.doubled}</strong>
+        </p>
+        <button on:click={() => this.count++}>+1</button>
+      </section>
+  );
+
+  connectedCallback() {
+    this.#unmount = render(this, this.#template);
+  }
+
+  disconnectedCallback() {
+    this.#unmount?.();
+    this.#unmount = undefined;
+  }
+}
+
+customElements.define("x-counter", CounterElement);
 ```
 
 ## What's happening
 
-- **`@reactive() count = 0`** — makes `this.count` a reactive signal. Reads subscribe, writes notify.
-- **`computed(() => this.count * 2)`** — derived value, recomputed only when `count` changes.
-- **`{() => this.count}`** — the `() =>` wrapper creates a live text node that updates in place.
-- **`render(target, setup)`** — runs `setup` inside an [`effectScope`](/scopes), appends the returned node to `target`, and hands back a single `unmount` thunk that removes the node and tears down every effect inside.
-- **No framework runtime** — `Counter` is a plain class. JSX compiles to real `document.createElement` calls.
+- **Step 1 — signals.** `signal(0)` holds state; `computed(() => count() * 2)` derives from it. Both are framework-agnostic — no DOM involved.
+- **Step 2 — signals + JSX.** `render(target, setup)` runs `setup` inside an [`effectScope`](/scopes), appends the returned node to `target`, and hands back a single `unmount` thunk. `{count}` creates a live text node that updates in place — no diffing, no re-render.
+- **Step 3 — function component.** Props are typed with `ReactiveProps<T>`; each key on `props` arrives as a `Computed<T>` (callable getter). Return type is `Element` — a real DOM node.
+- **Step 4 — class component.** `@reactive()` turns class fields into signals with natural property access. `render(): Element` returns the same shape, called once when the instance mounts.
+- **Step 5 — custom element.** `@attributes` wires the `static [attr]` map so HTML attributes feed reactive properties. `connectedCallback` mounts; `disconnectedCallback` tears down. Usable as a plain HTML tag in any framework or no framework at all.
+
+The reactive core (steps 1–2) is doing all the work. Steps 3–5 are just packaging.
 
 ## Next steps
 
