@@ -6,30 +6,30 @@ description: How ElementsKit thinks — composable, explicit, framework-optional
 import Diagram from "@/components/Diagram.astro";
 import { Aside, Card, CardGrid } from "@astrojs/starlight/components";
 
-Modern UI frameworks bundle reactivity, rendering, and lifecycle. You adopt the whole system or none of it. ElementsKit unbundles it into primitives you import à la carte — signals, utilities, JSX, custom elements — and combine in any framework or none. Every module is a separate subpath, so bundlers ship only what you reference.
+ElementsKit is a library of reactive primitives, not a framework. Each piece is its own import, runs on its own, and composes with the others — inside React, inside a custom element, or on its own in a script.
 
 ## Principles
 
 Four threads run through every API choice:
 
 <CardGrid>
-  <Card title="Composability over configuration" icon="puzzle">
-    Import primitives, compose them — no idioms, no hidden config.
+  <Card title="Compose, don't configure" icon="puzzle">
+    Small focused APIs — `signal`, `computed`, `on`, `fromEvent`, `async`. One toolkit covers state, server-state, browser hooks, and UI.
   </Card>
   <Card title="Close to the platform" icon="seti:html">
-    Thin or absent abstraction — JSX is `createElement`, custom elements *are* `HTMLElement`.
+    Thin or absent abstraction — no virtual DOM, no proxies, no build steps. JSX is `createElement`, custom elements *are* `HTMLElement`.
   </Card>
-  <Card title="Expectable" icon="open-book">
-    No magic, no proxies, no hook-position rules. Small focused APIs. What you read is what runs.
+  <Card title="Predictable and explicit" icon="open-book">
+    `signal` / `compose` are reactive; nothing else is. No heuristic dependency tracking, no hidden subscriptions.
   </Card>
-  <Card title="Built for the AI age" icon="rocket">
-    Explicit contracts at the call site survive edits; magic doesn't.
+  <Card title="Designed for the AI age" icon="rocket">
+    Primitives compose into higher-level blocks. Swap one block at a time instead of maintaining an overloaded interface.
   </Card>
 </CardGrid>
 
-### Composability over configuration
+### Compose, don't configure
 
-Frameworks ship one large system you configure with props, plugins, dependency arrays, and idioms. ElementsKit ships small primitives you import and combine. There's no convention to memorize and no hidden config — the call site is the contract. Want a query layer? Compose `async` + `retry` + storage. Want browser-API hooks? Import the utility you need.
+ElementsKit gives you primitives you combine, not a system you configure. No config object, no plugin tree, no convention to memorize — the call site is the contract. Need a query layer? Compose `async` + `retry` + storage. Need browser-API hooks? Import the utility. The surface grows by adding primitives, not by stacking flags on an existing one.
 
 <Diagram code={`flowchart TB
     subgraph FW["Traditional framework"]
@@ -52,7 +52,7 @@ Frameworks ship one large system you configure with props, plugins, dependency a
 
 ### Close to the platform
 
-Heavy abstraction over native APIs is where beginners get burned — they learn the abstraction, not the platform underneath, and the leak surfaces in production. ElementsKit keeps the layer thin or absent. JSX compiles to `document.createElement`. `promise` *extends* the native `Promise` (still awaitable, still chainable). `async` instances are thenable. Custom elements *are* `HTMLElement`. The source itself is small composable pieces, so what you read in the docs maps directly to what you write, and what you write maps directly to what the browser already knows.
+Heavy abstraction over native APIs is where beginners get burned — they learn the abstraction, not the platform underneath, and the leak surfaces in production. ElementsKit keeps the layer thin or absent. JSX compiles to `document.createElement`. `promise` *extends* the native `Promise` (still awaitable, still chainable). `async` instances are thenable. Custom elements *are* `HTMLElement`.
 
 | ElementsKit | Native API | Relationship |
 |-------------|------------|--------------|
@@ -63,11 +63,9 @@ Heavy abstraction over native APIs is where beginners get burned — they learn 
 | `@reactive` field | Plain class field | Decorator — no proxy, no property rewrite |
 | `on(el, "click", …)` | `addEventListener` | Thin wrapper returning `Disposable` |
 
-### Expectable
+### Predictable and explicit
 
-No magic. `signal(0)` is reactive; plain `let` isn't. Derivations live in `computed(...)`, cleanup in `onCleanup`, both named where they're declared. No proxies rewriting property access, no hook-position rules, no dependency arrays silently going stale. Stores are plain classes with `@reactive` field decorators — no hidden rewrites, no framework-wide configuration.
-
-The interface stays small and focused. `signal`, `computed`, `effect`, `on`, `fromEvent`, `async` — each does one thing. No kitchen-sink objects with twenty methods, no callback soup, no plugin trees. Frameworks often push you toward clever-but-cryptic patterns to get common things done — `useReducer` with a switch, `useEffect` dependency arrays, derived state via `useMemo`, suspense-driven fetching — and those are landmines for anyone not steeped in the idiom. ElementsKit is the opposite: what the debugger shows is what you wrote.
+No magic. `signal` / `compose` are reactive; nothing else is. No heuristic dependency tracking, no hidden subscriptions. Derivations live in `computed(...)`, cleanup in `onCleanup`. Stores are plain classes with `@reactive` field decorators.
 
 ```tsx magic-move
 // ElementsKit — explicit. signal() is reactive, let isn't.
@@ -102,24 +100,17 @@ function Counter() {
 }
 ```
 
-### Built for the AI age
+### Designed for the AI age
 
-Writing code is cheap — an agent will draft most of it. *Maintaining* it is the bottleneck. A codebase is read and rewritten long after it's first authored, often by an agent rebuilding context from scratch. Implicit behavior makes every edit a re-derivation: was this variable tracked? did this hook run? is this value live or stale?
+Writing code is cheap — an agent will draft most of it. *Maintaining* it is the bottleneck. A codebase is read and rewritten long after it's first authored, often by an agent rebuilding context from scratch.
 
-ElementsKit is explicit at the call site:
+ElementsKit is built from primitives that compose into higher-level blocks. Each unit stays testable in isolation, which lets you — or an agent — swap one block at a time without touching the rest.
 
-| Framework (implicit) | ElementsKit (explicit) |
-|----------------------|------------------------|
-| Any variable *might* be tracked — depends on compiler rewrite | `signal(0)` is reactive. A plain `let` is not. |
-| Derived values inferred by the runtime or memoized by convention | If a value is derived, wrap it in `computed(...)`. The call site says so. |
-| Props read as plain values — subscription is hidden | Props arrive as `Computed<T>` callables. A read is `()`. Subscription is passing the getter along. |
-| Cleanup tied to hook position and dependency arrays | Cleanup is `onCleanup`, called explicitly. The dependency is named, not implied by call order. |
+A query layer is `async` + `retry` + storage. Swap the fetcher; leave the retry and storage alone. Swap the store; leave the query alone.
 
-Primitives with explicit contracts survive a hundred edits — by humans or agents. Magic doesn't.
+The alternative is one overloaded component tuned through every combination of its configuration. Each new option on that component accumulates breaking changes and deprecations that every consumer has to track and migrate through. Primitives avoid that maintenance tax by keeping each unit small enough to replace rather than extend.
 
-## Compose, don't install
-
-Most teams bolt several layers on top of a UI framework: a **UI framework** (React, Vue, Solid), a **custom-element** library (Lit), a **server-state** library (TanStack Query, SWR), a **browser-hooks** pack (react-use, vueuse, solid-primitives), and a **state** manager (Zustand, Jotai, MobX). ElementsKit covers the whole layer from its primitives. Most of what you'd install is one or two lines away:
+The table below maps ElementsKit equivalents to each major feature from the usual stack — a **UI framework** (React, Vue, Solid), a **custom-element** library (Lit), a **server-state** library (TanStack Query, SWR), a **browser-hooks** pack (react-use, vueuse, solid-primitives), and a **state** manager (Zustand, Jotai, MobX).
 
 | Layer | Feature | ElementsKit |
 |-------|---------|-------------|
