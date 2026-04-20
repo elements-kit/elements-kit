@@ -18,6 +18,27 @@ ElementsKit is a toolkit of reactive primitives — signals, JSX, custom element
 
 - **Predictable and explicit — no magic.** `signal/compose` are reactive; nothing else is. No heuristic dependency tracking, no hidden subscriptions.
 
+<CardGrid>
+  <Card title="Signals & Stores" icon="rocket">
+    Fine-grained reactive state. `signal`, `computed`, `effect`, and `@reactive` class fields — plain classes, no proxies. Shared across custom elements, React components, and plain scripts, all in sync.
+  </Card>
+  <Card title="Utilities" icon="setting">
+    Browser-API signals — `online`, `windowSize`, `createMediaQuery`, `on`, `fromEvent`, observers, and more. Reactive wrappers, pay-per-import.
+  </Card>
+  <Card title="Async" icon="seti:db">
+    `async`, `promise`, `retry`, `createLocalStorage`. Compose queries, mutations, persistence, and revalidation — no query library required.
+  </Card>
+  <Card title="Elements" icon="puzzle">
+    JSX compiles to real `document.createElement` calls. Reactive props become live DOM bindings — no diffing, no reconciliation, no runtime overhead.
+  </Card>
+  <Card title="Custom Elements" icon="seti:html">
+    Native `HTMLElement` subclasses enhanced with signals, JSX, and decorators. Usable in any HTML context — React, Vue, or plain HTML — no adapters needed.
+  </Card>
+  <Card title="Framework Integration" icon="external">
+    Bridge any signal into a UI framework via `useSignal` / `useScope`. React today, Svelte and Vue planned.
+  </Card>
+</CardGrid>
+
 ## Install
 
 <Tabs>
@@ -45,29 +66,7 @@ ElementsKit is a toolkit of reactive primitives — signals, JSX, custom element
 
 Full setup — TypeScript JSX config, CDN, Deno — in [Installation](/getting-started/installation).
 
-<CardGrid>
-  <Card title="Signals & Stores" icon="rocket">
-    Fine-grained reactive state. `signal`, `computed`, `effect`, and `@reactive` class fields — plain classes, no proxies. Shared across custom elements, React components, and plain scripts, all in sync.
-  </Card>
-  <Card title="Utilities" icon="setting">
-    Browser-API signals — `online`, `windowSize`, `createMediaQuery`, `on`, `fromEvent`, observers, and more. Reactive wrappers, pay-per-import.
-  </Card>
-  <Card title="Async" icon="seti:db">
-    `async`, `promise`, `retry`, `createLocalStorage`. Compose queries, mutations, persistence, and revalidation — no query library required.
-  </Card>
-  <Card title="Elements" icon="puzzle">
-    JSX compiles to real `document.createElement` calls. Reactive props become live DOM bindings — no diffing, no reconciliation, no runtime overhead.
-  </Card>
-  <Card title="Custom Elements" icon="seti:html">
-    Native `HTMLElement` subclasses enhanced with signals, JSX, and decorators. Usable in any HTML context — React, Vue, or plain HTML — no adapters needed.
-  </Card>
-  <Card title="Framework Integration" icon="external">
-    Bridge any signal into a UI framework via `useSignal` / `useScope`. React today, Svelte and Vue planned.
-  </Card>
-</CardGrid>
 
-<br/>
-<br/>
 
 <Tabs>
   <TabItem label="Counter">
