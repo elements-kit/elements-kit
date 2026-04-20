@@ -10,35 +10,39 @@ Modern UI frameworks bundle reactivity and rendering. You adopt the whole system
 ## What you get
 
 - **Signals** are the reactive core — fine-grained, framework-agnostic, composable with any rendering model.
+- **utilities** are reactive browser APIs and common patterns built on signals — `on`, `fromEvent`, `sync`, `observers`, `media-query`, `storage`, `async`.
 - **JSX** compiles to real `document.createElement` calls — no virtual DOM, no diffing, no runtime overhead.
 - **Custom elements** are native browser components — ElementsKit enhances them with signals and JSX without wrapping or abstracting the platform.
 
-Use one piece, or all three. Integrate with React for complex UIs. Build web components that work anywhere HTML does.
+Use one piece, or all. Integrate with React for complex UIs. Build web components that work anywhere HTML does.
 
 ## Compose, don't install
 
-A typical stack bolts together a UI framework, a query library, a utilities package, a state manager, and maybe a custom-element library. ElementsKit covers the whole layer from its primitives. Most of what you'd install is one or two lines away:
+Most teams bolt several layers on top of a UI framework: a **UI framework** (React, Vue, Solid), a **custom-element** library (Lit), a **server-state** library (TanStack Query, SWR), a **browser-hooks** pack (react-use, vueuse, solid-primitives), and a **state** manager (Zustand, Jotai, MobX). ElementsKit covers the whole layer from its primitives. Most of what you'd install is one or two lines away:
 
-| Library | Feature | ElementsKit |
-|---------|---------|-------------|
-| **TanStack Query / SWR** | Query | `async(() => fetch(url())).start()` |
+| Layer | Feature | ElementsKit |
+|-------|---------|-------------|
+| **State** | Shared reactive state | `class Store { @reactive() count = 0 }` |
+|  | Derived value | `computed(() => store.count * 2)` |
+| **Server state** | Query | `async(() => fetch(url())).start()` |
 |  | Mutation | `mutation.run({ id, name })` |
 |  | Retry with backoff | `async(retry(fn, 5, n => 2**n * 100)).start()` |
-| **react-use / vueuse / solid-primitives** | Online / offline | `online()` |
+|  | Persist result | `async(fetcher).start().then(v => store(v))` |
+| **Browser hooks** | Online / offline | `online()` |
 |  | Viewport size | `windowSize.width()` |
 |  | Media query | `createMediaQuery("(prefers-color-scheme: dark)")` |
 |  | Debounce | `createInterval(300)` |
-| **Zustand / Jotai / MobX** | Shared reactive state | `class Store { @reactive() count = 0 }` |
-|  | Derived value | `computed(() => store.count * 2)` |
-| **Custom elements (Lit)** | Reactive HTMLElement | `@attributes class X extends HTMLElement {}` |
-|  | Reactive property | `@reactive() count = 0` |
-|  | Attribute handler | `static [attr] = { name(this, v) {} }` |
-|  | Slot (Native DOM) | `children = Slot.new()` |
-| **UI frameworks (React / Vue / Solid)** | Mount into DOM | `render(el, () => <App/>)` |
+| **UI framework** | Mount into DOM | `render(el, () => <App/>)` |
 |  | Function component | `function Counter(props) { return <div/> }` |
 |  | Class component | `class Counter { render() { return <div/> } }` |
 |  | Lifecycle cleanup | `onCleanup(() => …)` |
-The same utility works in any UI framework through `useSignal` / `useScope`. The hook is the bridge, not the primitive:
+| **Custom elements** | Reactive HTMLElement | `@attributes class X extends HTMLElement {}` |
+|  | Reactive property | `@reactive() count = 0` |
+|  | Attribute handler | `static [attr] = { name(this, v) {} }` |
+|  | Slot | `children = Slot.new()` |
+
+
+The same utility works in any UI framework through `useSignal` / `useScope`:
 
 ```tsx
 /** @jsxImportSource react */
@@ -51,7 +55,7 @@ export function OfflineBanner() {
 }
 ```
 
-Same shape in the next integration — no framework-specific fork.
+Same shape in the next integration.
 
 ## Batteries included, framework-optional
 
