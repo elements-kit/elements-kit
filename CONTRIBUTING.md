@@ -4,6 +4,16 @@ Rules for sending PRs to **elements-kit**. How-the-library-works: [ARCHITECTURE.
 
 > Changes to versioning, release process, or quality bars land here before (or alongside) the policy change.
 
+## Repository
+
+- [src/](src/) — library source ([signals](src/signals/), [jsx-runtime](src/jsx-runtime/), [utilities](src/utilities/), [integrations](src/integrations/))
+- [docs/](docs/) — Astro + Starlight documentation site
+- [example/](example/) — Vite sandbox
+- [ARCHITECTURE.md](ARCHITECTURE.md) — how the library works (reactive model, JSX, custom elements, cleanup)
+- [DOCS.md](DOCS.md) — doc-authoring rules
+- [AGENTS.md](AGENTS.md) — agent navigation map
+- [src/utilities/README.md](src/utilities/README.md) — utilities catalog and dependency graph
+
 ## Quick start
 
 ```sh

@@ -4,7 +4,7 @@
 
 # ElementsKit
 
-**Universal reactive primitives for the web.** Signals, utilities, JSX, and custom elements that work anywhere — standalone, inside React, Vue, or any framework, or as the foundation of your own component model.
+**Universal reactive primitives for the web.** Signals, JSX, custom elements, and browser-API helpers. Import one at a time, compose them, or use any of them inside vanilla JS, React, Vue, or any framework.
 
 ```tsx
 import { signal, computed } from "elements-kit/signals";
@@ -35,7 +35,6 @@ Every feature is a separate subpath export — import only what you use.
 
 | Entry | Purpose |
 |-------|---------|
-| `elements-kit` | `For` component and core re-exports |
 | `elements-kit/signals` | `signal`, `computed`, `effect`, `effectScope`, `batch`, `untracked`, `trigger`, `onCleanup`, `MaybeReactive`, `resolve`, `resolveProps`, `@reactive` |
 | `elements-kit/render` | `render(target, setup)` — mount a node with a scoped lifetime; returns `unmount` |
 | `elements-kit/attributes` | `@attributes` decorator + `ATTRIBUTES` symbol |
@@ -46,63 +45,29 @@ Every feature is a separate subpath export — import only what you use.
 | `elements-kit/integrations/react` | `useSignal`, `useScope` React bridge hooks |
 | `elements-kit/utilities/*` | Reactive browser-API utilities — see [src/utilities/README.md](src/utilities/README.md) |
 
-## Repository
-
-- [src/](src/) — library source ([signals](src/signals/), [jsx-runtime](src/jsx-runtime/), [utilities](src/utilities/), [integrations](src/integrations/))
-- [docs/](docs/) — Astro + Starlight documentation site
-- [example/](example/) — Vite sandbox
-- [ARCHITECTURE.md](ARCHITECTURE.md) — how the library works (reactive model, JSX, custom elements, cleanup)
-- [CONTRIBUTING.md](CONTRIBUTING.md) — quick start, quality bars, versioning, PR checklist
-- [DOCS.md](DOCS.md) — doc-authoring rules
-- [AGENTS.md](AGENTS.md) — agent navigation map
-- [src/utilities/README.md](src/utilities/README.md) — utilities catalog and dependency graph
-
 ---
 
 ## Why ElementsKit
 
-Modern UI frameworks solve reactivity and rendering together — you adopt the whole system or none of it. ElementsKit separates the two:
+ElementsKit is a library of reactive primitives, not a framework. Each piece is its own import, runs on its own, and composes with the others — inside React, inside a custom element, or on its own in a script.
+
+- **Compose, don't configure.** Small focused APIs — `signal`, `computed`, `on`, `fromEvent`, `async`. Combine primitives instead of maintaining an overloaded interface.
+
+- **Close to the platform.** JSX compiles to `document.createElement`. `promise` extends `Promise`. Custom elements *are* `HTMLElement`. Thin or absent abstraction layers — no virtual DOM, no proxies, no build steps.
+
+- **Predictable and explicit — no magic.** `signal/compose` are reactive; nothing else is. No heuristic dependency tracking, no hidden subscriptions.
+
+- **Designed for the AI age.** Code is cheap; maintenance still isn't. Primitives compose into higher-level blocks. Swap one block at a time instead of maintaining long lines of code.
+
+- **Bundler-friendly.** Every primitive is its own subpath — `elements-kit/signals`, `elements-kit/utilities/*`, `elements-kit/integrations/*`. Import only what you need.
+
+## Overview
 
 - **Signals** are the reactive core — fine-grained, framework-agnostic, composable with any rendering model.
 - **Utilities** are reactive browser APIs and common patterns built on signals — `on`, `fromEvent`, `sync`, observers, `media-query`, `storage`, `async`.
 - **JSX** compiles to real `document.createElement` calls — no virtual DOM, no runtime overhead.
 - **Custom elements** are standard browser components — ElementsKit enhances them with signals and JSX without wrapping or abstracting the platform.
-
-Use one piece, or all. Integrate with React for complex UIs. Build web components that work anywhere HTML does.
-
-### Design
-
-Four threads run through every API choice:
-
-- **Compose, don't configure.** Small focused APIs — `signal`, `computed`, `on`, `fromEvent`, `async`. Combine primitives instead of maintaining an overloaded interface — overloaded interfaces accumulate breaking changes and deprecations that every consumer has to track and migrate through.
-- **Close to the platform.** Thin or absent abstraction — no virtual DOM, no proxies, no build steps. JSX compiles to `document.createElement`. `promise` *extends* the native `Promise`. `async` instances are thenable. Custom elements *are* `HTMLElement`.
-- **Predictable and explicit.** `signal` / `compose` are reactive; nothing else is. No heuristic dependency tracking, no hidden subscriptions, no hook-position rules.
-- **Designed for the AI age.** Writing code is cheap; *maintaining* it is the bottleneck. Primitives compose into higher-level blocks. Swap one block at a time instead of reading a thousand-line file to figure out what's safe to change.
-
-### Compose, don't configure
-
-Most teams bolt several layers on top of a UI framework: a UI framework (React, Vue, Solid), a custom-element library (Lit), a server-state library (TanStack Query, SWR), a browser-hooks pack (react-use, vueuse, solid-primitives), and a state manager (Zustand, Jotai, MobX). ElementsKit covers the whole layer from its primitives:
-
-| Layer | Feature | ElementsKit |
-|-------|---------|-------------|
-| **State** | Shared reactive state | `class Store { @reactive() count = 0 }` |
-|  | Derived value | `computed(() => store.count * 2)` |
-| **Server state** | Query | `async(() => fetch(url())).start()` |
-|  | Mutation | `mutation.run({ id, name })` |
-|  | Retry with backoff | `async(retry(fn, 5, n => 2**n * 100)).start()` |
-|  | Persist result | `async(fetcher.then(v => store(v))).start()` |
-| **Browser hooks** | Online / offline | `online()` |
-|  | Viewport size | `windowSize.width()` |
-|  | Media query | `createMediaQuery("(prefers-color-scheme: dark)")` |
-|  | Local storage | `createLocalStorage("key", initial)` |
-| **UI framework** | Mount into DOM | `render(el, () => <App/>)` |
-|  | Function component | `function Counter(props) { return <div/> }` |
-|  | Class component | `class Counter { render() { return <div/> } }` |
-|  | Lifecycle cleanup | `onCleanup(() => …)` |
-| **Custom elements** | Reactive HTMLElement | `@attributes class X extends HTMLElement {}` |
-|  | Reactive property | `@reactive() count = 0` |
-|  | Attribute handler | `static [attr] = { name(this, v) {} }` |
-|  | Slot | `children = Slot.new()` |
+- **Framework integration** bridges signals into React (and eventually Vue, Svelte, etc.) with `useSignal` and `useScope`.
 
 ---
 
@@ -560,6 +525,14 @@ class XPicker extends HTMLElement {
 }
 // ElementProps<typeof XPicker> now includes `on:commit`
 ```
+
+---
+
+## Learn more
+
+- [Documentation site](docs/) — guides, playgrounds, reference
+- [ARCHITECTURE.md](ARCHITECTURE.md) — how the library works
+- [CONTRIBUTING.md](CONTRIBUTING.md) — build, test, PR checklist
 
 ---
 
