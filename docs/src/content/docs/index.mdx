@@ -9,9 +9,7 @@ Frameworks bundle reactivity, rendering, and lifecycle into one package deal. Sw
 
 ElementsKit unbundles them: signals, utilities, JSX, and custom elements as independent primitives — use one, a few, or all, inside React or on their own. No virtual DOM. No framework lock-in.
 
-**Close to the platform.** JSX is `document.createElement`. `promise` extends `Promise`. Custom elements are `HTMLElement`. Thin abstractions that map back to what the browser already knows.
-
-**Import what you use.** Every module is a separate subpath — `elements-kit/signals`, `elements-kit/utilities/media-query`, `elements-kit/integrations/react`. Bundlers tree-shake the rest.
+**Thin over native APIs, explicit at the call site.** JSX is `document.createElement`, `signal(0)` is reactive while plain `let` isn't, cleanup is `onCleanup`. No virtual DOM, no proxies rewriting your variables, no hook-position rules. Every module is a separate subpath — `elements-kit/signals`, `elements-kit/utilities/media-query`, `elements-kit/integrations/react` — bundlers tree-shake the rest.
 
 ## Install
 
@@ -208,8 +206,8 @@ export default function Counter() {
 
 See the full progression — signals → element → function component → class → custom element — in the [Quick start](/getting-started/quick-start).
 
-:::note[For AI agents]
-Machine-readable index: [`/llms.txt`](/llms.txt) (short) · [`/llms-full.txt`](/llms-full.txt) (every page concatenated).
+:::note[Built for the AI age]
+Explicit contracts survive edits by humans or agents. Machine-readable index: [`/llms.txt`](/llms.txt) (short) · [`/llms-full.txt`](/llms-full.txt) (every page concatenated).
 :::
 
 ## Start here
@@ -217,7 +215,7 @@ Machine-readable index: [`/llms.txt`](/llms.txt) (short) · [`/llms-full.txt`](/
 <CardGrid>
   <LinkCard title="Installation" href="/getting-started/installation" description="Install the package and configure JSX in your TypeScript project." />
   <LinkCard title="Quick start" href="/getting-started/quick-start" description="Build a reactive counter five ways — from signals to custom elements." />
-  <LinkCard title="Philosophy" href="/getting-started/philosophy" description="How ElementsKit thinks — composable, explicit, close to the platform." />
+  <LinkCard title="Philosophy" href="/getting-started/philosophy" description="Four principles behind the API — composable, close to the platform, expectable, built for the AI age." />
 </CardGrid>
 
 ## Explore

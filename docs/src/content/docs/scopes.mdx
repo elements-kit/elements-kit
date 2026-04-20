@@ -49,13 +49,15 @@ import { render } from "elements-kit/render";
 class Clock extends HTMLElement {
   #unmount?: () => void;
 
+  #template = () => {
+    const el = document.createElement("time");
+    const id = setInterval(() => (el.textContent = String(Date.now())), 1000);
+    onCleanup(() => clearInterval(id));
+    return el;
+  };
+
   connectedCallback() {
-    this.#unmount = render(this, () => {
-      const el = document.createElement("time");
-      const id = setInterval(() => (el.textContent = String(Date.now())), 1000);
-      onCleanup(() => clearInterval(id));
-      return el;
-    });
+    this.#unmount = render(this, this.#template);
   }
 
   disconnectedCallback() {
