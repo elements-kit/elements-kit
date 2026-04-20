@@ -15,6 +15,18 @@ Modern UI frameworks bundle reactivity and rendering. You adopt the whole system
 
 Use one piece, or all three. Integrate with React for complex UIs. Build web components that work anywhere HTML does.
 
+## How it compares
+
+| Library | Reactivity | Rendering | Standalone core | Custom elements |
+|---------|-----------|-----------|:---------------:|:---------------:|
+| **ElementsKit** | Fine-grained signals | Real DOM, live bindings | ✓ | First-class |
+| React | Re-render tree on `setState` | Virtual DOM + diff | – | Consumer only |
+| Solid | Fine-grained signals | Real DOM, live bindings | – | Consumer only |
+| Lit | Manual (`@state`) | `lit-html` template diff | ✓ | First-class |
+| Preact Signals | Fine-grained signals | Via Preact renderer | Partial | Consumer only |
+
+Closest siblings: **Solid** (same reactivity model, no custom-element first-class) and **Lit** (custom-element first-class, no fine-grained signals). ElementsKit is the intersection — signals *and* native custom elements, neither tied to a proprietary renderer.
+
 ## Batteries included, framework-optional
 
 Every primitive ships ready to use. `signal`, `computed`, `@reactive`, `createMediaQuery`, `async`, `promise`, `sync`, `For`, stores, custom elements — all in the same package. No separate query client, no state manager, no router to bolt on before you can start.
@@ -69,6 +81,16 @@ The pieces are independent and composable — not a strict hierarchy. Signals ar
 | Custom elements | Reusable across frameworks. Native HTML integration, Shadow DOM, framework-agnostic distribution. |
 
 Start with the simplest option that fits — you can always combine patterns.
+
+## Not for
+
+ElementsKit is deliberately narrow. Reach for something else if you need:
+
+- **Server-side rendering or streaming HTML.** No SSR, no hydration, no React Server Components. Rendering happens in the browser.
+- **A complete app framework.** No router, no data layer, no file-system conventions — bring or compose your own.
+- **A pre-built component library.** This ships primitives, not components. A design system on top has to come from you or a third party.
+
+Narrow doesn't mean incomplete — signals + elements + custom elements cover the full client-side reactive-UI surface. The edges are real, and stating them plainly saves everyone's time.
 
 ## Explicit beats heuristic
 

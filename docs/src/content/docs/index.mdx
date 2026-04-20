@@ -5,9 +5,38 @@ description: Universal reactive primitives for the web — signals, JSX, and cus
 
 import { Card, CardGrid, LinkCard, Tabs, TabItem } from "@astrojs/starlight/components";
 
-ElementsKit is a set of **universal reactive primitives** for building web UI. It works standalone, inside React or Vue, or as the foundation of your own component model — no framework required, no virtual DOM.
+Frameworks bundle reactivity, rendering, and lifecycle into one package deal. Swap one, rewrite them all.
+
+ElementsKit unbundles them: signals, JSX, and custom elements as independent primitives — use one, two, or all three, inside React or on their own. No virtual DOM. No framework lock-in.
 
 **Import what you use.** Every module is a separate subpath — `elements-kit/signals`, `elements-kit/utilities/media-query`, `elements-kit/integrations/react`. Bundlers tree-shake the rest.
+
+## Install
+
+<Tabs>
+  <TabItem label="pnpm">
+    ```sh
+    pnpm add elements-kit
+    ```
+  </TabItem>
+  <TabItem label="npm">
+    ```sh
+    npm install elements-kit
+    ```
+  </TabItem>
+  <TabItem label="yarn">
+    ```sh
+    yarn add elements-kit
+    ```
+  </TabItem>
+  <TabItem label="bun">
+    ```sh
+    bun add elements-kit
+    ```
+  </TabItem>
+</Tabs>
+
+Full setup — TypeScript JSX config, CDN, Deno — in [Installation](/getting-started/installation).
 
 <CardGrid>
   <Card title="Signals" icon="rocket">
@@ -23,6 +52,9 @@ ElementsKit is a set of **universal reactive primitives** for building web UI. I
     Connect signals and stores to React via `useSignal` and `useScope`. More framework integrations planned — Vue, Solid, and beyond.
   </Card>
 </CardGrid>
+
+<br/>
+<br/>
 
 <Tabs>
   <TabItem label="Counter">
