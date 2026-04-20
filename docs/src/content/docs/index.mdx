@@ -7,16 +7,16 @@ import { Card, CardGrid, LinkCard, Tabs, TabItem } from "@astrojs/starlight/comp
 
 ElementsKit is a toolkit of reactive primitives — signals, JSX, custom elements, and browser-API helpers. Import one at a time, compose them, or use any of them inside a UI framework (React, etc.).
 
+- **Compose, don't configure.** Small focused APIs — `signal`, `computed`, `on`, `fromEvent`, `async`. Combine primitives instead of maintaining an overloaded interface.
 
 - **Close to the platform.** JSX compiles to `document.createElement`. `promise` extends `Promise`. Custom elements *are* `HTMLElement`. Thin or absent abstraction layers — no virtual DOM, no proxies, no build steps.
 
-- **Compose, don't configure.** Small focused APIs — `signal`, `computed`, `on`, `fromEvent`, `async`. Combine primitives instead of maintaining an overloaded interface.
+- **Predictable and explicit — no magic.** `signal/compose` are reactive; nothing else is. No heuristic dependency tracking, no hidden subscriptions.
 
 - **Designed for the AI age.** Code is cheap; maintenance still isn't. Primitives compose into higher-level blocks. Swap one block at a time instead of maintaining long lines of code.
 
 - **Bundler-friendly.** Every primitive is its own subpath — `elements-kit/signals`, `elements-kit/utilities/media-query`, `elements-kit/integrations/react`. Import only what you need.
 
-- **Predictable and explicit — no magic.** `signal/compose` are reactive; nothing else is. No heuristic dependency tracking, no hidden subscriptions.
 
 <CardGrid>
   <Card title="Signals & Stores" icon="rocket">

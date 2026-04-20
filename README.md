@@ -74,12 +74,12 @@ Use one piece, or all. Integrate with React for complex UIs. Build web component
 
 Four threads run through every API choice:
 
-- **Composability over configuration.** Small primitives you import and combine — no plugin system, no dependency arrays, no convention to memorize. The call site is the contract.
-- **Close to the platform.** JSX compiles to `document.createElement`. `promise` *extends* the native `Promise`. `async` instances are thenable. Custom elements *are* `HTMLElement`. Thin abstractions that map back to what the browser already knows.
-- **Readable by non-experts.** No `useReducer`+switch idioms, no hook-position rules, no compiler-rewritten variables. `signal(0)` is reactive, plain `let` isn't — readable without becoming an expert in the framework first.
-- **Built for the AI age.** Writing code is cheap; *maintaining* it is the bottleneck. Explicit primitives — `signal`, `computed`, `onCleanup` — survive a hundred edits, by humans or agents, that magic systems don't.
+- **Compose, don't configure.** Small focused APIs — `signal`, `computed`, `on`, `fromEvent`, `async`. Combine primitives instead of maintaining an overloaded interface — overloaded interfaces accumulate breaking changes and deprecations that every consumer has to track and migrate through.
+- **Close to the platform.** Thin or absent abstraction — no virtual DOM, no proxies, no build steps. JSX compiles to `document.createElement`. `promise` *extends* the native `Promise`. `async` instances are thenable. Custom elements *are* `HTMLElement`.
+- **Predictable and explicit.** `signal` / `compose` are reactive; nothing else is. No heuristic dependency tracking, no hidden subscriptions, no hook-position rules.
+- **Designed for the AI age.** Writing code is cheap; *maintaining* it is the bottleneck. Primitives compose into higher-level blocks. Swap one block at a time instead of reading a thousand-line file to figure out what's safe to change.
 
-### Compose, don't install
+### Compose, don't configure
 
 Most teams bolt several layers on top of a UI framework: a UI framework (React, Vue, Solid), a custom-element library (Lit), a server-state library (TanStack Query, SWR), a browser-hooks pack (react-use, vueuse, solid-primitives), and a state manager (Zustand, Jotai, MobX). ElementsKit covers the whole layer from its primitives:
 
