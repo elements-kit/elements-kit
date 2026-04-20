@@ -3,7 +3,7 @@ title: Introduction
 description: Universal reactive primitives for the web — signals, JSX, and custom elements.
 ---
 
-import { Card, CardGrid, LinkCard } from "@astrojs/starlight/components";
+import { Card, CardGrid, LinkCard, Tabs, TabItem } from "@astrojs/starlight/components";
 
 ElementsKit is a set of **universal reactive primitives** for building web UI. It works standalone, inside React or Vue, or as the foundation of your own component model — no framework required, no virtual DOM.
 
@@ -22,6 +22,8 @@ ElementsKit is a set of **universal reactive primitives** for building web UI. I
   </Card>
 </CardGrid>
 
+<Tabs>
+  <TabItem label="Counter">
 ```tsx twoslash
 // @noErrors
 import { signal, computed } from "elements-kit/signals";
@@ -43,8 +45,126 @@ function Counter(props: ReactiveProps<{ initial?: number }>) {
 
 render(document.getElementById("app")!, () => <Counter initial={0} />);
 ```
+  </TabItem>
+  <TabItem label="Utility">
+```tsx twoslash
+// @noErrors
+import { createMediaQuery } from "elements-kit/utilities/media-query";
+import { render } from "elements-kit/render";
 
-See the full progression — signals → element → function component → class → custom element — in [First component](/getting-started/first-component).
+const isDark = createMediaQuery("(prefers-color-scheme: dark)");
+const isMobile = createMediaQuery("(max-width: 640px)");
+
+render(document.getElementById("app")!, () => (
+  <ul>
+    <li>Dark mode: <strong>{isDark}</strong></li>
+    <li>Mobile: <strong>{isMobile}</strong></li>
+  </ul>
+));
+```
+  </TabItem>
+  <TabItem label="Async">
+```tsx twoslash
+// @noErrors
+import { signal } from "elements-kit/signals";
+import { async } from "elements-kit/utilities/async";
+import { render } from "elements-kit/render";
+
+const query = signal("hello");
+
+const search = async(async () => {
+  const res = await fetch(`/api/search?q=${query()}`);
+  return res.json();
+}).start();
+
+render(document.getElementById("app")!, () => (
+  <section>
+    <input
+      value={query}
+      on:input={(e) => query((e.target as HTMLInputElement).value)}
+    />
+    <p>state: <strong>{() => search.state}</strong></p>
+    <pre>{() => JSON.stringify(search.value, null, 2)}</pre>
+  </section>
+));
+```
+  </TabItem>
+  <TabItem label="Custom element">
+```tsx twoslash
+// @noErrors
+import { reactive, computed } from "elements-kit/signals";
+import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
+import { render } from "elements-kit/render";
+
+@attributes
+class CounterElement extends HTMLElement {
+  static [attr] = {
+    initial(this: CounterElement, v: string | null) {
+      this.count = Number(v ?? 0);
+    },
+  };
+
+  @reactive() count = 0;
+  doubled = computed(() => this.count * 2);
+
+  #unmount?: () => void;
+
+  #template = () => (
+    <p>
+      <strong>{() => this.count}</strong> × 2 = <strong>{this.doubled}</strong>{" "}
+      <button on:click={() => this.count++}>+1</button>
+    </p>
+  );
+
+  connectedCallback() {
+    this.#unmount = render(this, this.#template);
+  }
+
+  disconnectedCallback() {
+    this.#unmount?.();
+    this.#unmount = undefined;
+  }
+}
+
+customElements.define("x-counter", CounterElement);
+
+// Usable anywhere — plain HTML, React, Vue:
+// <x-counter initial="5"></x-counter>
+```
+  </TabItem>
+  <TabItem label="Use in React.js">
+```tsx twoslash
+// @noErrors
+/** @jsxImportSource react */
+
+import { signal, computed, effect } from "elements-kit/signals";
+import { useSignal, useScope } from "elements-kit/integrations/react";
+
+// Signals live outside React — shared with any other consumer.
+const count = signal(0);
+const doubled = computed(() => count() * 2);
+
+export default function Counter() {
+  const value = useSignal(count);
+  const double = useSignal(doubled);
+
+  useScope(() => {
+    effect(() => console.log("count:", count()));
+  });
+
+  return (
+    <section>
+      <p><strong>{value}</strong> × 2 = <strong>{double}</strong></p>
+      <button onClick={() => count(count() + 1)}>+1</button>{" "}
+      <button onClick={() => count(count() - 1)}>−1</button>
+    </section>
+  );
+}
+```
+  </TabItem>
+</Tabs>
+
+See the full progression — signals → element → function component → class → custom element — in the [Quick start](/getting-started/quick-start).
 
 :::note[For AI agents]
 Machine-readable index: [`/llms.txt`](/llms.txt) (short) · [`/llms-full.txt`](/llms-full.txt) (every page concatenated).
@@ -54,7 +174,7 @@ Machine-readable index: [`/llms.txt`](/llms.txt) (short) · [`/llms-full.txt`](/
 
 <CardGrid>
   <LinkCard title="Installation" href="/getting-started/installation" description="Install the package and configure JSX in your TypeScript project." />
-  <LinkCard title="First component" href="/getting-started/first-component" description="Build a reactive counter in 30 lines of code." />
+  <LinkCard title="Quick start" href="/getting-started/quick-start" description="Build a reactive counter five ways — from signals to custom elements." />
   <LinkCard title="Why ElementsKit" href="/getting-started/why" description="The problem this library solves and which pattern to reach for." />
 </CardGrid>
 

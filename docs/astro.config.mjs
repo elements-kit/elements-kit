@@ -144,8 +144,8 @@ export default defineConfig({
           items: [
             { label: "Installation", slug: "getting-started/installation" },
             {
-              label: "First component",
-              slug: "getting-started/first-component",
+              label: "Quick start",
+              slug: "getting-started/quick-start",
             },
             { label: "Why ElementsKit", slug: "getting-started/why" },
           ],

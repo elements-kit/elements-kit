@@ -94,7 +94,7 @@ One concept per page. Current map:
 |------|------|-----------|------------|
 | `index.mdx` | Landing + pointers | landing | none (static snippet) |
 | `getting-started/installation.mdx` | `npm install`, tsconfig | how-to | top |
-| `getting-started/first-component.mdx` | Hello-world counter | how-to | top |
+| `getting-started/quick-start.mdx` | Counter five ways — signals → custom element | how-to | top |
 | `getting-started/why.mdx` | Why ElementsKit | concept | none |
 | `signals.mdx` | `signal` / `computed` / `effect` / `effectScope` / `batch` / `untracked` / `onCleanup` | reference | top (Tabs) |
 | `stores.mdx` | `@reactive` class pattern | how-to | top |

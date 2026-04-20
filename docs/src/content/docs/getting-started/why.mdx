@@ -15,6 +15,14 @@ Modern UI frameworks bundle reactivity and rendering. You adopt the whole system
 
 Use one piece, or all three. Integrate with React for complex UIs. Build web components that work anywhere HTML does.
 
+## Batteries included, framework-optional
+
+Every primitive ships ready to use. `signal`, `computed`, `@reactive`, `createMediaQuery`, `async`, `promise`, `sync`, `For`, stores, custom elements — all in the same package. No separate query client, no state manager, no router to bolt on before you can start.
+
+- **Drop into what you already have.** A `signal` can drive a React component via `useSignal`. A custom element works as a plain HTML tag inside Vue, Svelte, Astro, or no framework at all — no adapter layer.
+- **Or stand alone.** Signals + elements + custom elements is a complete app runtime. There's no missing piece you have to glue in to ship.
+- **Same primitives either way.** The code you write in standalone mode is the code you write inside a React app. Switching contexts doesn't mean switching libraries.
+
 ## How the pieces fit
 
 The pieces are independent and composable — not a strict hierarchy. Signals are the shared language that connects everything.
@@ -61,6 +69,19 @@ The pieces are independent and composable — not a strict hierarchy. Signals ar
 
 Start with the simplest option that fits — you can always combine patterns.
 
+## Explicit beats heuristic
+
+In the age of AI-assisted code generation, writing code isn't the scarce resource — *maintenance* is. A codebase is read and rewritten long after it's first authored, often by an agent rebuilding context from scratch. Implicit behavior makes every edit a re-derivation: was this variable tracked? did this hook run? is this value live or stale?
+
+ElementsKit is explicit by design. The contract is visible at the call site, not hidden in a compiler pass:
+
+- **`signal(0)` is reactive. A plain `let` is not.** No framework rewrites your variables behind your back.
+- **If a value is derived, wrap it in `computed(...)`.** No "was this tracked?" heuristic — the call site says so.
+- **Props arrive as `Computed<T>` callables.** A read is a `()`. A subscription is passing the getter along. Both visible at the call site.
+- **Cleanup is `onCleanup`, not a hook-position rule.** The dependency is named, not implied by call order.
+
+Writing the code is cheap — an agent will draft most of it. What a library is actually worth is the shape of the code after it's been edited a hundred times. Primitives with explicit contracts survive that. Magic doesn't.
+
 ## Primitives first, composable abstractions
 
 Small primitives, one job each, typed interfaces at every boundary. Abstraction is assembled, not inherited — compose upward from `signal` → `sync(fromEvent(...), ...)` → `<For>` and stop at the level your feature needs. Designed for AI agents as much as for humans: each step is verifiable on its own, and there's no framework-specific mental model to learn before writing the first line.
@@ -74,6 +95,6 @@ Small primitives, one job each, typed interfaces at every boundary. Abstraction 
 ## See also
 
 - [Installation](/getting-started/installation)
-- [First component](/getting-started/first-component)
+- [Quick start](/getting-started/quick-start)
 - [Signals](/signals)
 - [Elements](/elements)
