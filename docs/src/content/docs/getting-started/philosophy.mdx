@@ -1,20 +1,47 @@
 ---
 title: Philosophy
-description: How ElementsKit thinks — reactivity and rendering as separate, composable, explicit primitives.
+description: How ElementsKit thinks — composable, explicit, framework-optional primitives.
 ---
 
 import Diagram from "@/components/Diagram.astro";
 
-Modern UI frameworks bundle reactivity and rendering. You adopt the whole system or none of it. ElementsKit separates the two so you can mix one piece with any framework, or build your own component model from the parts.
+Modern UI frameworks bundle reactivity, rendering, and lifecycle. You adopt the whole system or none of it. ElementsKit unbundles it into primitives you import à la carte — signals, utilities, JSX, custom elements — and combine in any framework or none. Every module is a separate subpath, so bundlers ship only what you reference.
 
-## What you get
+## Pillars
 
 - **Signals** are the reactive core — fine-grained, framework-agnostic, composable with any rendering model.
-- **utilities** are reactive browser APIs and common patterns built on signals — `on`, `fromEvent`, `sync`, `observers`, `media-query`, `storage`, `async`.
-- **JSX** compiles to real `document.createElement` calls — no virtual DOM, no diffing, no runtime overhead.
+- **Utilities** are reactive browser APIs and common patterns built on signals — `on`, `fromEvent`, `sync`, observers, `media-query`, `storage`, `async`.
+- **JSX → elements** compiles to real `document.createElement` calls — no virtual DOM, no diffing, no runtime overhead.
 - **Custom elements** are native browser components — ElementsKit enhances them with signals and JSX without wrapping or abstracting the platform.
 
-Use one piece, or all. Integrate with React for complex UIs. Build web components that work anywhere HTML does.
+## Design
+
+Three threads run through every API choice:
+
+### Composability over configuration
+
+Frameworks ship one large system you configure with props, plugins, dependency arrays, and idioms. ElementsKit ships small primitives you import and combine. There's no convention to memorize and no hidden config — the call site is the contract. Want a query layer? Compose `async` + `retry` + storage. Want browser-API hooks? Import the utility you need.
+
+### Close to the platform
+
+Heavy abstraction over native APIs is where beginners get burned — they learn the abstraction, not the platform underneath, and the leak surfaces in production. ElementsKit keeps the layer thin or absent. JSX compiles to `document.createElement`. `promise` *extends* the native `Promise` (still awaitable, still chainable). `async` instances are thenable. Custom elements *are* `HTMLElement`. The source itself is small composable pieces, so what you read in the docs maps directly to what you write, and what you write maps directly to what the browser already knows.
+
+### Readable by non-experts
+
+Frameworks often push you toward clever-but-cryptic patterns to get common things done — `useReducer` with a switch, `useEffect` dependency arrays, derived state via `useMemo`, hook-position rules, suspense-driven fetching. Those are landmines for anyone not steeped in the idiom. ElementsKit is the opposite: `signal(0)` is reactive, plain `let` isn't. The next contributor can read the code without becoming an expert in the framework first.
+
+### Built for the AI age
+
+Writing code is cheap — an agent will draft most of it. *Maintaining* it is the bottleneck. A codebase is read and rewritten long after it's first authored, often by an agent rebuilding context from scratch. Implicit behavior makes every edit a re-derivation: was this variable tracked? did this hook run? is this value live or stale?
+
+ElementsKit is explicit at the call site:
+
+- **`signal(0)` is reactive. A plain `let` is not.** No framework rewrites your variables behind your back.
+- **If a value is derived, wrap it in `computed(...)`.** No "was this tracked?" heuristic — the call site says so.
+- **Props arrive as `Computed<T>` callables.** A read is a `()`. A subscription is passing the getter along.
+- **Cleanup is `onCleanup`, not a hook-position rule.** The dependency is named, not implied by call order.
+
+Primitives with explicit contracts survive a hundred edits — by humans or agents. Magic doesn't.
 
 ## Compose, don't install
 
@@ -39,10 +66,11 @@ Most teams bolt several layers on top of a UI framework: a **UI framework** (Rea
 | **Custom elements** | Reactive HTMLElement | `@attributes class X extends HTMLElement {}` |
 |  | Reactive property | `@reactive() count = 0` |
 |  | Attribute handler | `static [attr] = { name(this, v) {} }` |
-|  | Slot (Native DOM) | `children = Slot.new()` |
+|  | Slot | `children = Slot.new()` |
 
+## Framework integration
 
-The same utility works in any UI framework through `useSignal` / `useScope`:
+Any signal can drive a UI-framework component. The hook is the bridge, not the primitive — the same utility works inside React today, Solid or Vue when those integrations ship:
 
 ```tsx
 /** @jsxImportSource react */
@@ -55,18 +83,7 @@ export function OfflineBanner() {
 }
 ```
 
-Same shape in the next integration.
-
-## Batteries included, framework-optional
-
-Every primitive ships ready to use. `signal`, `computed`, `@reactive`, `createMediaQuery`, `async`, `promise`, `sync`, `For`, stores, custom elements — all in the same package. No separate query client, no state manager, no router to bolt on before you can start.
-
-- **Drop into what you already have.** A `signal` can drive a React component via `useSignal`. A custom element works as a plain HTML tag inside Vue, Svelte, Astro, or no framework at all — no adapter layer.
-- **Or stand alone.** Signals + elements + custom elements is a complete app runtime. There's no missing piece you have to glue in to ship.
-- **Same primitives either way.** The code you write in standalone mode is the code you write inside a React app. Switching contexts doesn't mean switching libraries.
-- **Pay only for what you import.** Every module is a separate subpath export — `elements-kit/signals`, `elements-kit/utilities/async`, `elements-kit/integrations/react`. Bundlers strip everything you don't reference. "Batteries included" doesn't mean "batteries shipped".
-
-## How the pieces fit
+## Architecture
 
 The pieces are independent and composable — not a strict hierarchy. Signals are the shared language that connects everything.
 
@@ -96,12 +113,7 @@ The pieces are independent and composable — not a strict hierarchy. Signals ar
     CE -->|"native HTML tag"| FW
     S -->|"useSignal / useScope"| FW`} />
 
-- **Signals** power live DOM bindings in JSX and reactive properties in custom elements. They can also be subscribed to directly from any framework.
-- **Elements** are a pattern built on top of signals and JSX. The result is a reactive DOM.
-- **Custom elements** are a native browser standard. React, Vue, and plain HTML can all use `<x-counter />` as a regular HTML tag — no adapter, no wrapper.
-- **Framework integrations** get both sides: shared signal state via `useSignal` / `useScope`, and any custom element as a native HTML tag.
-
-## Which pattern should I use?
+## Pattern guide
 
 | Pattern | When to use it |
 |---------|----------------|
@@ -120,30 +132,7 @@ ElementsKit is deliberately narrow. Reach for something else if you need:
 - **A complete app framework.** No router, no data layer, no file-system conventions — bring or compose your own.
 - **A pre-built component library.** This ships primitives, not components. A design system on top has to come from you or a third party.
 
-Narrow doesn't mean incomplete — signals + elements + custom elements cover the full client-side reactive-UI surface. The edges are real, and stating them plainly saves everyone's time.
-
-## Explicit beats heuristic
-
-In the age of AI-assisted code generation, writing code isn't the scarce resource — *maintenance* is. A codebase is read and rewritten long after it's first authored, often by an agent rebuilding context from scratch. Implicit behavior makes every edit a re-derivation: was this variable tracked? did this hook run? is this value live or stale?
-
-ElementsKit is explicit by design. The contract is visible at the call site, not hidden in a compiler pass:
-
-- **`signal(0)` is reactive. A plain `let` is not.** No framework rewrites your variables behind your back.
-- **If a value is derived, wrap it in `computed(...)`.** No "was this tracked?" heuristic — the call site says so.
-- **Props arrive as `Computed<T>` callables.** A read is a `()`. A subscription is passing the getter along. Both visible at the call site.
-- **Cleanup is `onCleanup`, not a hook-position rule.** The dependency is named, not implied by call order.
-
-Writing the code is cheap — an agent will draft most of it. What a library is actually worth is the shape of the code after it's been edited a hundred times. Primitives with explicit contracts survive that. Magic doesn't.
-
-## Primitives first, composable abstractions
-
-Small primitives, one job each, typed interfaces at every boundary. Abstraction is assembled, not inherited — compose upward from `signal` → `sync(fromEvent(...), ...)` → `<For>` and stop at the level your feature needs. Designed for AI agents as much as for humans: each step is verifiable on its own, and there's no framework-specific mental model to learn before writing the first line.
-
-- **No prop matrices.** No single-system components with forty flags where legal combinations aren't obvious until you read the source.
-- **No hidden coupling.** Blocks meet at their types; invariants don't leak across layers.
-- **Close to the platform.** `promise` wraps a native `Promise`. JSX compiles to `document.createElement`. Custom elements are `HTMLElement` subclasses. You already know the underlying shape.
-- **Minimal surface.** `async` has no cache, no query client, no query/mutation split. If you need those, compose them on top — don't inherit them by default.
-- **Swap, don't rewrite.** Replace one block (`throttled` → `debounced`) without touching the ones around it.
+Narrow doesn't mean incomplete — signals + elements + custom elements cover the full client-side reactive-UI surface.
 
 ## See also
 
