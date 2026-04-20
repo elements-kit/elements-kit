@@ -4,35 +4,27 @@
 
 # ElementsKit
 
-**Universal reactive primitives for the web.** Signals, JSX, and custom elements that work anywhere — standalone, inside React, Vue, or any framework, or as the foundation of your own component model.
+**Universal reactive primitives for the web.** Signals, utilities, JSX, and custom elements that work anywhere — standalone, inside React, Vue, or any framework, or as the foundation of your own component model.
 
 ```tsx
-import { signal, computed, reactive } from "elements-kit/signals";
-import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
+import { signal, computed } from "elements-kit/signals";
+import { render } from "elements-kit/render";
+import type { ReactiveProps } from "elements-kit/jsx-runtime";
 
-@attributes
-class CounterElement extends HTMLElement {
-  static [attr] = {
-    count(this: CounterElement, value: string | null) {
-      this.count = Number(value ?? 0);
-    },
-  };
+function Counter(props: ReactiveProps<{ initial?: number }>) {
+  const count = signal(props.initial() ?? 0);
+  const doubled = computed(() => count() * 2);
 
-  @reactive() count = 0;
-  doubled = computed(() => this.count * 2);
-
-  connectedCallback() {
-    this.appendChild(
-      <section>
-        <p>Count: <strong>{() => this.count}</strong> — Doubled: <strong>{this.doubled}</strong></p>
-        <button on:click={() => this.count++}>+1</button>{" "}
-        <button on:click={() => this.count--}>−1</button>
-      </section> as Element,
-    );
-  }
+  return (
+    <section>
+      <p><strong>{count}</strong> × 2 = <strong>{doubled}</strong></p>
+      <button on:click={() => count(count() + 1)}>+1</button>{" "}
+      <button on:click={() => count(count() - 1)}>−1</button>
+    </section>
+  );
 }
 
-customElements.define("x-counter", CounterElement);
+render(document.getElementById("app")!, () => <Counter initial={0} />);
 ```
 
 ---
@@ -72,20 +64,45 @@ Every feature is a separate subpath export — import only what you use.
 Modern UI frameworks solve reactivity and rendering together — you adopt the whole system or none of it. ElementsKit separates the two:
 
 - **Signals** are the reactive core — fine-grained, framework-agnostic, composable with any rendering model.
+- **Utilities** are reactive browser APIs and common patterns built on signals — `on`, `fromEvent`, `sync`, observers, `media-query`, `storage`, `async`.
 - **JSX** compiles to real `document.createElement` calls — no virtual DOM, no runtime overhead.
 - **Custom elements** are standard browser components — ElementsKit enhances them with signals and JSX without wrapping or abstracting the platform.
 
-Use one piece, or all three. Integrate with React for complex UIs. Build web components that work anywhere HTML does.
+Use one piece, or all. Integrate with React for complex UIs. Build web components that work anywhere HTML does.
 
-### Primitives first, composable abstractions
+### Design
 
-Small primitives, one job each, typed interfaces at every boundary. Abstraction is assembled, not inherited — compose upward from `signal` → `sync(fromEvent(...), ...)` → `<For>` and stop at the level your feature needs. Designed for AI agents as much as for humans: each step is verifiable on its own, and there's no framework-specific mental model to learn before writing the first line.
+Four threads run through every API choice:
 
-- **No prop matrices.** No single-system components with forty flags where legal combinations aren't obvious until you read the source.
-- **No hidden coupling.** Blocks meet at their types; invariants don't leak across layers.
-- **Close to the platform.** `promise` wraps a native `Promise`. JSX compiles to `document.createElement`. Custom elements are `HTMLElement` subclasses. You already know the underlying shape.
-- **Minimal surface.** `async` has no cache, no query client, no query/mutation split. If you need those, compose them on top — don't inherit them by default.
-- **Swap, don't rewrite.** Replace one block (`throttled` → `debounced`) without touching the ones around it.
+- **Composability over configuration.** Small primitives you import and combine — no plugin system, no dependency arrays, no convention to memorize. The call site is the contract.
+- **Close to the platform.** JSX compiles to `document.createElement`. `promise` *extends* the native `Promise`. `async` instances are thenable. Custom elements *are* `HTMLElement`. Thin abstractions that map back to what the browser already knows.
+- **Readable by non-experts.** No `useReducer`+switch idioms, no hook-position rules, no compiler-rewritten variables. `signal(0)` is reactive, plain `let` isn't — readable without becoming an expert in the framework first.
+- **Built for the AI age.** Writing code is cheap; *maintaining* it is the bottleneck. Explicit primitives — `signal`, `computed`, `onCleanup` — survive a hundred edits, by humans or agents, that magic systems don't.
+
+### Compose, don't install
+
+Most teams bolt several layers on top of a UI framework: a UI framework (React, Vue, Solid), a custom-element library (Lit), a server-state library (TanStack Query, SWR), a browser-hooks pack (react-use, vueuse, solid-primitives), and a state manager (Zustand, Jotai, MobX). ElementsKit covers the whole layer from its primitives:
+
+| Layer | Feature | ElementsKit |
+|-------|---------|-------------|
+| **State** | Shared reactive state | `class Store { @reactive() count = 0 }` |
+|  | Derived value | `computed(() => store.count * 2)` |
+| **Server state** | Query | `async(() => fetch(url())).start()` |
+|  | Mutation | `mutation.run({ id, name })` |
+|  | Retry with backoff | `async(retry(fn, 5, n => 2**n * 100)).start()` |
+|  | Persist result | `async(fetcher.then(v => store(v))).start()` |
+| **Browser hooks** | Online / offline | `online()` |
+|  | Viewport size | `windowSize.width()` |
+|  | Media query | `createMediaQuery("(prefers-color-scheme: dark)")` |
+|  | Local storage | `createLocalStorage("key", initial)` |
+| **UI framework** | Mount into DOM | `render(el, () => <App/>)` |
+|  | Function component | `function Counter(props) { return <div/> }` |
+|  | Class component | `class Counter { render() { return <div/> } }` |
+|  | Lifecycle cleanup | `onCleanup(() => …)` |
+| **Custom elements** | Reactive HTMLElement | `@attributes class X extends HTMLElement {}` |
+|  | Reactive property | `@reactive() count = 0` |
+|  | Attribute handler | `static [attr] = { name(this, v) {} }` |
+|  | Slot | `children = Slot.new()` |
 
 ---
 

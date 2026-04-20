@@ -1,13 +1,15 @@
 ---
 title: Introduction
-description: Universal reactive primitives for the web — signals, JSX, and custom elements.
+description: Universal reactive primitives — signals, utilities, JSX, custom elements.
 ---
 
 import { Card, CardGrid, LinkCard, Tabs, TabItem } from "@astrojs/starlight/components";
 
 Frameworks bundle reactivity, rendering, and lifecycle into one package deal. Swap one, rewrite them all.
 
-ElementsKit unbundles them: signals, JSX, and custom elements as independent primitives — use one, two, or all three, inside React or on their own. No virtual DOM. No framework lock-in.
+ElementsKit unbundles them: signals, utilities, JSX, and custom elements as independent primitives — use one, a few, or all, inside React or on their own. No virtual DOM. No framework lock-in.
+
+**Close to the platform.** JSX is `document.createElement`. `promise` extends `Promise`. Custom elements are `HTMLElement`. Thin abstractions that map back to what the browser already knows.
 
 **Import what you use.** Every module is a separate subpath — `elements-kit/signals`, `elements-kit/utilities/media-query`, `elements-kit/integrations/react`. Bundlers tree-shake the rest.
 
@@ -39,17 +41,23 @@ ElementsKit unbundles them: signals, JSX, and custom elements as independent pri
 Full setup — TypeScript JSX config, CDN, Deno — in [Installation](/getting-started/installation).
 
 <CardGrid>
-  <Card title="Signals" icon="rocket">
-    Fine-grained reactive state. `signal`, `computed`, `effect`, stores, and utilities like `createMediaQuery` — framework-agnostic, usable anywhere JS runs.
+  <Card title="Signals & Stores" icon="rocket">
+    Fine-grained reactive state. `signal`, `computed`, `effect`, and `@reactive` class fields — plain classes, no proxies. Shared across custom elements, React components, and plain scripts, all in sync.
+  </Card>
+  <Card title="Utilities" icon="setting">
+    Browser-API signals — `online`, `windowSize`, `createMediaQuery`, `on`, `fromEvent`, observers, and more. Reactive wrappers, pay-per-import.
+  </Card>
+  <Card title="Async" icon="seti:db">
+    `async`, `promise`, `retry`, `createLocalStorage`. Compose queries, mutations, persistence, and revalidation — no query library required.
   </Card>
   <Card title="Elements" icon="puzzle">
     JSX compiles to real `document.createElement` calls. Reactive props become live DOM bindings — no diffing, no reconciliation, no runtime overhead.
   </Card>
-  <Card title="Custom Elements" icon="setting">
+  <Card title="Custom Elements" icon="seti:html">
     Native `HTMLElement` subclasses enhanced with signals, JSX, and decorators. Usable in any HTML context — React, Vue, or plain HTML — no adapters needed.
   </Card>
-  <Card title="Integrations" icon="external">
-    Connect signals and stores to React via `useSignal` and `useScope`. More framework integrations planned — Vue, Solid, and beyond.
+  <Card title="Framework Integration" icon="external">
+    Bridge any signal into a UI framework via `useSignal` / `useScope`. React today, Svelte and Vue planned.
   </Card>
 </CardGrid>
 
@@ -209,7 +217,7 @@ Machine-readable index: [`/llms.txt`](/llms.txt) (short) · [`/llms-full.txt`](/
 <CardGrid>
   <LinkCard title="Installation" href="/getting-started/installation" description="Install the package and configure JSX in your TypeScript project." />
   <LinkCard title="Quick start" href="/getting-started/quick-start" description="Build a reactive counter five ways — from signals to custom elements." />
-  <LinkCard title="Philosophy" href="/getting-started/philosophy" description="How ElementsKit thinks — explicit primitives, batteries included, framework-optional." />
+  <LinkCard title="Philosophy" href="/getting-started/philosophy" description="How ElementsKit thinks — composable, explicit, close to the platform." />
 </CardGrid>
 
 ## Explore

@@ -28,7 +28,7 @@ Heavy abstraction over native APIs is where beginners get burned — they learn 
 
 ### Readable by non-experts
 
-Frameworks often push you toward clever-but-cryptic patterns to get common things done — `useReducer` with a switch, `useEffect` dependency arrays, derived state via `useMemo`, hook-position rules, suspense-driven fetching. Those are landmines for anyone not steeped in the idiom. ElementsKit is the opposite: `signal(0)` is reactive, plain `let` isn't. The next contributor can read the code without becoming an expert in the framework first.
+Frameworks often push you toward clever-but-cryptic patterns to get common things done — `useReducer` with a switch, `useEffect` dependency arrays, derived state via `useMemo`, hook-position rules, suspense-driven fetching. Those are landmines for anyone not steeped in the idiom. ElementsKit is the opposite: `signal(0)` is reactive, plain `let` isn't. Stores are plain classes with `@reactive` field decorators — no proxies rewriting property access behind your back. What the debugger shows is what you wrote.
 
 ### Built for the AI age
 
