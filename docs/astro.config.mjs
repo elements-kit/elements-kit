@@ -147,7 +147,7 @@ export default defineConfig({
               label: "Quick start",
               slug: "getting-started/quick-start",
             },
-            { label: "Why ElementsKit", slug: "getting-started/why" },
+            { label: "Philosophy", slug: "getting-started/philosophy" },
           ],
         },
         {
