@@ -5,11 +5,18 @@ description: Universal reactive primitives — signals, utilities, JSX, custom e
 
 import { Card, CardGrid, LinkCard, Tabs, TabItem } from "@astrojs/starlight/components";
 
-Frameworks bundle reactivity, rendering, and lifecycle into one package deal. Swap one, rewrite them all.
+ElementsKit is a toolkit of reactive primitives — signals, JSX, custom elements, and browser-API helpers. Import one at a time, compose them, or use any of them inside a UI framework (React, etc.).
 
-ElementsKit unbundles them: signals, utilities, JSX, and custom elements as independent primitives — use one, a few, or all, inside React or on their own. No virtual DOM. No framework lock-in.
 
-**Thin over native APIs, explicit at the call site.** JSX is `document.createElement`, `signal(0)` is reactive while plain `let` isn't, cleanup is `onCleanup`. No virtual DOM, no proxies rewriting your variables, no hook-position rules. Every module is a separate subpath — `elements-kit/signals`, `elements-kit/utilities/media-query`, `elements-kit/integrations/react` — bundlers tree-shake the rest.
+- **Close to the platform.** JSX compiles to `document.createElement`. `promise` extends `Promise`. Custom elements *are* `HTMLElement`. Thin or absent abstraction layers — no virtual DOM, no proxies, no build steps.
+
+- **Compose, don't install.** Small focused APIs — `signal`, `computed`, `on`, `fromEvent`, `async`. State, server-state, browser hooks, and UI all live in one toolkit.
+
+- **Designed for the AI age.** Code is cheap; maintenance still isn't. Primitives compose into higher-level blocks whose units stay testable in isolation, letting you swap one block at a time, instead of maintaining an overloaded interface. 
+
+- **Bundler-friendly.** Every primitive is its own subpath — `elements-kit/signals`, `elements-kit/utilities/media-query`, `elements-kit/integrations/react`. Import only what you need.
+
+- **Predictable and explicit — no magic.** `signal/compose` are reactive; nothing else is. No heuristic dependency tracking, no hidden subscriptions.
 
 ## Install
 

@@ -19,8 +19,8 @@ Four threads run through every API choice:
   <Card title="Close to the platform" icon="seti:html">
     Thin or absent abstraction — JSX is `createElement`, custom elements *are* `HTMLElement`.
   </Card>
-  <Card title="Readable by non-experts" icon="open-book">
-    `signal(0)` reactive, `let` not — no proxies, no hook-position rules.
+  <Card title="Expectable" icon="open-book">
+    No magic, no proxies, no hook-position rules. Small focused APIs. What you read is what runs.
   </Card>
   <Card title="Built for the AI age" icon="rocket">
     Explicit contracts at the call site survive edits; magic doesn't.
@@ -63,9 +63,11 @@ Heavy abstraction over native APIs is where beginners get burned — they learn 
 | `@reactive` field | Plain class field | Decorator — no proxy, no property rewrite |
 | `on(el, "click", …)` | `addEventListener` | Thin wrapper returning `Disposable` |
 
-### Readable by non-experts
+### Expectable
 
-Frameworks often push you toward clever-but-cryptic patterns to get common things done — `useReducer` with a switch, `useEffect` dependency arrays, derived state via `useMemo`, hook-position rules, suspense-driven fetching. Those are landmines for anyone not steeped in the idiom. ElementsKit is the opposite: `signal(0)` is reactive, plain `let` isn't. Stores are plain classes with `@reactive` field decorators — no proxies rewriting property access behind your back. What the debugger shows is what you wrote.
+No magic. `signal(0)` is reactive; plain `let` isn't. Derivations live in `computed(...)`, cleanup in `onCleanup`, both named where they're declared. No proxies rewriting property access, no hook-position rules, no dependency arrays silently going stale. Stores are plain classes with `@reactive` field decorators — no hidden rewrites, no framework-wide configuration.
+
+The interface stays small and focused. `signal`, `computed`, `effect`, `on`, `fromEvent`, `async` — each does one thing. No kitchen-sink objects with twenty methods, no callback soup, no plugin trees. Frameworks often push you toward clever-but-cryptic patterns to get common things done — `useReducer` with a switch, `useEffect` dependency arrays, derived state via `useMemo`, suspense-driven fetching — and those are landmines for anyone not steeped in the idiom. ElementsKit is the opposite: what the debugger shows is what you wrote.
 
 ```tsx magic-move
 // ElementsKit — explicit. signal() is reactive, let isn't.
