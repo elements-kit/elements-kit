@@ -43,14 +43,6 @@ ElementsKit is a library of reactive primitives, not a framework. Each piece is 
 
 - **Bundler-friendly.** Every primitive is its own subpath — `elements-kit/signals`, `elements-kit/utilities/*`, `elements-kit/integrations/*`. Import only what you need.
 
-## Overview
-
-- **Signals** are the reactive core — fine-grained, framework-agnostic, composable with any rendering model.
-- **Utilities** are reactive browser APIs and common patterns built on signals — `on`, `fromEvent`, `sync`, observers, `media-query`, `storage`, `async`.
-- **JSX** compiles to real `document.createElement` calls — no virtual DOM, no runtime overhead.
-- **Custom elements** are standard browser components — ElementsKit enhances them with signals and JSX without wrapping or abstracting the platform.
-- **Framework integration** bridges signals into React (and eventually Vue, Svelte, etc.) with `useSignal` and `useScope`.
-
 ---
 
 ## Installation
