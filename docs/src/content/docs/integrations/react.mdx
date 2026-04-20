@@ -121,6 +121,8 @@ Creates a signal effect scope tied to the component's lifetime. All effects regi
 
 If the callback returns a `Computed<T>`, `useScope` subscribes to it and returns the current value — like `useSignal` but with its own scope for side effects.
 
+**StrictMode-safe.** The scope is held in a ref, so React's development-mode double mount/unmount reuses the same scope — no duplicate effects, no leaked subscriptions.
+
 ```tsx magic-move
 import { effect } from "elements-kit/signals";
 import { useScope } from "elements-kit/integrations/react";
@@ -212,6 +214,7 @@ function ExpensiveMetrics() {
 | Run side effects | — | ✓ |
 | Group multiple effects | — | ✓ |
 | Cleanup on unmount | automatic | automatic |
+| StrictMode-safe | ✓ | ✓ |
 
 ---
 

@@ -127,7 +127,7 @@ Most teams bolt several layers on top of a UI framework: a **UI framework** (Rea
 
 Any signal can drive a UI-framework component. The hooks are the bridge, not the primitive — the same utilities work inside React today, Solid or Vue when those integrations ship.
 
-Two hooks bridge signals into React. **`useSignal`** subscribes a component to any signal or computed. **`useScope`** creates an `effectScope` tied to the component's lifetime — place `effect(...)`, `onCleanup(...)`, and factory utilities (`createDebounced`, `createInterval`, `createMediaQuery`, …) inside it and they're disposed automatically on unmount, StrictMode double-invocation included. No manual teardown, no dep arrays, no stale closures:
+Two hooks bridge signals into React: **`useSignal`** subscribes a component to any signal or computed; **`useScope`** ties `effect`, `onCleanup`, and factory utilities to the component's lifetime for automatic disposal. See [React integration](/integrations/react) for the full treatment.
 
 ```tsx magic-move
 // useSignal — subscribe to any signal or computed.
@@ -139,30 +139,7 @@ export function OfflineBanner() {
   const connected = useSignal(online);
   return connected ? null : <div>You're offline</div>;
 }
----
-// useScope — factory utilities scoped to the component's lifetime.
-/** @jsxImportSource react */
-import { useState } from "react";
-import { signal } from "elements-kit/signals";
-import { createDebounced } from "elements-kit/utilities/debounced";
-import { useSignal, useScope } from "elements-kit/integrations/react";
 
-export function Search() {
-  const [query, setQuery] = useState("");
-  const querySignal = useScope(() => signal(query));
-  const debounced = useScope(() => createDebounced(querySignal!, 300));
-  const value = useSignal(debounced!);
-
-  return (
-    <>
-      <input value={query} onChange={e => {
-        setQuery(e.target.value);
-        querySignal!(e.target.value);
-      }} />
-      <p>Debounced: {value}</p>
-    </>
-  );
-}
 ---
 // effect + onCleanup inside useScope — torn down with the component.
 /** @jsxImportSource react */
