@@ -23,8 +23,6 @@ function Counter(props: ReactiveProps<{ initial?: number }>) {
 render(document.getElementById("app")!, () => <Counter initial={0} />);
 ```
 
----
-
 ## Installation
 
 ```sh
@@ -42,8 +40,6 @@ Configure JSX in your `tsconfig.json`:
 }
 ```
 
----
-
 ## Why ElementsKit
 
 ElementsKit is a library of reactive primitives, not a framework. Each piece is its own import, runs on its own, and composes with the others — inside React, inside a custom element, or on its own in a script.
@@ -57,8 +53,6 @@ ElementsKit is a library of reactive primitives, not a framework. Each piece is 
 - **Designed for the AI age.** Code is cheap; maintenance still isn't. Primitives compose into higher-level blocks. Swap one block at a time instead of maintaining long lines of code.
 
 - **Bundler-friendly.** Every primitive is its own subpath — `elements-kit/signals`, `elements-kit/utilities/*`, `elements-kit/integrations/*`. Import only what you need.
-
----
 
 ## Packages
 
@@ -75,8 +69,6 @@ Every feature is a separate subpath export — import only what you use.
 | `elements-kit/jsx-runtime` | JSX factory + type helpers (`ElementProps`, `Props`, `ComponentProps`, `MaybeReactiveProps`, `ReactiveProps`, `Require`) — configure via `jsxImportSource` |
 | `elements-kit/integrations/react` | `useSignal`, `useScope` React bridge hooks |
 | `elements-kit/utilities/*` | Reactive browser-API utilities — see [src/utilities/README.md](src/utilities/README.md) |
-
----
 
 ## Signals
 
@@ -131,8 +123,6 @@ export const cart = new CartStore();
 
 Stores are **framework-agnostic** — the same instance drives a custom element, a React component, and a plain effect in sync.
 
----
-
 ## JSX → DOM
 
 JSX compiles directly to `document.createElement`. No virtual DOM, no diffing.
@@ -168,8 +158,6 @@ const name = signal("Alice");
 | `style:color={value}` | Reactive inline style property |
 | `prop:foo={val}` | Force property assignment (skips `setAttribute`) |
 
----
-
 ## Class Components
 
 Any class with a `render()` method returning an `Element` is a component. Components own their state and produce elements.
@@ -194,8 +182,6 @@ class Counter {
 
 const unmount = render(document.getElementById("app")!, () => <Counter/>);
 ```
-
----
 
 ## Custom Elements
 
@@ -259,8 +245,6 @@ declare module "elements-kit/custom-elements" {
 
 See [Types](docs/src/content/docs/elements/types.mdx) for the full set of prop-inference helpers.
 
----
-
 ## React Integration
 
 Connect signals and stores to React components via `useSyncExternalStore`:
@@ -284,8 +268,6 @@ function CartSummary() {
 ```
 
 The same `cart` store drives custom elements, React trees, and plain scripts — all in sync.
-
----
 
 ## Utilities
 
@@ -312,8 +294,6 @@ import { windowFocused } from "elements-kit/utilities/window-focus";
 
 effect(() => console.log("online:", online(), "focused:", windowFocused()));
 ```
-
----
 
 ## Async & Promise
 
@@ -405,8 +385,6 @@ const fetchTodo = async(() => {
 effect(() => console.log(fetchTodo.state, fetchTodo.value));
 ```
 
----
-
 ## `For` — Keyed List Rendering
 
 Reconciles a reactive array into the DOM. Each item renders once per key — no full re-renders on reorder, add, or remove. `T` is inferred from `each`.
@@ -425,8 +403,6 @@ import { For } from "elements-kit/for";
   </For>
 </ul>
 ```
-
----
 
 ## Prop types
 
@@ -454,8 +430,6 @@ function Greeting(props: ReactiveProps<{ name: string }>) {
 
 `resolveProps` stays exported for non-JSX call sites or nested prop bags.
 
----
-
 ## `@reactive()` Decorator
 
 Makes any class field reactive — reads subscribe, writes trigger updates.
@@ -472,8 +446,6 @@ class TodoApp {
   );
 }
 ```
-
----
 
 ## `@attributes` Decorator
 
@@ -514,16 +486,12 @@ class XPicker extends HTMLElement {
 // ElementProps<typeof XPicker> now includes `on:commit`
 ```
 
----
-
 ## Learn more
 
 - [Documentation site](docs/) — guides, playgrounds, reference
 - [Philosophy](docs/src/content/docs/getting-started/philosophy.mdx) — deeper reasoning behind the five principles
 - [ARCHITECTURE.md](ARCHITECTURE.md) — how the library works
 - [CONTRIBUTING.md](CONTRIBUTING.md) — build, test, PR checklist
-
----
 
 ## Roadmap
 
