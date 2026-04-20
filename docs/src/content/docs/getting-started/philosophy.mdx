@@ -8,13 +8,15 @@ import { Aside, Card, CardGrid } from "@astrojs/starlight/components";
 
 ElementsKit is a library of reactive primitives, not a framework. Each piece is its own import, runs on its own, and composes with the others — inside React, inside a custom element, or on its own in a script.
 
+
+
 ## Principles
 
 Four threads run through every API choice:
 
 <CardGrid>
   <Card title="Compose, don't configure" icon="puzzle">
-    Small focused APIs — `signal`, `computed`, `on`, `fromEvent`, `async`. One toolkit covers state, server-state, browser hooks, and UI.
+    Small focused APIs — `signal`, `computed`, `on`, `fromEvent`, `async`. Combine primitives instead of maintaining an overloaded interface.
   </Card>
   <Card title="Close to the platform" icon="seti:html">
     Thin or absent abstraction — no virtual DOM, no proxies, no build steps. JSX is `createElement`, custom elements *are* `HTMLElement`.
@@ -23,16 +25,16 @@ Four threads run through every API choice:
     `signal` / `compose` are reactive; nothing else is. No heuristic dependency tracking, no hidden subscriptions.
   </Card>
   <Card title="Designed for the AI age" icon="rocket">
-    Primitives compose into higher-level blocks. Swap one block at a time instead of maintaining an overloaded interface.
+    Primitives compose into higher-level blocks. Swap one block at a time instead of maintaining long lines of code.
   </Card>
 </CardGrid>
 
 ### Compose, don't configure
 
-ElementsKit gives you primitives you combine, not a system you configure. No config object, no plugin tree, no convention to memorize — the call site is the contract. Need a query layer? Compose `async` + `retry` + storage. Need browser-API hooks? Import the utility. The surface grows by adding primitives, not by stacking flags on an existing one.
+ElementsKit gives you primitives you combine, not a system you configure. No config object, no plugin tree, no convention to memorize — the call site is the contract. Need a query layer? Compose `async` + `retry` + storage — swap the fetcher; leave the retry and storage alone. Need browser-API hooks? Import the utility. The surface grows by adding primitives, not by stacking flags on an existing one — overloaded interfaces accumulate breaking changes and deprecations that every consumer has to track and migrate through.
 
 <Diagram code={`flowchart TB
-    subgraph FW["Traditional framework"]
+    subgraph FW["Frameworks"]
         direction TB
         MONO["reactivity + rendering + lifecycle
         (one bundle, one idiom)"]
@@ -49,6 +51,30 @@ ElementsKit gives you primitives you combine, not a system you configure. No con
     end
 
     FW -.->|"unbundle"| EK`} />
+
+The table below maps ElementsKit equivalents to each major feature from the usual stack — a **UI framework** (React, Vue, Solid), a **custom-element** library (Lit), a **server-state** library (TanStack Query, SWR), a **browser-hooks** pack (react-use, vueuse, solid-primitives), and a **state** manager (Zustand, Jotai, MobX).
+
+| Layer | Feature | ElementsKit |
+|-------|---------|-------------|
+| **State** | Shared reactive state | `class Store { @reactive() count = 0 }` |
+|  | Derived value | `computed(() => store.count * 2)` |
+| **Server state** | Query | `async(() => fetch(url())).start()` |
+|  | Mutation | `mutation.run({ id, name })` |
+|  | Retry with backoff | `async(retry(fn, 5, n => 2**n * 100)).start()` |
+|  | Persist result | `async(fetcher.then(v => store(v))).start()` |
+| **Browser hooks** | Online / offline | `online()` |
+|  | Viewport size | `windowSize.width()` |
+|  | Media query | `createMediaQuery("(prefers-color-scheme: dark)")` |
+|  | Debounce | `createInterval(300)` |
+| **UI framework** | Mount into DOM | `render(el, () => <App/>)` |
+|  | Function component | `function Counter(props) { return <div/> }` |
+|  | Class component | `class Counter { render() { return <div/> } }` |
+|  | Lifecycle cleanup | `onCleanup(() => …)` |
+| **Custom elements** | Reactive HTMLElement | `@attributes class X extends HTMLElement {}` |
+|  | Reactive property | `@reactive() count = 0` |
+|  | Attribute handler | `static [attr] = { name(this, v) {} }` |
+|  | Slot | `children = Slot.new()` |
+
 
 ### Close to the platform
 
@@ -106,32 +132,7 @@ Writing code is cheap — an agent will draft most of it. *Maintaining* it is th
 
 ElementsKit is built from primitives that compose into higher-level blocks. Each unit stays testable in isolation, which lets you — or an agent — swap one block at a time without touching the rest.
 
-A query layer is `async` + `retry` + storage. Swap the fetcher; leave the retry and storage alone. Swap the store; leave the query alone.
 
-The alternative is one overloaded component tuned through every combination of its configuration. Each new option on that component accumulates breaking changes and deprecations that every consumer has to track and migrate through. Primitives avoid that maintenance tax by keeping each unit small enough to replace rather than extend.
-
-The table below maps ElementsKit equivalents to each major feature from the usual stack — a **UI framework** (React, Vue, Solid), a **custom-element** library (Lit), a **server-state** library (TanStack Query, SWR), a **browser-hooks** pack (react-use, vueuse, solid-primitives), and a **state** manager (Zustand, Jotai, MobX).
-
-| Layer | Feature | ElementsKit |
-|-------|---------|-------------|
-| **State** | Shared reactive state | `class Store { @reactive() count = 0 }` |
-|  | Derived value | `computed(() => store.count * 2)` |
-| **Server state** | Query | `async(() => fetch(url())).start()` |
-|  | Mutation | `mutation.run({ id, name })` |
-|  | Retry with backoff | `async(retry(fn, 5, n => 2**n * 100)).start()` |
-|  | Persist result | `async(fetcher.then(v => store(v))).start()` |
-| **Browser hooks** | Online / offline | `online()` |
-|  | Viewport size | `windowSize.width()` |
-|  | Media query | `createMediaQuery("(prefers-color-scheme: dark)")` |
-|  | Debounce | `createInterval(300)` |
-| **UI framework** | Mount into DOM | `render(el, () => <App/>)` |
-|  | Function component | `function Counter(props) { return <div/> }` |
-|  | Class component | `class Counter { render() { return <div/> } }` |
-|  | Lifecycle cleanup | `onCleanup(() => …)` |
-| **Custom elements** | Reactive HTMLElement | `@attributes class X extends HTMLElement {}` |
-|  | Reactive property | `@reactive() count = 0` |
-|  | Attribute handler | `static [attr] = { name(this, v) {} }` |
-|  | Slot | `children = Slot.new()` |
 
 ## Framework integration
 
