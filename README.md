@@ -29,24 +29,6 @@ render(document.getElementById("app")!, () => <Counter initial={0} />);
 
 ---
 
-## Packages
-
-Every feature is a separate subpath export — import only what you use.
-
-| Entry | Purpose |
-|-------|---------|
-| `elements-kit/signals` | `signal`, `computed`, `effect`, `effectScope`, `batch`, `untracked`, `trigger`, `onCleanup`, `MaybeReactive`, `resolve`, `resolveProps`, `@reactive` |
-| `elements-kit/render` | `render(target, setup)` — mount a node with a scoped lifetime; returns `unmount` |
-| `elements-kit/attributes` | `@attributes` decorator + `ATTRIBUTES` symbol |
-| `elements-kit/slot` | `Slot`, `Slots`, `SLOTS` symbol — comment-marker DOM regions |
-| `elements-kit/custom-elements` | `defineElement`, `CustomElementRegistry` |
-| `elements-kit/for` | `For` keyed-list component |
-| `elements-kit/jsx-runtime` | JSX factory + type helpers (`ElementProps`, `Props`, `ComponentProps`, `MaybeReactiveProps`, `ReactiveProps`, `Require`) — configure via `jsxImportSource` |
-| `elements-kit/integrations/react` | `useSignal`, `useScope` React bridge hooks |
-| `elements-kit/utilities/*` | Reactive browser-API utilities — see [src/utilities/README.md](src/utilities/README.md) |
-
----
-
 ## Why ElementsKit
 
 ElementsKit is a library of reactive primitives, not a framework. Each piece is its own import, runs on its own, and composes with the others — inside React, inside a custom element, or on its own in a script.
@@ -87,6 +69,24 @@ Configure JSX in your `tsconfig.json`:
   }
 }
 ```
+
+---
+
+## Packages
+
+Every feature is a separate subpath export — import only what you use.
+
+| Entry | Purpose |
+|-------|---------|
+| `elements-kit/signals` | `signal`, `computed`, `effect`, `effectScope`, `batch`, `untracked`, `trigger`, `onCleanup`, `MaybeReactive`, `resolve`, `resolveProps`, `@reactive` |
+| `elements-kit/render` | `render(target, setup)` — mount a node with a scoped lifetime; returns `unmount` |
+| `elements-kit/attributes` | `@attributes` decorator + `ATTRIBUTES` symbol |
+| `elements-kit/slot` | `Slot`, `Slots`, `SLOTS` symbol — comment-marker DOM regions |
+| `elements-kit/custom-elements` | `defineElement`, `CustomElementRegistry` |
+| `elements-kit/for` | `For` keyed-list component |
+| `elements-kit/jsx-runtime` | JSX factory + type helpers (`ElementProps`, `Props`, `ComponentProps`, `MaybeReactiveProps`, `ReactiveProps`, `Require`) — configure via `jsxImportSource` |
+| `elements-kit/integrations/react` | `useSignal`, `useScope` React bridge hooks |
+| `elements-kit/utilities/*` | Reactive browser-API utilities — see [src/utilities/README.md](src/utilities/README.md) |
 
 ---
 
@@ -531,6 +531,7 @@ class XPicker extends HTMLElement {
 ## Learn more
 
 - [Documentation site](docs/) — guides, playgrounds, reference
+- [Philosophy](docs/src/content/docs/getting-started/philosophy.mdx) — deeper reasoning behind the five principles
 - [ARCHITECTURE.md](ARCHITECTURE.md) — how the library works
 - [CONTRIBUTING.md](CONTRIBUTING.md) — build, test, PR checklist
 
