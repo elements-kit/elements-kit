@@ -29,22 +29,6 @@ render(document.getElementById("app")!, () => <Counter initial={0} />);
 
 ---
 
-## Why ElementsKit
-
-ElementsKit is a library of reactive primitives, not a framework. Each piece is its own import, runs on its own, and composes with the others — inside React, inside a custom element, or on its own in a script.
-
-- **Compose, don't configure.** Small focused APIs — `signal`, `computed`, `on`, `fromEvent`, `async`. Combine primitives instead of maintaining an overloaded interface.
-
-- **Close to the platform.** JSX compiles to `document.createElement`. `promise` extends `Promise`. Custom elements *are* `HTMLElement`. Thin or absent abstraction layers — no virtual DOM, no proxies, no build steps.
-
-- **Predictable and explicit — no magic.** `signal/compose` are reactive; nothing else is. No heuristic dependency tracking, no hidden subscriptions.
-
-- **Designed for the AI age.** Code is cheap; maintenance still isn't. Primitives compose into higher-level blocks. Swap one block at a time instead of maintaining long lines of code.
-
-- **Bundler-friendly.** Every primitive is its own subpath — `elements-kit/signals`, `elements-kit/utilities/*`, `elements-kit/integrations/*`. Import only what you need.
-
----
-
 ## Installation
 
 ```sh
@@ -61,6 +45,22 @@ Configure JSX in your `tsconfig.json`:
   }
 }
 ```
+
+---
+
+## Why ElementsKit
+
+ElementsKit is a library of reactive primitives, not a framework. Each piece is its own import, runs on its own, and composes with the others — inside React, inside a custom element, or on its own in a script.
+
+- **Compose, don't configure.** Small focused APIs — `signal`, `computed`, `on`, `fromEvent`, `async`. Combine primitives instead of maintaining an overloaded interface.
+
+- **Close to the platform.** JSX compiles to `document.createElement`. `promise` extends `Promise`. Custom elements *are* `HTMLElement`. Thin or absent abstraction layers — no virtual DOM, no proxies, no build steps.
+
+- **Predictable and explicit — no magic.** `signal/compose` are reactive; nothing else is. No heuristic dependency tracking, no hidden subscriptions.
+
+- **Designed for the AI age.** Code is cheap; maintenance still isn't. Primitives compose into higher-level blocks. Swap one block at a time instead of maintaining long lines of code.
+
+- **Bundler-friendly.** Every primitive is its own subpath — `elements-kit/signals`, `elements-kit/utilities/*`, `elements-kit/integrations/*`. Import only what you need.
 
 ---
 
