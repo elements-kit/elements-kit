@@ -27,7 +27,7 @@ Most teams bolt several layers on top of a UI framework: a **UI framework** (Rea
 | **Server state** | Query | `async(() => fetch(url())).start()` |
 |  | Mutation | `mutation.run({ id, name })` |
 |  | Retry with backoff | `async(retry(fn, 5, n => 2**n * 100)).start()` |
-|  | Persist result | `async(fetcher).start().then(v => store(v))` |
+|  | Persist result | `async(fetcher.then(v => store(v))).start()` |
 | **Browser hooks** | Online / offline | `online()` |
 |  | Viewport size | `windowSize.width()` |
 |  | Media query | `createMediaQuery("(prefers-color-scheme: dark)")` |
@@ -39,7 +39,7 @@ Most teams bolt several layers on top of a UI framework: a **UI framework** (Rea
 | **Custom elements** | Reactive HTMLElement | `@attributes class X extends HTMLElement {}` |
 |  | Reactive property | `@reactive() count = 0` |
 |  | Attribute handler | `static [attr] = { name(this, v) {} }` |
-|  | Slot | `children = Slot.new()` |
+|  | Slot (Native DOM) | `children = Slot.new()` |
 
 
 The same utility works in any UI framework through `useSignal` / `useScope`:
