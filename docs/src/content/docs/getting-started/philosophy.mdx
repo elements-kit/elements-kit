@@ -4,19 +4,30 @@ description: How ElementsKit thinks — composable, explicit, framework-optional
 ---
 
 import Diagram from "@/components/Diagram.astro";
+import { Aside } from "@astrojs/starlight/components";
 
 Modern UI frameworks bundle reactivity, rendering, and lifecycle. You adopt the whole system or none of it. ElementsKit unbundles it into primitives you import à la carte — signals, utilities, JSX, custom elements — and combine in any framework or none. Every module is a separate subpath, so bundlers ship only what you reference.
 
-## Pillars
+<Diagram code={`flowchart LR
+    subgraph FW["Traditional framework"]
+        direction TB
+        MONO["reactivity + rendering + lifecycle
+        (one bundle, one idiom)"]
+    end
 
-- **Signals** are the reactive core — fine-grained, framework-agnostic, composable with any rendering model.
-- **Utilities** are reactive browser APIs and common patterns built on signals — `on`, `fromEvent`, `sync`, observers, `media-query`, `storage`, `async`.
-- **JSX → elements** compiles to real `document.createElement` calls — no virtual DOM, no diffing, no runtime overhead.
-- **Custom elements** are native browser components — ElementsKit enhances them with signals and JSX without wrapping or abstracting the platform.
+    subgraph EK["ElementsKit"]
+        direction TB
+        S1["signals"]
+        S2["utilities"]
+        S3["JSX"]
+        S4["custom elements"]
+    end
+
+    FW -.->|"unbundle"| EK`} />
 
 ## Design
 
-Three threads run through every API choice:
+Four threads run through every API choice:
 
 ### Composability over configuration
 
@@ -26,9 +37,51 @@ Frameworks ship one large system you configure with props, plugins, dependency a
 
 Heavy abstraction over native APIs is where beginners get burned — they learn the abstraction, not the platform underneath, and the leak surfaces in production. ElementsKit keeps the layer thin or absent. JSX compiles to `document.createElement`. `promise` *extends* the native `Promise` (still awaitable, still chainable). `async` instances are thenable. Custom elements *are* `HTMLElement`. The source itself is small composable pieces, so what you read in the docs maps directly to what you write, and what you write maps directly to what the browser already knows.
 
+| ElementsKit | Native API | Relationship |
+|-------------|------------|--------------|
+| JSX | `document.createElement` | Compiles to |
+| `promise` | `Promise` | Extends (still awaitable, still chainable) |
+| `async` | `Promise` | Thenable — `await asyncInstance` works |
+| Custom element | `HTMLElement` | Extends — registered via `customElements.define` |
+| `@reactive` field | Plain class field | Decorator — no proxy, no property rewrite |
+| `on(el, "click", …)` | `addEventListener` | Thin wrapper returning `Disposable` |
+
 ### Readable by non-experts
 
 Frameworks often push you toward clever-but-cryptic patterns to get common things done — `useReducer` with a switch, `useEffect` dependency arrays, derived state via `useMemo`, hook-position rules, suspense-driven fetching. Those are landmines for anyone not steeped in the idiom. ElementsKit is the opposite: `signal(0)` is reactive, plain `let` isn't. Stores are plain classes with `@reactive` field decorators — no proxies rewriting property access behind your back. What the debugger shows is what you wrote.
+
+```tsx magic-move
+// ElementsKit — explicit. signal() is reactive, let isn't.
+// computed() declares a derivation. onCleanup names the teardown.
+function Counter() {
+  const n = signal(0);
+  const doubled = computed(() => n() * 2);
+
+  const id = setInterval(() => n(n() + 1), 1000);
+  onCleanup(() => clearInterval(id));
+
+  return <div>{() => n()} / {() => doubled()}</div>;
+}
+---
+// Framework — magic. Reactive tracking is implicit;
+// dep arrays, reducer indirection, StrictMode double-fires.
+function Counter() {
+  const [s, dispatch] = useReducer((s, a) => {
+    switch (a.type) {
+      case "inc": return { n: s.n + 1 };
+    }
+  }, { n: 0 });
+
+  const doubled = useMemo(() => s.n * 2, [s.n]);
+
+  useEffect(() => {
+    const id = setInterval(() => dispatch({ type: "inc" }), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  return <div>{s.n} / {doubled}</div>;
+}
+```
 
 ### Built for the AI age
 
@@ -36,10 +89,12 @@ Writing code is cheap — an agent will draft most of it. *Maintaining* it is th
 
 ElementsKit is explicit at the call site:
 
-- **`signal(0)` is reactive. A plain `let` is not.** No framework rewrites your variables behind your back.
-- **If a value is derived, wrap it in `computed(...)`.** No "was this tracked?" heuristic — the call site says so.
-- **Props arrive as `Computed<T>` callables.** A read is a `()`. A subscription is passing the getter along.
-- **Cleanup is `onCleanup`, not a hook-position rule.** The dependency is named, not implied by call order.
+| Framework (implicit) | ElementsKit (explicit) |
+|----------------------|------------------------|
+| Any variable *might* be tracked — depends on compiler rewrite | `signal(0)` is reactive. A plain `let` is not. |
+| Derived values inferred by the runtime or memoized by convention | If a value is derived, wrap it in `computed(...)`. The call site says so. |
+| Props read as plain values — subscription is hidden | Props arrive as `Computed<T>` callables. A read is `()`. Subscription is passing the getter along. |
+| Cleanup tied to hook position and dependency arrays | Cleanup is `onCleanup`, called explicitly. The dependency is named, not implied by call order. |
 
 Primitives with explicit contracts survive a hundred edits — by humans or agents. Magic doesn't.
 
@@ -70,9 +125,12 @@ Most teams bolt several layers on top of a UI framework: a **UI framework** (Rea
 
 ## Framework integration
 
-Any signal can drive a UI-framework component. The hook is the bridge, not the primitive — the same utility works inside React today, Solid or Vue when those integrations ship:
+Any signal can drive a UI-framework component. The hooks are the bridge, not the primitive — the same utilities work inside React today, Solid or Vue when those integrations ship.
 
-```tsx
+Two hooks bridge signals into React. **`useSignal`** subscribes a component to any signal or computed. **`useScope`** creates an `effectScope` tied to the component's lifetime — place `effect(...)`, `onCleanup(...)`, and factory utilities (`createDebounced`, `createInterval`, `createMediaQuery`, …) inside it and they're disposed automatically on unmount, StrictMode double-invocation included. No manual teardown, no dep arrays, no stale closures:
+
+```tsx magic-move
+// useSignal — subscribe to any signal or computed.
 /** @jsxImportSource react */
 import { online } from "elements-kit/utilities/network";
 import { useSignal } from "elements-kit/integrations/react";
@@ -80,6 +138,50 @@ import { useSignal } from "elements-kit/integrations/react";
 export function OfflineBanner() {
   const connected = useSignal(online);
   return connected ? null : <div>You're offline</div>;
+}
+---
+// useScope — factory utilities scoped to the component's lifetime.
+/** @jsxImportSource react */
+import { useState } from "react";
+import { signal } from "elements-kit/signals";
+import { createDebounced } from "elements-kit/utilities/debounced";
+import { useSignal, useScope } from "elements-kit/integrations/react";
+
+export function Search() {
+  const [query, setQuery] = useState("");
+  const querySignal = useScope(() => signal(query));
+  const debounced = useScope(() => createDebounced(querySignal!, 300));
+  const value = useSignal(debounced!);
+
+  return (
+    <>
+      <input value={query} onChange={e => {
+        setQuery(e.target.value);
+        querySignal!(e.target.value);
+      }} />
+      <p>Debounced: {value}</p>
+    </>
+  );
+}
+---
+// effect + onCleanup inside useScope — torn down with the component.
+/** @jsxImportSource react */
+import { effect, onCleanup } from "elements-kit/signals";
+import { useScope } from "elements-kit/integrations/react";
+import { online } from "elements-kit/utilities/network";
+
+export function NetworkLogger() {
+  const offline = useScope(() => {
+    effect(() => {
+      console.log("online:", online());
+    });
+
+    const id = setInterval(() => console.log("tick"), 1000);
+    onCleanup(() => clearInterval(id));
+    return computed(() => !online());
+  });
+
+  return <p>Watching network in the console.</p>;
 }
 ```
 
@@ -126,11 +228,13 @@ Start with the simplest option that fits — you can always combine patterns.
 
 ## Not for
 
-ElementsKit is deliberately narrow. Reach for something else if you need:
+<Aside type="caution" title="Reach for something else if you need">
+ElementsKit is deliberately narrow.
 
 - **Server-side rendering or streaming HTML.** No SSR, no hydration, no React Server Components. Rendering happens in the browser.
 - **A complete app framework.** No router, no data layer, no file-system conventions — bring or compose your own.
 - **A pre-built component library.** This ships primitives, not components. A design system on top has to come from you or a third party.
+</Aside>
 
 Narrow doesn't mean incomplete — signals + elements + custom elements cover the full client-side reactive-UI surface.
 
