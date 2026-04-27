@@ -117,6 +117,7 @@ v0 = the load-bearing set. Composite surfaces and inputs that depend on form sem
 | `x-focus-trap` | [Dialog](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/) (focus rules) | 1 | — |
 | `x-overlay` | — | 1 | `resize-observer`, `intersection-observer` |
 | `x-dismissable-layer` | — | 1 | `on-click-outside`, `event-listener` |
+| `x-form` | — | 2 | `MutationObserver`, dot-prop util |
 | `x-checkbox` | [Checkbox](https://www.w3.org/WAI/ARIA/apg/patterns/checkbox/) | 2 | `ElementInternals` |
 | `x-radio-group` + `x-radio` | [Radio](https://www.w3.org/WAI/ARIA/apg/patterns/radio/) | 2 | `x-roving-tabindex`, `ElementInternals` |
 | `x-switch` | [Switch](https://www.w3.org/WAI/ARIA/apg/patterns/switch/) | 2 | `ElementInternals` |
@@ -141,7 +142,7 @@ Each phase ships: source file + Vitest test + playground demo + doc page under [
 
 1. **Phase 0 — manifesto.** This README plus a placeholder `src/ui/index.ts` (not yet exported from `package.json`).
 2. **Phase 1 — primitives.** `x-portal`, `x-focus-trap`, `x-overlay`, `x-dismissable-layer`. Adds `elements-kit/ui` subpath export. Validates the controlled / uncontrolled signal pattern at the simplest level (`open`).
-3. **Phase 2 — inputs.** `x-checkbox`, `x-radio` + `x-radio-group`, `x-switch`. Form-associated. Validates `ElementInternals` integration end-to-end.
+3. **Phase 2 — inputs + form controller.** `x-form` (per §10), `x-checkbox`, `x-radio` + `x-radio-group`, `x-switch`. Form-associated. Validates `ElementInternals` integration end-to-end and the seed-on-first-sight contract against real fields.
 4. **Phase 3 — collections.** `x-roving-tabindex`, `x-option`, `x-listbox`. Validates the keyboard-model contract.
 5. **Phase 4 — surfaces.** `x-popover`, `x-dialog`, `x-tooltip`, `x-menu`. Validates composition of multiple primitives.
 6. **Phase 5 — recipes.** `x-picker`, `x-select`, `x-combobox` as docs-only pages with playgrounds under [`docs/src/playground/files/`](../../docs/src/playground/files/).
@@ -189,3 +190,142 @@ Reference, not dependency. Track these to keep API choices defensible.
 - **[Lion](https://lion.js.org/components/)** — closest existing project in scope (headless web components, a11y-first). Read for prior art on `FormControlMixin`, `OverlayController`, focus trap. Architecture diverges (LitElement + mixins + base CSS); patterns are studied, not adopted.
 - **[Base UI](https://base-ui.com/)** —  React-only, but the gold standard for headless component anatomy and the controlled/uncontrolled split. Used as a behavioral reference. accessibility bar and minimalist surface area benchmark.
 - **[Radix Themes](https://www.radix-ui.com)** — Theme layer inspiration if we build one. No API influence on the headless layer.
+
+---
+
+## 10. Form controller contract
+
+`<x-form>` is the form-level coordinator. It does not own field state — fields do, per principle 5. It owns *defaults*, *aggregation*, and *imperative access*.
+
+### Hosting model
+
+`<x-form>` requires a native `<form>` ancestor. It is a coordinator, not the form element itself.
+
+```html
+<form id="signup">
+  <x-form default-values=...>
+    <x-input name="email" />
+    <x-checkbox name="agree" />
+  </x-form>
+</form>
+```
+
+Form-associated custom elements (`x-input`, `x-checkbox`, `x-radio`, `x-switch`) discover their form via the standard light-DOM ancestor walk used by `ElementInternals`. `<x-form>` listens to `submit` / `reset` / `formdata` on the same ancestor form, owns `defaultValues`, and exposes the imperative API.
+
+**Rejected alternatives:**
+
+- **Shadow-DOM `<form>` inside `<x-form>`.** FACEs walk light-DOM ancestors only — a shadow-tree `<form>` is invisible to them. We'd have to synthesize submission and reset, losing native validation, native submit, and the `formdata` event.
+- **Customized built-in (`<form is="x-form">`).** Cleanest semantically (`<x-form>` *is* a form) but Safari lacks native support. A polyfill works but adds a runtime dep, and `is=` syntax confuses authors. Revisit when Safari ships.
+
+### Defaults are a one-shot snapshot
+
+- `defaultValues` (flat dot-prop map; nested object accepted as sugar and flattened on input) is captured into a private frozen field on `connectedCallback`.
+- Reassigning the property after init is a **no-op**. Dev-mode warns; production silently ignores. Defaults are immutable for the form's lifetime. Need different defaults? Unmount and remount.
+- Rationale: eliminates the "dirty vs pristine re-seed" policy entirely. The question doesn't arise if defaults can't change.
+
+### Element tracking
+
+```ts
+class XForm extends HTMLElement {
+  #defaults: Record<string, unknown>              // flat dot-prop, frozen
+  #seeded = new WeakSet<FormAssociatedElement>()  // seeded-on-first-sight
+  #observer: MutationObserver                     // childList + subtree
+}
+```
+
+- `WeakSet` not `WeakMap` — the only tracked fact is "seeded yet?". WeakSet drops removed elements on GC.
+- One predicate, two entry points: initial `connectedCallback` walk and `MutationObserver` `addedNodes` use the same seed routine.
+
+### Seed-on-first-sight
+
+For each newly-observed form-associated descendant not in `#seeded`:
+
+1. Look up its `name` in `#defaults`.
+2. *Atom* (`x-input`, `x-checkbox`, `x-switch`, `x-radio`): write `element.defaultValue` and `element.value` (or `checked`).
+3. *Composite* (`x-date-range`, `x-address`): collect all keys with the element's `name` as prefix, reconstruct the subtree, call `element.fromFormEntries(subtree)`.
+4. Add to `#seeded`.
+
+Late-rendered fields (conditional UI, dynamic lists) seed automatically. Authors do nothing.
+
+### Form-associated element interface
+
+```ts
+interface FormAssociatedElement<T = unknown> {
+  name: string
+  value: T
+  defaultValue: T
+  dirty: boolean              // flips true on first user-driven change; false on reset
+  // composites only — flatten/unflatten their own value
+  toFormEntries?(): Record<string, FormDataEntryValue>
+  fromFormEntries?(entries: Record<string, FormDataEntryValue>): void
+}
+```
+
+Atoms skip the `*FormEntries` methods; composites implement them so `<x-form>` stays element-agnostic.
+
+### Imperative API
+
+```ts
+form.getValue(path)         // any
+form.setValue(path, value)  // silent write — mimics native input.value =
+form.getValues()            // → nested object
+form.setValues(partial)     // bulk current write; flat or nested
+form.reset()                // restore all to snapshot
+form.reset(path)            // scoped reset
+form.isDirty(path?)         // scoped or whole-form
+```
+
+`setValue` writes silently (matches native `input.value = "x"`). Authors who want listeners to react dispatch `input` / `change` themselves — document a helper.
+
+### Read-shape rules (checkbox / radio)
+
+Native `FormData` is flat: each entry is `name → string`, multiple entries with the same name are allowed. `getValues()` shapes that into a typed object. Submission uses native `FormData` exactly — these rules apply only to the read-side aggregation.
+
+| Author markup | `getValues()` shape |
+| --- | --- |
+| One `x-checkbox name="agree"` (no `value`) | `boolean` |
+| One `x-checkbox name="agree" value="yes"` | `"yes" \| undefined` |
+| Multiple `x-checkbox name="topics" value="..."` | `string[]` (only checked values) |
+| Any `x-checkbox name="topics[]"` | `string[]` — `[]` strips and forces array shape, even with one element |
+| `x-radio-group name="size"` containing `x-radio value="..."` | `string \| undefined` |
+
+**Resolution order at `getValues()` time:**
+
+1. Group form-associated descendants by `name`.
+2. If `name` ends with `[]`: strip the suffix from the output key and emit `string[]` (filtered to checked).
+3. If group has more than one element: emit `string[]` of checked values (matches native `FormData.getAll`).
+4. Single `x-checkbox` without `value` attribute: emit `boolean`.
+5. Single `x-checkbox` with `value` attribute: emit `string | undefined`.
+6. `x-radio-group`: emit the checked element's `value` as `string | undefined`. Always single — radio invariant.
+
+**`defaultValues` mirrors the read shape:**
+
+```ts
+{
+  "agree": true,                // boolean for valueless checkbox
+  "topics[]": ["news", "ads"],  // array — supplied with [] in key
+  "size": "m",                  // radio group default
+}
+```
+
+**Mixed authoring** — e.g. one `x-checkbox name="agree"` plus another `x-checkbox name="agree" value="yes"` — is treated as an authoring mistake. Dev-mode warns; runtime falls through to rule 3 (`string[]`). Don't try to reconcile boolean and value-string semantics — they're incompatible intents.
+
+### Reset semantics
+
+- `form.reset()` and the underlying `<form>.reset()` walk `#seeded` (still-connected elements only) and re-apply the snapshot via the same seed routine. `#seeded` membership is not cleared — reset is rewrite, not re-init.
+- Each form-associated element implements `formResetCallback` to restore from its captured `defaultValue`. `<x-form>` triggers reset; the elements do the actual restore.
+
+### Submission
+
+- `<x-form>` mimics native `<form>`: native `submit` event, `submitter`-aware. `onSubmit` callback receives `(values, event)` where `values` is the nested object form of `getValues()`.
+- Fields submit via `ElementInternals.setFormValue` per principle 6. Composites pass a `FormData` to `setFormValue` so multiple keys land under the element's `name` prefix.
+- Validation hooks here (zod / valibot / native constraint API) — not on individual elements.
+
+### Known limitation: virtualized / re-keyed list rows
+
+If the same logical row unmounts and remounts as a fresh element instance with the same `name`, the new instance gets re-seeded from the snapshot — clobbering the user's edits. Two stances:
+
+1. **Recommended.** Authors stabilize identity — don't unmount rows during edit, just hide them. Matches what every mainstream form lib effectively assumes.
+2. **Not shipping.** A parallel `Map<name, currentValue>` cache that survives unmounts. Reinvents controlled state, defeats principle 5. Don't.
+
+Document (1). Reject (2).
