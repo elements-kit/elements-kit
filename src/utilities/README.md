@@ -45,6 +45,7 @@ Core primitives (signal, computed, effect, onCleanup, trigger, batch, untracked)
 │   └── async.ts ─── async, Async
 │
 └── standalone (no intra-utilities deps)
+    ├── context.ts
     ├── debounced.ts
     ├── interval.ts
     ├── previous.ts
@@ -183,6 +184,19 @@ Uses `URLPattern`. Consumers on browsers without native support must load a poly
 | **async** | `async(fn)` | Returns an `Async` controller. Reactive wrapper over `promise`. |
 | **async** | `Async<TInput, TOutput>` | `.start()` / `.run(input?)` / `.stop()` / `Symbol.dispose`; getters `.state`, `.value`, `.reason`, `.result`, `.pending`, `.raw`; thenable. |
 | **retry** | `retry(fn, attempts, backoff?)` | Returns a function that retries on rejection with backoff. |
+
+---
+
+## Context
+
+DOM-tree dependency injection. Provider registers a value on a host element; descendants look it up by walking `parentNode` (crossing into shadow hosts via `getRootNode().host`). Innermost provider wins. Caller picks any `PropertyKey`; reactivity is opt-in by passing a `Signal` / `Computed`.
+
+| Module | Export | Description |
+|--------|--------|-------------|
+| **context** | `setContext(host, key, value)` | Register `value` on `host`. Auto-removed via `onCleanup` when the surrounding scope disposes. Must run inside an `effect` / `effectScope` / wrapped `connectedCallback`. |
+| **context** | `getContext<T>(consumer, key)` | One-shot ancestor walk. Returns the first registered value for `key`, or `undefined`. Does not subscribe — reactivity is the caller's responsibility (read the returned `Signal` inside an `effect`). |
+
+`getContext` requires the consumer to be in the DOM tree at call time. Safe inside `connectedCallback`, event handlers, or post-mount effects — **not** synchronously inside a JSX `ref` callback (ref runs before parent insertion).
 
 ---
 
