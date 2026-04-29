@@ -50,6 +50,9 @@ Utilities are pre-built factories that wrap common browser APIs in signals — s
 | `sync` | `utilities/event-driven` | `[Computed<T> \| Signal<T>, () => void]` |
 | `setContext` | `utilities/context` | `void` |
 | `getContext` | `utilities/context` | `T \| undefined` |
+| `useContext` | `utilities/context` | `Computed<T \| undefined>` |
+| `onMount` | `utilities/on-mount` | `Computed<R \| undefined>` |
+| `observeRoot` | `utilities/on-mount` | `void` |
 
 ---
 
@@ -853,6 +856,74 @@ function createPrevious<T>(
 
 ---
 
+## On-mount
+
+Run a callback once an element is connected to the DOM, and re-run on every (re)connection. Useful when a JSX `ref` callback fires too early — e.g. resolving `getContext`, measuring layout, attaching observers that need a connected ancestor. Composed-tree aware: shadow-DOM (dis)connect events propagate correctly through nested open shadow roots.
+
+### onMount
+
+```tsx
+import { signal } from "elements-kit/signals";
+import { onMount } from "elements-kit/utilities/on-mount";
+
+function FocusOnMount() {
+  const elRef = signal<HTMLInputElement | null>(null);
+  onMount(elRef, (el) => el.focus(), { once: true });
+  return <input ref={(el) => elRef(el)} />;
+}
+```
+
+`target` accepts a static `Element` or a `Signal<Element | null>` / `Computed<Element | null>` — when reactive, the watch swaps with the current value. `fn`'s return value is exposed via the returned `Computed<R | undefined>`, so `onMount` doubles as a "produce a mount-only value" primitive (this is what [`useContext`](#usecontext) builds on). Cleanup for resources allocated inside `fn` goes through `onCleanup`:
+
+```tsx
+onMount(elRef, (el) => {
+  const io = new IntersectionObserver(/* … */);
+  io.observe(el);
+  onCleanup(() => io.disconnect());
+});
+```
+
+By default `fn` re-runs on every reconnection (item moves in `<For>`, portal moves between parents). Pass `{ once: true }` to fire at most once per element.
+
+```ts
+function onMount<E extends Element, R>(
+  target: MaybeReactive<E | null>,
+  fn: (el: E) => R,
+  opts?: { once?: boolean },
+): Computed<R | undefined>
+```
+
+### observeRoot
+
+Pre-registers a `MutationObserver` on a root so future `onMount` registrations there work without surprises. Two situations call for it:
+
+1. **Portals into a previously-untouched shadow root** — async reattach into a shadow tree no `onMount` has visited would otherwise be missed.
+2. **Closed shadow roots** — `node.shadowRoot` returns `null` from outside, so the composed-tree walk can't descend on its own. The owner of the closed shadow opts it in by passing the reference to `observeRoot`.
+
+```ts
+import { observeRoot } from "elements-kit/utilities/on-mount";
+
+class Widget extends HTMLElement {
+  #shadow = this.attachShadow({ mode: "closed" });
+  connectedCallback() {
+    observeRoot(this.#shadow);  // opt the closed root in
+    // …render into this.#shadow…
+  }
+}
+```
+
+Fire-and-forget: call once during setup, no teardown needed. The observer is shared by every entry on that root and persists for the root's lifetime (one per `Document` or `ShadowRoot`).
+
+```ts
+function observeRoot(root: Document | ShadowRoot): void
+```
+
+:::caution[Closed shadow roots]
+Without `observeRoot`, a closed shadow root's content is unobservable from outside — outer-tree mutations (host append/remove) cannot descend into the closed tree. This is a platform contract, not a library limitation.
+:::
+
+---
+
 ## Context
 
 DOM-tree dependency injection — pass values down a custom-element subtree without prop drilling or globals. Provider registers a value on a host element; descendants look it up by walking `parentNode` (crossing into shadow hosts via `getRootNode().host`). Innermost provider wins. Reactivity is opt-in: pass a `Signal` / `Computed` and read it inside an effect.
@@ -894,23 +965,19 @@ function setContext<T>(host: EventTarget, key: PropertyKey, value: T): void
 
 Walks up from `consumer` (across open shadow boundaries) and returns the first registered value for `key`, or `undefined`. One-shot — does not subscribe. Caller decides how to read the result (call signals inside an effect for reactive reads).
 
-The consumer must be in the DOM tree at call time. Inside a JSX `ref` callback the element has not yet been inserted into its parent, so defer the lookup with `queueMicrotask` — the whole subtree is mounted by the next microtask:
+The consumer must be in the DOM tree at call time. Inside a JSX `ref` callback the element has not yet been inserted, so a synchronous `getContext(el, …)` returns `undefined`. Use [`useContext`](#usecontext) — the JSX-friendly composer that defers the lookup to mount time and auto-flattens reactive values:
 
 ```tsx
-import { effect, onCleanup } from "elements-kit/signals";
-import { getContext } from "elements-kit/utilities/context";
+import { signal } from "elements-kit/signals";
+import { useContext } from "elements-kit/utilities/context";
 
 function ThemedButton() {
+  const elRef = signal<HTMLElement | null>(null);
+  const theme = useContext<"light" | "dark">(elRef, THEME);
   return (
     <button
-      ref={(el) => {
-        let stop: (() => void) | undefined;
-        queueMicrotask(() => {
-          const theme = getContext<() => "light" | "dark">(el, THEME);
-          if (theme) stop = effect(() => { el.dataset.theme = theme(); });
-        });
-        onCleanup(() => stop?.());
-      }}
+      ref={(el) => elRef(el)}
+      data-theme={() => theme() ?? "light"}
     >
       Click
     </button>
@@ -918,7 +985,7 @@ function ThemedButton() {
 }
 ```
 
-For one-off reads (no reactive binding), call `getContext` from an event handler — the tree is always connected by the time the handler fires:
+For one-off reads, call `getContext` directly from an event handler — the tree is always connected by the time the handler fires:
 
 ```tsx
 function ThemedButton() {
@@ -937,6 +1004,35 @@ function ThemedButton() {
 
 ```ts
 function getContext<T>(consumer: Element, key: PropertyKey): T | undefined
+```
+
+### useContext
+
+JSX-friendly composer over [`onMount`](#onmount) + `getContext`. Waits until `target` is connected, walks ancestors for `key`, and **auto-flattens** when the registered value is a `Signal` / `Computed` — the consumer reads the current value with a single call. Returns a `Computed<T | undefined>` that stays `undefined` until the consumer is connected.
+
+Use this from a component body where you'd otherwise reach for `getContext` inside a `ref`. For synchronous lookups inside `connectedCallback` (host already connected) prefer `getContext` directly.
+
+```tsx
+import { signal } from "elements-kit/signals";
+import { useContext } from "elements-kit/utilities/context";
+
+function ThemeBadge() {
+  const elRef = signal<HTMLElement | null>(null);
+  const theme = useContext<"light" | "dark">(elRef, THEME, { once: true });
+  return (
+    <span ref={(el) => elRef(el)}>
+      {() => theme() ?? "light"}
+    </span>
+  );
+}
+```
+
+```ts
+function useContext<T>(
+  target: MaybeReactive<Element | null>,
+  key: PropertyKey,
+  opts?: { once?: boolean },
+): Computed<T | undefined>
 ```
 
 ### Nesting
