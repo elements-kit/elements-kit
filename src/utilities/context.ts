@@ -159,11 +159,8 @@ export function useContext<T>(
   key: PropertyKey,
   opts?: { once?: boolean },
 ): Computed<T | undefined> {
-  const raw = onMount(
-    target,
-    (el) => getContext<MaybeReactive<T>>(el, key),
-    opts,
-  );
+  const raw = signal<MaybeReactive<T> | undefined>(undefined);
+  onMount(target, (el) => raw(getContext<MaybeReactive<T>>(el, key)), opts);
   return computed(() => {
     const v = raw();
     return v === undefined ? undefined : resolve(v);

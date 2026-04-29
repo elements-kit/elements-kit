@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { effect, effectScope, onCleanup, signal } from "@/signals/index.ts";
+import { effectScope, signal } from "@/signals/index.ts";
 import { observeRoot, onMount } from "./on-mount.ts";
 
 afterEach(() => {
@@ -88,34 +88,12 @@ describe("onMount", () => {
     expect(seen).toHaveBeenCalledTimes(1);
   });
 
-  it("exposes fn's return value via the returned Computed", async () => {
-    const elRef = signal<HTMLDivElement | null>(null);
-    let observed: number | undefined;
-
-    const stop = effectScope(() => {
-      const value = onMount(elRef, () => 42);
-      effect(() => {
-        observed = value();
-      });
-    });
-
-    const el = document.createElement("div");
-    elRef(el);
-    document.body.appendChild(el);
-    await flushMO();
-
-    expect(observed).toBe(42);
-    stop();
-  });
-
-  it("runs fn inside its own scope so onCleanup fires on disconnect", async () => {
+  it("disposes the returned cleanup function on disconnect", async () => {
     const elRef = signal<HTMLDivElement | null>(null);
     const teardown = vi.fn();
 
     effectScope(() => {
-      onMount(elRef, () => {
-        onCleanup(teardown);
-      });
+      onMount(elRef, () => teardown);
     });
 
     const el = document.createElement("div");
@@ -368,9 +346,7 @@ describe("nested shadow DOM", () => {
 
     const teardown = vi.fn();
     effectScope(() => {
-      onMount(leaf, () => {
-        onCleanup(teardown);
-      });
+      onMount(leaf, () => teardown);
     });
     await flushMO();
     expect(teardown).not.toHaveBeenCalled();
@@ -427,9 +403,7 @@ describe("nested shadow DOM", () => {
       const shadow = host.attachShadow({ mode: "open" });
       const inner = document.createElement("p");
       shadow.appendChild(inner);
-      onMount(inner, () => {
-        onCleanup(teardown);
-      });
+      onMount(inner, () => teardown);
       document.body.appendChild(host);
     });
 
@@ -477,9 +451,7 @@ describe("closed shadow DOM (opt-in via observeRoot)", () => {
 
     const teardown = vi.fn();
     effectScope(() => {
-      onMount(inner, () => {
-        onCleanup(teardown);
-      });
+      onMount(inner, () => teardown);
     });
 
     document.body.appendChild(host);
@@ -529,9 +501,7 @@ describe("slotted children (light DOM)", () => {
 
     const teardown = vi.fn();
     effectScope(() => {
-      onMount(slotted, () => {
-        onCleanup(teardown);
-      });
+      onMount(slotted, () => teardown);
     });
     await flushMO();
     expect(teardown).not.toHaveBeenCalled();
@@ -592,9 +562,7 @@ describe("slotted children (light DOM)", () => {
     // Now disconnect via hostB removal — should fire runDisconnect.
     const teardown = vi.fn();
     effectScope(() => {
-      onMount(hostB.firstElementChild!, () => {
-        onCleanup(teardown);
-      });
+      onMount(hostB.firstElementChild!, () => teardown);
     });
     await flushMO();
     hostB.remove();

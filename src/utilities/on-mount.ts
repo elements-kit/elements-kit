@@ -1,29 +1,27 @@
 import {
   batch,
   effect,
-  effectScope,
   isReactive,
   onCleanup,
-  signal,
-  type Computed,
   type MaybeReactive,
-  type Signal,
 } from "@/signals/index.ts";
 
 // ─ Types ──────────────────────────────────────────────────────────────────
 
 type Root = Document | ShadowRoot;
+type Disposer = () => void;
+type MountFn = (el: Element) => void | Disposer;
 
 interface Entry {
   el: Element | null;
   /** Cached `rootOf(el)` — avoids re-walking on every event. */
   root: Root | null;
-  fn: (el: Element) => unknown;
+  fn: MountFn;
   once: boolean;
-  result: Signal<unknown>;
   connected: boolean;
   fired: boolean;
-  innerDispose?: () => void;
+  /** Cleanup returned by `fn`, if any. Run on disconnect. */
+  innerDispose?: Disposer;
 }
 
 // ─ Registry ───────────────────────────────────────────────────────────────
@@ -91,11 +89,11 @@ function runConnect(entry: Entry): void {
   if (entry.connected) return;
   if (entry.once && entry.fired) return;
   const el = entry.el!;
-  let returned: unknown = undefined;
-  entry.innerDispose = effectScope(() => {
-    returned = entry.fn(el);
-  });
-  entry.result(returned);
+  // No internal effectScope — `fn` runs directly. If the user wants a
+  // reactive scope around their setup, they wrap it themselves and return
+  // the disposer. Eliminates per-fire ReactiveNode allocation.
+  const ret = entry.fn(el);
+  entry.innerDispose = typeof ret === "function" ? ret : undefined;
   entry.connected = true;
   entry.fired = true;
 }
@@ -208,11 +206,12 @@ function reactToAdded(el: Element): void {
 
 function handleAdded(entry: Entry): void {
   if (!entry.el?.isConnected) return;
-  const newRoot = rootOf(entry.el);
-  if (entry.root !== newRoot) {
-    ensureObserver(newRoot);
-    entry.root = newRoot;
-  }
+  // Skip `rootOf` here in the common path. Cross-root migration is detected
+  // in `handleRemoved` when the source root's MO sees the removal — by the
+  // time this fires for the same element, `entry.root` is already correct.
+  // The only case this misses is "destination MO fires before source MO"
+  // for an inter-root move, which leaves `entry.root` stale until the next
+  // flush — harmless because nothing iterates entries by root.
   if (!entry.connected) runConnect(entry);
 }
 
@@ -275,16 +274,19 @@ export function observeRoot(root: Document | ShadowRoot): void {
 
 /**
  * Run `fn` once `target` is connected to the DOM, and re-run on every
- * subsequent (re)connection. Returns a {@link Computed} carrying `fn`'s last
- * return value (`undefined` until first connection). Cleanup for resources
- * allocated inside `fn` is registered via `onCleanup` from inside `fn` — the
- * runtime disposes that scope on disconnect.
+ * subsequent (re)connection. `fn` may return a disposer function — it runs
+ * on each disconnect (and on full teardown of the surrounding scope).
  *
  * Must be called inside an `effect` / `effectScope` (or wrapped
  * `connectedCallback`) — the surrounding scope owns auto-cleanup of the
  * MutationObserver registration.
  *
  * @remarks
+ * `fn` runs **outside** any internal effect scope. `onCleanup` calls inside
+ * `fn` are no-ops (no active scope). To bind cleanup to disconnect, return
+ * a disposer; to bind reactive lifetime to mount, wrap your work in your
+ * own `effectScope` and return its disposer.
+ *
  * Reconnect detection works against any DOM root that has been observed by
  * at least one `onMount` registration (lazy per-root MutationObserver).
  * Same-root reconnect, cross-root migration while the element stays
@@ -298,53 +300,53 @@ export function observeRoot(root: Document | ShadowRoot): void {
  *   immediately) or a `Signal<Element | null>` / `Computed<Element | null>`
  *   (subscribed; the watch follows the current value, swapping when the
  *   target signal updates).
- * @param fn — Runs each time `target` connects. Its return value is exposed
- *   via the returned `Computed`.
+ * @param fn — Runs each time `target` connects. Optionally returns a
+ *   disposer that runs on disconnect.
  * @param opts.once — When `true`, `fn` runs once per element (not on every
  *   reconnection). With a reactive target, "once" means once per element —
  *   `fn` runs again if the target signal swaps in a different element.
  *
  * @example
- * Resolve context after the consumer is in the DOM:
+ * Imperative side effect with cleanup:
  * ```tsx
- * const elRef = signal<HTMLElement | null>(null);
- * const theme = onMount(
- *   elRef,
- *   (el) => getContext<Signal<"light" | "dark">>(el, THEME),
- *   { once: true },
- * );
- * return <div ref={(el) => elRef(el)}>…</div>;
+ * onMount(elRef, (el) => {
+ *   const io = new IntersectionObserver((entries) => {});
+ *   io.observe(el);
+ *   return () => io.disconnect();
+ * });
  * ```
  *
  * @example
- * Imperative side effect; ignore the return value:
- * ```ts
- * onMount(elRef, (el) => {
- *   const io = new IntersectionObserver(/* … *\/);
- *   io.observe(el);
- *   onCleanup(() => io.disconnect());
- * });
+ * Reactive scope inside `fn` — wrap explicitly and return its disposer:
+ * ```tsx
+ * onMount(elRef, (el) => effectScope(() => {
+ *   effect(() => { el.dataset.theme = theme(); });
+ * }));
+ * ```
+ *
+ * @example
+ * One-shot setup:
+ * ```tsx
+ * onMount(elRef, (el) => el.focus(), { once: true });
  * ```
  */
-export function onMount<E extends Element, R>(
+export function onMount<E extends Element>(
   target: MaybeReactive<E | null>,
-  fn: (el: E) => R,
+  fn: (el: E) => void | Disposer,
   opts: { once?: boolean } = {},
-): Computed<R | undefined> {
-  const result = signal<R | undefined>(undefined);
+): void {
   const entry: Entry = {
     el: null,
     root: null,
-    fn: fn as (el: Element) => unknown,
+    fn: fn as MountFn,
     once: opts.once ?? false,
-    result: result as Signal<unknown>,
     connected: false,
     fired: false,
   };
 
   if (isReactive(target)) {
     effect(() => {
-      const el = (target as Computed<E | null>)();
+      const el = (target as () => E | null)();
       if (el === entry.el) return;
       detach(entry);
       if (el) attach(entry, el);
@@ -354,6 +356,4 @@ export function onMount<E extends Element, R>(
   }
 
   onCleanup(() => detach(entry));
-
-  return result;
 }

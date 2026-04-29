@@ -51,7 +51,7 @@ Utilities are pre-built factories that wrap common browser APIs in signals — s
 | `setContext` | `utilities/context` | `void` |
 | `getContext` | `utilities/context` | `T \| undefined` |
 | `useContext` | `utilities/context` | `Computed<T \| undefined>` |
-| `onMount` | `utilities/on-mount` | `Computed<R \| undefined>` |
+| `onMount` | `utilities/on-mount` | `void` |
 | `observeRoot` | `utilities/on-mount` | `void` |
 
 ---
@@ -873,24 +873,34 @@ function FocusOnMount() {
 }
 ```
 
-`target` accepts a static `Element` or a `Signal<Element | null>` / `Computed<Element | null>` — when reactive, the watch swaps with the current value. `fn`'s return value is exposed via the returned `Computed<R | undefined>`, so `onMount` doubles as a "produce a mount-only value" primitive (this is what [`useContext`](#usecontext) builds on). Cleanup for resources allocated inside `fn` goes through `onCleanup`:
+`target` accepts a static `Element` or a `Signal<Element | null>` / `Computed<Element | null>` — when reactive, the watch swaps with the current value. `fn` may **return a disposer** that runs on each disconnect (and on full teardown of the surrounding scope):
 
 ```tsx
 onMount(elRef, (el) => {
-  const io = new IntersectionObserver(/* … */);
+  const io = new IntersectionObserver((entries) => {});
   io.observe(el);
-  onCleanup(() => io.disconnect());
+  return () => io.disconnect();
 });
+```
+
+`fn` runs **outside** any internal effect scope. `onCleanup` calls inside `fn` are no-ops. To bind reactive lifetime to mount, wrap explicitly and return the disposer:
+
+```tsx
+import { effectScope, effect } from "elements-kit/signals";
+
+onMount(elRef, (el) => effectScope(() => {
+  effect(() => { el.dataset.theme = theme(); });
+}));
 ```
 
 By default `fn` re-runs on every reconnection (item moves in `<For>`, portal moves between parents). Pass `{ once: true }` to fire at most once per element.
 
 ```ts
-function onMount<E extends Element, R>(
+function onMount<E extends Element>(
   target: MaybeReactive<E | null>,
-  fn: (el: E) => R,
+  fn: (el: E) => void | (() => void),
   opts?: { once?: boolean },
-): Computed<R | undefined>
+): void
 ```
 
 ### observeRoot
