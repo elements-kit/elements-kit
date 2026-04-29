@@ -34,6 +34,10 @@ const observers = new WeakMap<Root, MutationObserver>();
 // second `onMount` registers on the same element. Saves one allocation
 // per registration in the common path.
 const elementIndex = new WeakMap<Element, Entry | Set<Entry>>();
+// Closed shadow roots opted in via `observeRoot`. `el.shadowRoot` returns
+// `null` for closed mode, so the composed-tree walk consults this registry
+// as a fallback to descend into closed shadows owners explicitly registered.
+const closedShadowsByHost = new WeakMap<Element, ShadowRoot>();
 // Lets us skip the post-disconnect microtask kicker when no cross-root
 // reconnect is possible.
 let hasObservedShadow = false;
@@ -157,12 +161,25 @@ function walkSubtree(node: Node, isAdded: boolean): void {
   if (!(node instanceof Element)) return;
   if (isAdded) reactToAdded(node);
   else reactToRemoved(node);
-  // Manual recursion — no TreeWalker allocation. Same big-O, smaller
-  // constant. Most leaf nodes early-out at the first sibling check.
+  // Light-DOM children: standard recursion. Most leaf nodes early-out at
+  // the first sibling check — no TreeWalker allocation.
   let child = node.firstElementChild;
   while (child) {
     walkSubtree(child, isAdded);
     child = child.nextElementSibling;
+  }
+  // Composed-tree descent: when a host is added/removed from its parent
+  // tree, descendants inside its shadow root also (dis)connect — the
+  // shadow's own MO won't fire because the mutation happened outside it.
+  // Open shadows expose `node.shadowRoot`; closed ones are reachable only
+  // when the owner opted in via `observeRoot(closedRoot)`.
+  const shadow = node.shadowRoot ?? closedShadowsByHost.get(node);
+  if (shadow) {
+    let s = shadow.firstElementChild;
+    while (s) {
+      walkSubtree(s, isAdded);
+      s = s.nextElementSibling;
+    }
   }
 }
 
@@ -234,6 +251,12 @@ function handleRemoved(entry: Entry): void {
  */
 export function observeRoot(root: Document | ShadowRoot): void {
   ensureObserver(root);
+  // Stash closed-shadow roots by host so `walkSubtree`'s composed-tree
+  // descent can reach into them. Open shadow roots are read directly via
+  // `host.shadowRoot`; the registry entry would be redundant but harmless.
+  if (root instanceof ShadowRoot) {
+    closedShadowsByHost.set(root.host, root);
+  }
 }
 
 /**

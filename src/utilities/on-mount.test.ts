@@ -334,6 +334,275 @@ describe("onMount", () => {
   });
 });
 
+describe("nested shadow DOM", () => {
+  // Document → outerHost → outerShadow → innerHost → innerShadow → leaf
+  function buildNested() {
+    const outerHost = document.createElement("section");
+    const outerShadow = outerHost.attachShadow({ mode: "open" });
+    const innerHost = document.createElement("article");
+    outerShadow.appendChild(innerHost);
+    const innerShadow = innerHost.attachShadow({ mode: "open" });
+    const leaf = document.createElement("span");
+    innerShadow.appendChild(leaf);
+    return { outerHost, outerShadow, innerHost, innerShadow, leaf };
+  }
+
+  it("fires for an element nested two shadow roots deep", async () => {
+    const { outerHost, leaf } = buildNested();
+    const seen = vi.fn();
+
+    effectScope(() => {
+      onMount(leaf, (el) => seen(el));
+    });
+
+    document.body.appendChild(outerHost);
+    await flushMO();
+
+    expect(seen).toHaveBeenCalledTimes(1);
+    expect(seen).toHaveBeenCalledWith(leaf);
+  });
+
+  it("disconnect via outer host removal fires runDisconnect on the deeply-nested leaf", async () => {
+    const { outerHost, leaf } = buildNested();
+    document.body.appendChild(outerHost);
+
+    const teardown = vi.fn();
+    effectScope(() => {
+      onMount(leaf, () => {
+        onCleanup(teardown);
+      });
+    });
+    await flushMO();
+    expect(teardown).not.toHaveBeenCalled();
+
+    // Remove the OUTER host. leaf is two shadow boundaries below — its
+    // own shadow MO doesn't fire. The composed-tree walk in walkSubtree
+    // descends through node.shadowRoot to catch this.
+    outerHost.remove();
+    await flushMO();
+    expect(teardown).toHaveBeenCalledTimes(1);
+  });
+
+  it("re-fires on reconnect after outer-host removal/reattach", async () => {
+    const { outerHost, leaf } = buildNested();
+    document.body.appendChild(outerHost);
+
+    const seen = vi.fn();
+    effectScope(() => {
+      onMount(leaf, () => seen());
+    });
+    await flushMO();
+    expect(seen).toHaveBeenCalledTimes(1);
+
+    outerHost.remove();
+    await flushMO();
+    document.body.appendChild(outerHost);
+    await flushMO();
+
+    expect(seen).toHaveBeenCalledTimes(2);
+  });
+
+  it("getContext walks across nested shadow boundaries", async () => {
+    const { outerHost, leaf } = buildNested();
+    document.body.appendChild(outerHost);
+
+    // Provider on the outer host (light DOM).
+    const { setContext, getContext } = await import("./context.ts");
+    effectScope(() => {
+      setContext(outerHost, "k", "from-outer");
+    });
+
+    // Consumer two shadow boundaries below.
+    expect(getContext<string>(leaf, "k")).toBe("from-outer");
+  });
+
+  it("function component pattern: shadow created in JSX, host removed mid-lifetime", async () => {
+    // Mimics what `render` would do: a function component creates its own
+    // shadow root, registers onMount inside, returns the host. Later code
+    // removes the host from the document.
+    const teardown = vi.fn();
+
+    const stop = effectScope(() => {
+      const host = document.createElement("div");
+      const shadow = host.attachShadow({ mode: "open" });
+      const inner = document.createElement("p");
+      shadow.appendChild(inner);
+      onMount(inner, () => {
+        onCleanup(teardown);
+      });
+      document.body.appendChild(host);
+    });
+
+    await flushMO();
+    expect(teardown).not.toHaveBeenCalled();
+
+    // Outside code yanks the host. With the composed-tree walk, doc's MO
+    // walks into host.shadowRoot and disconnects the inner entry.
+    document.body.firstElementChild!.remove();
+    await flushMO();
+
+    expect(teardown).toHaveBeenCalledTimes(1);
+    stop();
+  });
+});
+
+describe("closed shadow DOM (opt-in via observeRoot)", () => {
+  it("fires nested onMount when the closed root is registered via observeRoot", async () => {
+    const host = document.createElement("div");
+    const closed = host.attachShadow({ mode: "closed" });
+    const inner = document.createElement("span");
+    closed.appendChild(inner);
+
+    // Owner explicitly opts the closed shadow in.
+    observeRoot(closed);
+
+    const seen = vi.fn();
+    effectScope(() => {
+      onMount(inner, () => seen());
+    });
+
+    document.body.appendChild(host);
+    await flushMO();
+
+    expect(seen).toHaveBeenCalledTimes(1);
+  });
+
+  it("disconnect via host removal fires runDisconnect for closed-shadow content", async () => {
+    const host = document.createElement("div");
+    const closed = host.attachShadow({ mode: "closed" });
+    const inner = document.createElement("span");
+    closed.appendChild(inner);
+
+    observeRoot(closed);
+
+    const teardown = vi.fn();
+    effectScope(() => {
+      onMount(inner, () => {
+        onCleanup(teardown);
+      });
+    });
+
+    document.body.appendChild(host);
+    await flushMO();
+
+    host.remove();
+    await flushMO();
+
+    expect(teardown).toHaveBeenCalledTimes(1);
+  });
+
+  it("without observeRoot, host (dis)connect events are missed for closed-shadow content", async () => {
+    // Document the platform-contract gap: a closed shadow root can host
+    // an MO on itself (we can register on its descendants), but mutations
+    // that happen *outside* it — like the host being attached to the doc
+    // — are silent because doc's composed-tree walk cannot descend into
+    // closed shadows without `observeRoot`.
+    const host = document.createElement("div");
+    const closed = host.attachShadow({ mode: "closed" });
+    const inner = document.createElement("span");
+    closed.appendChild(inner);
+
+    const seen = vi.fn();
+    effectScope(() => {
+      onMount(inner, () => seen());
+    });
+
+    document.body.appendChild(host);
+    await flushMO();
+
+    // No fire — the MO on the closed shadow only sees changes within its
+    // own tree; the host's parent change is invisible to it.
+    expect(seen).toHaveBeenCalledTimes(0);
+  });
+});
+
+describe("slotted children (light DOM)", () => {
+  it("slotted child stays in light DOM — host removal disconnects it via doc MO", async () => {
+    // Custom-element-style host with a shadow that projects via <slot>.
+    const host = document.createElement("div");
+    const shadow = host.attachShadow({ mode: "open" });
+    shadow.appendChild(document.createElement("slot"));
+
+    const slotted = document.createElement("p");
+    host.appendChild(slotted);
+    document.body.appendChild(host);
+
+    const teardown = vi.fn();
+    effectScope(() => {
+      onMount(slotted, () => {
+        onCleanup(teardown);
+      });
+    });
+    await flushMO();
+    expect(teardown).not.toHaveBeenCalled();
+
+    // Slotted content lives in the host's light DOM (its `getRootNode()` is
+    // document, not the shadow). Doc's MO sees the host removal, walks its
+    // light children, finds slotted → runDisconnect.
+    host.remove();
+    await flushMO();
+    expect(teardown).toHaveBeenCalledTimes(1);
+  });
+
+  it("slotted child fires onMount when the host is appended", async () => {
+    const host = document.createElement("div");
+    const shadow = host.attachShadow({ mode: "open" });
+    shadow.appendChild(document.createElement("slot"));
+
+    const slotted = document.createElement("p");
+    host.appendChild(slotted);
+
+    const seen = vi.fn();
+    effectScope(() => {
+      onMount(slotted, () => seen());
+    });
+
+    document.body.appendChild(host);
+    await flushMO();
+    expect(seen).toHaveBeenCalledTimes(1);
+  });
+
+  it("re-slotted to a different host re-runs the connection cycle", async () => {
+    const hostA = document.createElement("div");
+    hostA.attachShadow({ mode: "open" }).appendChild(
+      document.createElement("slot"),
+    );
+    const hostB = document.createElement("div");
+    hostB.attachShadow({ mode: "open" }).appendChild(
+      document.createElement("slot"),
+    );
+    document.body.append(hostA, hostB);
+
+    const slotted = document.createElement("p");
+    hostA.appendChild(slotted);
+
+    const seen = vi.fn();
+    effectScope(() => {
+      onMount(slotted, () => seen());
+    });
+    await flushMO();
+    expect(seen).toHaveBeenCalledTimes(1);
+
+    // Move slotted from hostA → hostB. It stays connected; this is a same-
+    // root migration in light DOM. No re-fire (no transition).
+    hostB.appendChild(slotted);
+    await flushMO();
+    expect(seen).toHaveBeenCalledTimes(1);
+
+    // Now disconnect via hostB removal — should fire runDisconnect.
+    const teardown = vi.fn();
+    effectScope(() => {
+      onMount(hostB.firstElementChild!, () => {
+        onCleanup(teardown);
+      });
+    });
+    await flushMO();
+    hostB.remove();
+    await flushMO();
+    expect(teardown).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("observeRoot", () => {
   it("makes a previously-unobserved shadow root catch async orphan reattach", async () => {
     const host = document.createElement("section");
