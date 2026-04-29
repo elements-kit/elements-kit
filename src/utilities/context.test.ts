@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { effect, effectScope, signal } from "@/signals/index.ts";
-import { getContext, setContext } from "./context.ts";
+import { getContext, setContext, useContext } from "./context.ts";
+
+async function flushMO() {
+  await new Promise((r) => setTimeout(r, 0));
+  await Promise.resolve();
+}
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -141,6 +146,98 @@ describe("context", () => {
   it("returns undefined for an orphan element not in any tree", () => {
     const orphan = document.createElement("div");
     expect(getContext(orphan, "k")).toBeUndefined();
+  });
+
+  describe("useContext", () => {
+    it("resolves the context value once the consumer connects", async () => {
+      const host = document.createElement("section");
+      document.body.appendChild(host);
+
+      effectScope(() => {
+        setContext(host, "k", "value");
+      });
+
+      const elRef = signal<HTMLElement | null>(null);
+      let observed: string | undefined;
+
+      const stop = effectScope(() => {
+        const v = useContext<string>(elRef, "k");
+        effect(() => {
+          observed = v();
+        });
+      });
+
+      expect(observed).toBeUndefined();
+
+      const consumer = document.createElement("span");
+      host.appendChild(consumer);
+      elRef(consumer);
+      await flushMO();
+
+      expect(observed).toBe("value");
+      stop();
+    });
+
+    it("crosses an open shadow root", async () => {
+      const provider = document.createElement("section");
+      const shadow = provider.attachShadow({ mode: "open" });
+      document.body.appendChild(provider);
+
+      effectScope(() => {
+        setContext(provider, "k", "from-host");
+      });
+
+      const elRef = signal<HTMLElement | null>(null);
+      let observed: string | undefined;
+
+      const stop = effectScope(() => {
+        const v = useContext<string>(elRef, "k");
+        effect(() => {
+          observed = v();
+        });
+      });
+
+      const consumer = document.createElement("span");
+      shadow.appendChild(consumer);
+      elRef(consumer);
+      await flushMO();
+
+      expect(observed).toBe("from-host");
+      stop();
+    });
+
+    it("auto-flattens a Signal-valued context", async () => {
+      const host = document.createElement("section");
+      document.body.appendChild(host);
+
+      const value = signal<"light" | "dark">("light");
+
+      effectScope(() => {
+        setContext(host, "theme", value);
+      });
+
+      const elRef = signal<HTMLElement | null>(null);
+      let observed: "light" | "dark" | undefined;
+
+      const stop = effectScope(() => {
+        const theme = useContext<"light" | "dark">(elRef, "theme", {
+          once: true,
+        });
+        effect(() => {
+          observed = theme();
+        });
+      });
+
+      const consumer = document.createElement("span");
+      host.appendChild(consumer);
+      elRef(consumer);
+      await flushMO();
+      expect(observed).toBe("light");
+
+      value("dark");
+      expect(observed).toBe("dark");
+      stop();
+    });
   });
 
   it("two providers with different keys in the same subtree both resolve", () => {

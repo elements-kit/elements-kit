@@ -1,4 +1,13 @@
-import { onCleanup, signal, type Signal } from "@/signals/index.ts";
+import {
+  computed,
+  onCleanup,
+  resolve,
+  signal,
+  type Computed,
+  type MaybeReactive,
+  type Signal,
+} from "@/signals/index.ts";
+import { onMount } from "./on-mount.ts";
 
 const registry = new WeakMap<EventTarget, Map<PropertyKey, unknown>>();
 const versions = new Map<PropertyKey, Signal<number>>();
@@ -76,9 +85,28 @@ export function setContext<H extends EventTarget | null, T>(
  * reactivity.
  *
  * @example
+ * Inside a custom element's `connectedCallback`:
  * ```ts
  * const theme = getContext<() => "light" | "dark">(this, THEME);
  * effect(() => { this.dataset.theme = theme?.() ?? "light"; });
+ * ```
+ *
+ * @example
+ * From a JSX component — defer the lookup with `onMount`, since `ref` runs
+ * before the element is inserted:
+ * ```tsx
+ * import { signal, type Signal } from "elements-kit/signals";
+ * import { onMount } from "elements-kit/utilities/on-mount";
+ *
+ * function ThemeConsumer() {
+ *   const elRef = signal<HTMLElement | null>(null);
+ *   const theme = onMount(
+ *     elRef,
+ *     (el) => getContext<Signal<"light" | "dark">>(el, THEME),
+ *     { once: true },
+ *   );
+ *   return <div ref={(el) => elRef(el)}>{() => theme()?.() ?? "light"}</div>;
+ * }
  * ```
  */
 export function getContext<T>(
@@ -99,4 +127,45 @@ export function getContext<T>(
     node = root instanceof ShadowRoot ? root.host : null;
   }
   return undefined;
+}
+
+/**
+ * High-level JSX-friendly context lookup. Composes {@link onMount} and
+ * {@link getContext}: waits until `target` is connected, walks ancestors for
+ * `key`, and auto-flattens the result if the registered value is a
+ * `Signal`/`Computed`. The returned `Computed<T | undefined>` is `undefined`
+ * until the consumer is connected.
+ *
+ * Use this when consuming context from a component body — it removes the
+ * `ref` / `onMount` / double-call boilerplate. For synchronous lookups inside
+ * a `connectedCallback` or event handler where the element is already
+ * connected and the registered value is known to be a plain value, prefer
+ * {@link getContext} directly.
+ *
+ * @example
+ * ```tsx
+ * import { signal } from "elements-kit/signals";
+ * import { useContext } from "elements-kit/utilities/context";
+ *
+ * function ThemeConsumer() {
+ *   const elRef = signal<HTMLElement | null>(null);
+ *   const theme = useContext<"light" | "dark">(elRef, THEME, { once: true });
+ *   return <div ref={(el) => elRef(el)}>{() => theme() ?? "light"}</div>;
+ * }
+ * ```
+ */
+export function useContext<T>(
+  target: MaybeReactive<Element | null>,
+  key: PropertyKey,
+  opts?: { once?: boolean },
+): Computed<T | undefined> {
+  const raw = onMount(
+    target,
+    (el) => getContext<MaybeReactive<T>>(el, key),
+    opts,
+  );
+  return computed(() => {
+    const v = raw();
+    return v === undefined ? undefined : resolve(v);
+  });
 }

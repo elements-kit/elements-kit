@@ -48,6 +48,7 @@ Core primitives (signal, computed, effect, onCleanup, trigger, batch, untracked)
     ├── context.ts
     ├── debounced.ts
     ├── interval.ts
+    ├── on-mount.ts
     ├── previous.ts
     ├── retry.ts
     ├── routing.ts
@@ -195,8 +196,32 @@ DOM-tree dependency injection. Provider registers a value on a host element; des
 |--------|--------|-------------|
 | **context** | `setContext(host, key, value)` | Register `value` on `host`. Auto-removed via `onCleanup` when the surrounding scope disposes. Must run inside an `effect` / `effectScope` / wrapped `connectedCallback`. |
 | **context** | `getContext<T>(consumer, key)` | One-shot ancestor walk. Returns the first registered value for `key`, or `undefined`. Does not subscribe — reactivity is the caller's responsibility (read the returned `Signal` inside an `effect`). |
+| **context** | `useContext<T>(target, key, opts?)` | High-level JSX-friendly form. Composes [`onMount`](#on-mount) + `getContext` and **auto-flattens** if the registered value is a `Signal`/`Computed`. Returns `Computed<T \| undefined>` — `undefined` until `target` connects. |
 
-`getContext` requires the consumer to be in the DOM tree at call time. Safe inside `connectedCallback`, event handlers, or post-mount effects — **not** synchronously inside a JSX `ref` callback (ref runs before parent insertion).
+`getContext` requires the consumer to be in the DOM tree at call time. Safe inside `connectedCallback`, event handlers, or [`onMount`](#on-mount). JSX `ref` runs *before* parent insertion, so a synchronous `getContext` there returns `undefined` — defer with `onMount`:
+
+```tsx
+import { signal } from "elements-kit/signals";
+import { onMount } from "elements-kit/utilities/on-mount";
+import { getContext } from "elements-kit/utilities/context";
+
+const elRef = signal<HTMLElement | null>(null);
+const theme = onMount(elRef, (el) => getContext(el, THEME), { once: true });
+return <div ref={(el) => elRef(el)}>…</div>;
+```
+
+---
+
+## On-mount {#on-mount}
+
+Run a callback once an element is connected to the DOM, and re-run on every (re)connection. Useful when a `ref` callback is too early — e.g. resolving `getContext`, measuring layout, or attaching observers that need a connected ancestor.
+
+| Module | Export | Description |
+|--------|--------|-------------|
+| **on-mount** | `onMount(target, fn, opts?)` | Calls `fn(el)` after `target` joins the DOM. `target` is `MaybeReactive<Element \| null>` — pass a `signal` and assign via `ref={(el) => sig(el)}`. Returns `Computed<R \| undefined>` carrying `fn`'s return value (`undefined` until first connection). Cleanup goes through `onCleanup` from inside `fn`. With `{ once: true }`, `fn` runs once per element. |
+| **on-mount** | `observeRoot(root)` | Pre-registers a `MutationObserver` on `root` (a `Document` or open `ShadowRoot`). Use this when you intend to portal an element into a shadow root that no other `onMount` registration has touched — without it, async cross-root reattach can be missed. Fire-and-forget; no teardown needed. |
+
+Lazy: each root's `MutationObserver` is instantiated on first call. `onMount` registers an `onCleanup` in the surrounding scope, so the per-entry registration unrolls automatically when that scope disposes — outside any scope, it leaks (same contract as `setContext`). The observers themselves persist for the root's lifetime (one per `Document` or `ShadowRoot`).
 
 ---
 
