@@ -41,6 +41,10 @@ const closedShadowsByHost = new WeakMap<Element, ShadowRoot>();
 // Lets us skip the post-disconnect microtask kicker when no cross-root
 // reconnect is possible.
 let hasObservedShadow = false;
+// Set when a closed shadow has been opted in via `observeRoot`. While
+// false, `walkSubtree` skips the `closedShadowsByHost.get(node)` lookup —
+// saves one WeakMap.get per walked element in shadow-free apps.
+let hasClosedShadow = false;
 
 function rootOf(el: Element): Root {
   const r = el.getRootNode();
@@ -158,12 +162,15 @@ function flush(records: MutationRecord[]): void {
 }
 
 function walkSubtree(node: Node, isAdded: boolean): void {
-  if (!(node instanceof Element)) return;
-  if (isAdded) reactToAdded(node);
-  else reactToRemoved(node);
+  // `nodeType === 1` is the Element node type — cheaper than `instanceof`
+  // in the tight per-record loop.
+  if (node.nodeType !== 1) return;
+  const el = node as Element;
+  if (isAdded) reactToAdded(el);
+  else reactToRemoved(el);
   // Light-DOM children: standard recursion. Most leaf nodes early-out at
   // the first sibling check — no TreeWalker allocation.
-  let child = node.firstElementChild;
+  let child = el.firstElementChild;
   while (child) {
     walkSubtree(child, isAdded);
     child = child.nextElementSibling;
@@ -171,9 +178,15 @@ function walkSubtree(node: Node, isAdded: boolean): void {
   // Composed-tree descent: when a host is added/removed from its parent
   // tree, descendants inside its shadow root also (dis)connect — the
   // shadow's own MO won't fire because the mutation happened outside it.
-  // Open shadows expose `node.shadowRoot`; closed ones are reachable only
+  // Open shadows expose `el.shadowRoot`; closed ones are reachable only
   // when the owner opted in via `observeRoot(closedRoot)`.
-  const shadow = node.shadowRoot ?? closedShadowsByHost.get(node);
+  //
+  // Outer guard: skip both lookups entirely when no shadow root has been
+  // seen anywhere in the app. This is the common case and saves one
+  // accessor + one WeakMap.get per walked element.
+  if (!hasObservedShadow && !hasClosedShadow) return;
+  const shadow =
+    el.shadowRoot ?? (hasClosedShadow ? closedShadowsByHost.get(el) : null);
   if (shadow) {
     let s = shadow.firstElementChild;
     while (s) {
@@ -256,6 +269,7 @@ export function observeRoot(root: Document | ShadowRoot): void {
   // `host.shadowRoot`; the registry entry would be redundant but harmless.
   if (root instanceof ShadowRoot) {
     closedShadowsByHost.set(root.host, root);
+    hasClosedShadow = true;
   }
 }
 
