@@ -29,10 +29,11 @@ interface Entry {
 // ─ Registry ───────────────────────────────────────────────────────────────
 
 const observers = new WeakMap<Root, MutationObserver>();
-// Element → entries watching it. Lookup is O(1) per element regardless of
-// how many entries are alive elsewhere. Multiple `onMount` calls on the
-// same element produce multiple entries on the same Set.
-const elementIndex = new WeakMap<Element, Set<Entry>>();
+// Element → entries watching it. Stores a single `Entry` directly for the
+// common one-watcher-per-element case; promotes to a `Set` only when a
+// second `onMount` registers on the same element. Saves one allocation
+// per registration in the common path.
+const elementIndex = new WeakMap<Element, Entry | Set<Entry>>();
 // Lets us skip the post-disconnect microtask kicker when no cross-root
 // reconnect is possible.
 let hasObservedShadow = false;
@@ -51,16 +52,29 @@ function ensureObserver(root: Root): void {
 }
 
 function indexAdd(el: Element, entry: Entry): void {
-  let s = elementIndex.get(el);
-  if (!s) elementIndex.set(el, (s = new Set()));
-  s.add(entry);
+  const found = elementIndex.get(el);
+  if (found === undefined) {
+    elementIndex.set(el, entry);
+  } else if (found instanceof Set) {
+    found.add(entry);
+  } else if (found !== entry) {
+    // Promote single → Set on second registration.
+    const s = new Set<Entry>();
+    s.add(found);
+    s.add(entry);
+    elementIndex.set(el, s);
+  }
 }
 
 function indexRemove(el: Element, entry: Entry): void {
-  const s = elementIndex.get(el);
-  if (!s) return;
-  s.delete(entry);
-  if (s.size === 0) elementIndex.delete(el);
+  const found = elementIndex.get(el);
+  if (found === undefined) return;
+  if (found === entry) {
+    elementIndex.delete(el);
+  } else if (found instanceof Set) {
+    found.delete(entry);
+    if (found.size === 0) elementIndex.delete(el);
+  }
 }
 
 // ─ Lifecycle ──────────────────────────────────────────────────────────────
@@ -82,6 +96,13 @@ function runDisconnect(entry: Entry): void {
   entry.innerDispose?.();
   entry.innerDispose = undefined;
   entry.connected = false;
+  // Terminal: a `{ once: true }` entry that has fired won't fire again, and
+  // cleanup just ran. Drop it from the lookup so future flushes don't pay
+  // hash + iteration cost on it. `detach` still tears down the rest.
+  if (entry.once && entry.fired && entry.el) {
+    indexRemove(entry.el, entry);
+    return;
+  }
   if (hasObservedShadow && entry.el) scheduleOrphanKick(entry);
 }
 
@@ -136,46 +157,55 @@ function walkSubtree(node: Node, isAdded: boolean): void {
   if (!(node instanceof Element)) return;
   if (isAdded) reactToAdded(node);
   else reactToRemoved(node);
-  // Leaf fast path — most additions/removals are single elements without
-  // children. Skipping the TreeWalker allocation saves a real chunk of
-  // time when many leaf nodes are added in one batch.
-  if (!node.firstElementChild) return;
-  const w = document.createTreeWalker(node, NodeFilter.SHOW_ELEMENT);
-  let n: Node | null;
-  while ((n = w.nextNode())) {
-    if (isAdded) reactToAdded(n as Element);
-    else reactToRemoved(n as Element);
+  // Manual recursion — no TreeWalker allocation. Same big-O, smaller
+  // constant. Most leaf nodes early-out at the first sibling check.
+  let child = node.firstElementChild;
+  while (child) {
+    walkSubtree(child, isAdded);
+    child = child.nextElementSibling;
   }
 }
 
 function reactToAdded(el: Element): void {
-  const entries = elementIndex.get(el);
-  if (!entries) return;
-  for (const entry of entries) {
-    if (!entry.el?.isConnected) continue;
-    const newRoot = rootOf(entry.el);
-    if (entry.root !== newRoot) {
-      ensureObserver(newRoot);
-      entry.root = newRoot;
-    }
-    if (!entry.connected) runConnect(entry);
+  const found = elementIndex.get(el);
+  if (found === undefined) return;
+  if (found instanceof Set) {
+    for (const entry of found) handleAdded(entry);
+  } else {
+    handleAdded(found);
   }
 }
 
+function handleAdded(entry: Entry): void {
+  if (!entry.el?.isConnected) return;
+  const newRoot = rootOf(entry.el);
+  if (entry.root !== newRoot) {
+    ensureObserver(newRoot);
+    entry.root = newRoot;
+  }
+  if (!entry.connected) runConnect(entry);
+}
+
 function reactToRemoved(el: Element): void {
-  const entries = elementIndex.get(el);
-  if (!entries) return;
-  for (const entry of entries) {
-    if (entry.el?.isConnected) {
-      // Element migrated to a different root rather than disconnected.
-      const newRoot = rootOf(entry.el);
-      if (newRoot !== entry.root) {
-        ensureObserver(newRoot);
-        entry.root = newRoot;
-      }
-    } else if (entry.connected) {
-      runDisconnect(entry);
+  const found = elementIndex.get(el);
+  if (found === undefined) return;
+  if (found instanceof Set) {
+    for (const entry of found) handleRemoved(entry);
+  } else {
+    handleRemoved(found);
+  }
+}
+
+function handleRemoved(entry: Entry): void {
+  if (entry.el?.isConnected) {
+    // Element migrated to a different root rather than disconnected.
+    const newRoot = rootOf(entry.el);
+    if (newRoot !== entry.root) {
+      ensureObserver(newRoot);
+      entry.root = newRoot;
     }
+  } else if (entry.connected) {
+    runDisconnect(entry);
   }
 }
 
