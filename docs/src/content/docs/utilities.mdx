@@ -50,9 +50,8 @@ Utilities are pre-built factories that wrap common browser APIs in signals — s
 | `sync` | `utilities/event-driven` | `[Computed<T> \| Signal<T>, () => void]` |
 | `setContext` | `utilities/context` | `void` |
 | `getContext` | `utilities/context` | `T \| undefined` |
-| `useContext` | `utilities/context` | `Computed<T \| undefined>` |
-| `onMount` | `utilities/on-mount` | `void` |
-| `observeRoot` | `utilities/on-mount` | `void` |
+| `<dom-lifecycle>` | `utilities/dom-lifecycle` | Custom element |
+| `DomLifecycleElement` | `utilities/dom-lifecycle` | `class` |
 
 ---
 
@@ -856,81 +855,80 @@ function createPrevious<T>(
 
 ---
 
-## On-mount
+## DOM lifecycle
 
-Run a callback once an element is connected to the DOM, and re-run on every (re)connection. Useful when a JSX `ref` callback fires too early — e.g. resolving `getContext`, measuring layout, attaching observers that need a connected ancestor. Composed-tree aware: shadow-DOM (dis)connect events propagate correctly through nested open shadow roots.
+Drop-in custom element. Place inside any element (or wrap children) to be notified when the surrounding subtree connects, disconnects, moves, or is adopted into another document. Built on the platform's own custom-element callbacks — no `MutationObserver`, no global registry. Useful when a JSX `ref` callback fires too early — e.g. resolving `getContext`, measuring layout, attaching observers that need a connected ancestor.
 
-### onMount
+Position-tracking callbacks (`onConnect`, `onDisconnect`, `onMove`) receive the **lifecycle element itself**. Read `self.parentElement` for the surrounding element, `self.firstElementChild` / `self.children` for wrapped content, or `self.getRootNode()` to walk through a shadow root. `self` is always non-null — even when the lifecycle element is the direct child of a `ShadowRoot` (where `parentElement` is `null`).
+
+**Render-inert by default**: `display: contents` removes its layout box so it doesn't affect the parent's layout, and `role="none"` strips its implicit a11y role. Children passed inside it participate in layout and a11y as if the wrapper weren't there. Caveat: structural CSS selectors (`:empty`, `:first-child`, `:nth-child`) still see the element in the DOM tree.
+
+### `<dom-lifecycle>`
 
 ```tsx
-import { signal } from "elements-kit/signals";
-import { onMount } from "elements-kit/utilities/on-mount";
+import "elements-kit/utilities/dom-lifecycle";
 
 function FocusOnMount() {
-  const elRef = signal<HTMLInputElement | null>(null);
-  onMount(elRef, (el) => el.focus(), { once: true });
-  return <input ref={(el) => elRef(el)} />;
+  return (
+    <div>
+      <dom-lifecycle
+        onConnect={(el) => (el.parentElement as HTMLElement | null)?.focus()}
+      />
+    </div>
+  );
 }
 ```
 
-`target` accepts a static `Element` or a `Signal<Element | null>` / `Computed<Element | null>` — when reactive, the watch swaps with the current value. `fn` may **return a disposer** that runs on each disconnect (and on full teardown of the surrounding scope):
+Wrap children — read the wrapped subtree through `self.firstElementChild`:
 
 ```tsx
-onMount(elRef, (el) => {
-  const io = new IntersectionObserver((entries) => {});
-  io.observe(el);
-  return () => io.disconnect();
-});
+<section>
+  <dom-lifecycle onConnect={(el) => measure(el.firstElementChild)}>
+    <h1>Title</h1>
+    <p>Body</p>
+  </dom-lifecycle>
+</section>
 ```
 
-`fn` runs **outside** any internal effect scope. `onCleanup` calls inside `fn` are no-ops. To bind reactive lifetime to mount, wrap explicitly and return the disposer:
+#### Callbacks
+
+| Callback | Mirrors | Argument | Fires on |
+|----------|---------|----------|----------|
+| `onConnect` | `connectedCallback` | `self: DomLifecycleElement` | every connection — `self.parentElement` is the surrounding element, `self.firstElementChild` is the wrapped content |
+| `onDisconnect` | `disconnectedCallback` | `self: DomLifecycleElement` | every disconnection — `self.parentElement` is `null` per spec; capture the parent inside `onConnect` if you need it on disconnect |
+| `onMove` | `connectedMoveCallback` | `self: DomLifecycleElement` | move via `Node.moveBefore()` (in browsers without that API, the disconnect+connect pair fires instead) |
+| `onAdopted` | `adoptedCallback` | `(oldDocument, newDocument)` | when the element is adopted into a new document |
 
 ```tsx
-import { effectScope, effect } from "elements-kit/signals";
-
-onMount(elRef, (el) => effectScope(() => {
-  effect(() => { el.dataset.theme = theme(); });
-}));
+<div>
+  <dom-lifecycle
+    onConnect={(el) => {
+      const io = new IntersectionObserver((entries) => {});
+      if (el.parentElement) io.observe(el.parentElement);
+    }}
+    onDisconnect={(el) => {
+      // pair cleanup with the resource you opened in onConnect
+      // el.parentElement is null here per spec
+    }}
+    onMove={(el) => {
+      // fires instead of disconnect+connect when moveBefore() is used
+    }}
+  />
+</div>
 ```
 
-By default `fn` re-runs on every reconnection (item moves in `<For>`, portal moves between parents). Pass `{ once: true }` to fire at most once per element.
+`onConnect` / `onDisconnect` re-fire on every (re)connection (item moves in `<For>`, portal moves between parents). The user removes the element themselves; it does not self-remove. To make a callback one-shot, set the property to `null` after the first fire.
 
 ```ts
-function onMount<E extends Element>(
-  target: MaybeReactive<E | null>,
-  fn: (el: E) => void | (() => void),
-  opts?: { once?: boolean },
-): void
-```
-
-### observeRoot
-
-Pre-registers a `MutationObserver` on a root so future `onMount` registrations there work without surprises. Two situations call for it:
-
-1. **Portals into a previously-untouched shadow root** — async reattach into a shadow tree no `onMount` has visited would otherwise be missed.
-2. **Closed shadow roots** — `node.shadowRoot` returns `null` from outside, so the composed-tree walk can't descend on its own. The owner of the closed shadow opts it in by passing the reference to `observeRoot`.
-
-```ts
-import { observeRoot } from "elements-kit/utilities/on-mount";
-
-class Widget extends HTMLElement {
-  #shadow = this.attachShadow({ mode: "closed" });
-  connectedCallback() {
-    observeRoot(this.#shadow);  // opt the closed root in
-    // …render into this.#shadow…
-  }
+class DomLifecycleElement extends HTMLElement {
+  onConnect: ((self: DomLifecycleElement) => void) | null;
+  onDisconnect: ((self: DomLifecycleElement) => void) | null;
+  onMove: ((self: DomLifecycleElement) => void) | null;
+  onAdopted: ((oldDocument: Document, newDocument: Document) => void) | null;
 }
 ```
 
-Fire-and-forget: call once during setup, no teardown needed. The observer is shared by every entry on that root and persists for the root's lifetime (one per `Document` or `ShadowRoot`).
-
-```ts
-function observeRoot(root: Document | ShadowRoot): void
-```
-
-:::caution[Closed shadow roots]
-Without `observeRoot`, a closed shadow root's content is unobservable from outside — outer-tree mutations (host append/remove) cannot descend into the closed tree. This is a platform contract, not a library limitation.
-:::
+Works inside open and closed shadow roots, after `cloneNode(true)`, after `innerHTML` upgrade, and under strict CSP — same guarantees the platform gives any custom element.
 
 ---
 
@@ -975,20 +973,23 @@ function setContext<T>(host: EventTarget, key: PropertyKey, value: T): void
 
 Walks up from `consumer` (across open shadow boundaries) and returns the first registered value for `key`, or `undefined`. One-shot — does not subscribe. Caller decides how to read the result (call signals inside an effect for reactive reads).
 
-The consumer must be in the DOM tree at call time. Inside a JSX `ref` callback the element has not yet been inserted, so a synchronous `getContext(el, …)` returns `undefined`. Use [`useContext`](#usecontext) — the JSX-friendly composer that defers the lookup to mount time and auto-flattens reactive values:
+The consumer must be in the DOM tree at call time. Inside a JSX `ref` callback the element has not yet been inserted, so a synchronous `getContext(el, …)` returns `undefined`. Defer the lookup to mount time with [`<dom-lifecycle>`](#dom-lifecycle):
 
 ```tsx
 import { signal } from "elements-kit/signals";
-import { useContext } from "elements-kit/utilities/context";
+import { getContext } from "elements-kit/utilities/context";
+import "elements-kit/utilities/dom-lifecycle";
 
 function ThemedButton() {
-  const elRef = signal<HTMLElement | null>(null);
-  const theme = useContext<"light" | "dark">(elRef, THEME);
+  const theme = signal<"light" | "dark" | undefined>(undefined);
   return (
-    <button
-      ref={(el) => elRef(el)}
-      data-theme={() => theme() ?? "light"}
-    >
+    <button data-theme={() => theme() ?? "light"}>
+      <dom-lifecycle
+        onConnect={(el) => {
+          const parent = el.parentElement;
+          if (parent) theme(getContext<"light" | "dark">(parent, THEME));
+        }}
+      />
       Click
     </button>
   );
@@ -1016,34 +1017,32 @@ function ThemedButton() {
 function getContext<T>(consumer: Element, key: PropertyKey): T | undefined
 ```
 
-### useContext
+### Consuming context from a component
 
-JSX-friendly composer over [`onMount`](#onmount) + `getContext`. Waits until `target` is connected, walks ancestors for `key`, and **auto-flattens** when the registered value is a `Signal` / `Computed` — the consumer reads the current value with a single call. Returns a `Computed<T | undefined>` that stays `undefined` until the consumer is connected.
-
-Use this from a component body where you'd otherwise reach for `getContext` inside a `ref`. For synchronous lookups inside `connectedCallback` (host already connected) prefer `getContext` directly.
+For a component body that needs `getContext` after connection, defer with [`<dom-lifecycle>`](#dom-lifecycle) — it's render-inert (zero layout box, no a11y role) and its `onConnect` fires once the consumer is in the tree:
 
 ```tsx
 import { signal } from "elements-kit/signals";
-import { useContext } from "elements-kit/utilities/context";
+import { getContext } from "elements-kit/utilities/context";
+import "elements-kit/utilities/dom-lifecycle";
 
 function ThemeBadge() {
-  const elRef = signal<HTMLElement | null>(null);
-  const theme = useContext<"light" | "dark">(elRef, THEME, { once: true });
+  const theme = signal<"light" | "dark" | undefined>(undefined);
   return (
-    <span ref={(el) => elRef(el)}>
+    <span>
+      <dom-lifecycle
+        onConnect={(el) => {
+          const parent = el.parentElement;
+          if (parent) theme(getContext<"light" | "dark">(parent, THEME));
+        }}
+      />
       {() => theme() ?? "light"}
     </span>
   );
 }
 ```
 
-```ts
-function useContext<T>(
-  target: MaybeReactive<Element | null>,
-  key: PropertyKey,
-  opts?: { once?: boolean },
-): Computed<T | undefined>
-```
+For a `Signal`/`Computed`-valued context that should drive reactivity, read the resolved signal inside an `effect`.
 
 ### Nesting
 
