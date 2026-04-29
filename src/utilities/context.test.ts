@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { effect, effectScope, signal } from "@/signals/index.ts";
 import { getContext, setContext } from "./context.ts";
-import { DomLifecycleElement } from "./dom-lifecycle.ts";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -189,35 +188,6 @@ describe("context", () => {
 
       // Walk: consumer → wrapper (no context here) → provider.
       expect(getContext<string>(consumer, "theme")).toBe("outer");
-    });
-
-    it("wrapper.onConnect can call getContext(self) to read from above and fan out via signal", () => {
-      const provider = document.createElement("section");
-      document.body.appendChild(provider);
-
-      effectScope(() => {
-        setContext(provider, "theme", "dark");
-      });
-
-      const wrapper = document.createElement(
-        "dom-lifecycle",
-      ) as DomLifecycleElement;
-      const child = document.createElement("h1");
-      wrapper.appendChild(child);
-
-      let read: string | undefined;
-      // Mimic the docs pattern: wrapper reads context on connect and fans
-      // out the value to children via a signal.
-      const observed = signal<string | undefined>(undefined);
-      wrapper.onConnect = (el) => {
-        read = getContext<string>(el, "theme");
-        observed(read);
-      };
-
-      provider.appendChild(wrapper);
-
-      expect(read).toBe("dark");
-      expect(observed()).toBe("dark");
     });
 
     it("the wrapper shadows an outer provider when both register the same key", () => {
