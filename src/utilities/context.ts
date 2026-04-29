@@ -94,10 +94,7 @@ export function setContext<H extends EventTarget | null, T>(
  *   return (
  *     <div>
  *       <dom-lifecycle
- *         onConnect={(el) => {
- *           const parent = el.parentElement;
- *           if (parent) theme(getContext(parent, THEME));
- *         }}
+ *         onConnect={(el) => theme(getContext(el, THEME))}
  *       />
  *       {() => theme()?.() ?? "light"}
  *     </div>

@@ -1029,10 +1029,7 @@ function ThemedButton() {
   return (
     <button data-theme={() => theme() ?? "light"}>
       <dom-lifecycle
-        onConnect={(el) => {
-          const parent = el.parentElement;
-          if (parent) theme(getContext<"light" | "dark">(parent, THEME));
-        }}
+        onConnect={(el) => theme(getContext<"light" | "dark">(el, THEME))}
       />
       Click
     </button>
@@ -1073,15 +1070,11 @@ import "elements-kit/utilities/dom-lifecycle";
 function ThemeBadge() {
   const theme = signal<"light" | "dark" | undefined>(undefined);
   return (
-    <span>
-      <dom-lifecycle
-        onConnect={(el) => {
-          const parent = el.parentElement;
-          if (parent) theme(getContext<"light" | "dark">(parent, THEME));
-        }}
-      />
-      {() => theme() ?? "light"}
-    </span>
+    <dom-lifecycle
+      onConnect={(el) => theme(getContext<"light" | "dark">(el, THEME))}
+    >
+      <span>{() => theme() ?? "light"}</span>
+    </dom-lifecycle>
   );
 }
 ```

@@ -1,3 +1,4 @@
+import { effectScope } from "@/signals/index.ts";
 import { isBrowser } from "./environment.ts";
 
 type LifecycleCallback = (self: DomLifecycleElement) => void;
@@ -21,6 +22,12 @@ type AdoptedCallback = (oldDocument: Document, newDocument: Document) => void;
  * If you need the connect-time parent inside `onDisconnect` (the spec sets
  * `parentElement` to `null` before `disconnectedCallback` runs), capture it
  * yourself in `onConnect`.
+ *
+ * `onConnect` runs inside an `effectScope`, so any `onCleanup` registered
+ * inside it (directly or via factories like `setContext`, `on`, observers,
+ * etc.) fires on disconnect — before `onDisconnect` is invoked. The scope
+ * persists across moves (`onMove`); a fresh scope is created on every
+ * reconnection.
  *
  * Layout / a11y inert by default: `display: contents` removes the box so the
  * element doesn't affect its parent's layout, and `role="none"` strips its
@@ -57,6 +64,7 @@ export class DomLifecycleElement extends HTMLElement {
   #onDisconnect: LifecycleCallback | null = null;
   #onMove: LifecycleCallback | null = null;
   #onAdopted: AdoptedCallback | null = null;
+  #disposeScope: (() => void) | null = null;
 
   constructor() {
     super();
@@ -94,16 +102,20 @@ export class DomLifecycleElement extends HTMLElement {
   }
 
   connectedCallback(): void {
-    this.#onConnect?.(this);
+    this.#disposeScope?.();
+    this.#disposeScope = effectScope(() => this.#onConnect?.(this));
   }
 
   disconnectedCallback(): void {
+    this.#disposeScope?.();
+    this.#disposeScope = null;
     this.#onDisconnect?.(this);
   }
 
   // Spec: `connectedMoveCallback` fires in place of disconnect+connect when
   // the element is repositioned via `Node.moveBefore()`. Browsers without
   // `moveBefore` will keep firing the disconnect+connect pair instead.
+  // Scope persists across move — move is not disconnect.
   connectedMoveCallback(): void {
     this.#onMove?.(this);
   }
