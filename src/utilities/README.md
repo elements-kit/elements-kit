@@ -255,6 +255,30 @@ Wrap children — read the wrapped subtree through `self.firstElementChild`:
 </section>
 ```
 
+Wrap children to consume context — call `getContext(self, …)` inside `onConnect`. The walk goes from the wrapper up through its ancestors, so any outer provider resolves; expose the result as a signal that wrapped children read:
+
+```tsx
+import { signal } from "elements-kit/signals";
+import { getContext } from "elements-kit/utilities/context";
+import "elements-kit/utilities/dom-lifecycle";
+
+const THEME = Symbol("theme");
+
+function ThemedSection() {
+  const theme = signal<string | undefined>(undefined);
+  return (
+    <dom-lifecycle onConnect={(el) => theme(getContext<string>(el, THEME))}>
+      <h1 data-theme={() => theme() ?? "default"}>Title</h1>
+      <p data-theme={() => theme() ?? "default"}>Body</p>
+    </dom-lifecycle>
+  );
+}
+```
+
+The wrapper sits transparently in the ancestor walk, so wrapped children can also call `getContext` directly on themselves and reach the same outer provider. Use `onConnect` when you need to fan the value out to multiple children via a single signal, or to read context once at mount. Verified in [context.test.ts](context.test.ts) under `with <dom-lifecycle> as wrapper`.
+
+`<dom-lifecycle>` only fires on its **own** (re)connection — it does **not** observe descendant mutations. To track per-child mount/unmount inside its subtree, nest a `<dom-lifecycle>` per child or use `createMutationObserver` (from `elements-kit/utilities/mutation-observer`) on `el` inside `onConnect`.
+
 Works inside open and closed shadow roots, after `cloneNode(true)`, and after `innerHTML` upgrade — same guarantees the platform gives any custom element. Strict CSP friendly (no inline `<script>`).
 
 ---
