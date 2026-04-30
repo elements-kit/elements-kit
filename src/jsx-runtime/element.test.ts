@@ -445,3 +445,37 @@ describe("event handlers", () => {
     expect(spy).not.toHaveBeenCalled();
   });
 });
+
+// ---------------------------------------------------------------------------
+// React-compat input defaults: `defaultValue` / `defaultChecked` map to IDL
+// properties (not the literal attribute name).
+// ---------------------------------------------------------------------------
+
+describe("input defaults", () => {
+  it("`defaultValue` sets the IDL property and mirrors to live value", () => {
+    const input = createElement("input", {
+      defaultValue: "hello",
+    }) as HTMLInputElement;
+    expect(input.defaultValue).toBe("hello");
+    expect(input.value).toBe("hello");
+    // Should NOT have a literal `defaultvalue` attribute.
+    expect(input.hasAttribute("defaultvalue")).toBe(false);
+  });
+
+  it("`defaultChecked` sets the IDL property and mirrors to live checked", () => {
+    const input = createElement("input", {
+      type: "checkbox",
+      defaultChecked: true,
+    }) as HTMLInputElement;
+    expect(input.defaultChecked).toBe(true);
+    expect(input.checked).toBe(true);
+  });
+
+  it("reactive `defaultValue` updates the IDL property when the source changes", () => {
+    const v = signal("first");
+    const input = createElement("input", { defaultValue: v }) as HTMLInputElement;
+    expect(input.defaultValue).toBe("first");
+    v("second");
+    expect(input.defaultValue).toBe("second");
+  });
+});

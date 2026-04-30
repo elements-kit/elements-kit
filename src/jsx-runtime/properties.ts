@@ -93,7 +93,7 @@ function setProp(node: PropsTarget, key: string, value: unknown): void {
     return;
   }
 
-  // ─ Properties: value, checked, selected, muted ───────────────────────────
+  // ─ Properties: value, checked, selected, muted, defaultValue, … ─────────
   if (!(node instanceof SVGElement) && Properties.has(key)) {
     (node as unknown as Record<string, unknown>)[key] = value;
     return;
