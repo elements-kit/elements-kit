@@ -15,8 +15,19 @@
     "html",
     "web"
   ],
-  "author": "@waelbettayeb",
+  "author": {
+    "name": "Wael Bettayeb",
+    "url": "https://x.com/waelbettayeb"
+  },
   "license": "MIT",
+  "homepage": "https://elements-kit.com/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/waelbettayeb/elements-kit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/waelbettayeb/elements-kit/issues"
+  },
   "main": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
   "files": [
