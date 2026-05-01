@@ -15,7 +15,7 @@ const siteDescription =
   "Universal reactive primitives for the web — signals, JSX, custom elements, and browser-API helpers.";
 
 export default defineConfig({
-  site: "https://elements-kit.quba.co",
+  site: "https://elements-kit.com",
   output: "server",
   adapter: cloudflare(),
   vite: {
@@ -129,23 +129,15 @@ export default defineConfig({
               name: "Wael Bettayeb",
               url: "https://github.com/waelbettayeb",
             },
-            url: "https://elements-kit.quba.co",
+            url: "https://elements-kit.com",
           }),
         },
       ],
 
-      social: [
-        {
-          icon: "github",
-          label: "GitHub",
-          href: "https://github.com/waelbettayeb/elements-kit",
-        },
-        {
-          icon: "x.com",
-          label: "X",
-          href: "https://x.com/ElementsKit",
-        },
-      ],
+      social: {
+        github: "https://github.com/waelbettayeb/elements-kit",
+        twitter: "https://x.com/ElementsKit",
+      },
       sidebar: [
         { label: "Introduction", slug: "index" },
         {

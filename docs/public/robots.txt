@@ -3,4 +3,4 @@ Allow: /
 
 Disallow: /api/
 
-Sitemap: https://elements-kit.quba.co/sitemap-index.xml
+Sitemap: https://elements-kit.com/sitemap-index.xml
