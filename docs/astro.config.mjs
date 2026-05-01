@@ -134,9 +134,18 @@ export default defineConfig({
         },
       ],
 
-      social: {
-        github: "https://github.com/waelbettayeb/elements-kit",
-      },
+      social: [
+        {
+          icon: "github",
+          label: "GitHub",
+          href: "https://github.com/waelbettayeb/elements-kit",
+        },
+        {
+          icon: "x.com",
+          label: "X",
+          href: "https://x.com/ElementsKit",
+        },
+      ],
       sidebar: [
         { label: "Introduction", slug: "index" },
         {
