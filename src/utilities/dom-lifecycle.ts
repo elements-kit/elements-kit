@@ -66,13 +66,6 @@ export class DomLifecycleElement extends HTMLElement {
   #onAdopted: AdoptedCallback | null = null;
   #disposeScope: (() => void) | null = null;
 
-  constructor() {
-    super();
-    // Render-inert: zero-box wrapper, no implicit a11y role.
-    this.style.display = "contents";
-    if (!this.hasAttribute("role")) this.setAttribute("role", "none");
-  }
-
   set onConnect(fn: LifecycleCallback | null) {
     this.#onConnect = fn;
   }
@@ -102,6 +95,8 @@ export class DomLifecycleElement extends HTMLElement {
   }
 
   connectedCallback(): void {
+    this.style.display = "contents";
+    if (!this.hasAttribute("role")) this.setAttribute("role", "none");
     this.#disposeScope?.();
     this.#disposeScope = effectScope(() => this.#onConnect?.(this));
   }
