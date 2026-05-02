@@ -95,10 +95,15 @@ export const ChildProperties: Set<string> = new Set([
   "children",
 ]);
 
-/** XML namespaces for SVG-namespaced attributes (`xlink:href`, `xml:lang`). */
-export const SVGNamespace: Record<string, string> = {
-  xlink: "http://www.w3.org/1999/xlink",
-  xml: "http://www.w3.org/XML/1998/namespace",
-};
+/**
+ * Returns the XML namespace URI for an SVG-namespaced attribute prefix
+ * (`xlink:href`, `xml:lang`). Inlined as a function to avoid a 2-entry object
+ * allocation and the property lookup on every attribute write.
+ */
+export function svgNamespace(ns: string): string | undefined {
+  if (ns === "xlink") return "http://www.w3.org/1999/xlink";
+  if (ns === "xml") return "http://www.w3.org/XML/1998/namespace";
+  return undefined;
+}
 
 export const ReservedNameSpaces = new Set(["class", "on", "style", "prop"]);

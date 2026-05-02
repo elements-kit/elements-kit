@@ -5,7 +5,7 @@ import {
   ChildProperties,
   Properties,
   ReservedNameSpaces,
-  SVGNamespace,
+  svgNamespace,
 } from "./constants";
 import { applyChildren, isChildrenProperty } from "./children";
 
@@ -74,7 +74,7 @@ function setProp(node: PropsTarget, key: string, value: unknown): void {
     }
 
     // SVG namespaced attributes (xlink:href, xml:lang, …)
-    const svgNs = (SVGNamespace as Record<string, string>)[ns];
+    const svgNs = svgNamespace(ns);
     if (svgNs) {
       (node as Element).setAttributeNS(svgNs, key, String(value ?? ""));
       return;

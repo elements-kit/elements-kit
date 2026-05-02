@@ -1,7 +1,7 @@
 {
   "name": "elements-kit",
   "type": "module",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "A lightweight reactive UI library that transforms native HTMLElements into reactive components with signals. Ideal for framework-agnostic applications and web components.",
   "keywords": [
     "webcomponents",

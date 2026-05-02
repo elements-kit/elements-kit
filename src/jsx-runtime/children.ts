@@ -1,4 +1,4 @@
-import { effect, effectScope, onCleanup } from "../signals";
+import { effect, onCleanup } from "../signals";
 import { PropsTarget, Child, Disposer } from "./types";
 import { SLOTS, Slot } from "../slot";
 import { PrimitiveNodeType, resolveNode } from "../lib";
@@ -64,27 +64,21 @@ export function applyChildren(
 // ─ Helpers ────────────────────────────────────────────────────────────────────
 
 function applySlot(slot: Slot, value: Child): void {
-  // Each slot gets its own effectScope so its onCleanup is isolated from
-  // siblings — effectScope links to the parent scope (no untracked), so it is
-  // disposed automatically when the parent component tears down.
-  effectScope(() => {
-    // For static class-component children (e.g. <For>), capture Symbol.dispose
-    // before slot.set() transfers the fragment's DOM children. slot.clear()
-    // only covers Element children; this covers the fragment's own effectScope.
-    let dispose: (() => void) | undefined;
-    if (typeof value === "function") {
-      effect(() => slot.set(resolveChild(value())));
-    } else {
-      const node = resolveChild(value);
-      dispose = (node as unknown as Partial<Disposable>)[Symbol.dispose];
-      slot.set(node);
-    }
-    // Dispose the current slot content when the parent scope tears down.
-    // Intermediate replacements are already handled by slot.set() → slot.clear().
-    onCleanup(() => {
-      dispose?.();
-      slot.clear();
-    });
+  // Relies on the caller's effectScope (every JSX render sits inside one).
+  // The signals lib supports multiple onCleanup per scope (push to array), so
+  // sibling slots don't clobber each other. Intermediate replacements are
+  // handled by slot.set() → slot.clear(); this onCleanup covers final teardown.
+  let dispose: (() => void) | undefined;
+  if (typeof value === "function") {
+    effect(() => slot.set(resolveChild(value())));
+  } else {
+    const node = resolveChild(value);
+    dispose = (node as unknown as Partial<Disposable>)[Symbol.dispose];
+    slot.set(node);
+  }
+  onCleanup(() => {
+    dispose?.();
+    slot.clear();
   });
 }
 
@@ -198,17 +192,16 @@ function mountStatic(
   releaseFragment(buffer);
   if (disposers && disposers.length > 0) {
     const ds = disposers;
-    effectScope(() => {
-      onCleanup(() => ds.forEach((d) => d()));
-    });
+    onCleanup(() => ds.forEach((d) => d()));
   }
 }
 
 /**
  * Mounts a single child into `el`. Reactive functions become live slots; other
- * values append as-is. Each child owns its own `effectScope` so sibling
- * `onCleanup` registrations don't overwrite each other (the signals lib
- * supports only one onCleanup per subscriber).
+ * values append as-is.
+ *
+ * Relies on the caller's effectScope (every JSX render sits inside one). The
+ * signals lib supports multiple onCleanup per scope, so siblings coexist.
  *
  * Also used by `createFunctionElement` when a component returns a reactive
  * getter or primitive — keeps the component's `effectScope` alive for the
@@ -218,10 +211,8 @@ export function mountChild(el: Element | DocumentFragment, child: Child): void {
   if (typeof child === "function") {
     const slot = new Slot();
     el.appendChild(slot.render());
-    effectScope(() => {
-      effect(() => slot.set(resolveChild(child())));
-      onCleanup(() => slot.clear());
-    });
+    effect(() => slot.set(resolveChild(child())));
+    onCleanup(() => slot.clear());
     return;
   }
   const node = resolveChild(child as any);
@@ -229,13 +220,19 @@ export function mountChild(el: Element | DocumentFragment, child: Child): void {
   // transferred on append, but the JS object and its dispose fn persist.
   const dispose = (node as unknown as Partial<Disposable>)[Symbol.dispose];
   el.appendChild(node);
-  if (dispose)
-    effectScope(() => {
-      onCleanup(dispose);
-    });
+  if (dispose) onCleanup(dispose);
 }
 
 function resolveChild(value: Child): Node {
+  // Hot order: Node → primitive → function → array. Most JSX expressions
+  // resolve to a Node (already-rendered element) or a primitive (text from a
+  // signal); reactive thunks and arrays trail.
+  if (value instanceof Node) return value;
+  if (typeof value === "string" || typeof value === "number")
+    return document.createTextNode(String(value));
+  if (value == null || typeof value === "boolean")
+    return document.createComment("");
+  if (typeof value === "function") return resolveChild((value as () => Child)());
   if (Array.isArray(value)) {
     const fragment = document.createDocumentFragment();
     for (const item of value as any[]) {
@@ -243,7 +240,6 @@ function resolveChild(value: Child): Node {
     }
     return fragment;
   }
-  if (typeof value === "function") return resolveChild(value());
   return resolveNode(value as PrimitiveNodeType);
 }
 
