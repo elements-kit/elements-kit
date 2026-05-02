@@ -1,0 +1,90 @@
+---
+title: Astro
+description: Use elements-kit custom elements in Astro with typed DOM queries.
+---
+
+A custom element built with elements-kit is just `class extends HTMLElement` registered via `customElements.define`. Astro renders HTML natively and custom elements work without any configuration — no `isCustomElement` option, no schema allowlist. The main integration point is registering your elements client-side and getting typed DOM references in TypeScript.
+
+```ts
+// shared element — built once, used anywhere
+import { defineElement } from "elements-kit/custom-elements";
+import { reactive } from "elements-kit/signals";
+
+export class XCounter extends HTMLElement {
+  @reactive() count = 0;
+}
+
+defineElement("x-counter", XCounter);
+```
+
+## Register elements client-side
+
+Because elements-kit touches the DOM, the module that calls `defineElement` must run in the browser. Import it from a `<script>` tag or a `client:*` island — not from the Astro component frontmatter:
+
+```astro
+---
+// x-counter.astro — server-only frontmatter, keep it clean
+---
+
+<x-counter></x-counter>
+
+<script>
+  // Runs in the browser — safe to import DOM code here
+  import "./x-counter";
+</script>
+```
+
+The [environment guard](/utilities/environment) (`isBrowser`) is only needed for module-level reads of `window` / `document` outside of event handlers or lifecycle callbacks.
+
+## Source the prop shape from the class
+
+Two helpers exported from `elements-kit/jsx-runtime`:
+
+| Helper | Shape | Use when |
+|---|---|---|
+| `InstanceProps<I>` | Public instance fields only (drops the `HTMLElement` surface) | Annotating setters, wrapper props, or helper functions |
+| `ElementProps<C>` | Full elements-kit JSX surface — attrs, fields, events from `static events`, slots from `[SLOTS]`, children | When you need the full declared surface |
+
+## Typed `document.querySelector` and `createElement`
+
+Add `HTMLElementTagNameMap` augmentations to `src/env.d.ts` (Astro's ambient type file) so `document.querySelector` is typed across the whole project:
+
+```ts
+// src/env.d.ts
+/// <reference types="astro/client" />
+
+import type { XCounter } from "./x-counter";
+
+declare global {
+  interface HTMLElementTagNameMap {
+    "x-counter": XCounter;
+  }
+}
+```
+
+Then anywhere in client-side scripts:
+
+```ts
+const el = document.querySelector("x-counter"); // XCounter | null
+```
+
+## Islands (React, Solid, Vue)
+
+If you're using framework islands (`client:load`, `client:visible`, etc.) and want typed props when you render a custom element inside a React, Solid, or Vue component, add the JSX `IntrinsicElements` augmentation for that framework alongside the class definition and import it from the island component file:
+
+- [React island props](/integrations/react#custom-elements-in-jsx)
+- [Solid island props](/integrations/solid)
+- [Vue island props](/integrations/vue)
+
+---
+
+## See also
+
+- [Custom Elements overview](/custom-elements)
+- [React integration](/integrations/react)
+- [Solid integration](/integrations/solid)
+- [Vue integration](/integrations/vue)
+- [Angular integration](/integrations/angular)
+- [Svelte integration](/integrations/svelte)
+- [Lit integration](/integrations/lit)
+- [Qwik integration](/integrations/qwik)

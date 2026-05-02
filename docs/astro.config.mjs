@@ -182,9 +182,16 @@ export default defineConfig({
         { label: "Utilities", slug: "utilities" },
         {
           label: "Integrations",
+          collapsed: true,
           items: [
             { label: "React", slug: "integrations/react" },
+            { label: "Astro", slug: "integrations/astro" },
+            { label: "Angular", slug: "integrations/angular" },
+            { label: "Lit", slug: "integrations/lit" },
+            { label: "Marko", slug: "integrations/marko" },
+            { label: "Qwik", slug: "integrations/qwik" },
             { label: "Solid", slug: "integrations/solid" },
+            { label: "Svelte", slug: "integrations/svelte" },
             { label: "Vue", slug: "integrations/vue" },
           ],
         },

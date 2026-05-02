@@ -1,9 +1,9 @@
 ---
-title: Vue
-description: Use elements-kit custom elements in Vue templates with typed props via GlobalComponents.
+title: Svelte
+description: Use elements-kit custom elements in Svelte with typed props via SvelteHTMLElements.
 ---
 
-A custom element built with elements-kit is just `class extends HTMLElement` registered via `customElements.define`. Vue renders it fine at runtime, but the Vue template compiler needs to be told the tag is a custom element, and the `GlobalComponents` interface needs to be augmented to get typed props in templates and SFCs.
+A custom element built with elements-kit is just `class extends HTMLElement` registered via `customElements.define`. Svelte renders it fine at runtime in both Svelte 4 and Svelte 5 (runes mode), but you need a small augmentation to get typed props, narrowed `bind:this` refs, and editor autocomplete.
 
 ```ts
 // shared element — built once, used anywhere
@@ -17,29 +17,6 @@ export class XCounter extends HTMLElement {
 defineElement("x-counter", XCounter);
 ```
 
-## Tell the template compiler it's a custom element
-
-Vue treats unknown lowercase tags as components by default, which produces a warning for custom elements. Whitelist your tag prefix in the build config:
-
-```ts
-// vite.config.ts
-import vue from "@vitejs/plugin-vue";
-
-export default {
-  plugins: [
-    vue({
-      template: {
-        compilerOptions: {
-          isCustomElement: (tag) => tag.startsWith("x-"),
-        },
-      },
-    }),
-  ],
-};
-```
-
-See the [Vue docs on using custom elements](https://vuejs.org/guide/extras/web-components.html#using-custom-elements-in-vue) for the full set of options.
-
 ## Source the prop shape from the class
 
 Two helpers exported from `elements-kit/jsx-runtime`:
@@ -49,33 +26,35 @@ Two helpers exported from `elements-kit/jsx-runtime`:
 | `InstanceProps<I>` | Public instance fields only (drops the `HTMLElement` surface) | You want to type just the user-defined props |
 | `ElementProps<C>` | Full elements-kit JSX surface — attrs, fields, events from `static events`, slots from `[SLOTS]`, children | Your element declares typed events or slots and you want callers to see them |
 
-For most Vue wiring `InstanceProps<XCounter>` is enough.
+For most Svelte wiring `InstanceProps<XCounter>` is enough.
 
-## Augment Vue's `GlobalComponents`
+## Augment Svelte's `SvelteHTMLElements`
 
 ```ts
-import type { DefineComponent } from "vue";
+import type { HTMLAttributes } from "svelte/elements";
 import type { InstanceProps } from "elements-kit/jsx-runtime";
 import type { XCounter } from "./x-counter";
 
-declare module "vue" {
-  interface GlobalComponents {
-    "x-counter": DefineComponent<InstanceProps<XCounter>>;
+declare module "svelte/elements" {
+  export interface SvelteHTMLElements {
+    "x-counter": HTMLAttributes<XCounter> & InstanceProps<XCounter>;
   }
 }
 
-// <template> <x-counter :count="5" /> — typed
+// <x-counter count={5} bind:this={el} />  — el: XCounter
 ```
+
+`HTMLAttributes<XCounter>` provides the standard HTML attribute surface (`class`, `id`, event handlers, …) and ensures `bind:this` resolves to `XCounter`.
 
 ## Co-locate the augmentation with the class
 
-Put the `declare module "vue"` block in the same file as the element class. Importing the class then brings the augmentation along — consumers don't have to remember to write it themselves.
+Put the `declare module "svelte/elements"` block in the same file as the element class. Importing the class then brings the augmentation along — consumers don't have to remember to write it themselves.
 
 ```ts
 // x-counter.ts
 import { defineElement } from "elements-kit/custom-elements";
 import { reactive } from "elements-kit/signals";
-import type { DefineComponent } from "vue";
+import type { HTMLAttributes } from "svelte/elements";
 import type { InstanceProps } from "elements-kit/jsx-runtime";
 
 export class XCounter extends HTMLElement {
@@ -84,12 +63,14 @@ export class XCounter extends HTMLElement {
 
 defineElement("x-counter", XCounter);
 
-declare module "vue" {
-  interface GlobalComponents {
-    "x-counter": DefineComponent<InstanceProps<XCounter>>;
+declare module "svelte/elements" {
+  export interface SvelteHTMLElements {
+    "x-counter": HTMLAttributes<XCounter> & InstanceProps<XCounter>;
   }
 }
 ```
+
+Make sure the file is referenced in your `tsconfig.json`'s `include` array so TypeScript picks up the augmentation.
 
 ## Typed `document.querySelector` and `createElement`
 
@@ -105,7 +86,7 @@ declare global {
 const el = document.querySelector("x-counter"); // XCounter | null
 ```
 
-Worth doing alongside the Vue augmentation.
+Worth doing alongside the Svelte augmentation.
 
 ---
 
@@ -114,9 +95,8 @@ Worth doing alongside the Vue augmentation.
 - [Custom Elements overview](/custom-elements)
 - [React integration](/integrations/react)
 - [Solid integration](/integrations/solid)
+- [Vue integration](/integrations/vue)
 - [Angular integration](/integrations/angular)
-- [Svelte integration](/integrations/svelte)
 - [Lit integration](/integrations/lit)
 - [Astro integration](/integrations/astro)
-- [Marko integration](/integrations/marko)
 - [Qwik integration](/integrations/qwik)
