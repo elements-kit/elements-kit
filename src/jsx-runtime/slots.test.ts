@@ -1,38 +1,38 @@
 import { describe, it, expect, vi } from "vitest";
 import { signal, effect } from "../signals";
 import { createElement, disposeElement } from "./element";
-import { SLOTS, Slots, Slot } from "../slot";
+import { SLOTS, Slot } from "../slot";
 
 // ─ Helpers ────────────────────────────────────────────────────────────────────
 
 /** Class component with SLOTS. */
 class Card {
-  [SLOTS] = Slots.new(["header", "body"]);
+  [SLOTS] = { header: new Slot(), body: new Slot() } as const;
 
   render() {
     const div = document.createElement("div");
-    div.appendChild(this[SLOTS].header());
-    div.appendChild(this[SLOTS].body());
+    div.appendChild(this[SLOTS].header.render());
+    div.appendChild(this[SLOTS].body.render());
     return div;
   }
 }
 
 /** Class component with direct Slot properties. */
 class Panel {
-  title = Slot.new();
-  content = Slot.new();
+  title = new Slot();
+  content = new Slot();
 
   render() {
     const div = document.createElement("div");
-    div.appendChild(this.title());
-    div.appendChild(this.content());
+    div.appendChild(this.title.render());
+    div.appendChild(this.content.render());
     return div;
   }
 }
 
 // ─ SLOTS ─────────────────────────────────────────────────────────────────────
 
-describe("SLOTS — Slots.new()", () => {
+describe("SLOTS — plain object", () => {
   it("fills a named slot with a static element", () => {
     const header = document.createElement("h1");
     header.textContent = "Hello";

@@ -254,6 +254,7 @@ describe("dom-lifecycle", () => {
 
   it("applies render-inert defaults: display:contents and role='none'", () => {
     const probe = makeProbe();
+    document.body.appendChild(probe);
     expect(probe.style.display).toBe("contents");
     expect(probe.getAttribute("role")).toBe("none");
   });

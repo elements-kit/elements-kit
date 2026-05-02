@@ -1,5 +1,5 @@
 import type { ATTRIBUTES, AttrChangeHandler } from "../attributes";
-import type { SLOTS, Slot, Slots } from "../slot";
+import type { SLOTS, Slot } from "../slot";
 import type { Child, ComponentClass, ComponentInstance } from "./types";
 import type { Computed, MaybeReactive } from "../signals";
 import type { JSX as DomJSX } from "dom-expressions/src/jsx-h";
@@ -169,7 +169,9 @@ type EventsOf<C> =
       : {}
     : {};
 
-type SlotKeys<I> = I extends { [SLOTS]: Slots<infer K> } ? K : never;
+type SlotKeys<I> = I extends { [SLOTS]: infer S }
+  ? Extract<keyof S, string>
+  : never;
 
 // If C is a constructor, extract the instance type; otherwise treat C as an
 // instance directly. This lets SlotsOf<> work for `Props<Constructor>` AND
@@ -204,7 +206,7 @@ type BaseDOMAttrs = DomJSX.DOMAttributes<HTMLElement>;
  * - **`prop:*`** — explicit property assignment for every field.
  * - **Events** — keys from `declare static events: { ... }` produce both
  *   `on:${K}` and `on${Capitalize<K>}` typed handlers.
- * - **Slots** — keys from `[SLOTS] = Slots.new([...] as const)` produce `slot:${K}`.
+ * - **Slots** — keys from `[SLOTS] = { ... } as const` produce `slot:${K}`.
  * - **Children** — `children?: Child` unless `static children: never`.
  * - **DOM attrs** — the standard dom-expressions surface (`class`, `style`, `ref`, …).
  *
@@ -216,7 +218,7 @@ type BaseDOMAttrs = DomJSX.DOMAttributes<HTMLElement>;
  * class XRange extends HTMLElement {
  *   static [ATTRIBUTES]: Attributes<XRange> = { min(v) { this.min = +v! } };
  *   declare static events: { commit: CustomEvent<number> };
- *   [SLOTS] = Slots.new(["label"] as const);
+ *   [SLOTS] = { label: new Slot() } as const;
  *   \@reactive() min = 0;
  * }
  *

@@ -9,7 +9,7 @@ export class Slot {
   // Using comments as markers to avoid extra elements in the DOM
   private readonly start = document.createComment("{");
   private readonly end = document.createComment("}");
-  // Content buffered via set() before the slot is mounted — applied on first slot() call.
+  // Content buffered via set() before the slot is mounted — applied on first render() call.
   #pending: Node | undefined;
 
   /**
@@ -61,7 +61,7 @@ export class Slot {
   set(element: Node) {
     const parent = this.parent();
     if (!parent) {
-      this.#pending = element; // buffer until slot() mounts the markers
+      this.#pending = element; // buffer until render() mounts the markers
       return;
     }
     if (this.isSame(element)) return;
@@ -101,131 +101,27 @@ export class Slot {
       this.start.nextSibling === element && this.end === element.nextSibling
     );
   }
-
-  /**
-   * Create a callable slot instance.
-   *
-   * The returned value is both a function and an object:
-   * - Call it to render the slot with optional default content.
-   * - Access `.set()`, `.parent()`, `.isMounted()` for slot management.
-   *
-   * @example
-   * ```ts
-   * const slot = createSlot();
-   * el.append(slot("default text"));  // mount with default
-   * slot.set(newElement);              // replace content
-   * ```
-   */
-  static new() {
-    const instance = new Slot();
-    return new Proxy(instance.render.bind(instance), {
-      apply(target, _thisArg, argArray) {
-        return target(...argArray);
-      },
-      get(_target, prop) {
-        const value = instance[prop as keyof Slot];
-        return typeof value === "function"
-          ? (value as (...a: unknown[]) => unknown).bind(instance)
-          : value;
-      },
-      getPrototypeOf() {
-        return Slot.prototype;
-      },
-    }) as Slot & typeof instance.render;
-  }
 }
-/**
- * A callable slot returned by {@link Slot.new}.
- *
- * - Invoke it (`slot()`) to render the slot region as a `DocumentFragment`,
- *   optionally with default content on first mount.
- * - Call `.set()` to replace current content, `.clear()` to empty it, and
- *   `.isMounted()` / `.parent()` to inspect mount state.
- */
-export type SlotInstance = ReturnType<typeof Slot.new>;
 
 /**
- * Symbol key for attaching a `Slots` instance to a custom element instance.
- * This prevent collisions with Element properties and are not meant to be treated as JSX children.
+ * Symbol key for attaching a slot collection to a custom element instance.
+ * Prevents collisions with public Element properties and signals to the JSX
+ * runtime that this property holds slot wiring (not regular children).
+ *
+ * The value at `[SLOTS]` is a plain object whose keys are slot names and whose
+ * values are {@link Slot} instances. Declare with `as const` so TypeScript
+ * preserves the literal key union — this is what `ElementProps<typeof Cls>`
+ * uses to synthesize `slot:${K}` entries.
+ *
+ * @example
+ * ```ts
+ * class Card extends HTMLElement {
+ *   // ✅ literal keys flow through — "header" | "footer"
+ *   [SLOTS] = { header: new Slot(), footer: new Slot() } as const;
+ * }
+ *
+ * // ❌ widens — no typed slot:* props
+ * // [SLOTS] = { header: new Slot(), footer: new Slot() };
+ * ```
  */
 export const SLOTS: unique symbol = Symbol("slots");
-
-const $map: unique symbol = Symbol("map");
-const $keys: unique symbol = Symbol("keys");
-const $has: unique symbol = Symbol("has");
-
-/**
- * A keyed collection of slot instances.
- * Slots are pre-created from the provided keys and lazily created on first access for unknown keys.
- */
-export class Slots<K extends string> implements Iterable<[K, SlotInstance]> {
-  readonly [$map] = new Map<K, SlotInstance>();
-
-  private constructor(keys: K[] = []) {
-    for (const key of keys) {
-      this[$map].set(key, Slot.new());
-    }
-  }
-
-  [Symbol.iterator]() {
-    return this[$map][Symbol.iterator]();
-  }
-
-  [Symbol.toStringTag]() {
-    return "Slots";
-  }
-
-  [Symbol.hasInstance](instance: unknown) {
-    return instance instanceof Slots;
-  }
-
-  [$has](key: K) {
-    return this[$map].has(key);
-  }
-
-  /** Check whether a slot with the given key exists. */
-  static has<K extends string>(slots: Slots<K>, key: K): boolean {
-    return slots[$has](key);
-  }
-
-  [$keys]() {
-    return this[$map].keys();
-  }
-
-  /** Iterate over all registered slot keys. */
-  static keys<K extends string>(slots: Slots<K>): MapIterator<K> {
-    return slots[$keys]();
-  }
-  /**
-   * Create a typed `Slots` collection from a list of key names.
-   *
-   * Pass the keys with `as const` so TS narrows them to a literal union —
-   * this is what lets `ElementProps<typeof Cls>` synthesize `slot:${K}`
-   * entries. Without `as const`, the array type widens to `string[]` and
-   * the slot keys are lost.
-   *
-   * @example
-   * ```ts
-   * class Card extends HTMLElement {
-   *   // ✅ literal keys flow through — "header" | "footer"
-   *   [SLOTS] = Slots.new(["header", "footer"] as const);
-   * }
-   *
-   * // ❌ widens to string; no typed slot:* props
-   * // [SLOTS] = Slots.new(["header", "footer"]);
-   * ```
-   */
-  static new<K extends string>(
-    keys: K[],
-  ): Slots<K> & { readonly [P in K]: SlotInstance } {
-    const instance = new Slots(keys);
-    return new Proxy(instance, {
-      get(target, prop, receiver) {
-        if (typeof prop === "string" && target[$map].has(prop as K)) {
-          return target[$map].get(prop as K);
-        }
-        return Reflect.get(target, prop, receiver);
-      },
-    }) as Slots<K> & { readonly [P in K]: SlotInstance };
-  }
-}

@@ -1,6 +1,6 @@
 import { it, expect } from "vitest";
 import { ATTRIBUTES, type Attributes } from "../attributes";
-import { SLOTS, Slots } from "../slot";
+import { SLOTS, Slot } from "../slot";
 import type { Child } from "./types";
 import type { MaybeReactive } from "../signals";
 import type { JSX } from "./index";
@@ -39,7 +39,7 @@ class XRange extends HTMLElement {
     commit: CustomEvent<void>;
     ready: CustomEvent<number>;
   };
-  declare [SLOTS]: Slots<"header" | "footer">;
+  declare [SLOTS]: { header: Slot; footer: Slot };
 
   min = 0;
   max = 100;

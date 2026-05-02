@@ -122,10 +122,10 @@ Without Shadow DOM, the browser does not project children. ElementsKit's `Slot` 
 ```tsx
 import { Slot } from "elements-kit/slot";
 
-const slot = Slot.new();
+const slot = new Slot();
 
 // Mounts the comment markers + optional default content
-const section = <section>{slot("Loading…")}</section>;
+const section = <section>{slot.render("Loading…")}</section>;
 
 // Later — replace content in place
 slot.set(<p>Content loaded!</p>);
@@ -134,70 +134,89 @@ slot.isMounted(); // true
 slot.parent();    // the <section> element
 ```
 
-### Named slots with `Slots<K>`
+### When do I need a `Slot`?
 
-For components with multiple named regions, use `Slots<K>` — a typed keyed collection of `Slot` instances. Attach it to your component instance via the `SLOTS` symbol so JSX's `slot:name` prop wiring works automatically.
+| Component type | Slot needed? | How |
+|---|---|---|
+| **Function component** | No | Use `{props.children}` / `{props.foo}` directly. The JSX runtime creates an internal `Slot` for any function-typed child and wires reactive replacement automatically. |
+| **Plain class component** (no `extends HTMLElement`) | Optional | Direct `Slot` fields if you want imperative control (`this.body.set(node)`). For pure JSX flow, function components are simpler. |
+| **Custom element** (`extends HTMLElement`) | Yes | `[SLOTS] = { ... } as const` for collision-safe named slots. Plain instance fields collide with the inherited `HTMLElement` surface (`title`, `children`, `slot`, …). |
+
+#### Function component — no `Slot` at all
 
 ```tsx
-import { Slot, Slots, SLOTS } from "elements-kit/slot";
-import type { Child, Props } from "elements-kit/jsx-runtime";
+function Card(props) {
+  return (
+    <article>
+      <header>{props.header}</header>
+      <main>{props.children}</main>
+      <footer>{props.actions}</footer>
+    </article>
+  );
+}
 
-/**
- * Props for `<CardComponent>` — derived from its public instance fields
- * (via `Props<>`) and the `[SLOTS]` declaration.
- */
-export type CardProps = Props<CardComponent>;
+<Card
+  header={<h2>Title</h2>}
+  actions={<button>Confirm</button>}
+>
+  Body content
+</Card>
+```
 
-class CardComponent {
-  // Phantom signature: JSX reads it to infer accepted props. Runtime
-  // constructs with no args — createElement assigns each prop via
-  // property set afterwards.
-  constructor(_props?: CardProps) {}
+`{props.children}` and any function-typed prop flows through `mountChild`, which creates a `Slot` internally and updates in place when the source signal changes. The component doesn't see the slot — it just renders the prop.
 
-  // Named slots — keys flow into `CardProps` as `slot:header` / `slot:footer`.
-  [SLOTS] = Slots.new(["header", "footer"] as const);
+#### Custom element — `[SLOTS]` for named slots
 
-  // Default slot — CardProps picks this up as a typed `children` key.
-  children: Child =  Slot.new();;
+```tsx
+import { Slot, SLOTS } from "elements-kit/slot";
+import { attributes } from "elements-kit/attributes";
 
-  render() {
-    return (
+@attributes
+class XCard extends HTMLElement {
+  // Named slots — keys flow into JSX as `slot:header` / `slot:footer`.
+  // The `[SLOTS]` symbol avoids collisions with HTMLElement properties.
+  [SLOTS] = { header: new Slot(), footer: new Slot() } as const;
+
+  // Default slot — surfaces as the JSX `children` prop.
+  children = new Slot();
+
+  connectedCallback() {
+    this.replaceChildren(
       <article>
-        <header>
-          {/* Mount slot — "Default header" renders until filled */}
-          {this[SLOTS].header("Default header")}
-        </header>
-        <main>{this.children()}</main>
-        <footer>{this[SLOTS].footer()}</footer>
-      </article>
+        <header>{this[SLOTS].header.render("Untitled")}</header>
+        <main>{this.children.render()}</main>
+        <footer>{this[SLOTS].footer.render()}</footer>
+      </article>,
     );
   }
 }
+
+customElements.define("x-card", XCard);
 ```
 
 Consumer JSX — fill slots via `slot:name` props:
 
 ```tsx
-<CardComponent
+<x-card
   slot:header={<h2>My Title</h2>}
   slot:footer={<button>Confirm</button>}
 >
   <p>Main body content.</p>
-</CardComponent>
+</x-card>
 ```
 
-ElementsKit's JSX runtime reads `slot:header` and calls `slot.set(<h2>My Title</h2>)` on the matching `SlotInstance`.
+The JSX runtime reads `slot:header` and calls `slot.set(<h2>My Title</h2>)` on the matching `Slot` instance.
 
 ### Reactive slot content
 
-Pass a signal or `() => T` as slot content — the region updates in place when it changes:
+Pass a signal or `() => T` as slot content — the region updates in place when it changes. Works identically for function components and custom elements:
 
 ```tsx
 const title = signal("Initial Title");
 
-<CardComponent slot:header={() => <h2>{title}</h2>}>
+<Card header={() => <h2>{title}</h2>}>
   Body content
-</CardComponent>
+</Card>
 
 // Slot content updates reactively — no re-render of surrounding tree
 title("Updated Title");
@@ -205,7 +224,7 @@ title("Updated Title");
 
 ### `SlotProps` type helper
 
-`Props<CardComponent>` already infers slots from `[SLOTS]` — prefer that when you have a concrete class to point at. `SlotProps<K>` is the **fallback** for cases where you can't derive from an instance: function components, components that don't declare `[SLOTS]`, or hand-written prop interfaces.
+`Props<XCard>` already infers slots from `[SLOTS]` — prefer that when you have a concrete class to point at. `SlotProps<K>` is the **fallback** for cases where you can't derive from an instance: function components that explicitly want `slot:name` syntax, or hand-written prop interfaces.
 
 ```tsx
 import type { Child, SlotProps } from "elements-kit/jsx-runtime";
@@ -217,7 +236,7 @@ interface CardProps extends SlotProps<"header" | "footer"> {
 }
 
 // TypeScript now knows slot:header and slot:footer are valid
-<CardComponent title="Hello" slot:header={<h1>Hi</h1>} />
+<Card title="Hello" slot:header={<h1>Hi</h1>} />
 ```
 
 ---
@@ -231,7 +250,7 @@ interface CardProps extends SlotProps<"header" | "footer"> {
 | Browser-native projection | Yes | No (comment markers) |
 | Reactive content updates | Requires JS re-render | Yes — `slot.set()` |
 | No wrapper element | Yes | Yes |
-| Named slots | Yes (`name` attribute) | Yes (`Slots<K>`) |
+| Named slots | Yes (`name` attribute) | Yes (`[SLOTS] = { ... }`) |
 | TypeScript `slot:name` prop | Via `IntrinsicElements` | Via `SlotProps<K>` |
 
 Choose native `<slot>` when you need style encapsulation or are building a reusable web component for external consumers. Choose ElementsKit `Slot` when you want reactive content swapping in a light DOM component without Shadow DOM overhead.

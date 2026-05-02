@@ -1,11 +1,11 @@
 import { effect, effectScope, onCleanup } from "../signals";
 import { PropsTarget, Child, Disposer } from "./types";
-import { SLOTS, Slots, Slot } from "../slot";
+import { SLOTS, Slot } from "../slot";
 import { PrimitiveNodeType, resolveNode } from "../lib";
 
 // ─ Typed SLOTS accessor ──────────────────────────────────────────────────────
 
-type SlotsMap = Slots<string> & Record<string, Slot>;
+type SlotsMap = Record<string, Slot>;
 type WithSlots = PropsTarget & { [SLOTS]: SlotsMap };
 
 function hasSlots(node: PropsTarget): node is WithSlots {
@@ -23,7 +23,7 @@ export function isChildrenProperty(node: PropsTarget, key: string): boolean {
 
   if (hasSlots(node)) {
     const slotName = key.replace(/^slot:/, "");
-    if (Slots.has(node[SLOTS], slotName)) return true;
+    if (slotName in node[SLOTS]) return true;
     // fall through — still check "children" and direct Slot properties
   }
 
@@ -38,7 +38,7 @@ export function applyChildren(
   // ─ SLOTS ─────────────────────────────────────────────────────────────────
   if (hasSlots(node)) {
     const slotName = key.replace(/^slot:/, "");
-    if (Slots.has(node[SLOTS], slotName)) {
+    if (slotName in node[SLOTS]) {
       applySlot(node[SLOTS][slotName], value);
       return;
     }
