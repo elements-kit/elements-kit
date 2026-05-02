@@ -110,6 +110,11 @@ One concept per page. Current map:
 | `utilities.mdx` | Utilities overview + catalog link | reference (index) | none |
 | `integrations/react.mdx` | `useSignal`, `useScope` | reference | top |
 | `recipes/data-fetching.mdx` | `async` + retry + online + focus composition | how-to | top |
+| `recipes/routing.mdx` | `patchHistory` + `matches` / `match` + `navigate` SPA router | how-to | top |
+| `recipes/search.mdx` | `createDebounced` + `async` + `AbortController` search | how-to | top |
+| `recipes/infinite-scroll.mdx` | `createIntersectionObserver` + `async` paginated list | how-to | top |
+| `recipes/context.mdx` | `setContext` / `getContext` + `<dom-lifecycle>` propagation | how-to | top |
+| `recipes/toasts.mdx` | Per-item `effectScope` + `createTimeout` queue | how-to | top |
 
 ## Docs roadmap
 
@@ -118,5 +123,5 @@ Tracked here; split into issues when someone picks them up.
 - **Concepts group** — new pages for Reactivity model, Cleanup & Scopes, JSX → DOM mental model. Lift from existing pages; don't duplicate.
 - **Utilities category pages** — split `utilities.mdx` into Timing / Network / Storage / Observation / Routing / DOM events / Browser APIs / Media / State. One page per category; overview stays as index.
 - **Writing UI/Refs** — dedicated page for the `ref` callback + cleanup return.
-- **More recipes** — Auth flow, Routing, Forms, Cross-tab sync. Establish patterns evaluators look for.
+- **More recipes** — Auth flow, Forms, Cross-tab sync. Establish patterns evaluators look for.
 - **Last-modified footer** — build-time timestamp on every page.
