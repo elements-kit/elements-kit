@@ -37,19 +37,9 @@ type AdoptedCallback = (oldDocument: Document, newDocument: Document) => void;
  * place the lifecycle element where those selectors don't reach if needed.)
  *
  * @example
- * ```tsx
- * <div>
- *   <dom-lifecycle
- *     onConnect={(el) => el.parentElement?.classList.add("ready")}
- *     onDisconnect={(el) => {
- *       // el.parentElement is null here per spec — stash from onConnect if needed
- *     }}
- *   />
- * </div>
- * ```
- *
- * @example
- * Wrap children — read the wrapped subtree via `firstElementChild`:
+ * Canonical form — wrap the subtree the lifecycle owns. `onConnect` runs
+ * inside an `effectScope` tied to the wrapped subtree, so observers, context
+ * lookups, and `onCleanup` registrations clean up on disconnect.
  * ```tsx
  * <section>
  *   <dom-lifecycle onConnect={(el) => measure(el.firstElementChild)}>
@@ -57,6 +47,19 @@ type AdoptedCallback = (oldDocument: Document, newDocument: Document) => void;
  *     <p>Body</p>
  *   </dom-lifecycle>
  * </section>
+ * ```
+ *
+ * @example
+ * Sibling form — fallback for cases where the host element is already
+ * present for layout reasons and you only need lifecycle on the surrounding
+ * element. Read `self.parentElement` for the host; capture it in `onConnect`
+ * if you need it on disconnect (the spec nulls it before `onDisconnect`).
+ * ```tsx
+ * <div>
+ *   <dom-lifecycle
+ *     onConnect={(el) => el.parentElement?.classList.add("ready")}
+ *   />
+ * </div>
  * ```
  */
 export class DomLifecycleElement extends HTMLElement {

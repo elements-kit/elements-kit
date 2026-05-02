@@ -292,6 +292,64 @@ Create `effect` and `onCleanup` **inside** the `render` callback — not in the 
 
 ---
 
+## Constructor vs `connectedCallback`
+
+The constructor should only call `super()` and initialize private fields. Defer DOM mutations — `this.style.*`, `this.setAttribute(...)`, `this.append(...)`, child rendering — to `connectedCallback`.
+
+The spec permits constructor mutations in theory, but Sandpack and some sandbox / iframe environments throw `NotSupportedError` when an element mutates itself during construction. Moving the work to `connectedCallback` is portable and keeps the element upgrade-safe (the constructor runs once; `connectedCallback` runs on every (re)connection).
+
+```ts
+// Wrong — fails in Sandpack and some iframe sandboxes
+class MyElement extends HTMLElement {
+  constructor() {
+    super();
+    this.style.display = "contents";
+    this.setAttribute("role", "none");
+  }
+}
+
+// Right — defer to connectedCallback
+class MyElement extends HTMLElement {
+  #count = 0; // private fields only
+
+  connectedCallback() {
+    this.style.display = "contents";
+    if (!this.hasAttribute("role")) this.setAttribute("role", "none");
+  }
+}
+```
+
+:::caution[`NotSupportedError` from constructor mutations]
+Touching `style`, attributes, or child nodes inside the constructor throws in some sandboxed environments even though the spec allows it. Move all DOM work to `connectedCallback`.
+:::
+
+---
+
+## Typing JSX for a custom element
+
+ElementsKit sets `jsxImportSource: "elements-kit"`, so TypeScript pulls the `JSX` namespace from the runtime's own module. **Global `JSX` augmentations don't merge with that namespace** and have no effect — typed props on `<x-my-element />` come from a different surface.
+
+Augment `CustomElementRegistry` from `"elements-kit/custom-elements"` instead. The JSX runtime reads tag names from that interface to type props and refs.
+
+```ts
+import { defineElement } from "elements-kit/custom-elements";
+
+class XCounter extends HTMLElement {}
+defineElement("x-counter", XCounter);
+
+declare module "elements-kit/custom-elements" {
+  interface CustomElementRegistry {
+    "x-counter": typeof XCounter;
+  }
+}
+
+// <x-counter /> — typed props, typed ref
+```
+
+The same pattern applies when registering with `customElements.define` directly — augment `CustomElementRegistry` regardless of which registration call you use.
+
+---
+
 ## When NOT to use custom elements
 
 Custom elements are the right tool for **reusable, framework-agnostic UI**. They're the wrong tool when:

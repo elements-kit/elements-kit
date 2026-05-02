@@ -9,6 +9,12 @@ export type Fn<TInput, TOutput> = (input: TInput) => Promise<TOutput>;
  * reactive signals (`state`, `value`, `reason`, `result`, `pending`) and
  * lets you `run`/`start`/`stop` the underlying task imperatively.
  *
+ * Trigger choice: `start()` tracks the body and re-runs when its parameter
+ * signals change — right for "fetch X whenever `id` changes". `run()` is
+ * one-shot and untracked — right for externally-driven loads (intersection,
+ * click, form submit), especially when the body writes to the same signals
+ * it reads (`start()` would cascade).
+ *
  * Prefer the {@link async} factory — it returns an `Async` that is also
  * callable as a signal (`op()` === `op.result`), which is what most call
  * sites want. Use this class directly only when you need the object form.

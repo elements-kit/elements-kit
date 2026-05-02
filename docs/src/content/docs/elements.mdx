@@ -85,6 +85,18 @@ effect(() => { /* text node updated in place */ });
 
 Passing a **plain value** (not a signal or function) sets the prop once and never updates it — no effect is created.
 
+:::caution[Plain `() => T` works for children, not attributes]
+Children accept `Signal<T>`, `Computed<T>`, or a plain `() => T` thunk. Attributes accept only `Signal` / `Computed` — a plain arrow falls through to the static path and never updates. Wrap the expression in `computed(...)` or pass a signal directly.
+
+```tsx
+// Wrong — hidden is set once, never re-evaluated
+<nav hidden={() => !isHome()} />
+
+// Right — pass a Signal or Computed
+<nav hidden={computed(() => !isHome())} />
+```
+:::
+
 ```tsx
 // Static — set once at render time
 <input placeholder="Enter text" maxLength={100} />

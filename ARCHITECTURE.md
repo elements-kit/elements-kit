@@ -61,7 +61,9 @@ Each subpath is a stable import entry declared in [package.json](package.json) `
 ## 4. JSX contract
 
 - Compiles to `document.createElement` + direct DOM mutations. No intermediate tree.
-- **Live binding**: a `Signal<T>`, `Computed<T>`, or `() => T` passed as a child creates a live text node that updates in place. Passed as an attribute value, it keeps that attribute in sync.
+- **Live binding**: the accepted reactive shape is asymmetric.
+  - **Children** accept `Signal<T>`, `Computed<T>`, or `() => T`. Each creates a live slot or text node that updates in place ([src/jsx-runtime/children.ts](src/jsx-runtime/children.ts)).
+  - **Attributes / props** accept only `Signal<T>` or `Computed<T>` — anything that passes `isReactive`. A plain `() => T` is treated as a static value and never updates ([src/jsx-runtime/properties.ts](src/jsx-runtime/properties.ts)). To bind an expression to an attribute, wrap it in `computed(...)` or pass an existing `Signal`.
 - **Prop namespaces**:
   - `on:event={fn}` — event listener (case-preserving; `on:click`, `on:MyCustomEvent`, etc.).
   - `class:name={bool | signal}` — reactive `classList.toggle`.
