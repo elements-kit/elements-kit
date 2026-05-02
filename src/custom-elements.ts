@@ -1,23 +1,35 @@
 /**
  * Registry of custom-element tags to their constructors.
- * Users augment this interface to add typed JSX support for their elements:
+ * Users augment this interface to add typed JSX support for their elements.
+ *
+ * The interface lives in the global `ElementsKit` namespace so augmentations
+ * propagate cleanly through type-bundle chunk splits — augmenting a module
+ * subpath would not always merge with internal references inside the JSX
+ * namespace's `IntrinsicElements`.
  *
  * @example
  * ```ts
- * declare module "elements-kit/custom-elements" {
- *   interface CustomElementRegistry {
- *     "x-range": typeof XRange;
+ * declare global {
+ *   namespace ElementsKit {
+ *     interface CustomElementRegistry {
+ *       "x-range": typeof XRange;
+ *     }
  *   }
  * }
  * ```
  */
-export interface CustomElementRegistry {}
+declare global {
+  namespace ElementsKit {
+    interface CustomElementRegistry {}
+  }
+}
+export type CustomElementRegistry = ElementsKit.CustomElementRegistry;
 
 type AnyCtor = CustomElementConstructor;
 
 /**
  * Register a custom element with the browser and return its class.
- * Pair with a module augmentation of `CustomElementRegistry` to get typed JSX.
+ * Pair with an augmentation of `ElementsKit.CustomElementRegistry` to get typed JSX.
  *
  * @example
  * ```tsx
@@ -27,9 +39,11 @@ type AnyCtor = CustomElementConstructor;
  *
  * defineElement("x-counter", XCounter);
  *
- * declare module "elements-kit/custom-elements" {
- *   interface CustomElementRegistry {
- *     "x-counter": typeof XCounter;
+ * declare global {
+ *   namespace ElementsKit {
+ *     interface CustomElementRegistry {
+ *       "x-counter": typeof XCounter;
+ *     }
  *   }
  * }
  *

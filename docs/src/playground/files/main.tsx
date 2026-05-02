@@ -43,9 +43,11 @@ class Counter extends HTMLElement {
 }
 customElements.define("x-counter", Counter);
 
-declare module "elements-kit/custom-elements" {
-  interface CustomElementRegistry {
-    "x-counter": typeof Counter;
+declare global {
+  namespace ElementsKit {
+    interface CustomElementRegistry {
+      "x-counter": typeof Counter;
+    }
   }
 }
 

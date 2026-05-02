@@ -73,25 +73,64 @@ export type Attrs<K extends keyof JSX.IntrinsicElements> =
 
 /**
  * Namespaced JSX props added by elements-kit on top of dom-expressions.
+ * All four are tag-aware via the element type `E`.
  *
- * - `ref` — callback invoked with the mounted element.
- * - `slot:foo` — accepts any `Child`. Reactive children come for free because
- *   `Child` already includes `AnyFn` (so `() => content()` and `signal` both
- *   typecheck and are wired as reactive slots by `mountChild`).
- * - `class:foo` / `style:foo` — `MaybeReactive<T>` (value or zero-arg getter),
- *   because their value types (`boolean` / `string | null`) are primitives
- *   that don't otherwise allow function form.
- * - `prop:foo` — any value, direct property assignment, no reactive coupling.
+ * - `ref` — callback invoked with the mounted element, typed as the concrete
+ *   element class for intrinsics and registered custom elements.
+ * - `class:foo` — open string + `MaybeReactive<boolean>`. Class names are
+ *   user-defined CSS so the key stays open (no autocomplete possible).
+ * - `style:cssProp` — keys mapped from `DomJSX.CSSProperties` (csstype's
+ *   hyphenated property names) for autocomplete; value typed per-property.
+ * - `prop:K` — inferred from `keyof E`. On `<div>` exposes
+ *   `prop:className`, `prop:id`, etc. (from `HTMLDivElement`); on a
+ *   registered custom element exposes its public fields too.
+ *
+ * `slot:foo` is NOT here — it's emitted per-element via `SlotsOf<C>` only
+ * for elements that declare `[SLOTS]`. Plain HTML intrinsics don't accept
+ * slot props (the runtime ignores them).
  */
-type JsxNamespaces = {
-  ref?: (el: Element) => void;
-  [slot: `slot:${string}`]: Child;
-  [cls: `class:${string}`]: MaybeReactive<boolean>;
-  [sty: `style:${string}`]: MaybeReactive<string | null>;
-  [prop: `prop:${string}`]: unknown;
+type CssStyleKey =
+  Extract<keyof DomJSX.CSSProperties, string> extends infer K
+    ? K extends `-${string}`
+      ? never
+      : K
+    : never;
+
+type StyleNamespace = {
+  [K in CssStyleKey as `style:${K}`]?: MaybeReactive<
+    DomJSX.CSSProperties[K] | null
+  >;
 };
 
-type WithJsxNamespaces<T> = T & JsxNamespaces;
+type PropNamespace<E> = {
+  [K in keyof E as K extends string ? `prop:${K}` : never]?: MaybeReactive<
+    E[K]
+  >;
+};
+
+type JsxNamespaces<E extends Element = Element> = {
+  ref?: (el: E) => void;
+  [cls: `class:${string}`]: MaybeReactive<boolean>;
+} & StyleNamespace &
+  PropNamespace<E>;
+
+type JsxNamespaceKeys =
+  | "ref"
+  | `class:${string}`
+  | `style:${string}`
+  | `prop:${string}`;
+
+type WithJsxNamespaces<T, E extends Element = Element> = Omit<
+  T,
+  JsxNamespaceKeys
+> &
+  JsxNamespaces<E>;
+
+type IntrinsicElementOf<T> = T extends { ref?: infer R | undefined }
+  ? Extract<R, (el: any) => any> extends (el: infer E) => any
+    ? E
+    : Element
+  : Element;
 
 // ─ JSX namespace ─────────────────────────────────────────────────────────────
 
@@ -107,19 +146,17 @@ export namespace JSX {
   export type LibraryManagedAttributes<C, P> = ResolveProps<C, P>;
   type RegisteredElements = {
     [K in keyof CustomElementRegistry]: CustomElementRegistry[K] extends AnyElementCtor
-      ? MaybeReactiveProps<ElementProps<CustomElementRegistry[K]>>
+      ? WithJsxNamespaces<
+          MaybeReactiveProps<ElementProps<CustomElementRegistry[K]>>,
+          InstanceType<CustomElementRegistry[K]>
+        >
       : never;
   };
 
   export type IntrinsicElements = {
     [K in keyof DomJSX.IntrinsicElements]: WithJsxNamespaces<
-      DomJSX.IntrinsicElements[K]
+      DomJSX.IntrinsicElements[K],
+      IntrinsicElementOf<DomJSX.IntrinsicElements[K]>
     >;
-  } & RegisteredElements & {
-      /** Unregistered custom elements (`x-foo`, `my-component`, …) — loose fallback. */
-      [customElement: `${string}-${string}`]: WithJsxNamespaces<
-        DomJSX.DOMAttributes<HTMLElement>
-      > &
-        Record<string, unknown>;
-    };
+  } & RegisteredElements;
 }

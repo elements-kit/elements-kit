@@ -53,11 +53,14 @@ export type PropsOfInstance<I> = {
 export type Require<P, K extends keyof P> = { [X in K]-?: P[X] } & Omit<P, K>;
 
 /**
- * Wrap every prop in {@link MaybeReactive} so callers may pass either a
- * plain value or a reactive getter. Function-typed props (event handlers,
- * render callbacks) are wrapped too — the JSX runtime detects branded
- * signals/computed and re-binds on change. Optionality is preserved at the
- * key level — the `| undefined` stays at the prop, not inside the reactive.
+ * Wrap every non-function prop in {@link MaybeReactive} so callers may pass
+ * either a plain value or a reactive getter. Function-typed props (event
+ * handlers, render callbacks) are left as-is so inline arrow callbacks get
+ * proper contextual typing for their parameters — wrapping them in
+ * `MaybeReactive<F> = F | (() => F)` produces two callable alternatives and
+ * TS falls back to implicit-any on the callback's params. Optionality is
+ * preserved at the key level — the `| undefined` stays at the prop, not
+ * inside the reactive.
  *
  * @template P — source prop object type.
  *
@@ -68,7 +71,7 @@ export type Require<P, K extends keyof P> = { [X in K]-?: P[X] } & Omit<P, K>;
  * // {
  * //   count:    MaybeReactive<number>;
  * //   label?:   MaybeReactive<string>;
- * //   onClick:  MaybeReactive<(e: Event) => void>;   // computed handlers OK
+ * //   onClick:  (e: Event) => void;
  * // }
  * ```
  *
@@ -77,9 +80,13 @@ export type Require<P, K extends keyof P> = { [X in K]-?: P[X] } & Omit<P, K>;
  */
 export type MaybeReactiveProps<P> = {
   [K in keyof P]: undefined extends P[K]
-    ? MaybeReactive<Exclude<P[K], undefined>> | undefined
-    : MaybeReactive<P[K]>;
+    ? MaybeReactiveOrFn<Exclude<P[K], undefined>> | undefined
+    : MaybeReactiveOrFn<P[K]>;
 };
+
+type MaybeReactiveOrFn<T> = Extract<T, (...args: any[]) => any> extends never
+  ? MaybeReactive<T>
+  : T;
 
 declare const RAW_PROPS: unique symbol;
 

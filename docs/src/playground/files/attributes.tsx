@@ -72,9 +72,11 @@ class RangeDisplay extends HTMLElement {
 
 defineElement("x-range", RangeDisplay);
 
-declare module "elements-kit/custom-elements" {
-  interface CustomElementRegistry {
-    "x-range": typeof RangeDisplay;
+declare global {
+  namespace ElementsKit {
+    interface CustomElementRegistry {
+      "x-range": typeof RangeDisplay;
+    }
   }
 }
 
