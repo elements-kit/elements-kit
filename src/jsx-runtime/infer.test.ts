@@ -9,7 +9,7 @@ import type {
   ElementProps,
   MaybeReactiveProps,
   Props,
-  PropsOfInstance,
+  InstanceProps,
   RawProps,
   ReactiveProps,
   Require,
@@ -71,9 +71,9 @@ declare global {
   }
 }
 
-// ─ PropsOfInstance ────────────────────────────────────────────────────────────
+// ─ InstanceProps ────────────────────────────────────────────────────────────
 
-type TProps = PropsOfInstance<Toggle>;
+type TProps = InstanceProps<Toggle>;
 type _PoI_Open = Assert<Equal<TProps["open"], boolean | undefined>>;
 type _PoI_OnToggle = Assert<
   Equal<TProps["onToggle"], ((v: boolean) => void) | undefined>
@@ -173,9 +173,7 @@ type _CP_Eq = Assert<Equal<_CP, { title: string; count?: number }>>;
 type _IE_Strict = Assert<
   Equal<Extends<"random-tag", keyof JSX.IntrinsicElements>, false>
 >;
-type _IE_Registered = Assert<
-  Extends<"x-range", keyof JSX.IntrinsicElements>
->;
+type _IE_Registered = Assert<Extends<"x-range", keyof JSX.IntrinsicElements>>;
 
 // ─ Props<C> — unified helper (assignment-based checks) ──────────────────────
 
@@ -410,7 +408,7 @@ interface Probe extends HTMLElement {
   name: string;
   excited: boolean;
 }
-type _PI = PropsOfInstance<Probe>;
+type _PI = InstanceProps<Probe>;
 type _PI_Excited = Assert<Equal<_PI["excited"], boolean | undefined>>;
 type _PI_Name = Assert<Equal<_PI["name"], string | undefined>>;
 

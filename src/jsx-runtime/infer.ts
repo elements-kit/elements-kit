@@ -33,7 +33,7 @@ type PropValueFor<V> = V extends Slot ? Child : V;
  * the DOM surface is excluded; for plain classes, all own keys are kept.
  * `Slot`-typed fields are mapped to `Child` (see {@link PropValueFor}).
  */
-export type PropsOfInstance<I> = {
+export type InstanceProps<I> = {
   [K in PublicPropKeys<I> & string]?: PropValueFor<I[K]>;
 };
 
@@ -84,9 +84,8 @@ export type MaybeReactiveProps<P> = {
     : MaybeReactiveOrFn<P[K]>;
 };
 
-type MaybeReactiveOrFn<T> = Extract<T, (...args: any[]) => any> extends never
-  ? MaybeReactive<T>
-  : T;
+type MaybeReactiveOrFn<T> =
+  Extract<T, (...args: any[]) => any> extends never ? MaybeReactive<T> : T;
 
 declare const RAW_PROPS: unique symbol;
 
@@ -95,9 +94,7 @@ export type ReactiveProps<P> = {
 } & { readonly [RAW_PROPS]?: P };
 
 /** Recover the raw prop shape `P` from a `ReactiveProps<P>`. */
-export type RawProps<R> = R extends { readonly [RAW_PROPS]?: infer P }
-  ? P
-  : R;
+export type RawProps<R> = R extends { readonly [RAW_PROPS]?: infer P } ? P : R;
 
 /**
  * Resolve the JSX call-site prop type for a component (function or class).
@@ -119,7 +116,7 @@ export type ResolveProps<C, P, NN = NonNullable<P>> = NN extends {
 
 // ─ Internal composition pieces ───────────────────────────────────────────────
 
-type InstancePropsOf<C> = Inst<C> extends infer I ? PropsOfInstance<I> : {};
+type InstancePropsOf<C> = Inst<C> extends infer I ? InstanceProps<I> : {};
 
 type PropKeysOf<C> = keyof InstancePropsOf<C> & string;
 
@@ -167,9 +164,7 @@ type EventsOf<C> =
       ? {
           [K in keyof E & string as `on:${K}`]?: (ev: E[K]) => void;
         } & {
-          [K in keyof E & string as `on${Capitalize1<K>}`]?: (
-            ev: E[K],
-          ) => void;
+          [K in keyof E & string as `on${Capitalize1<K>}`]?: (ev: E[K]) => void;
         }
       : {}
     : {};
@@ -277,9 +272,9 @@ export type ComponentProps<C extends ComponentClass<any>> =
  * prop in {@link MaybeReactive} so callers may pass values or reactive getters.
  *
  * Branches by input shape:
- * - **Class constructor** (`typeof Cls`) → uses `PropsOfInstance<InstanceType<Cls>>`.
+ * - **Class constructor** (`typeof Cls`) → uses `InstanceProps<InstanceType<Cls>>`.
  * - **Function component** (`(props: P) => ...`) → uses the first parameter.
- * - **Class instance** (`Cls<T>`) → uses `PropsOfInstance<Cls<T>>` (useful when
+ * - **Class instance** (`Cls<T>`) → uses `InstanceProps<Cls<T>>` (useful when
  *   generics need to flow through — see the `For` example below).
  *
  * Does **not** synthesize `on:*`, `slot:*`, or attribute surface. For custom
@@ -310,12 +305,12 @@ export type ComponentProps<C extends ComponentClass<any>> =
  * @see {@link MaybeReactiveProps}
  */
 export type Props<C> = (C extends abstract new (...args: any[]) => infer I
-  ? MaybeReactiveProps<PropsOfInstance<I>>
+  ? MaybeReactiveProps<InstanceProps<I>>
   : C extends (props: infer P, ...rest: any[]) => any
     ? P extends object
       ? MaybeReactiveProps<RawProps<P>>
       : {}
-    : MaybeReactiveProps<PropsOfInstance<C>>) &
+    : MaybeReactiveProps<InstanceProps<C>>) &
   SlotsOf<C>;
 
 export type { AnyElementCtor, ComponentInstance };
