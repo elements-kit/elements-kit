@@ -182,7 +182,11 @@ export default defineConfig({
         { label: "Utilities", slug: "utilities" },
         {
           label: "Integrations",
-          items: [{ label: "React", slug: "integrations/react" }],
+          items: [
+            { label: "React", slug: "integrations/react" },
+            { label: "Solid", slug: "integrations/solid" },
+            { label: "Vue", slug: "integrations/vue" },
+          ],
         },
         {
           label: "Recipes",

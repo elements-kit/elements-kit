@@ -128,14 +128,9 @@ if (isBrowser && !customElements.get("dom-lifecycle")) {
 }
 
 declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      "dom-lifecycle": {
-        onConnect?: LifecycleCallback;
-        onDisconnect?: LifecycleCallback;
-        onMove?: LifecycleCallback;
-        onAdopted?: AdoptedCallback;
-      };
+  namespace ElementsKit {
+    interface CustomElementRegistry {
+      "dom-lifecycle": typeof DomLifecycleElement;
     }
   }
 }

@@ -236,9 +236,11 @@ class CounterElement extends HTMLElement {
 
 defineElement("x-counter", CounterElement);
 
-declare module "elements-kit/custom-elements" {
-  interface CustomElementRegistry {
-    "x-counter": typeof CounterElement;
+declare global {
+  namespace ElementsKit {
+    interface CustomElementRegistry {
+      "x-counter": typeof CounterElement;
+    }
   }
 }
 // <x-counter count={5} /> — typed props, typed ref

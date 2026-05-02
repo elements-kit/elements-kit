@@ -2,14 +2,14 @@ import { it, expect } from "vitest";
 import { ATTRIBUTES, type Attributes } from "../attributes";
 import { SLOTS, Slots } from "../slot";
 import type { Child } from "./types";
-import { signal, type MaybeReactive } from "../signals";
+import type { MaybeReactive } from "../signals";
 import type { JSX } from "./index";
 import type {
   ComponentProps,
   ElementProps,
   MaybeReactiveProps,
   Props,
-  PropsOfInstance,
+  InstanceProps,
   RawProps,
   ReactiveProps,
   Require,
@@ -63,9 +63,17 @@ class Card {
   }
 }
 
-// ─ PropsOfInstance ────────────────────────────────────────────────────────────
+declare global {
+  namespace ElementsKit {
+    interface CustomElementRegistry {
+      "x-range": typeof XRange;
+    }
+  }
+}
 
-type TProps = PropsOfInstance<Toggle>;
+// ─ InstanceProps ────────────────────────────────────────────────────────────
+
+type TProps = InstanceProps<Toggle>;
 type _PoI_Open = Assert<Equal<TProps["open"], boolean | undefined>>;
 type _PoI_OnToggle = Assert<
   Equal<TProps["onToggle"], ((v: boolean) => void) | undefined>
@@ -89,8 +97,10 @@ type _MR = MaybeReactiveProps<{
 }>;
 type _MR_Count = Assert<Equal<_MR["count"], MaybeReactive<number> | undefined>>;
 type _MR_Label = Assert<Equal<_MR["label"], MaybeReactive<string> | undefined>>;
-// Functions are also wrapped — JSX runtime supports computed/signal handlers
-type _MR_OnClick = Assert<Equal<_MR["onClick"], MaybeReactive<() => void>>>;
+// Function-typed props are NOT wrapped — wrapping them in `F | (() => F)`
+// breaks contextual typing for inline arrow callbacks (TS can't pick a
+// signature and parameter types fall back to implicit any).
+type _MR_OnClick = Assert<Equal<_MR["onClick"], () => void>>;
 
 // ─ ElementProps: attribute vs property precedence ────────────────────────────
 
@@ -157,9 +167,13 @@ type _CP = ComponentProps<typeof Card>;
 type _CP_Eq = Assert<Equal<_CP, { title: string; count?: number }>>;
 
 // ─ CustomElementRegistry → IntrinsicElements ─────────────────────────────────
-// Unregistered custom tags keep the loose fallback.
+// Custom tags must be registered in `CustomElementRegistry` — there is no
+// loose fallback (it would shadow registered prop types via intersection).
 
-type _IE_Loose = Assert<Extends<"random-tag", keyof JSX.IntrinsicElements>>;
+type _IE_Strict = Assert<
+  Equal<Extends<"random-tag", keyof JSX.IntrinsicElements>, false>
+>;
+type _IE_Registered = Assert<Extends<"x-range", keyof JSX.IntrinsicElements>>;
 
 // ─ Props<C> — unified helper (assignment-based checks) ──────────────────────
 
@@ -316,25 +330,30 @@ void _div_class_ns_sig;
 void _div_style_ns_static;
 void _div_style_ns_sig;
 
-// `prop:foo` accepts any value — direct property assignment (no MaybeReactive)
-const _div_prop_static: _DivAttrs = { "prop:custom": { any: "shape" } };
-const _div_prop_sig: _DivAttrs = { "prop:custom": () => ({ any: "shape" }) };
-void _div_prop_static;
-void _div_prop_sig;
+// `prop:K` is inferred from the element type — `prop:className` is `string`
+// (from HTMLDivElement), `prop:id` is `string`, etc. No autocomplete for
+// arbitrary `prop:custom` keys; register the field on the class to type it.
+const _div_prop_className: _DivAttrs = { "prop:className": "a b" };
+const _div_prop_className_sig: _DivAttrs = { "prop:className": () => "a b" };
+void _div_prop_className;
+void _div_prop_className_sig;
+const _div_prop_unknown_rejected: _DivAttrs = {
+  // @ts-expect-error — `prop:custom` not defined on HTMLDivElement
+  "prop:custom": { any: "shape" },
+};
+void _div_prop_unknown_rejected;
 
-// `slot:foo` accepts any `Child` — reactive forms (getter, signal) work
-// because `Child` includes `AnyFn`. No `MaybeReactive` wrap needed.
-const _div_slot_string: _DivAttrs = { "slot:header": "title text" };
-const _div_slot_getter: _DivAttrs = { "slot:header": () => "title text" };
-const _div_slot_array: _DivAttrs = { "slot:header": ["a", "b"] };
-const _div_slot_signal: _DivAttrs = { "slot:header": signal("title") };
-void _div_slot_string;
-void _div_slot_getter;
-void _div_slot_array;
-void _div_slot_signal;
+// `slot:foo` is NOT accepted on plain intrinsics — only on elements that
+// declare `[SLOTS]` (typed via `SlotsOf<C>`). Runtime ignores `slot:` on
+// plain HTML, so the type system rejects it at compile time.
+const _div_slot_rejected: _DivAttrs = {
+  // @ts-expect-error — `<div>` has no declared slots
+  "slot:header": "title",
+};
+void _div_slot_rejected;
 
-// `ref` callback receives the element
-const _div_ref: _DivAttrs = { ref: (_el: Element) => void 0 };
+// `ref` callback receives the concrete element (HTMLDivElement on <div>)
+const _div_ref: _DivAttrs = { ref: (_el: HTMLDivElement) => void 0 };
 void _div_ref;
 
 // Input value/checked are reactive
@@ -357,12 +376,12 @@ const _btn_custom_rejected: JSX.IntrinsicElements["button"] = {
 };
 void _btn_custom_rejected;
 
-// Unregistered custom-element tags accept any string-keyed props (loose fallback)
-const _custom_loose: JSX.IntrinsicElements["my-widget"] = {
-  anything: "goes",
-  "on:foo": () => {},
-};
-void _custom_loose;
+// Unregistered custom-element tags are not in `IntrinsicElements` — there is
+// no loose fallback (it would shadow registered prop types via intersection).
+// Register via `CustomElementRegistry` augmentation to use a custom tag.
+type _Unregistered = Assert<
+  Equal<HasKey<JSX.IntrinsicElements, "my-widget">, false>
+>;
 
 // Registered custom elements get typed attribute slots
 type _XRangeAttrs = JSX.IntrinsicElements["x-range"];
@@ -389,7 +408,7 @@ interface Probe extends HTMLElement {
   name: string;
   excited: boolean;
 }
-type _PI = PropsOfInstance<Probe>;
+type _PI = InstanceProps<Probe>;
 type _PI_Excited = Assert<Equal<_PI["excited"], boolean | undefined>>;
 type _PI_Name = Assert<Equal<_PI["name"], string | undefined>>;
 

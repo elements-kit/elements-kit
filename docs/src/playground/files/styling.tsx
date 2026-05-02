@@ -65,9 +65,11 @@ class CounterElement extends HTMLElement {
 
 customElements.define("x-counter2", CounterElement);
 
-declare module "elements-kit/custom-elements" {
-  interface CustomElementRegistry {
-    "x-counter2": typeof CounterElement;
+declare global {
+  namespace ElementsKit {
+    interface CustomElementRegistry {
+      "x-counter2": typeof CounterElement;
+    }
   }
 }
 // Mount three instances — all share the same parsed stylesheet
