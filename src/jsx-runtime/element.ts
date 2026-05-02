@@ -4,11 +4,11 @@ import type {
   ComponentFn,
   ComponentInstance,
   PropsTarget,
-  Disposer,
 } from "./types";
 import type { JSX } from ".";
 import { applyProps } from "./properties";
 import { effectScope, resolveProps, untracked } from "../signals";
+import { attachDisposables } from "./dispose";
 import "../polyfill";
 
 // ─ Public API ─────────────────────────────────────────────────────────────────
@@ -110,28 +110,3 @@ function renderNode(
   return renderNode(node.render());
 }
 
-// ─ Disposable attachment ──────────────────────────────────────────────────────
-
-function hasOwnDisposable(
-  el: Element | DocumentFragment,
-): el is (Element | DocumentFragment) & Disposable {
-  return Object.hasOwn(el, Symbol.dispose);
-}
-
-function attachDisposables(
-  el: Element | DocumentFragment,
-  disposables: Set<Disposer>,
-): void {
-  const existingDispose = hasOwnDisposable(el)
-    ? el[Symbol.dispose].bind(el)
-    : null;
-
-  Object.defineProperty(el, Symbol.dispose, {
-    value() {
-      existingDispose?.();
-      disposables.forEach((fn) => fn());
-      disposables.clear();
-    },
-    configurable: true,
-  });
-}

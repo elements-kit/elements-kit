@@ -20,25 +20,27 @@ export function applyProps(
       continue;
     }
 
-    // ─ Reactive ───────────────────────────────────────────────────────────────
-    if (isReactive(value)) {
-      if (isEventKey(key)) {
+    // ─ Single namespace split: shared by event + setProp paths ───────────────
+    const colonIdx = key.indexOf(":");
+    const ns = colonIdx > 0 ? key.slice(0, colonIdx) : "";
+
+    if (ns === "on") {
+      const evName = key.slice(colonIdx + 1);
+      if (isReactive(value)) {
         effect(() => {
-          on(node as Element, eventName(key), value() as EventListener);
+          on(node as Element, evName, value() as EventListener);
         });
-        continue;
+      } else {
+        on(node as Element, evName, value as EventListener);
       }
+      continue;
+    }
+
+    if (isReactive(value)) {
       effect(() => setProp(node, key, value()));
       continue;
     }
 
-    // ─ Events ─────────────────────────────────────────────────────────────────
-    if (isEventKey(key)) {
-      on(node as Element, eventName(key), value as EventListener);
-      continue;
-    }
-
-    // ─ Namespace / Properties / Attributes ────────────────────────────────────
     setProp(node, key, value);
   }
 }
@@ -127,14 +129,11 @@ function applyStyle(el: Element, value: unknown): void {
 }
 
 function setAttribute(el: Element, key: string, value: unknown): void {
-  if (value == null || value === false) el.removeAttribute(key);
-  else el.setAttribute(key, value === true ? "" : String(value));
-}
-
-function isEventKey(key: string): boolean {
-  return key.startsWith("on:");
-}
-
-function eventName(key: string): string {
-  return key.slice(3);
+  if (value == null || value === false) {
+    if (el.hasAttribute(key)) el.removeAttribute(key);
+    return;
+  }
+  const next = value === true ? "" : String(value);
+  if (el.getAttribute(key) === next) return;
+  el.setAttribute(key, next);
 }

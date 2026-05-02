@@ -1,5 +1,5 @@
 import { effect, effectScope, onCleanup } from "../signals";
-import { PropsTarget, Child } from "./types";
+import { PropsTarget, Child, Disposer } from "./types";
 import { SLOTS, Slots, Slot } from "../slot";
 import { PrimitiveNodeType, resolveNode } from "../lib";
 
@@ -89,8 +89,56 @@ function applySlot(slot: Slot, value: Child): void {
 }
 
 function mountChildren(el: Element | DocumentFragment, value: Child): void {
-  for (const child of ensureFlatArray<Child>(value)) {
-    mountChild(el, child);
+  const list = ensureFlatArray<Child>(value);
+  if (list.length === 0) return;
+  if (list.length === 1) {
+    mountChild(el, list[0]);
+    return;
+  }
+
+  // Static fast path: skip per-child Slot/effectScope wiring when no child is
+  // reactive. Saves N effectScope allocations and disposer registrations.
+  if (list.every(isStaticChild)) {
+    mountStatic(el, list);
+    return;
+  }
+
+  // Mixed/reactive path: buffer all appends into one fragment so the parent
+  // sees a single insertion (one layout invalidation instead of N).
+  const buffer = document.createDocumentFragment();
+  for (const child of list) mountChild(buffer, child);
+  el.appendChild(buffer);
+}
+
+function isStaticChild(c: unknown): boolean {
+  if (c == null || c === false || c === true) return true;
+  if (typeof c === "function") return false;
+  if (typeof c === "string" || typeof c === "number") return true;
+  if (c instanceof Node) return true;
+  return false;
+}
+
+function mountStatic(
+  el: Element | DocumentFragment,
+  list: readonly Child[],
+): void {
+  const buffer = document.createDocumentFragment();
+  const disposers: Disposer[] = [];
+  for (const c of list) {
+    if (c == null || c === false || c === true) continue;
+    if (c instanceof Node) {
+      const dispose = (c as unknown as Partial<Disposable>)[Symbol.dispose];
+      if (dispose) disposers.push(dispose);
+      buffer.appendChild(c);
+    } else {
+      buffer.appendChild(document.createTextNode(String(c)));
+    }
+  }
+  el.appendChild(buffer);
+  if (disposers.length > 0) {
+    effectScope(() => {
+      onCleanup(() => disposers.forEach((d) => d()));
+    });
   }
 }
 
@@ -106,8 +154,8 @@ function mountChildren(el: Element | DocumentFragment, value: Child): void {
  */
 export function mountChild(el: Element | DocumentFragment, child: Child): void {
   if (typeof child === "function") {
-    const slot = Slot.new();
-    el.appendChild(slot());
+    const slot = new Slot();
+    el.appendChild(slot.render());
     effectScope(() => {
       effect(() => slot.set(resolveChild(child())));
       onCleanup(() => slot.clear());

@@ -19,7 +19,7 @@ export class Slot {
    * it — the caller takes ownership of the returned nodes and is responsible for
    * their disposal.
    */
-  slot(defaultContent?: PrimitiveNodeType) {
+  render(defaultContent?: PrimitiveNodeType) {
     const fragment = document.createDocumentFragment();
     if (this.isMounted()) {
       const range = document.createRange();
@@ -118,7 +118,7 @@ export class Slot {
    */
   static new() {
     const instance = new Slot();
-    return new Proxy(instance.slot.bind(instance), {
+    return new Proxy(instance.render.bind(instance), {
       apply(target, _thisArg, argArray) {
         return target(...argArray);
       },
@@ -131,7 +131,7 @@ export class Slot {
       getPrototypeOf() {
         return Slot.prototype;
       },
-    }) as Slot & typeof instance.slot;
+    }) as Slot & typeof instance.render;
   }
 }
 /**

@@ -202,6 +202,22 @@ const color = signal("blue");
 </button>
 ```
 
+### Reactive styles: prefer `style:foo`
+
+When a style property changes reactively, `style:foo={signal}` writes only that property. The bulk form `style={{ color: c(), background: b() }}` re-runs `Object.assign` on every effect tick, rewriting every key — even unchanged ones. For a single static object, `style={obj}` is fine; for any value driven by a signal, reach for `style:foo`.
+
+```tsx
+// Slow on tick — Object.assign rewrites both keys every time c() changes
+<div style={{ color: c(), background: "white" }} />
+
+// Fast — only the color property is written when c() changes
+<div style:color={c} style:background="white" />
+```
+
+### Large lists: consider event delegation
+
+`on:click={fn}` calls `addEventListener` on the element. For lists or tables with hundreds of rows where every row carries the same handler, that's N listeners — measurable mount cost. For those cases, attach a single listener to the parent and look up the row from a data source via `data-id`. See the [event delegation recipe](/recipes/event-delegation/).
+
 ---
 
 ## Attributes from JSX
