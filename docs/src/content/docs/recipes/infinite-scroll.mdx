@@ -1,0 +1,132 @@
+---
+title: Infinite scroll
+description: Sentinel-driven pagination with createIntersectionObserver + async + a cursor signal. No scroll listeners, no rAF, no manual viewport math.
+---
+
+import Playground from "@/playground/Playground.astro";
+import INFINITE from "@/playground/files/infinite-scroll.tsx?raw";
+
+Append the next page when the bottom sentinel scrolls into view. `IntersectionObserver` does the visibility math; an `async` controller drives the fetch; cleanup is automatic when the surrounding scope disposes.
+
+<Playground
+  provider={{ files: { "/main.tsx": { code: INFINITE, active: true } } }}
+  preview={{}}
+/>
+
+## The recipe
+
+```tsx
+import { signal } from "elements-kit/signals";
+import { async } from "elements-kit/utilities/async";
+import { createIntersectionObserver } from "elements-kit/utilities/intersection-observer";
+import { For } from "elements-kit/for";
+
+type Item = { id: number; label: string };
+
+const items = signal<Item[]>([]);
+const cursor = signal(0);
+const done = signal(false);
+
+const loadMore = async(async () => {
+  const c = cursor();
+  const page = await fetchPage(c);
+  items([...items(), ...page.items]);
+  if (page.next == null) done(true);
+  else cursor(page.next);
+});
+loadMore.run();                                       // initial page
+
+// In JSX — capture sentinel from a child ref, wire observer from the parent ref:
+//   let sentinel!: Element;
+//   <div ref={(root) => createIntersectionObserver(sentinel, cb, {
+//     root: root as HTMLElement,
+//     rootMargin: "100px",
+//   })}
+//        style="height: 280px; overflow: auto;">
+//     <ul><For each={items} by={(i) => i.id}>{…}</For></ul>
+//     <div ref={(el) => (sentinel = el)} style="height: 1px;" />
+//   </div>
+//
+// const cb = ([entry]: IntersectionObserverEntry[]) => {
+//   if (entry.isIntersecting && !done() && loadMore.state !== "pending") {
+//     loadMore.run();
+//   }
+// };
+```
+
+:::caution[Use `run()`, not `start()`, for sentinel-driven loads]
+`async(fn).start()` ties the body to a tracking effect — every signal read inside the body becomes a dependency. Here the body reads `cursor()` *and* writes `cursor(page.next)`. With `start()`, that write re-triggers the effect, which reads the new cursor, fetches the next page, writes again — every page loads in one cascade.
+
+```ts
+// ❌ start() — body re-runs on its own cursor write, cascades through every page
+loadMore.start();
+
+// ✅ run() — one-shot, untracked. Each call fetches exactly one page.
+loadMore.run();
+```
+:::
+
+## How each piece contributes
+
+| Primitive | Role |
+|-----------|------|
+| `signal<Item[]>` | The accumulating list. Replaced wholesale on append (`[...items(), …]`) so subscribers re-run. |
+| `signal(cursor)` | Server-defined offset. Returned alongside `next` so the page boundary is the server's choice. |
+| `signal(done)` | One-way latch — flips to `true` when `next == null`, stops the observer from firing more loads. |
+| `async(fn)` | Mutation-shaped controller. `.run()` runs the body once, untracked — the right call when an external event (intersection, click) drives the load. `.start()` would re-run on signal writes the body itself performs. `loadMore.state` is the pending guard. |
+| `createIntersectionObserver(sentinel, cb, { root, rootMargin })` | Auto-cleanup observer. `root` is the scrollable container; `rootMargin` preloads slightly ahead of its edge. |
+| Two `ref`s | The child ref captures the sentinel; the parent ref runs after — by then the sentinel is already in `parentElement` and we have both pieces to wire the observer. |
+
+## Variations
+
+**Reset on filter change** — clear `items` and `cursor` from an `effect`, then `loadMore.run()`:
+
+```ts
+const filter = signal("");
+effect(() => {
+  filter();                                           // tracked
+  items([]);
+  cursor(0);
+  done(false);
+  loadMore.run();
+});
+```
+
+**Manual fallback button** — a "load more" button keeps the recipe usable without a sentinel:
+
+```tsx
+<button on:click={() => loadMore.run()} disabled={() => loadMore.state === "pending"}>
+  load more
+</button>
+```
+
+**Preload aggressively** — bump `rootMargin` to fire before the user reaches the bottom:
+
+```ts
+createIntersectionObserver(el, cb, { rootMargin: "400px" });
+```
+
+## Gotchas
+
+:::caution[Guard against re-entrant fires]
+A sentinel that's already in view when the previous page arrives will trigger again immediately. Check `loadMore.state !== "pending"` and the `done` latch before calling `.run()` — without the guard you'll fire two fetches per page.
+:::
+
+:::caution[Set `root` to the scrollable container]
+The default observer root is the **viewport**, not your scrollable `<div>`. Without `root`, a sentinel that fits inside the viewport stays "intersecting" and `loadMore.run()` fires on every page until the list runs out. Pass `root: containerEl` so the observer measures against the container's scrollport instead.
+:::
+
+:::caution[Order of `ref` callbacks: child first, then parent]
+A child element's `ref` fires after its props/children are attached but **before** insertion into the parent. The parent's `ref` fires later, after all its children have been attached. So a child ref can stash a reference; the parent ref can read it. Don't reverse the order.
+:::
+
+:::caution[Replace, don't mutate]
+`items().push(…)` won't notify subscribers. Always assign a new array: `items([...items(), …page.items])`.
+:::
+
+## See also
+
+- [Utilities](/utilities) — `createIntersectionObserver`, `<dom-lifecycle>`.
+- [Data fetching](/recipes/data-fetching) — `async` controller and `onCleanup`-based abort.
+- [Lists](/elements/for) — `For` reconciliation rules.
+- [Async](/async) — `Async.state` semantics for the pending guard.

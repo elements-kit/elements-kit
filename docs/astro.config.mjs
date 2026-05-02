@@ -186,7 +186,14 @@ export default defineConfig({
         },
         {
           label: "Recipes",
-          items: [{ label: "Data fetching", slug: "recipes/data-fetching" }],
+          items: [
+            { label: "Data fetching", slug: "recipes/data-fetching" },
+            { label: "Routing", slug: "recipes/routing" },
+            { label: "Debounced search", slug: "recipes/search" },
+            { label: "Infinite scroll", slug: "recipes/infinite-scroll" },
+            { label: "Context propagation", slug: "recipes/context" },
+            { label: "Toast queue", slug: "recipes/toasts" },
+          ],
         },
       ],
 

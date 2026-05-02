@@ -1,0 +1,98 @@
+---
+title: Context propagation
+description: Share a current-user signal with deeply-nested components via setContext + getContext, deferring the lookup with <dom-lifecycle> so it resolves after mount.
+---
+
+import Playground from "@/playground/Playground.astro";
+import CONTEXT from "@/playground/files/context.tsx?raw";
+
+`setContext` registers a value on a host element. Any descendant — across open shadow boundaries, at any depth — can read it with `getContext`. No prop drilling, no global module state, no React-style provider component.
+
+<Playground
+  provider={{ files: { "/main.tsx": { code: CONTEXT, active: true } } }}
+  preview={{}}
+/>
+
+## The recipe
+
+```tsx
+import { signal, type Signal } from "elements-kit/signals";
+import { setContext, getContext } from "elements-kit/utilities/context";
+import "elements-kit/utilities/dom-lifecycle";
+
+type User = { name: string; role: "viewer" | "editor" | "admin" };
+const USER = Symbol("user");
+
+function Avatar() {
+  const user = signal<Signal<User> | undefined>(undefined);
+  return (
+    <dom-lifecycle
+      onConnect={(el) => user(getContext<Signal<User>>(el, USER))}
+    >
+      <span>{() => user()?.().name ?? "(none)"}</span>
+    </dom-lifecycle>
+  );
+}
+
+class App {
+  render() {
+    const currentUser = signal<User>({ name: "Ada", role: "admin" });
+    return (
+      <div ref={(el) => setContext(el, USER, currentUser)}>
+        <Avatar />
+      </div>
+    );
+  }
+}
+```
+
+`<dom-lifecycle>` is a render-inert custom element (`display: contents`, no a11y role). Wrap the content that needs the context in it — `onConnect` fires once the wrapper is in the DOM, so the `getContext` ancestor walk reaches the provider. The provider side uses a `ref` callback on the root element; by the time JSX `ref` fires, the JSX runtime has wrapped the call in an `effectScope`, so `setContext`'s `onCleanup` registration is collected.
+
+## How each piece contributes
+
+| Primitive | Role |
+|-----------|------|
+| `setContext(host, key, value)` | Registers `value` on `host`. Returns `host` for inline composition. Auto-removed on scope dispose via `onCleanup`. |
+| `getContext<T>(consumer, key)` | One-shot ancestor walk from `consumer`. Returns the nearest registered value, or `undefined`. Does **not** subscribe — reactivity is the caller's responsibility. |
+| `<dom-lifecycle onConnect>` | Wraps the consuming subtree and defers `getContext` until after insertion. JSX `ref` runs *before* insertion, so a synchronous `getContext` there returns `undefined`. The callback runs inside an `effectScope` — `setContext` calls inside it auto-clean on disconnect. |
+| `ref={(el) => setContext(el, …)}` | Provider side. JSX `ref` fires after the element is created and props are attached but before insertion — that's enough for `setContext` because it just writes to a registry keyed on `el`, no ancestor walk needed. |
+| `signal` (held by consumer) | Latches the result of the lookup. Reading the signal inside reactive children re-renders when the provider's value changes. |
+
+## Variations
+
+**Inside a custom element** — skip `<dom-lifecycle>` entirely. `connectedCallback` is the canonical `getContext` site; the element is in the tree by then:
+
+```ts
+class ProfileCard extends HTMLElement {
+  connectedCallback() {
+    const user = getContext<Signal<User>>(this, USER);
+    effect(() => (this.textContent = user?.().name ?? "(none)"));
+  }
+}
+```
+
+**Symbol vs string key** — both work. `Symbol("name")` avoids collisions across modules; strings are easier to inspect in DevTools. Prefer symbols at module scope.
+
+**Static (non-reactive) values** — `setContext(el, KEY, "hello")` works just as well. Reactivity is opt-in: pass a `Signal` / `Computed` only when consumers should re-render on changes.
+
+**Inner provider shadows outer** — calling `setContext` deeper in the tree with the same key wins for that subtree. Useful for region-scoped overrides (e.g. a settings page that wants its own theme).
+
+## Gotchas
+
+:::caution[`getContext` from a JSX `ref` returns `undefined`]
+`ref` fires after the element is created and its props/children are attached, but **before** insertion into the parent. The walk has nowhere to go — `parentNode` is `null`. Use `<dom-lifecycle onConnect>` to defer the lookup, or move it to a custom element's `connectedCallback`.
+:::
+
+:::caution[`getContext` does not subscribe]
+It's a one-shot ancestor walk. If the consumer needs to re-run when the provider's *value* changes, wrap the value in a `Signal` / `Computed` and read it inside an `effect` or reactive child. If the provider itself is replaced (rare), look it up again on the relevant lifecycle event.
+:::
+
+:::caution[`setContext` cleanup needs a scope]
+The `onCleanup` registered inside `setContext` only runs if there's an enclosing reactive scope. A custom element's wrapped `connectedCallback`, `<dom-lifecycle onConnect>`, and JSX `ref` callbacks all qualify — calling `setContext` from a plain top-level function leaves the entry in the registry for the page's lifetime. Fine for a global root provider, leaky for short-lived ones.
+:::
+
+## See also
+
+- [Utilities](/utilities) — full `context` and `<dom-lifecycle>` reference.
+- [Custom Elements](/custom-elements) — `getContext` inside `connectedCallback` is the cleanest pattern when the consumer is a custom element.
+- [Scopes](/scopes) — why `setContext` cleanup needs a reactive scope.

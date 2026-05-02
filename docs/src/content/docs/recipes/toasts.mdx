@@ -1,0 +1,96 @@
+---
+title: Toast queue
+description: Per-item effectScope owns each toast's auto-dismiss timer. Closing the toast disposes the scope, cancelling the timer cleanly.
+---
+
+import Playground from "@/playground/Playground.astro";
+import TOASTS from "@/playground/files/toasts.tsx?raw";
+
+Toasts auto-dismiss after a delay, but the user can also close them early. The natural shape: each toast owns a scoped lifetime. Disposing the scope cancels its timer — no manual `clearTimeout`, no leaked callbacks.
+
+<Playground
+  provider={{ files: { "/main.tsx": { code: TOASTS, active: true } } }}
+  preview={{}}
+/>
+
+## The recipe
+
+```ts
+import { signal, effectScope } from "elements-kit/signals";
+import { createTimeout } from "elements-kit/utilities/timeout";
+
+type Toast = { id: number; message: string; dispose: () => void };
+
+const toasts = signal<Toast[]>([]);
+let nextId = 1;
+
+function dismiss(id: number) {
+  const t = toasts().find((x) => x.id === id);
+  t?.dispose();                                       // cancels its timer
+  toasts(toasts().filter((x) => x.id !== id));
+}
+
+function show(message: string, ms = 3000) {
+  const id = nextId++;
+  const stop = effectScope(() => {
+    createTimeout(() => dismiss(id), ms);
+  });
+  toasts([...toasts(), { id, message, dispose: stop }]);
+}
+```
+
+`effectScope` returns a stop function. `createTimeout` registers `onCleanup` against the current scope, so `stop()` clears the timer. The toast object carries `dispose` — the close button calls it directly.
+
+## How each piece contributes
+
+| Primitive | Role |
+|-----------|------|
+| `signal<Toast[]>` | The queue. Replaced (`[…toasts(), new]`) on push so subscribers re-render. |
+| `effectScope(fn)` | Per-toast lifetime. Owns any `onCleanup` registered inside `fn`. |
+| `createTimeout(cb, ms)` | The auto-dismiss. Registers `onCleanup(() => clearTimeout(id))` on the surrounding scope — the very thing `effectScope` gives us. |
+| `For each={toasts} by={(t) => t.id}` | Keyed reconciliation so closing the third toast doesn't recreate the first two. |
+
+## Variations
+
+**Pause on hover** — read [`createHover`](/utilities) inside the timer scope. Reset the timeout when the pointer leaves:
+
+```tsx
+const stop = effectScope(() => {
+  const hovered = createHover(host);
+  const t = createTimeout(() => dismiss(id), ms);
+  effect(() => { if (hovered()) t.stop(); else t.start(); });
+});
+```
+
+**Cap the queue** — drop the oldest when over the limit:
+
+```ts
+function show(message: string) {
+  // …create toast…
+  const next = [...toasts(), toast];
+  if (next.length > 5) next.shift()!.dispose();
+  toasts(next);
+}
+```
+
+**Position variants** — bind a `signal<"top-right" | "bottom-center">` and switch the container's CSS class.
+
+## Gotchas
+
+:::caution[Without `effectScope`, all timers leak together]
+`createTimeout` registers cleanup on the *current* scope. Outside an explicit scope, that's whatever effect or page-level scope happens to be running — disposing the page wipes every timer at once, which is *not* what you want for individual dismissal. The per-toast `effectScope` is what makes early-close work.
+:::
+
+:::caution[Replace the array, don't mutate it]
+`toasts().push(toast)` won't notify subscribers. Always assign a new array via `toasts([...])` — same rule as the Infinite scroll list.
+:::
+
+:::caution[Call `dispose` *before* removing from the list]
+Filter-then-dispose works too, but disposing first means the timer can't fire mid-removal and trigger a redundant `dismiss(id)`.
+:::
+
+## See also
+
+- [Utilities](/utilities) — `createTimeout`, `createHover`.
+- [Scopes](/scopes) — `effectScope` lifetime semantics.
+- [Lists](/elements/for) — `For` keyed reconciliation.

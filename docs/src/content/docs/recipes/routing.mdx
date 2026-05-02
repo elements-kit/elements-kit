@@ -1,0 +1,106 @@
+---
+title: Routing
+description: Build a single-page router from patchHistory + matches/match + navigate, with same-origin link interception. No router library.
+---
+
+import Playground from "@/playground/Playground.astro";
+import ROUTING from "@/playground/files/routing.tsx?raw";
+
+Build a single-page router on top of the platform: `history.pushState` + `URLPattern`, wrapped in reactive helpers. You get reactive route matching, named params, and same-origin link interception in about 30 lines.
+
+<Playground
+  provider={{ files: { "/main.tsx": { code: ROUTING, active: true } } }}
+  preview={{}}
+/>
+
+## The recipe
+
+```tsx
+import { effect } from "elements-kit/signals";
+import {
+  patchHistory,
+  navigate,
+  matches,
+  match,
+  isLocalNavigationEvent,
+} from "elements-kit/utilities/routing";
+import { currentLocation } from "elements-kit/utilities/location";
+
+patchHistory();                                          // call once at boot
+
+const isHome = matches({ pathname: "/" });
+const userMatch = match({ pathname: "/users/:id" });
+const isSettings = matches({ pathname: "/settings" });
+
+effect(() => {
+  const id = userMatch()?.pathname.groups.id;
+  document.title = id ? `User ${id}` : isHome() ? "Home" : "App";
+});
+
+document.addEventListener("click", (e) => {
+  if (!isLocalNavigationEvent(e)) return;
+  e.preventDefault();
+  const a = (e.target as Element).closest("a") as HTMLAnchorElement;
+  navigate(a.href);
+});
+```
+
+## How each piece contributes
+
+| Primitive | Role |
+|-----------|------|
+| `patchHistory()` | Monkey-patches `pushState` / `replaceState` to dispatch synthetic events. Without it, programmatic navigation is silent. |
+| `matches(pattern)` | `Computed<boolean>` — true when the current URL matches. Use for boolean route gates. |
+| `match(pattern)` | `Computed<URLPatternResult \| null>` — full match including `pathname.groups` for params. |
+| `currentLocation` | `{ href, pathname, search, hash }` — each a `Computed<string>` derived from the patched history events. |
+| `navigate(url, opts?)` | Wraps `pushState` (or `replaceState` with `{ replace: true }`). |
+| `isLocalNavigationEvent(e)` | Predicate: same origin, primary button, no modifiers, no `target="_blank"` / `download`. |
+
+## Variations
+
+**Redirect** — replace the entry instead of pushing a new one:
+
+```ts
+navigate("/login", { replace: true });
+```
+
+**Read params** — `match()` returns `URLPatternResult`, so groups are typed as `string | undefined`:
+
+```ts
+const route = match({ pathname: "/users/:id/posts/:postId" });
+effect(() => {
+  const r = route();
+  if (r) console.log(r.pathname.groups.id, r.pathname.groups.postId);
+});
+```
+
+**Route-level data loading** — compose with [`async`](/async). The query in [Data fetching](/recipes/data-fetching) re-runs whenever its tracked signals change, including `currentLocation.pathname()` or any `match()` getter:
+
+```ts
+const userMatch = match({ pathname: "/users/:id" });
+const userQuery = async(() => {
+  const id = userMatch()?.pathname.groups.id;
+  if (!id) return null;
+  return fetch(`/api/users/${id}`).then((r) => r.json());
+}).start();
+```
+
+## Gotchas
+
+:::caution[Call `patchHistory()` once, before any navigation]
+The platform fires `popstate` only on back/forward — not on `pushState` / `replaceState`. `patchHistory()` adds the synthetic events that `currentLocation`, `matches`, and `match` listen for. Skip it and your router silently stops reacting to programmatic navigation.
+:::
+
+:::caution[`URLPattern` needs a polyfill on older browsers]
+Native `URLPattern` ships in Safari 26+ and Firefox 142+. For wider support, load [`urlpattern-polyfill`](https://github.com/kenchris/urlpattern-polyfill) before importing the routing utilities.
+:::
+
+:::caution[Use object form for patterns]
+`match("/users/:id")` is a relative string pattern and throws without a base URL. Use `match({ pathname: "/users/:id" })`.
+:::
+
+## See also
+
+- [Utilities](/utilities) — full `routing` reference (`navigate`, `matches`, `match`, `isLocalNavigationEvent`).
+- [Data fetching](/recipes/data-fetching) — pair routing with `async` for route-level loaders.
+- [Signals](/signals) — `effect` for side-effects like document title.

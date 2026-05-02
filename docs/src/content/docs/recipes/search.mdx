@@ -1,0 +1,115 @@
+---
+title: Debounced search
+description: Search-as-you-type with createDebounced + async + AbortController. The fetch tracks the debounced signal, so each keystroke restarts cleanly.
+---
+
+import Playground from "@/playground/Playground.astro";
+import SEARCH from "@/playground/files/search.tsx?raw";
+
+Search-as-you-type without the usual race conditions. `createDebounced` smooths the input, `async` re-runs whenever the debounced value changes, and `onCleanup` aborts the previous fetch before the next one starts.
+
+<Playground
+  provider={{ files: { "/main.tsx": { code: SEARCH, active: true } } }}
+  preview={{}}
+/>
+
+## The recipe
+
+```ts
+import { signal, onCleanup } from "elements-kit/signals";
+import { async } from "elements-kit/utilities/async";
+import { createDebounced } from "elements-kit/utilities/debounced";
+
+const query = signal("");
+const debounced = createDebounced(query, 250);
+
+const search = async(() => {
+  const q = debounced();                              // tracked
+  if (!q) return [];                                  // skip empty query
+  const ctrl = new AbortController();
+  onCleanup(() => ctrl.abort());                      // abort on re-run
+  return fetch(`/api/search?q=${encodeURIComponent(q)}`, {
+    signal: ctrl.signal,
+  }).then((r) => r.json());
+}).start();
+```
+
+Type `apr` and the body re-runs three times — but only the last fetch survives. The first two are aborted by `onCleanup` before they resolve.
+
+## How each piece contributes
+
+| Primitive | Role |
+|-----------|------|
+| `signal` (query) | Bound to the input's `on:input` event. |
+| `createDebounced(query, 250)` | `Computed` that mirrors `query` but only emits after 250 ms of silence. |
+| `async(() => …).start()` | Re-runs the body whenever `debounced()` changes. Read it *before any await* to be tracked. |
+| `onCleanup(() => ctrl.abort())` | Runs when the body re-fires — cancels in-flight requests. |
+| `AbortController` + `fetch({ signal })` | The cancellation primitive itself. `fetch` rejects with `AbortError` when aborted. |
+
+## Variations
+
+**Retry on transient failure** — wrap the fetch in [`retry`](/utilities), same as Data fetching:
+
+```ts
+import { retry } from "elements-kit/utilities/retry";
+
+const search = async(() => {
+  const q = debounced();
+  if (!q) return [];
+  return retry(() => {
+    const ctrl = new AbortController();
+    onCleanup(() => ctrl.abort());
+    return fetch(`/api/search?q=${q}`, { signal: ctrl.signal })
+      .then((r) => r.json());
+  }, 2, (n) => n * 250)();
+}).start();
+```
+
+**Throttle instead of debounce** — when intermediate results should appear while the user is still typing:
+
+```ts
+import { createThrottled } from "elements-kit/utilities/throttled";
+const throttled = createThrottled(query, 250);
+```
+
+**Refresh on tab return** — read `windowFocused()` inside the body to refetch when the user comes back:
+
+```ts
+import { windowFocused } from "elements-kit/utilities/window-focus";
+
+const search = async(() => {
+  windowFocused();                                    // re-runs on focus
+  const q = debounced();
+  // …
+}).start();
+```
+
+## Gotchas
+
+:::caution[Read tracked signals before the first `await`]
+`async` tracks signals only up to the first `await`. Read `debounced()` synchronously at the top — reading it inside a `.then()` won't subscribe.
+
+```ts
+// ❌ debounced() read after await — no tracking
+const search = async(async () => {
+  await someSetup();
+  return fetch(`/api/search?q=${debounced()}`);
+});
+
+// ✅ read before any await
+const search = async(() => {
+  const q = debounced();
+  return fetch(`/api/search?q=${q}`);
+});
+```
+:::
+
+:::caution[Empty-query short-circuit]
+Without the `if (!q) return []` guard, the first keystroke (`""`) fires a wasted fetch. Pick whatever sentinel value matches your API's "no results" contract.
+:::
+
+## See also
+
+- [Data fetching](/recipes/data-fetching) — same `async` + `onCleanup` + abort pattern, plus retry, online, focus.
+- [Utilities](/utilities) — `createDebounced`, `createThrottled`, `retry`.
+- [Async](/async) — full `async` / `Async` reference.
