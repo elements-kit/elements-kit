@@ -31,7 +31,7 @@ Raw JSX surface for a custom element. Composes attributes, flat properties, `pro
 // @noErrors
 import { attributes, ATTRIBUTES, type Attributes } from "elements-kit/attributes";
 import { reactive } from "elements-kit/signals";
-import { SLOTS, Slots } from "elements-kit/slot";
+import { SLOTS, Slot } from "elements-kit/slot";
 import type { ElementProps } from "elements-kit/jsx-runtime";
 
 @attributes
@@ -40,7 +40,7 @@ class XRange extends HTMLElement {
     min(this: XRange, v) { this.min = Number(v ?? 0); },
   };
   declare static events: { commit: CustomEvent<number> };
-  [SLOTS] = Slots.new(["label"] as const);
+  [SLOTS] = { label: new Slot() } as const;
 
   @reactive() min = 0;
 }
@@ -70,7 +70,7 @@ At the JSX call site, the runtime wraps `ElementProps<C>` in `MaybeReactiveProps
 Plus the namespaced extras (`class:`, `style:`, `prop:`, `slot:`, `ref`) are layered on every intrinsic element via `JsxNamespaces` in [src/jsx-runtime/index.ts](https://github.com/wbettayeb/elements-kit/blob/main/src/jsx-runtime/index.ts).
 
 :::note[Slot keys need `as const`]
-`Slots.new(["label", "footer"])` widens to `string[]` — the key literals are lost. Always pass with `as const` so `ElementProps` can synthesize `slot:${K}` entries.
+`{ label: new Slot(), footer: new Slot() }` without `as const` widens — the key literals are lost. Always trail with `as const` so `ElementProps` can synthesize `slot:${K}` entries.
 :::
 
 ## `Props<C>`

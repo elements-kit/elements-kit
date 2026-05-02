@@ -188,6 +188,11 @@ export function resolve<T>(value: MaybeReactive<T>): T {
 export function resolveProps<P extends object>(raw: {
   [K in keyof P]: MaybeReactive<P[K]>;
 }): ReactiveProps<P> {
+  // Snapshot the key list once. Proxy traps (`ownKeys`,
+  // `getOwnPropertyDescriptor`, `has`) reuse it instead of calling
+  // `Reflect.ownKeys(raw)` per access.
+  const ownKeys = Reflect.ownKeys(raw);
+  const ownKeySet = new Set<PropertyKey>(ownKeys);
   const cache = new Map<PropertyKey, () => unknown>();
   const get = (key: PropertyKey): (() => unknown) => {
     let getter = cache.get(key);
@@ -202,10 +207,10 @@ export function resolveProps<P extends object>(raw: {
   };
   return new Proxy(raw, {
     get: (_target, key) => get(key),
-    has: (_target, key) => key in raw,
-    ownKeys: (_target) => Reflect.ownKeys(raw),
+    has: (_target, key) => ownKeySet.has(key),
+    ownKeys: () => ownKeys,
     getOwnPropertyDescriptor: (_target, key) =>
-      key in raw
+      ownKeySet.has(key)
         ? {
             enumerable: true,
             configurable: true,

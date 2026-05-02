@@ -7,8 +7,8 @@ import "./polyfill";
  */
 export class Slot {
   // Using comments as markers to avoid extra elements in the DOM
-  private readonly start = document.createComment("{");
-  private readonly end = document.createComment("}");
+  readonly #start = document.createComment("{");
+  readonly #end = document.createComment("}");
   // Content buffered via set() before the slot is mounted — applied on first render() call.
   #pending: Node | undefined;
 
@@ -23,24 +23,24 @@ export class Slot {
     const fragment = document.createDocumentFragment();
     if (this.isMounted()) {
       const range = document.createRange();
-      range.setStartAfter(this.start);
-      range.setEndBefore(this.end);
+      range.setStartAfter(this.#start);
+      range.setEndBefore(this.#end);
       fragment.appendChild(range.extractContents());
       return fragment;
     }
-    fragment.appendChild(this.start);
-    fragment.appendChild(this.end);
+    fragment.appendChild(this.#start);
+    fragment.appendChild(this.#end);
     // Use content buffered before mount, or the provided default.
     const initialContent = this.#pending ?? resolveNode(defaultContent);
-    if (initialContent) fragment.insertBefore(initialContent, this.end);
+    if (initialContent) fragment.insertBefore(initialContent, this.#end);
     this.#pending = undefined;
     return fragment;
   }
 
   /** Dispose reactive children and remove all content between the markers. */
   clear() {
-    let node: ChildNode | null = this.start.nextSibling;
-    while (node && node !== this.end) {
+    let node: ChildNode | null = this.#start.nextSibling;
+    while (node && node !== this.#end) {
       // Save nextSibling before dispose — if dispose removes the node from DOM
       // the sibling pointer would be lost.
       const next = node.nextSibling;
@@ -49,8 +49,8 @@ export class Slot {
       node = next;
     }
     const range = document.createRange();
-    range.setStartAfter(this.start);
-    range.setEndBefore(this.end);
+    range.setStartAfter(this.#start);
+    range.setEndBefore(this.#end);
     range.deleteContents();
   }
 
@@ -64,9 +64,9 @@ export class Slot {
       this.#pending = element; // buffer until render() mounts the markers
       return;
     }
-    if (this.isSame(element)) return;
+    if (this.#isSame(element)) return;
     this.clear();
-    parent.insertBefore(element, this.end);
+    parent.insertBefore(element, this.#end);
     this.#pending = undefined;
   }
 
@@ -79,26 +79,27 @@ export class Slot {
   get(): DocumentFragment | null {
     if (!this.isMounted()) return null;
     const range = document.createRange();
-    range.setStartAfter(this.start);
-    range.setEndBefore(this.end);
+    range.setStartAfter(this.#start);
+    range.setEndBefore(this.#end);
     return range.extractContents();
   }
 
   /** Returns the parent node if the slot is mounted, otherwise `null`. */
   parent() {
-    return this.isMounted() ? this.start.parentNode : null;
+    return this.isMounted() ? this.#start.parentNode : null;
   }
 
   /** Whether the slot's comment markers are attached to the DOM. */
   isMounted() {
     return (
-      this.start.parentNode === this.end.parentNode && !!this.start.parentNode
+      this.#start.parentNode === this.#end.parentNode &&
+      !!this.#start.parentNode
     );
   }
 
-  private isSame(element: Node) {
+  #isSame(element: Node) {
     return (
-      this.start.nextSibling === element && this.end === element.nextSibling
+      this.#start.nextSibling === element && this.#end === element.nextSibling
     );
   }
 }

@@ -88,6 +88,21 @@ function applySlot(slot: Slot, value: Child): void {
   });
 }
 
+// Pool of reusable DocumentFragments. After `el.appendChild(buffer)` the
+// buffer's children transfer to `el` and the fragment is empty — safe to
+// recycle. Keeps allocations down on burst-mount workloads (long lists,
+// `<For>` re-renders).
+const FRAGMENT_POOL_MAX = 4;
+const fragmentPool: DocumentFragment[] = [];
+
+function acquireFragment(): DocumentFragment {
+  return fragmentPool.pop() ?? document.createDocumentFragment();
+}
+
+function releaseFragment(frag: DocumentFragment): void {
+  if (fragmentPool.length < FRAGMENT_POOL_MAX) fragmentPool.push(frag);
+}
+
 function mountChildren(el: Element | DocumentFragment, value: Child): void {
   const list = ensureFlatArray<Child>(value);
   if (list.length === 0) return;
@@ -98,46 +113,93 @@ function mountChildren(el: Element | DocumentFragment, value: Child): void {
 
   // Static fast path: skip per-child Slot/effectScope wiring when no child is
   // reactive. Saves N effectScope allocations and disposer registrations.
-  if (list.every(isStaticChild)) {
-    mountStatic(el, list);
+  // Single-pass classification picks the tightest mountStatic loop variant.
+  const kind = classifyStatic(list);
+  if (kind !== StaticKind.Reactive) {
+    mountStatic(el, list, kind);
     return;
   }
 
   // Mixed/reactive path: buffer all appends into one fragment so the parent
   // sees a single insertion (one layout invalidation instead of N).
-  const buffer = document.createDocumentFragment();
+  const buffer = acquireFragment();
   for (const child of list) mountChild(buffer, child);
   el.appendChild(buffer);
+  releaseFragment(buffer);
 }
 
-function isStaticChild(c: unknown): boolean {
-  if (c == null || c === false || c === true) return true;
-  if (typeof c === "function") return false;
-  if (typeof c === "string" || typeof c === "number") return true;
-  if (c instanceof Node) return true;
-  return false;
+// Single-pass classifier for the static-children fast path. Returns the kind
+// of every element so mountStatic can pick a tighter loop (all-Node /
+// all-primitive / mixed) without re-checking each child.
+const enum StaticKind {
+  Reactive = 0,
+  AllNode = 1,
+  AllPrimitive = 2,
+  Mixed = 3,
+}
+
+function classifyStatic(list: readonly Child[]): StaticKind {
+  let kind = StaticKind.AllNode | StaticKind.AllPrimitive;
+  for (const c of list) {
+    if (c == null || c === false || c === true) continue;
+    if (typeof c === "function") return StaticKind.Reactive;
+    if (c instanceof Node) {
+      kind &= StaticKind.AllNode;
+    } else if (typeof c === "string" || typeof c === "number") {
+      kind &= StaticKind.AllPrimitive;
+    } else {
+      return StaticKind.Reactive;
+    }
+    if (kind === 0) return StaticKind.Mixed; // saw both kinds
+  }
+  // If only nullish/bool seen, kind is still both flags — treat as primitive
+  return kind === (StaticKind.AllNode | StaticKind.AllPrimitive)
+    ? StaticKind.AllPrimitive
+    : kind;
 }
 
 function mountStatic(
   el: Element | DocumentFragment,
   list: readonly Child[],
+  kind: StaticKind,
 ): void {
-  const buffer = document.createDocumentFragment();
-  const disposers: Disposer[] = [];
-  for (const c of list) {
-    if (c == null || c === false || c === true) continue;
-    if (c instanceof Node) {
-      const dispose = (c as unknown as Partial<Disposable>)[Symbol.dispose];
-      if (dispose) disposers.push(dispose);
-      buffer.appendChild(c);
-    } else {
+  const buffer = acquireFragment();
+  let disposers: Disposer[] | null = null;
+
+  if (kind === StaticKind.AllNode) {
+    // No type checks per child — straight `appendChild` + dispose harvest.
+    for (const c of list) {
+      const node = c as Node;
+      const dispose = (node as unknown as Partial<Disposable>)[Symbol.dispose];
+      if (dispose) (disposers ??= []).push(dispose);
+      buffer.appendChild(node);
+    }
+  } else if (kind === StaticKind.AllPrimitive) {
+    // Every child becomes a text node — single-shot string conversion.
+    for (const c of list) {
+      if (c == null || c === false || c === true) continue;
       buffer.appendChild(document.createTextNode(String(c)));
     }
+  } else {
+    // Mixed Node + primitive: per-child branching.
+    for (const c of list) {
+      if (c == null || c === false || c === true) continue;
+      if (c instanceof Node) {
+        const dispose = (c as unknown as Partial<Disposable>)[Symbol.dispose];
+        if (dispose) (disposers ??= []).push(dispose);
+        buffer.appendChild(c);
+      } else {
+        buffer.appendChild(document.createTextNode(String(c)));
+      }
+    }
   }
+
   el.appendChild(buffer);
-  if (disposers.length > 0) {
+  releaseFragment(buffer);
+  if (disposers && disposers.length > 0) {
+    const ds = disposers;
     effectScope(() => {
-      onCleanup(() => disposers.forEach((d) => d()));
+      onCleanup(() => ds.forEach((d) => d()));
     });
   }
 }

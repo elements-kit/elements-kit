@@ -13,7 +13,9 @@ export function applyProps(
   node: PropsTarget,
   props: Record<string, unknown>,
 ): void {
-  for (const [key, value] of Object.entries(props)) {
+  const entries = Object.entries(props);
+  if (entries.length === 0) return;
+  for (const [key, value] of entries) {
     // ─ Children (slot:name, Slot properties) ──────────────────────────────────
     if (isChildrenProperty(node, key)) {
       applyChildren(node, key, value as Child);
