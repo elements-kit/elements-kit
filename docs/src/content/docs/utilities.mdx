@@ -440,6 +440,18 @@ createIntersectionObserver(el, ([entry]) => {
 }, { threshold: 0.5 });
 ```
 
+:::caution[Root defaults to the viewport]
+Without `root`, the platform observes intersections with the viewport — not with `target`'s nearest scrollable ancestor. For a sentinel inside an in-page scroll container, pass `root: containerEl` explicitly. Otherwise the sentinel reads as "intersecting" the viewport and fires immediately and repeatedly.
+
+```ts
+createIntersectionObserver(
+  sentinelEl,
+  ([entry]) => { if (entry.isIntersecting) loadMore.run(); },
+  { root: containerEl, rootMargin: "100px" },
+);
+```
+:::
+
 ```ts
 function createIntersectionObserver(
   target: Element,

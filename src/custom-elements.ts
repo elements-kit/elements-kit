@@ -1,3 +1,18 @@
+// Typed JSX for custom elements goes through `CustomElementRegistry` below.
+// elements-kit uses `jsxImportSource: "elements-kit"`, so global `JSX`
+// namespace augmentations do not merge with the runtime's own namespace and
+// have no effect. Augment this interface instead — it works for any tag,
+// regardless of whether you register with `defineElement` or call
+// `customElements.define` directly.
+//
+// ```ts
+// declare module "elements-kit/custom-elements" {
+//   interface CustomElementRegistry {
+//     "x-counter": typeof XCounter;
+//   }
+// }
+// ```
+
 /**
  * Registry of custom-element tags to their constructors.
  * Users augment this interface to add typed JSX support for their elements:
