@@ -1,45 +1,42 @@
 # Docs
 
-Rules for `.mdx` pages in [docs/src/content/docs/](docs/src/content/docs/) and playground files in [docs/src/playground/files/](docs/src/playground/files/).
-
-How-the-library-works: [ARCHITECTURE.md](ARCHITECTURE.md). Contributor rules: [CONTRIBUTING.md](CONTRIBUTING.md).
+Rules for `.mdx` pages in [docs/src/content/docs/](docs/src/content/docs/) and playground files in [docs/src/playground/files/](docs/src/playground/files/). Library semantics: [ARCHITECTURE.md](ARCHITECTURE.md). Contributor rules: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 > Changes to page structure or playground conventions land here before you rewrite existing pages.
 
 ## Voice & tone
 
-- Second person, present tense. "You call `signal()`" — not "we call" or "one calls".
+- Second person, present tense. "You call `signal()`" — not "we call".
 - Direct. State the thing, then the why.
-- No marketing words in guide / concept pages ("powerful", "seamless", "blazing"). Save those for [README.md](README.md).
-- Assume `signal` / `computed` fluency after the Getting Started group.
-- Short paragraphs (1–3 sentences). Break before a new idea.
-- Inline code for identifiers. **Bold** only for rule-level emphasis — max one per paragraph.
-- No emojis in body text. No rhetorical-question headings.
-- Favor composition in examples. Show a multi-step build with named primitives (`sync(fromEvent(…), …)`, `on(el, …)`, `async(fn)`) over a single opaque factory call — it teaches the mental model and mirrors the library's own layering.
+- No marketing words ("powerful", "seamless", "blazing") in guide / concept pages — save them for [README.md](README.md).
+- Assume `signal` / `computed` fluency after Getting Started.
+- Short paragraphs (1–3 sentences). **Bold** only for rule-level emphasis — max one per paragraph.
+- No emojis in body. No rhetorical-question headings.
+- Favor composition in examples — multi-step builds with named primitives (`sync(fromEvent(…), …)`, `on(el, …)`, `async(fn)`) over single opaque factory calls. Mirrors the library's own layering.
 
 ## Page skeleton
 
 Every page, top to bottom:
 
 1. **Frontmatter** — `title` and `description` both required.
-2. **Hook** — one paragraph, 2–3 sentences, ≤ 300 chars. No code in the hook.
+2. **Hook** — one paragraph, 2–3 sentences, no code.
 3. **Playground** — position per "Playground" rules below.
 4. **Body** — H2s ordered by reader priority (most-asked-first). H3 allowed. No H4+.
 5. **See also** — 2–5 relative links at the bottom. Required — no orphan pages.
 
 ## Section rules
 
-- Sentence-case headings. No trailing punctuation. Inline code allowed in H2/H3, never in H1.
-- First sentence of every section = the takeaway. Readers skim H2s + opening sentences.
-- Section body ≤ 150 words before a code block. Longer → split the section.
-- Caveats live inline as `:::caution[Title]` next to what they apply to — never a bottom "gotchas" dump.
+- Sentence-case headings, no trailing punctuation. Inline code allowed in H2/H3, never H1.
+- First sentence of each section is the takeaway — readers skim H2s + openers.
+- Section body ≤ 150 words before a code block. Longer → split.
+- Caveats inline as `:::caution[Title]` next to what they apply to — never a bottom "gotchas" dump.
 
 ## Playground — position, size, style
 
-- **Default: top**, directly after the hook. Scanners, copiers, and evaluators reach for Run first.
-- **Landing page: no Sandpack.** A static hero snippet plus a link to `/signals` loads faster and respects the 5-second budget.
-- **Height**: default `height: 300` on the `<Playground>` wrapper. Increase only for multi-panel demos; add an inline comment explaining why.
-- **One primary playground per page.** Use Starlight `<Tabs>` + multiple `<Playground>` only when a single demo would obscure per-facet learning (current [signals.mdx](docs/src/content/docs/signals.mdx) pattern).
+- **Default: top**, directly after the hook.
+- **Landing page: no Sandpack.** Static hero snippet + link to `/signals` — respects the 5-second budget.
+- **Height**: default `height: 300`. Increase only for multi-panel demos; add an inline comment explaining why.
+- **One primary playground per page.** `<Tabs>` + multiple `<Playground>` only when a single demo would obscure per-facet learning (see [signals.mdx](docs/src/content/docs/signals.mdx)).
 - **Tab labels** ≤ 12 chars. Lower case except proper nouns and identifiers (`Counter`, `Batch`, `onCleanup`).
 
 ### Playground file style
@@ -48,24 +45,22 @@ Every page, top to bottom:
 - Realistic names (`cart`, `user`, `todos`). No `foo` / `bar` outside type positions.
 - Inline CSS (`style="…"`). No external stylesheets unless the demo is about styling.
 - Mount via the shared entry ([docs/src/playground/files/index.js](docs/src/playground/files/index.js)) — export `App` from `main.tsx`.
-- Playground files ≤ 100 lines. Longer means the demo teaches too much.
 
 ## Code blocks
 
-- Full imports in the first snippet on a page. Subsequent snippets may elide once established.
+- Full imports in the first snippet on a page; subsequent snippets may elide.
 - Language tag required: ` ```ts `, ` ```tsx `, ` ```json `, ` ```sh `.
-- `magic-move` for progressive reveals (3–5 frames, one idea evolves). Not for unrelated variants.
-- No pseudo-code. Every block either compiles or is marked with a comment stating it's illustrative.
+- `magic-move` for progressive reveals (3–5 frames, one idea evolves) — not unrelated variants.
+- No pseudo-code. Every block compiles or is marked illustrative.
 - Output as inline comments: `console.log("x"); // x`.
-- Before / after uses two labelled blocks (`// before`, `// after`), not `+` / `-` markers.
-- Code snippets ≤ 30 lines (playgrounds excepted).
+- Before / after = two labelled blocks (`// before`, `// after`), not `+` / `-` markers.
 
 ## Callouts
 
 - `:::caution[Title]` — footguns, silent bugs, cleanup gotchas.
-- `:::note[Title]` — optional clarifications. Not required reading.
-- `:::tip[Title]` — non-obvious shortcuts. Max one per page; tips become noise at scale.
-- `:::danger[…]` — reserved for data-loss / irreversible scenarios. Don't reach for it today.
+- `:::note[Title]` — optional clarifications.
+- `:::tip[Title]` — non-obvious shortcuts. Max one per page.
+- `:::danger[…]` — reserved for data-loss / irreversible scenarios.
 
 ## Length targets
 
@@ -76,9 +71,9 @@ Every page, top to bottom:
 
 ## Cross-linking
 
-- MDX may link to [ARCHITECTURE.md](ARCHITECTURE.md) for rigor ("full contract in [ARCHITECTURE §4](../../ARCHITECTURE.md)"). ARCHITECTURE does **not** link back into MDX.
+- MDX may link to [ARCHITECTURE.md](ARCHITECTURE.md) for rigor; ARCHITECTURE does **not** link back into MDX.
 - First mention of a primitive on a non-reference page links to its reference page.
-- "See also" footers list 2–5 links. No more.
+- "See also" footers: 2–5 links, no more.
 - Slug-relative paths (`/signals`), not full URLs. Starlight resolves them.
 - External links for MDN / TC39 / GitHub only.
 
@@ -118,10 +113,10 @@ One concept per page. Current map:
 
 ## Docs roadmap
 
-Tracked here; split into issues when someone picks them up.
+Split into issues when picked up.
 
-- **Concepts group** — new pages for Reactivity model, Cleanup & Scopes, JSX → DOM mental model. Lift from existing pages; don't duplicate.
-- **Utilities category pages** — split `utilities.mdx` into Timing / Network / Storage / Observation / Routing / DOM events / Browser APIs / Media / State. One page per category; overview stays as index.
+- **Concepts group** — pages for Reactivity model, Cleanup & Scopes, JSX → DOM. Lift from existing pages; don't duplicate.
+- **Utilities category pages** — split `utilities.mdx` into Timing / Network / Storage / Observation / Routing / DOM events / Browser APIs / Media / State. Overview stays as index.
 - **Writing UI/Refs** — dedicated page for the `ref` callback + cleanup return.
-- **More recipes** — Auth flow, Forms, Cross-tab sync. Establish patterns evaluators look for.
+- **More recipes** — Auth flow, Forms, Cross-tab sync.
 - **Last-modified footer** — build-time timestamp on every page.
