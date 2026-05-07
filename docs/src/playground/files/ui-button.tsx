@@ -164,6 +164,59 @@ export class App {
             </button>
           </div>
         </section>
+
+        <section>
+          <h3
+            style:margin="0 0 12px"
+            style:font-size="14px"
+            style:font-weight="600"
+          >
+            As a link
+          </h3>
+          <div
+            style:display="flex"
+            style:gap="8px"
+            style:align-items="center"
+            style:flex-wrap="wrap"
+          >
+            <a
+              class:unset
+              class:x-button
+              data-size="2"
+              data-variant="solid"
+              href="#anchor"
+            >
+              Solid link
+            </a>
+            <a
+              class:unset
+              class:x-button
+              data-size="2"
+              data-variant="soft"
+              href="#anchor"
+            >
+              Soft link
+            </a>
+            <a
+              class:unset
+              class:x-button
+              data-size="2"
+              data-variant="outline"
+              href="#anchor"
+            >
+              Outline link
+            </a>
+            <a
+              class:unset
+              class:x-button
+              data-size="2"
+              data-variant="ghost"
+              href="#anchor"
+            >
+              Ghost link
+            </a>
+          </div>
+        </section>
       </div>
     );
   }
