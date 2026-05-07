@@ -93,3 +93,17 @@ Switch the accent on a single badge with `data-accent-color="<color>"`, or set i
 ```
 
 Light/dark flips automatically via the `.dark` class on a parent — see [Light & dark](/ui/styles#light--dark).
+
+## Accessibility
+
+`.x-badge` ships with no ARIA role — it's a pure visual class. Add a role yourself based on what the badge means:
+
+| Pattern | Markup |
+| --- | --- |
+| **Decorative** — text repeats surrounding context | `<span class="x-badge">New</span>` |
+| **Status** — info not present elsewhere | `<span class="x-badge" role="status">3 unread</span>` |
+| **Live status** — value can change at runtime | `<span class="x-badge" role="status" aria-live="polite">{count}</span>` |
+| **Icon-only** — no text inside the badge | `<span class="x-badge" role="img" aria-label="Online"></span>` |
+| **Purely decorative dot** — duplicates labeled text nearby | `<span class="x-badge" aria-hidden="true"></span>` |
+
+Default to no role when the badge text already lives in the surrounding label — extra roles add noise to assistive tech. Reach for `role="status"` only when the badge contributes information a sighted reader would otherwise miss.
