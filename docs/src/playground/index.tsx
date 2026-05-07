@@ -21,7 +21,7 @@ import { githubDark, githubLight } from "./theme";
 
 const SHARED_SETUP: SandpackSetup = {
   dependencies: {
-    "elements-kit": "0.4.1",
+    "elements-kit": "latest",
   },
   devDependencies: {
     typescript: "^6",
