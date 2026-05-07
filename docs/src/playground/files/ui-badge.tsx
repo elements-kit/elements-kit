@@ -22,26 +22,17 @@ import "elements-kit/ui/styles/accent/amber.css";
 // import any gray scales you want to use for neutral theming:
 import "elements-kit/ui/styles/colors/slate.css";
 import "elements-kit/ui/styles/gray/slate.css";
-// and of course the button itself:
+// the badge itself + button (for the dark-mode toggle):
+import "elements-kit/ui/badge/badge.css";
 import "elements-kit/ui/button/button.css";
 
 import { signal } from "elements-kit/signals";
 
 const dark = signal(false);
 
-const VARIANTS = [
-  "classic",
-  "solid",
-  "soft",
-  "surface",
-  "outline",
-  "ghost",
-] as const;
-
-const SIZES = [1, 2, 3, 4] as const;
-
+const VARIANTS = ["solid", "soft", "surface", "outline"] as const;
+const SIZES = [1, 2, 3] as const;
 const ACCENTS = ["gray", "mint", "blue", "iris", "crimson", "amber"] as const;
-
 const RADII = ["none", "small", "medium", "large", "full"] as const;
 
 export class App {
@@ -76,6 +67,7 @@ export class App {
             {() => (dark() ? "☀ Light mode" : "☾ Dark mode")}
           </button>
         </section>
+
         <section>
           <h3
             style:margin="0 0 12px"
@@ -84,21 +76,11 @@ export class App {
           >
             Variants
           </h3>
-          <div
-            style:display="flex"
-            style:flex-wrap="wrap"
-            style:align-items="center"
-            style:gap="1rem"
-          >
+          <div style:display="flex" style:gap="8px" style:flex-wrap="wrap">
             {VARIANTS.map((variant) => (
-              <button
-                class:unset
-                class:x-button
-                data-size="2"
-                data-variant={variant}
-              >
+              <span class:x-badge data-size="2" data-variant={variant}>
                 {variant.charAt(0).toUpperCase() + variant.slice(1)}
-              </button>
+              </span>
             ))}
           </div>
         </section>
@@ -118,14 +100,13 @@ export class App {
             style:flex-wrap="wrap"
           >
             {SIZES.map((size) => (
-              <button
-                class:unset
-                class:x-button
+              <span
+                class:x-badge
                 data-size={String(size)}
-                data-variant="solid"
+                data-variant="soft"
               >
                 Size {size}
-              </button>
+              </span>
             ))}
           </div>
         </section>
@@ -140,15 +121,14 @@ export class App {
           </h3>
           <div style:display="flex" style:gap="8px" style:flex-wrap="wrap">
             {ACCENTS.map((color) => (
-              <button
-                class:unset
-                class:x-button
+              <span
+                class:x-badge
                 data-size="2"
-                data-variant="solid"
+                data-variant="soft"
                 data-accent-color={color}
               >
                 {color}
-              </button>
+              </span>
             ))}
           </div>
         </section>
@@ -173,15 +153,11 @@ export class App {
                 <code style:font-size="12px" style:min-width="60px">
                   {radius}
                 </code>
-                <button class:unset class:x-button data-size="2" data-variant="solid">
-                  Solid
-                </button>
-                <button class:unset class:x-button data-size="2" data-variant="soft">
-                  Soft
-                </button>
-                <button class:unset class:x-button data-size="2" data-variant="outline">
-                  Outline
-                </button>
+                {VARIANTS.map((variant) => (
+                  <span class:x-badge data-size="2" data-variant={variant}>
+                    {variant}
+                  </span>
+                ))}
               </div>
             ))}
           </div>
@@ -193,89 +169,19 @@ export class App {
             style:font-size="14px"
             style:font-weight="600"
           >
-            High contrast & disabled
+            High contrast
           </h3>
           <div style:display="flex" style:gap="8px" style:flex-wrap="wrap">
-            <button
-              class:unset
-              class:x-button
-              data-size="2"
-              data-variant="solid"
-              data-high-contrast
-            >
-              High contrast
-            </button>
-            <button
-              class:unset
-              class:x-button
-              data-size="2"
-              data-variant="soft"
-              disabled
-            >
-              Disabled soft
-            </button>
-            <button
-              class:unset
-              class:x-button
-              data-size="2"
-              data-variant="outline"
-              disabled
-            >
-              Disabled outline
-            </button>
-          </div>
-        </section>
-
-        <section>
-          <h3
-            style:margin="0 0 12px"
-            style:font-size="14px"
-            style:font-weight="600"
-          >
-            As a link
-          </h3>
-          <div
-            style:display="flex"
-            style:gap="8px"
-            style:align-items="center"
-            style:flex-wrap="wrap"
-          >
-            <a
-              class:unset
-              class:x-button
-              data-size="2"
-              data-variant="solid"
-              href="#anchor"
-            >
-              Solid link
-            </a>
-            <a
-              class:unset
-              class:x-button
-              data-size="2"
-              data-variant="soft"
-              href="#anchor"
-            >
-              Soft link
-            </a>
-            <a
-              class:unset
-              class:x-button
-              data-size="2"
-              data-variant="outline"
-              href="#anchor"
-            >
-              Outline link
-            </a>
-            <a
-              class:unset
-              class:x-button
-              data-size="2"
-              data-variant="ghost"
-              href="#anchor"
-            >
-              Ghost link
-            </a>
+            {VARIANTS.map((variant) => (
+              <span
+                class:x-badge
+                data-size="2"
+                data-variant={variant}
+                data-high-contrast
+              >
+                {variant}
+              </span>
+            ))}
           </div>
         </section>
       </div>

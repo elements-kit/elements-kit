@@ -1,0 +1,95 @@
+---
+title: Badge
+description: Inline status pill — four variants, three sizes, accent-color theming.
+---
+
+import Playground from "@/playground/Playground.astro";
+import BADGE from "@/playground/files/ui-badge.tsx?raw";
+
+A small inline pill for tags, counts, and status. Class + data-attribute API mirrors the [Button](/ui/button): one `.x-badge` class plus `data-variant`, `data-size`, `data-accent-color`. No focus styles or pointer cursor — badges aren't interactive.
+
+<Playground
+  provider={{ files: { "/main.tsx": { code: BADGE, active: true } } }}
+  preview={{}}
+/>
+
+## Install
+
+```ts
+import "elements-kit/ui/styles/base.css";
+import "elements-kit/ui/styles/scaling.css";
+import "elements-kit/ui/styles/radius.css";
+import "elements-kit/ui/styles/space.css";
+import "elements-kit/ui/styles/typography.css";
+import "elements-kit/ui/styles/colors/gray.css";
+import "elements-kit/ui/styles/colors/green.css";
+import "elements-kit/ui/styles/accent/green.css";
+
+import "elements-kit/ui/badge/badge.css";
+```
+
+`unset.css` is **not required** for `<span>`s — they have no native styling that bleeds through. Badges on a `<button>` or `<a>` should add `unset` to neutralise the native rendering first.
+
+## API
+
+```html
+<span
+  class="x-badge"
+  data-variant="soft"
+  data-size="2"
+  data-accent-color="green"
+>
+  New
+</span>
+```
+
+| Attribute | Values |
+| --- | --- |
+| `data-variant` | `solid`, `soft`, `surface`, `outline` |
+| `data-size` | `1`, `2`, `3` |
+| `data-accent-color` | any imported color scale (`green`, `blue`, `iris`, …) |
+| `data-high-contrast` | modifier — boosts contrast against the page background |
+
+## Sizing
+
+| `data-size` | font-size | padding |
+| --- | --- | --- |
+| `1` | `--font-size-1` | `space-1/2` × `space-1.5` |
+| `2` | `--font-size-1` | `space-1` × `space-2` |
+| `3` | `--font-size-2` | `space-1` × `space-2.5` |
+
+Border radius scales with `data-radius` on a parent — see [Radius](#radius) below.
+
+## Variants
+
+- **`solid`** — accent fill, high-contrast text. Counts and primary statuses.
+- **`soft`** — tinted background. Default for tags.
+- **`surface`** — outlined panel with subtle fill.
+- **`outline`** — bordered, transparent fill.
+
+## Radius
+
+Set `data-radius="<value>"` on a parent to control corner radius for everything beneath. The badge follows the same `radius-1`..`radius-6` scale as Button:
+
+```html
+<div data-radius="full">
+  <span class="x-badge" data-variant="soft">Pill</span>
+</div>
+<div data-radius="none">
+  <span class="x-badge" data-variant="soft">Square</span>
+</div>
+```
+
+Available values: `none`, `small`, `medium`, `large`, `full`. Each maps to a `--radius-factor` multiplier; `full` additionally sets `--radius-full: 9999px` for fully rounded pills.
+
+## Theming
+
+Switch the accent on a single badge with `data-accent-color="<color>"`, or set it on any ancestor (e.g. `<body>`) to theme the whole subtree.
+
+```html
+<span class="x-badge" data-variant="soft" data-accent-color="amber">
+  Beta
+</span>
+```
+
+Light/dark flips automatically via the `.dark` class on a parent — see [Light & dark](/ui/styles#light--dark).

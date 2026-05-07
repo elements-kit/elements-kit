@@ -99,6 +99,29 @@ The radius respects `data-radius` on a parent — set `data-radius="full"` on th
 
 `unset` zeroes the anchor's default underline and color so the `.x-button` styles render exactly like on a `<button>`. Native semantics (focus, navigation, right-click → open in new tab) are preserved — pick `<a>` when the action navigates and `<button>` when it triggers a JS handler.
 
+## Radius
+
+Set `data-radius="<value>"` on a parent (e.g. `<body>`) to control corner radius for every button beneath. Values follow [Styles → Radius](/ui/styles#radius):
+
+```html
+<div data-radius="full">
+  <button class="unset x-button" data-variant="solid">Pill</button>
+</div>
+<div data-radius="none">
+  <button class="unset x-button" data-variant="solid">Square</button>
+</div>
+```
+
+| `data-radius` | Effect |
+| --- | --- |
+| `none` | square corners — `--radius-factor: 0` |
+| `small` | tighter — `--radius-factor: 0.75` |
+| `medium` | default |
+| `large` | softer — `--radius-factor: 1.5` |
+| `full` | fully rounded — `--radius-full: 9999px` |
+
+The size's own radius is `max(--radius-N, --radius-full)`, so `data-radius="full"` always wins regardless of size.
+
 ## Theming
 
 Switch the accent on a single button with `data-accent-color="<color>"`, or set it on any ancestor (e.g. `<body>`) to theme the whole subtree.

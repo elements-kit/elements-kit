@@ -77,6 +77,7 @@ export const integrationsSidebar: SidebarItem[] = [
 export const uiSidebar: SidebarItem[] = [
   { label: "Overview", slug: "ui" },
   { label: "Button", slug: "ui/button" },
+  { label: "Badge", slug: "ui/badge" },
   { label: "Styles", slug: "ui/styles" },
 ];
 
