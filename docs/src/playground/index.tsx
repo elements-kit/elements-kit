@@ -132,11 +132,7 @@ class PlaygroundErrorBoundary extends React.Component<
             fontSize: "0.9em",
           },
         },
-        React.createElement(
-          "strong",
-          null,
-          "Playground failed to load.",
-        ),
+        React.createElement("strong", null, "Playground failed to load."),
         React.createElement(
           "p",
           { style: { margin: "0.5rem 0" } },
@@ -221,8 +217,7 @@ class PlaygroundElement extends HTMLElement {
       );
     } catch (error) {
       console.error("[playground] mount failed:", error);
-      div.textContent =
-        "Playground failed to load. Try reloading the page.";
+      div.textContent = "Playground failed to load. Try reloading the page.";
       div.setAttribute(
         "style",
         "padding:1rem;border:1px solid #f5b5b5;border-radius:6px;background:#fff5f5;color:#7a1f1f;font-family:system-ui,sans-serif;font-size:.9em",

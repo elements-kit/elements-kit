@@ -4,6 +4,7 @@ import swc from "@rollup/plugin-swc";
 export default defineConfig({
   plugins: [
     swc({
+      include: /\.[cm]?[jt]sx?$/,
       swc: {
         jsc: {
           parser: {

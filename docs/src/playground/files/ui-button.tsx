@@ -5,9 +5,20 @@ import "elements-kit/ui/styles/space.css";
 import "elements-kit/ui/styles/shadow.css";
 import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/cursor.css";
+import "elements-kit/ui/styles/unset.css";
 // import any color scales you want to use for accent theming:
+import "elements-kit/ui/styles/colors/gray.css";
+import "elements-kit/ui/styles/accent/gray.css";
 import "elements-kit/ui/styles/colors/mint.css";
 import "elements-kit/ui/styles/accent/mint.css";
+import "elements-kit/ui/styles/colors/blue.css";
+import "elements-kit/ui/styles/accent/blue.css";
+import "elements-kit/ui/styles/colors/iris.css";
+import "elements-kit/ui/styles/accent/iris.css";
+import "elements-kit/ui/styles/colors/crimson.css";
+import "elements-kit/ui/styles/accent/crimson.css";
+import "elements-kit/ui/styles/colors/amber.css";
+import "elements-kit/ui/styles/accent/amber.css";
 // import any gray scales you want to use for neutral theming:
 import "elements-kit/ui/styles/colors/slate.css";
 import "elements-kit/ui/styles/gray/slate.css";
@@ -33,15 +44,32 @@ export class App {
       <div
         data-accent-color="mint"
         data-radius="medium"
-        style="padding: 24px; display: grid; gap: 28px; font-family: var(--default-font-family, system-ui, sans-serif);"
+        style:padding="24px"
+        style:display="grid"
+        style:gap="28px"
+        style:font-family="var(--default-font-family, system-ui, sans-serif)"
       >
         <section>
-          <h3 style="margin: 0 0 12px; font-size: 14px; font-weight: 600;">
+          <h3
+            style:margin="0 0 12px"
+            style:font-size="14px"
+            style:font-weight="600"
+          >
             Variants
           </h3>
-          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <div
+            style:display="flex"
+            style:flex-wrap="wrap"
+            style:align-items="center"
+            style:gap="1rem"
+          >
             {VARIANTS.map((variant) => (
-              <button class="x-button" data-size="2" data-variant={variant}>
+              <button
+                class:unset
+                class:x-button
+                data-size="2"
+                data-variant={variant}
+              >
                 {variant.charAt(0).toUpperCase() + variant.slice(1)}
               </button>
             ))}
@@ -49,13 +77,23 @@ export class App {
         </section>
 
         <section>
-          <h3 style="margin: 0 0 12px; font-size: 14px; font-weight: 600;">
+          <h3
+            style:margin="0 0 12px"
+            style:font-size="14px"
+            style:font-weight="600"
+          >
             Sizes
           </h3>
-          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <div
+            style:display="flex"
+            style:gap="8px"
+            style:align-items="center"
+            style:flex-wrap="wrap"
+          >
             {SIZES.map((size) => (
               <button
-                class="x-button"
+                class:unset
+                class:x-button
                 data-size={String(size)}
                 data-variant="solid"
               >
@@ -66,13 +104,18 @@ export class App {
         </section>
 
         <section>
-          <h3 style="margin: 0 0 12px; font-size: 14px; font-weight: 600;">
+          <h3
+            style:margin="0 0 12px"
+            style:font-size="14px"
+            style:font-weight="600"
+          >
             Accent colors
           </h3>
-          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <div style:display="flex" style:gap="8px" style:flex-wrap="wrap">
             {ACCENTS.map((color) => (
               <button
-                class="x-button"
+                class:unset
+                class:x-button
                 data-size="2"
                 data-variant="solid"
                 data-accent-color={color}
@@ -84,23 +127,35 @@ export class App {
         </section>
 
         <section>
-          <h3 style="margin: 0 0 12px; font-size: 14px; font-weight: 600;">
+          <h3
+            style:margin="0 0 12px"
+            style:font-size="14px"
+            style:font-weight="600"
+          >
             High contrast & disabled
           </h3>
-          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <div style:display="flex" style:gap="8px" style:flex-wrap="wrap">
             <button
-              class="x-button"
+              class:unset
+              class:x-button
               data-size="2"
               data-variant="solid"
               data-high-contrast
             >
               High contrast
             </button>
-            <button class="x-button" data-size="2" data-variant="soft" disabled>
+            <button
+              class:unset
+              class:x-button
+              data-size="2"
+              data-variant="soft"
+              disabled
+            >
               Disabled soft
             </button>
             <button
-              class="x-button"
+              class:unset
+              class:x-button
               data-size="2"
               data-variant="outline"
               disabled

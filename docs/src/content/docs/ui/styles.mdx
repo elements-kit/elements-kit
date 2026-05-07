@@ -23,6 +23,7 @@ import "elements-kit/ui/styles/space.css";
 import "elements-kit/ui/styles/shadow.css";
 import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/cursor.css";
+import "elements-kit/ui/styles/unset.css";
 
 // One gray scale (pick one)
 import "elements-kit/ui/styles/gray/slate.css";
@@ -118,6 +119,20 @@ Scales — `--gray-1`..`--gray-12` plus `--gray-a1`..`--gray-a12` (alpha). Same 
 ### Cursor
 
 `--cursor-button`, `--cursor-checkbox`, `--cursor-link`, `--cursor-disabled`, `--cursor-menu-item`, `--cursor-radio`, `--cursor-slider-thumb`, `--cursor-slider-thumb-active`, `--cursor-switch`. Defaults are platform-native; override per-element if you want a `pointer` button.
+
+## Unset native styles
+
+Native form and text elements — `<button>`, `<input>`, `<a>`, `<h1>`–`<h6>`, lists, tables, `<svg>`, `<img>` — ship with browser defaults that bleed through component styles (gray button background, default font, list bullets, etc.). Apply `class="unset"` from [`unset.css`](https://github.com/waelbettayeb/elements-kit/blob/main/src/ui/styles/unset.css) to neutralise them in one line:
+
+```html
+<button class="unset x-button" data-variant="solid" data-size="2">
+  Click me
+</button>
+```
+
+`unset` uses `:where(...)` everywhere so it has zero specificity — your component classes (`.x-button`, `.x-checkbox`, …) and your own overrides always win.
+
+Composite components in this kit (Button, future Checkbox, Switch, Listbox…) all rely on it. If you skip the import, native button rendering will leak through `.x-button` styling. Forked from Radix Themes' [`rt-reset`](https://github.com/radix-ui/themes/blob/main/packages/radix-ui-themes/src/components/reset.css).
 
 ## Customization
 

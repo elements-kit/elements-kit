@@ -23,6 +23,7 @@ import "elements-kit/ui/styles/space.css";
 import "elements-kit/ui/styles/shadow.css";
 import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/cursor.css";
+import "elements-kit/ui/styles/unset.css";
 // import any color scales you want to use for accent theming:
 import "elements-kit/ui/styles/colors/mint.css";
 import "elements-kit/ui/styles/accent/mint.css";
@@ -39,7 +40,7 @@ See [Styles](/ui/styles) for the full token system, accent/gray scale lists, and
 
 ```html
 <button
-  class="x-button"
+  class="unset x-button"
   data-variant="solid"
   data-size="2"
   data-accent-color="mint"
@@ -47,6 +48,8 @@ See [Styles](/ui/styles) for the full token system, accent/gray scale lists, and
   Click me
 </button>
 ```
+
+The `unset` class ([Styles → Unset native styles](/ui/styles#unset-native-styles)) clears the browser's default `<button>` rendering so `.x-button` styles render predictably. Skip it and you'll see leaked native styling (gray background, system font, beveled border).
 
 | Attribute | Values |
 | --- | --- |
@@ -85,7 +88,7 @@ Switch the accent on a single button with `data-accent-color="<color>"`, or set 
 
 ```html
 <body data-accent-color="iris" data-radius="large">
-  <button class="x-button" data-variant="solid" data-size="3">
+  <button class="unset x-button" data-variant="solid" data-size="3">
     Themed primary
   </button>
 </body>
