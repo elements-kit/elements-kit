@@ -65,8 +65,12 @@ describe("namespaced attributes via JSX", () => {
     expect(useEl.getAttributeNS(XLINK, "href")).toBe("#sprite");
   });
 
-  it("xml:lang on a regular element renders correctly", () => {
-    const el = (<p xml:lang="en">hi</p>) as HTMLElement;
+  it("xml:lang on an SVG element renders correctly", () => {
+    const el = (
+      <svg xml:lang="en">
+        <text>hi</text>
+      </svg>
+    ) as SVGSVGElement;
     expect(el.getAttributeNS(XML, "lang")).toBe("en");
   });
 });

@@ -114,6 +114,40 @@ type JsxNamespaces<E extends Element = Element> = {
 } & StyleNamespace &
   PropNamespace<E>;
 
+// SVG-only namespaced attributes. The runtime routes any `xlink:*` / `xml:*`
+// key through `setAttributeNS` (see src/jsx-runtime/properties.ts), but spec-
+// wise these only apply to SVG content — so the types are only intersected
+// onto IntrinsicElements whose concrete element type extends SVGElement.
+type XlinkAttrs = {
+  "xlink:href"?: MaybeReactive<string | undefined>;
+  "xlink:title"?: MaybeReactive<string | undefined>;
+  "xlink:show"?: MaybeReactive<
+    "new" | "replace" | "embed" | "other" | "none" | undefined
+  >;
+  "xlink:role"?: MaybeReactive<string | undefined>;
+  "xlink:type"?: MaybeReactive<
+    | "simple"
+    | "extended"
+    | "locator"
+    | "arc"
+    | "resource"
+    | "title"
+    | undefined
+  >;
+  "xlink:arcrole"?: MaybeReactive<string | undefined>;
+  "xlink:actuate"?: MaybeReactive<
+    "onLoad" | "onRequest" | "other" | "none" | undefined
+  >;
+};
+
+type XmlAttrs = {
+  "xml:lang"?: MaybeReactive<string | undefined>;
+  "xml:space"?: MaybeReactive<"default" | "preserve" | undefined>;
+  "xml:base"?: MaybeReactive<string | undefined>;
+};
+
+type SvgNamespaceAttrs = XlinkAttrs & XmlAttrs;
+
 type JsxNamespaceKeys =
   | "ref"
   | `class:${string}`
@@ -157,6 +191,9 @@ export namespace JSX {
     [K in keyof DomJSX.IntrinsicElements]: WithJsxNamespaces<
       DomJSX.IntrinsicElements[K],
       IntrinsicElementOf<DomJSX.IntrinsicElements[K]>
-    >;
+    > &
+      (IntrinsicElementOf<DomJSX.IntrinsicElements[K]> extends SVGElement
+        ? SvgNamespaceAttrs
+        : {});
   } & RegisteredElements;
 }
