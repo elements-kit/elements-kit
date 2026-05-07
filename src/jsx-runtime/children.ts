@@ -144,8 +144,10 @@ function classifyStatic(list: readonly Child[]): StaticKind {
     } else {
       return StaticKind.Reactive;
     }
-    if (kind === 0) return StaticKind.Mixed; // saw both kinds
+    // Don't short-circuit when both flags clear — must keep scanning so a
+    // later function child still flips us to Reactive.
   }
+  if (kind === 0) return StaticKind.Mixed;
   // If only nullish/bool seen, kind is still both flags — treat as primitive
   return kind === (StaticKind.AllNode | StaticKind.AllPrimitive)
     ? StaticKind.AllPrimitive
