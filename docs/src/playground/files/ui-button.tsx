@@ -25,6 +25,10 @@ import "elements-kit/ui/styles/gray/slate.css";
 // and of course the button itself:
 import "elements-kit/ui/button/button.css";
 
+import { signal } from "elements-kit/signals";
+
+const dark = signal(false);
+
 const VARIANTS = [
   "classic",
   "solid",
@@ -42,13 +46,34 @@ export class App {
   render() {
     return (
       <div
+        class:dark={dark}
+        data-has-background="true"
         data-accent-color="mint"
         data-radius="medium"
         style:padding="24px"
         style:display="grid"
         style:gap="28px"
+        style:color="var(--gray-12)"
         style:font-family="var(--default-font-family, system-ui, sans-serif)"
       >
+        <section>
+          <h3
+            style:margin="0 0 12px"
+            style:font-size="14px"
+            style:font-weight="600"
+          >
+            Theme
+          </h3>
+          <button
+            class:unset
+            class:x-button
+            data-size="2"
+            data-variant="soft"
+            on:click={() => dark(!dark())}
+          >
+            {() => (dark() ? "☀ Light mode" : "☾ Dark mode")}
+          </button>
+        </section>
         <section>
           <h3
             style:margin="0 0 12px"
