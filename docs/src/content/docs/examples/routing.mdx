@@ -74,7 +74,7 @@ effect(() => {
 });
 ```
 
-**Route-level data loading** — compose with [`async`](/async). The query in [Data fetching](/recipes/data-fetching) re-runs whenever its tracked signals change, including `currentLocation.pathname()` or any `match()` getter:
+**Route-level data loading** — compose with [`async`](/async). The query in [Data fetching](/examples/data-fetching) re-runs whenever its tracked signals change, including `currentLocation.pathname()` or any `match()` getter:
 
 ```ts
 const userMatch = match({ pathname: "/users/:id" });
@@ -102,5 +102,5 @@ Native `URLPattern` ships in Safari 26+ and Firefox 142+. For wider support, loa
 ## See also
 
 - [Utilities](/utilities) — full `routing` reference (`navigate`, `matches`, `match`, `isLocalNavigationEvent`).
-- [Data fetching](/recipes/data-fetching) — pair routing with `async` for route-level loaders.
+- [Data fetching](/examples/data-fetching) — pair routing with `async` for route-level loaders.
 - [Signals](/signals) — `effect` for side-effects like document title.

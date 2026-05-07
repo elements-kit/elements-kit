@@ -1,0 +1,147 @@
+---
+title: Styles
+description: Optional theme layer — design tokens, color scales, light/dark, sizing.
+---
+
+import { Tabs, TabItem, Aside } from "@astrojs/starlight/components";
+
+Components in this section are **headless** — they ship with no CSS. The `elements-kit/ui/styles` layer is an *optional* theme package on top, modelled on [Radix Themes](https://www.radix-ui.com/themes). Skip it entirely and style with your own system, or import only the pieces you want.
+
+<Aside type="note">
+  Core components don't depend on these styles. Importing `base.css` is a choice, not a requirement.
+</Aside>
+
+## Install
+
+<Tabs>
+  <TabItem label="Everything">
+```ts
+import "elements-kit/ui/styles/base.css";
+import "elements-kit/ui/styles/scaling.css";
+import "elements-kit/ui/styles/radius.css";
+import "elements-kit/ui/styles/space.css";
+import "elements-kit/ui/styles/shadow.css";
+import "elements-kit/ui/styles/typography.css";
+import "elements-kit/ui/styles/cursor.css";
+
+// One gray scale (pick one)
+import "elements-kit/ui/styles/gray/slate.css";
+// One accent scale (any color)
+import "elements-kit/ui/styles/accent/green.css";
+```
+  </TabItem>
+  <TabItem label="Pick & choose">
+```ts
+import "elements-kit/ui/styles/typography.css";
+import "elements-kit/ui/styles/radius.css";
+import "elements-kit/ui/styles/colors/blue.css";
+```
+  </TabItem>
+</Tabs>
+
+## Theming via data attributes
+
+Switches are `data-*` attributes on a root container — not classes you toggle, not a JS provider.
+
+```html
+<body
+  class="dark"
+  data-radius="medium"
+  data-scaling="100%"
+  data-panel-background="translucent"
+  data-has-background="true"
+>
+  ...
+</body>
+```
+
+| Attribute | Values |
+| --- | --- |
+| `data-radius` | `none` · `small` · `medium` · `large` · `full` |
+| `data-scaling` | `90%` · `95%` · `100%` · `105%` · `110%` |
+| `data-panel-background` | `solid` · `translucent` |
+| `data-has-background` | `true` |
+
+## Light & dark
+
+Color tokens flip when the container has `.dark` or `.dark-theme`. `.light` / `.light-theme` opt back in.
+
+```html
+<html class="dark">...</html>
+```
+
+Pair with [`createMediaQuery`](/utilities) to follow the OS preference:
+
+```ts
+import { createMediaQuery } from "elements-kit/utilities/media-query";
+import { effect } from "elements-kit/signals";
+
+const prefersDark = createMediaQuery("(prefers-color-scheme: dark)");
+effect(() => {
+  document.documentElement.classList.toggle("dark", prefersDark());
+});
+```
+
+## Token reference
+
+Override any token by re-declaring on `:root` or any container.
+
+### Color
+
+Semantic — read these in your component CSS:
+
+- `--color-background`
+- `--color-overlay`
+- `--color-panel-solid`, `--color-panel-translucent`, `--color-panel`
+- `--color-surface`
+- `--color-transparent`
+- `--focus-1`..`--focus-12`, `--focus-a1`..`--focus-a12` (alias of the active accent)
+
+Scales — `--gray-1`..`--gray-12` plus `--gray-a1`..`--gray-a12` (alpha). Same shape for `--accent-*`, plus `--black-a*` and `--white-a*` from `colors/black-alpha.css` / `colors/white-alpha.css` (auto-imported by `base.css`).
+
+### Typography
+
+`--font-size-1`..`--font-size-9`, `--line-height-1`..`9`, `--letter-spacing-1`..`9`, plus weights `--font-weight-{light,regular,medium,bold}`. Per-element families and overrides (`--heading-*`, `--code-*`, `--strong-*`, `--em-*`, `--quote-*`, `--tab-*`) live in [`typography.css`](https://github.com/waelbettayeb/elements-kit/blob/main/src/ui/styles/typography.css).
+
+### Radius
+
+`--radius-1`..`--radius-6`, `--radius-full`, `--radius-thumb`. All scale with `--radius-factor` (driven by `data-radius`) and `--scaling`.
+
+### Spacing
+
+`--space-1` (4px) · `--space-2` (8px) · `--space-3` (12px) · `--space-4` (16px) · `--space-5` (24px) · `--space-6` (32px) · `--space-7` (40px) · `--space-8` (48px) · `--space-9` (64px). Each multiplied by `--scaling`.
+
+### Shadow
+
+`--shadow-1`..`--shadow-6`. Light/dark variants ship out of the box, with a `color-mix(in oklab, ...)` upgrade for browsers that support it.
+
+### Cursor
+
+`--cursor-button`, `--cursor-checkbox`, `--cursor-link`, `--cursor-disabled`, `--cursor-menu-item`, `--cursor-radio`, `--cursor-slider-thumb`, `--cursor-slider-thumb-active`, `--cursor-switch`. Defaults are platform-native; override per-element if you want a `pointer` button.
+
+## Customization
+
+Override any token at any level. Container-scoped overrides win over `:root`:
+
+```css
+.brand-card {
+  --color-panel-solid: var(--accent-2);
+  --radius-3: var(--radius-5);
+  background: var(--color-panel);
+  border-radius: var(--radius-3);
+  padding: var(--space-4);
+}
+```
+
+To swap the active accent, import a different `accent/<color>.css`:
+
+```ts
+// Replace this …
+import "elements-kit/ui/styles/accent/green.css";
+// … with this.
+import "elements-kit/ui/styles/accent/iris.css";
+```
+
+Available accents: `amber`, `blue`, `bronze`, `brown`, `crimson`, `cyan`, `gold`, `grass`, `gray`, `green`, `indigo`, `iris`, `jade`, `lime`, `mint`, `orange`, `pink`, `plum`, `purple`, `red`, `ruby`, `sky`, `teal`, `tomato`, `violet`, `yellow`.
+
+Available gray scales (pick one): `mauve`, `olive`, `sage`, `sand`, `slate`.

@@ -104,12 +104,12 @@ One concept per page. Current map:
 | `async.mdx` | `async` / `Async` core reference | reference | top |
 | `utilities.mdx` | Utilities overview + catalog link | reference (index) | none |
 | `integrations/react.mdx` | `useSignal`, `useScope` | reference | top |
-| `recipes/data-fetching.mdx` | `async` + retry + online + focus composition | how-to | top |
-| `recipes/routing.mdx` | `patchHistory` + `matches` / `match` + `navigate` SPA router | how-to | top |
-| `recipes/search.mdx` | `createDebounced` + `async` + `AbortController` search | how-to | top |
-| `recipes/infinite-scroll.mdx` | `createIntersectionObserver` + `async` paginated list | how-to | top |
-| `recipes/context.mdx` | `setContext` / `getContext` + `<dom-lifecycle>` propagation | how-to | top |
-| `recipes/toasts.mdx` | Per-item `effectScope` + `createTimeout` queue | how-to | top |
+| `examples/data-fetching.mdx` | `async` + retry + online + focus composition | how-to | top |
+| `examples/routing.mdx` | `patchHistory` + `matches` / `match` + `navigate` SPA router | how-to | top |
+| `examples/search.mdx` | `createDebounced` + `async` + `AbortController` search | how-to | top |
+| `examples/infinite-scroll.mdx` | `createIntersectionObserver` + `async` paginated list | how-to | top |
+| `examples/context.mdx` | `setContext` / `getContext` + `<dom-lifecycle>` propagation | how-to | top |
+| `examples/toasts.mdx` | Per-item `effectScope` + `createTimeout` queue | how-to | top |
 
 ## Docs roadmap
 
@@ -118,5 +118,5 @@ Split into issues when picked up.
 - **Concepts group** — pages for Reactivity model, Cleanup & Scopes, JSX → DOM. Lift from existing pages; don't duplicate.
 - **Utilities category pages** — split `utilities.mdx` into Timing / Network / Storage / Observation / Routing / DOM events / Browser APIs / Media / State. Overview stays as index.
 - **Writing UI/Refs** — dedicated page for the `ref` callback + cleanup return.
-- **More recipes** — Auth flow, Forms, Cross-tab sync.
+- **More examples** — Auth flow, Forms, Cross-tab sync.
 - **Last-modified footer** — build-time timestamp on every page.

@@ -42,9 +42,9 @@ op.stop();  // stop reactive reruns and run cleanup logic
 
 ### When to `start()` vs `run()`
 
-`start()` enables fetching automatically. The body is tracked, so the query re-runs whenever a signal it reads before the first `await` changes. Reach for it when the load is parameterised by reactive state — "fetch user X whenever `userId` changes". The [data-fetching recipe](/recipes/data-fetching) uses `start()` with reactive params.
+`start()` enables fetching automatically. The body is tracked, so the query re-runs whenever a signal it reads before the first `await` changes. Reach for it when the load is parameterised by reactive state — "fetch user X whenever `userId` changes". The [data-fetching recipe](/examples/data-fetching) uses `start()` with reactive params.
 
-`run()` is one-shot and untracked. Reach for it when an external event drives the load — intersection, click, form submit — especially when the body **writes** to the same signals it reads. The [infinite-scroll recipe](/recipes/infinite-scroll) uses `run()` for sentinel-driven page loads.
+`run()` is one-shot and untracked. Reach for it when an external event drives the load — intersection, click, form submit — especially when the body **writes** to the same signals it reads. The [infinite-scroll recipe](/examples/infinite-scroll) uses `run()` for sentinel-driven page loads.
 
 :::caution[`start()` cascades when the body writes its own deps]
 A tracked body that mutates a signal it depends on retriggers itself. Use `run()` for externally-driven loads instead.
@@ -183,5 +183,5 @@ const query = async((id: number) => {
 ## See also
 
 - [Promise](/promise) — the underlying `ComputedPromise` / `ReactivePromise` primitive.
-- [Data fetching](/recipes/data-fetching) — full recipe composing retry, online, window-focus.
+- [Data fetching](/examples/data-fetching) — full recipe composing retry, online, window-focus.
 - [Signals](/signals) — `onCleanup`, `untracked`.

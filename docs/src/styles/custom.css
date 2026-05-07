@@ -1,6 +1,84 @@
 @import "@fontsource/geist/400.css";
 @import "@fontsource/geist/600.css";
 
+/* Sidebar topic switcher (Astro-docs style). */
+.ek-tab-switcher {
+  --tab-border-width: 1px;
+  --tab-padding: calc(0.25rem - var(--tab-border-width));
+  --tab-item-radius: 0.5rem;
+  --tab-switcher-radius: calc(
+    var(--tab-item-radius) + var(--tab-padding) + var(--tab-border-width)
+  );
+  --tab-bg: var(--sl-color-gray-7, var(--sl-color-gray-6));
+  --tab-text: var(--sl-color-gray-3);
+  --tab-text-active: var(--sl-color-white);
+  --tab-icon: var(--sl-color-gray-4);
+  --tab-icon-active: var(--sl-color-text-accent);
+  --tab-item-bg-hover: var(--sl-color-gray-6);
+  --tab-item-bg-active: var(--sl-color-black);
+
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: var(--tab-padding);
+  margin: 0 0 1.5rem;
+  border: var(--tab-border-width) solid var(--sl-color-hairline-light);
+  border-radius: var(--tab-switcher-radius);
+  background-color: var(--tab-bg);
+}
+.ek-tab-switcher li {
+  margin: 0;
+  padding: 0;
+}
+.ek-tab-switcher a {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: calc(0.5rem - var(--tab-border-width));
+  border: var(--tab-border-width) solid transparent;
+  border-radius: var(--tab-item-radius);
+  background-clip: padding-box;
+  color: var(--tab-text);
+  text-decoration: none;
+  font-weight: 600;
+  line-height: var(--sl-line-height-headings);
+}
+.ek-tab-switcher a:hover {
+  color: var(--tab-text-active);
+  background-color: var(--tab-item-bg-hover);
+}
+.ek-tab-switcher a[aria-current="page"] {
+  border-color: var(--sl-color-hairline-light);
+  color: var(--tab-text-active);
+  background-color: var(--tab-item-bg-active);
+}
+.ek-tab-icon {
+  margin: 0.25rem;
+  color: var(--tab-icon);
+  flex-shrink: 0;
+}
+.ek-tab-switcher a:hover .ek-tab-icon {
+  color: inherit;
+}
+.ek-tab-switcher a[aria-current="page"] .ek-tab-icon {
+  color: var(--tab-icon-active);
+}
+
+[data-theme="dark"] .ek-tab-switcher {
+  --tab-text: var(--sl-color-gray-2);
+  --tab-icon: var(--sl-color-gray-3);
+  --tab-item-bg-hover: var(--sl-color-gray-5);
+}
+
+@media (min-width: 50rem) {
+  [data-theme="dark"] .ek-tab-switcher {
+    --tab-bg: var(--sl-color-black);
+    --tab-item-bg-hover: var(--sl-color-gray-6);
+    --tab-item-bg-active: var(--sl-color-gray-6);
+  }
+}
+
 :root {
   --sl-content-width: 64rem;
   --sl-sidebar-width: 16rem;

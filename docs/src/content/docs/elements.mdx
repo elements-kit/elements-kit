@@ -216,7 +216,7 @@ When a style property changes reactively, `style:foo={signal}` writes only that 
 
 ### Large lists: consider event delegation
 
-`on:click={fn}` calls `addEventListener` on the element. For lists or tables with hundreds of rows where every row carries the same handler, that's N listeners — measurable mount cost. For those cases, attach a single listener to the parent and look up the row from a data source via `data-id`. See the [event delegation recipe](/recipes/event-delegation/).
+`on:click={fn}` calls `addEventListener` on the element. For lists or tables with hundreds of rows where every row carries the same handler, that's N listeners — measurable mount cost. For those cases, attach a single listener to the parent and look up the row from a data source via `data-id`. See the [event delegation recipe](/examples/event-delegation/).
 
 ---
 

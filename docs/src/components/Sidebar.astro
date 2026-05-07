@@ -1,0 +1,56 @@
+---
+import MobileMenuFooter from "@astrojs/starlight/components/MobileMenuFooter.astro";
+import SidebarPersister from "@astrojs/starlight/components/SidebarPersister.astro";
+import SidebarSublist from "@astrojs/starlight/components/SidebarSublist.astro";
+import { Icon } from "@astrojs/starlight/components";
+import type { StarlightRouteData } from "@astrojs/starlight/route-data";
+import { topics, type Topic } from "../sidebar.ts";
+
+type SidebarEntry = StarlightRouteData["sidebar"][number];
+
+const { sidebar } = Astro.locals.starlightRoute;
+
+function entriesContainCurrent(entries: SidebarEntry[]): boolean {
+  return entries.some((entry) =>
+    entry.type === "link"
+      ? entry.isCurrent === true
+      : entriesContainCurrent(entry.entries),
+  );
+}
+
+const topicSlices = topics.map((topic) => ({
+  topic,
+  entries: sidebar.slice(topic.start, topic.end),
+}));
+
+const activeTopicId: Topic["id"] =
+  topicSlices.find((slice) => entriesContainCurrent(slice.entries))?.topic.id ??
+  "library";
+
+const activeEntries =
+  topicSlices.find((slice) => slice.topic.id === activeTopicId)?.entries ?? [];
+---
+
+<ul class="ek-tab-switcher" aria-label="Documentation sections">
+  {
+    topics.map((topic) => (
+      <li>
+        <a
+          href={topic.rootHref}
+          aria-current={topic.id === activeTopicId ? "page" : undefined}
+        >
+          <Icon class="ek-tab-icon" name={topic.icon} size="1rem" />
+          <span>{topic.label}</span>
+        </a>
+      </li>
+    ))
+  }
+</ul>
+
+<SidebarPersister>
+  <SidebarSublist sublist={activeEntries} />
+</SidebarPersister>
+
+<div class="md:sl-hidden">
+  <MobileMenuFooter />
+</div>

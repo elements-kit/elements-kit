@@ -12,7 +12,7 @@ Core contracts → [ARCHITECTURE](../../ARCHITECTURE.md). Utilities → [utiliti
 
 **Is**: a catalog of headless custom elements where each element exposes one behavior — focus trap, roving tabindex, overlay positioning, checkbox semantics, listbox keyboard model. Built with `@reactive` fields, `@attributes`, `connectedScope` / `disconnectedScope`, and JSX from the core.
 
-**Is not**: a styled component kit, a design system, a form framework, or a packaged `<Select>` / `<Dropdown>` / `<Combobox>`. Composite widgets exist as **recipes** (docs + playgrounds), not as exports.
+**Is not**: a styled component kit, a design system, a form framework, or a packaged `<Select>` / `<Dropdown>` / `<Combobox>`. Composite widgets exist as **examples** (docs + playgrounds), not as exports.
 
 The user-mental-model: instead of an opaque `<Select>`, you compose `<x-popover>` + `<x-listbox>` + `<x-option>`. Instead of a multi-select dropdown, you compose `<x-checkbox>` items inside an `<x-overlay>` aggregated by an `<x-picker>`. Each piece is replaceable. Each piece is one behavior.
 
@@ -25,7 +25,7 @@ Public API mimics the platform: native DOM shape, native event names where one e
 Load-bearing. Mirrors the spirit of [ARCHITECTURE §3](../../ARCHITECTURE.md).
 
 1. **One element, one behavior.** No element does two jobs. `<x-overlay>` opens and closes; it does not also render a list or own selection.
-2. **Composition over presets.** Composite widgets are recipes, not tags. The picker example — `<x-checkbox>` inside `<x-overlay>` aggregated by `<x-picker>` — is the canonical illustration.
+2. **Composition over presets.** Composite widgets are examples, not tags. The picker example — `<x-checkbox>` inside `<x-overlay>` aggregated by `<x-picker>` — is the canonical illustration.
 3. **WAI-ARIA APG conformance is the floor.** Every element cites the [APG pattern](https://www.w3.org/WAI/ARIA/apg/patterns/) it implements. Keyboard model, focus management, ARIA roles and states are part of the contract — not styling sugar. Divergences are recorded in the element's doc with a reason.
 4. **Headless by default; optional theme layer.** Core ships no CSS. A separate, opt-in theme package may exist on top — same role as [Radix Themes](https://github.com/radix-ui/themes) on top of Radix Primitives — and never leaks into the headless layer. Authors who skip the theme style via `::part`, `[data-state="open"]` attribute selectors, or shadow-piercing. No tokens, no class hooks in core. Mirrors [ARCHITECTURE §9](../../ARCHITECTURE.md).
 5. **Signals stay inside the element; expose via accessor or `@reactive`.** State lives as private fields on the custom element. The only public surfaces are `@reactive` instance fields and getter/setter accessors — no global stores, no module-level signals, no exported `Signal<T>` factories per element. Readable, writable, and observable from React via [`useSignal`](../integrations/react.ts). Attributes mirror per [ARCHITECTURE §5e](../../ARCHITECTURE.md); properties win on conflict.
@@ -145,7 +145,7 @@ Each phase ships: source file + Vitest test + playground demo + doc page under [
 3. **Phase 2 — inputs + form controller.** `x-form` (per §10), `x-checkbox`, `x-radio` + `x-radio-group`, `x-switch`. Form-associated. Validates `ElementInternals` integration end-to-end and the seed-on-first-sight contract against real fields.
 4. **Phase 3 — collections.** `x-roving-tabindex`, `x-option`, `x-listbox`. Validates the keyboard-model contract.
 5. **Phase 4 — surfaces.** `x-popover`, `x-dialog`, `x-tooltip`, `x-menu`. Validates composition of multiple primitives.
-6. **Phase 5 — recipes.** `x-picker`, `x-select`, `x-combobox` as docs-only pages with playgrounds under [`docs/src/playground/files/`](../../docs/src/playground/files/).
+6. **Phase 5 — examples.** `x-picker`, `x-select`, `x-combobox` as docs-only pages with playgrounds under [`docs/src/playground/files/`](../../docs/src/playground/files/).
 
 ---
 
@@ -163,7 +163,7 @@ Each phase ships: source file + Vitest test + playground demo + doc page under [
 ## 7. Do-not
 
 - No CSS, no class names baked in, no design tokens.
-- No packaged composite widgets exported from `src/ui/`. Recipes live in docs.
+- No packaged composite widgets exported from `src/ui/`. examples live in docs.
 - No callback props where a `CustomEvent` works.
 - No `value` / `defaultValue` split — controlled vs uncontrolled is decided by whether a `Signal<T>` was passed.
 - No imports from `surfaces/` into `inputs/` or `collections/`. No cycles.
@@ -177,7 +177,7 @@ Resolve before Phase 1 lands:
 
 - **Shadow DOM vs light DOM default.** Proposal: light DOM with `Slot`-class regions for behavior primitives (invisible, no visual structure to encapsulate); shadow DOM for surfaces (`x-dialog`, `x-popover`, `x-tooltip`) that own visual structure and benefit from `::part` styling boundaries.
 - **`::part` naming convention.** Proposal: kebab-case, role-driven (`part="trigger"`, `part="content"`, `part="indicator"`).
-- **Where recipes live.** Proposal: docs-only under `docs/src/content/docs/ui/recipes/` plus runnable demos in `docs/src/playground/files/`. Nothing under `src/ui/recipes/`.
+- **Where examples live.** Proposal: docs-only under `docs/src/content/docs/ui/examples/` plus runnable demos in `docs/src/playground/files/`. Nothing under `src/ui/examples/`.
 - **Animation primitive.** Out of scope for v0. Authors handle transitions via `[data-state]` attribute selectors and CSS.
 
 ---

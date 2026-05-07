@@ -10,6 +10,7 @@ import {
 } from "./src/expressive-code/magicMove.ts";
 import ecTwoSlash from "expressive-code-twoslash";
 import ts from "typescript";
+import { sidebar } from "./src/sidebar.ts";
 
 const siteDescription =
   "Universal reactive primitives for the web — signals, JSX, custom elements, and browser-API helpers.";
@@ -51,6 +52,7 @@ export default defineConfig({
       favicon: "/favicon.svg",
       components: {
         SiteTitle: "./src/components/SiteTitle.astro",
+        Sidebar: "./src/components/Sidebar.astro",
       },
       head: [
         {
@@ -138,75 +140,7 @@ export default defineConfig({
         github: "https://github.com/waelbettayeb/elements-kit",
         twitter: "https://x.com/ElementsKit",
       },
-      sidebar: [
-        { label: "Introduction", slug: "index" },
-        {
-          label: "Getting Started",
-          items: [
-            { label: "Installation", slug: "getting-started/installation" },
-            {
-              label: "Quick start",
-              slug: "getting-started/quick-start",
-            },
-            { label: "Philosophy", slug: "getting-started/philosophy" },
-          ],
-        },
-        {
-          label: "Reactivity",
-          items: [
-            { label: "Signals", slug: "signals" },
-            { label: "Stores", slug: "stores" },
-            { label: "Promise", slug: "promise" },
-            { label: "Async", slug: "async" },
-            { label: "Scopes", slug: "scopes" },
-          ],
-        },
-        {
-          label: "Elements",
-          items: [
-            { label: "JSX & Elements", slug: "elements" },
-            { label: "Components", slug: "components" },
-            { label: "Lists", slug: "elements/for" },
-            { label: "Types", slug: "elements/types" },
-          ],
-        },
-        {
-          label: "Custom Elements",
-          items: [
-            { label: "Overview", slug: "custom-elements" },
-            { label: "Attributes", slug: "custom-elements/attributes" },
-            { label: "Styling", slug: "custom-elements/styling" },
-            { label: "Slots", slug: "custom-elements/slots" },
-          ],
-        },
-        { label: "Utilities", slug: "utilities" },
-        {
-          label: "Integrations",
-          collapsed: true,
-          items: [
-            { label: "React", slug: "integrations/react" },
-            { label: "Astro", slug: "integrations/astro" },
-            { label: "Angular", slug: "integrations/angular" },
-            { label: "Lit", slug: "integrations/lit" },
-            { label: "Marko", slug: "integrations/marko" },
-            { label: "Qwik", slug: "integrations/qwik" },
-            { label: "Solid", slug: "integrations/solid" },
-            { label: "Svelte", slug: "integrations/svelte" },
-            { label: "Vue", slug: "integrations/vue" },
-          ],
-        },
-        {
-          label: "Recipes",
-          items: [
-            { label: "Data fetching", slug: "recipes/data-fetching" },
-            { label: "Routing", slug: "recipes/routing" },
-            { label: "Debounced search", slug: "recipes/search" },
-            { label: "Infinite scroll", slug: "recipes/infinite-scroll" },
-            { label: "Context propagation", slug: "recipes/context" },
-            { label: "Toast queue", slug: "recipes/toasts" },
-          ],
-        },
-      ],
+      sidebar,
 
       expressiveCode: {
         themes: ["github-light-default", "github-dark-default"],
