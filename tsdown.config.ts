@@ -13,8 +13,14 @@ export default defineConfig({
     "src/jsx-runtime/index.ts",
     "src/utilities/*.ts",
     "src/integrations/*.ts",
+    "src/ui/**/*.css",
   ],
   deps: {
     neverBundle: ["react", "react-dom"],
+  },
+  css: {
+    transformer: "lightningcss",
+    splitting: true,
+    target: ["chrome100", "firefox100", "safari16"],
   },
 });

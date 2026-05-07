@@ -88,7 +88,8 @@
       "source": "./src/utilities/*.ts",
       "import": "./dist/utilities/*.mjs",
       "types": "./dist/utilities/*.d.mts"
-    }
+    },
+    "./ui/*": "./dist/ui/*"
   },
   "scripts": {
     "build": "tsdown",
@@ -99,6 +100,7 @@
   },
   "packageManager": "pnpm@10.33.0",
   "devDependencies": {
+    "@tsdown/css": "^0.22.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "happy-dom": "^20.8.9",
