@@ -1,4 +1,4 @@
-import "elements-kit/ui/styles/base.css";
+import "elements-kit/ui/styles/theme.css";
 import "elements-kit/ui/styles/scaling.css";
 import "elements-kit/ui/styles/radius.css";
 import "elements-kit/ui/styles/space.css";
@@ -7,21 +7,21 @@ import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/cursor.css";
 import "elements-kit/ui/styles/unset.css";
 // import any color scales you want to use for accent theming:
+import "elements-kit/ui/styles/palette/gray.css";
 import "elements-kit/ui/styles/colors/gray.css";
-import "elements-kit/ui/styles/accent/gray.css";
+import "elements-kit/ui/styles/palette/mint.css";
 import "elements-kit/ui/styles/colors/mint.css";
-import "elements-kit/ui/styles/accent/mint.css";
+import "elements-kit/ui/styles/palette/blue.css";
 import "elements-kit/ui/styles/colors/blue.css";
-import "elements-kit/ui/styles/accent/blue.css";
+import "elements-kit/ui/styles/palette/iris.css";
 import "elements-kit/ui/styles/colors/iris.css";
-import "elements-kit/ui/styles/accent/iris.css";
+import "elements-kit/ui/styles/palette/crimson.css";
 import "elements-kit/ui/styles/colors/crimson.css";
-import "elements-kit/ui/styles/accent/crimson.css";
+import "elements-kit/ui/styles/palette/amber.css";
 import "elements-kit/ui/styles/colors/amber.css";
-import "elements-kit/ui/styles/accent/amber.css";
 // import any gray scales you want to use for neutral theming:
-import "elements-kit/ui/styles/colors/slate.css";
-import "elements-kit/ui/styles/gray/slate.css";
+import "elements-kit/ui/styles/palette/slate.css";
+import "elements-kit/ui/styles/base/slate.css";
 // the badge itself + button (for the dark-mode toggle):
 import "elements-kit/ui/badge/badge.css";
 import "elements-kit/ui/button/button.css";
@@ -41,7 +41,7 @@ export class App {
       <div
         class:dark={dark}
         data-has-background="true"
-        data-accent-color="mint"
+        data-color="mint"
         data-radius="medium"
         style:padding="24px"
         style:display="grid"
@@ -100,11 +100,7 @@ export class App {
             style:flex-wrap="wrap"
           >
             {SIZES.map((size) => (
-              <span
-                class:x-badge
-                data-size={String(size)}
-                data-variant="soft"
-              >
+              <span class:x-badge data-size={String(size)} data-variant="soft">
                 Size {size}
               </span>
             ))}
@@ -125,7 +121,7 @@ export class App {
                 class:x-badge
                 data-size="2"
                 data-variant="soft"
-                data-accent-color={color}
+                data-color={color}
               >
                 {color}
               </span>

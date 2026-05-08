@@ -6,7 +6,7 @@ description: Headless button styled by the optional theme layer — six variants
 import Playground from "@/playground/Playground.astro";
 import BUTTON from "@/playground/files/ui-button.tsx?raw";
 
-A native `<button>` element styled via class + data attributes from the optional [styles layer](/ui/styles). Six variants, four sizes, accent-color theming, high-contrast and disabled states — all driven by data attributes on a single `.x-button` class.
+A native `<button>` element styled via class + data attributes from the optional [styles layer](/ui/styles). Six variants, four sizes, color theming, high-contrast and disabled states — all driven by data attributes on a single `.x-button` class.
 
 <Playground
   provider={{ files: { "/main.tsx": { code: BUTTON, active: true } } }}
@@ -16,7 +16,7 @@ A native `<button>` element styled via class + data attributes from the optional
 ## Install
 
 ```ts
-import "elements-kit/ui/styles/base.css";
+import "elements-kit/ui/styles/theme.css";
 import "elements-kit/ui/styles/scaling.css";
 import "elements-kit/ui/styles/radius.css";
 import "elements-kit/ui/styles/space.css";
@@ -24,12 +24,12 @@ import "elements-kit/ui/styles/shadow.css";
 import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/cursor.css";
 import "elements-kit/ui/styles/unset.css";
-// import any color scales you want to use for accent theming:
+// import any color scales you want to use for color theming:
+import "elements-kit/ui/styles/palette/mint.css";
 import "elements-kit/ui/styles/colors/mint.css";
-import "elements-kit/ui/styles/accent/mint.css";
 // import any gray scales you want to use for neutral theming:
-import "elements-kit/ui/styles/colors/slate.css";
-import "elements-kit/ui/styles/gray/slate.css";
+import "elements-kit/ui/styles/palette/slate.css";
+import "elements-kit/ui/styles/base/slate.css";
 // and of course the button itself:
 import "elements-kit/ui/button/button.css";
 ```
@@ -43,7 +43,7 @@ See [Styles](/ui/styles) for the full token system, accent/gray scale lists, and
   class="unset x-button"
   data-variant="solid"
   data-size="2"
-  data-accent-color="mint"
+  data-color="mint"
 >
   Click me
 </button>
@@ -55,7 +55,7 @@ The `unset` class ([Styles → Unset native styles](/ui/styles#unset-native-styl
 | --- | --- |
 | `data-variant` | `classic`, `solid`, `soft`, `surface`, `outline`, `ghost` |
 | `data-size` | `1`, `2`, `3`, `4` |
-| `data-accent-color` | any imported color scale (`mint`, `blue`, `iris`, …) |
+| `data-color` | any imported color scale (`mint`, `blue`, `iris`, …) |
 | `data-high-contrast` | modifier — boosts contrast against the page background |
 | `data-loading` | modifier — sets `position: relative` for a spinner overlay |
 | `disabled` / `data-disabled` | native `:disabled` state, or `data-disabled` on non-button elements |
@@ -76,7 +76,7 @@ The radius respects `data-radius` on a parent — set `data-radius="full"` on th
 ## Variants
 
 - **`classic`** — raised, with subtle inner shadow. Default for primary actions.
-- **`solid`** — flat, accent-colored fill. Confident primary action.
+- **`solid`** — flat, color-driven fill. Confident primary action.
 - **`soft`** — tinted, low-emphasis background. Pairs well with surfaces.
 - **`surface`** — outlined panel with subtle fill. Borderline calls-to-action.
 - **`outline`** — bordered, transparent fill. Tertiary actions.
@@ -124,10 +124,10 @@ The size's own radius is `max(--radius-N, --radius-full)`, so `data-radius="full
 
 ## Theming
 
-Switch the accent on a single button with `data-accent-color="<color>"`, or set it on any ancestor (e.g. `<body>`) to theme the whole subtree.
+Switch the color on a single button with `data-color="<color>"`, or set it on any ancestor (e.g. `<body>`) to theme the whole subtree.
 
 ```html
-<body data-accent-color="iris" data-radius="large">
+<body data-color="iris" data-radius="large">
   <button class="unset x-button" data-variant="solid" data-size="3">
     Themed primary
   </button>

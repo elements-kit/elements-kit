@@ -8,7 +8,7 @@ import { Tabs, TabItem, Aside } from "@astrojs/starlight/components";
 Components in this section are **headless** — they ship with no CSS. The `elements-kit/ui/styles` layer is an *optional* theme package on top. Skip it entirely and style with your own system, or import only the pieces you want.
 
 <Aside type="note">
-  Core components don't depend on these styles. Importing `base.css` is a choice, not a requirement.
+  Core components don't depend on these styles. Importing `theme.css` is a choice, not a requirement.
 </Aside>
 
 ## Install
@@ -16,7 +16,7 @@ Components in this section are **headless** — they ship with no CSS. The `elem
 <Tabs>
   <TabItem label="Everything">
 ```ts
-import "elements-kit/ui/styles/base.css";
+import "elements-kit/ui/styles/theme.css";
 import "elements-kit/ui/styles/material.css";
 import "elements-kit/ui/styles/scaling.css";
 import "elements-kit/ui/styles/radius.css";
@@ -27,16 +27,16 @@ import "elements-kit/ui/styles/cursor.css";
 import "elements-kit/ui/styles/unset.css";
 
 // One gray scale (pick one)
-import "elements-kit/ui/styles/gray/slate.css";
+import "elements-kit/ui/styles/base/slate.css";
 // One accent scale (any color)
-import "elements-kit/ui/styles/accent/green.css";
+import "elements-kit/ui/styles/colors/green.css";
 ```
   </TabItem>
   <TabItem label="Pick & choose">
 ```ts
 import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/radius.css";
-import "elements-kit/ui/styles/colors/blue.css";
+import "elements-kit/ui/styles/palette/blue.css";
 ```
   </TabItem>
 </Tabs>
@@ -97,9 +97,9 @@ Semantic — read these in your component CSS:
 - `--color-material-solid`, `--color-material-translucent`, `--color-material`, `--backdrop-filter-material`
 - `--color-surface`
 - `--color-transparent`
-- `--focus-1`..`--focus-12`, `--focus-a1`..`--focus-a12` (alias of the active accent)
+- `--focus-1`..`--focus-12`, `--focus-a1`..`--focus-a12` (alias of the active color)
 
-Scales — `--gray-1`..`--gray-12` plus `--gray-a1`..`--gray-a12` (alpha). Same shape for `--accent-*`, plus `--black-a*` and `--white-a*` from `colors/black-alpha.css` / `colors/white-alpha.css` (auto-imported by `base.css`).
+Scales — `--gray-1`..`--gray-12` plus `--gray-a1`..`--gray-a12` (alpha). Same shape for `--color-*` (the active accent), plus `--black-a*` and `--white-a*` from `colors/black-alpha.css` / `colors/white-alpha.css` (auto-imported by `theme.css`).
 
 ### Typography
 
@@ -141,7 +141,7 @@ Override any token at any level. Container-scoped overrides win over `:root`:
 
 ```css
 .brand-card {
-  --color-material-solid: var(--accent-2);
+  --color-material-solid: var(--color-2);
   --radius-3: var(--radius-5);
   background: var(--color-material);
   border-radius: var(--radius-3);
@@ -153,9 +153,9 @@ To swap the active accent, import a different `accent/<color>.css`:
 
 ```ts
 // Replace this …
-import "elements-kit/ui/styles/accent/green.css";
+import "elements-kit/ui/styles/colors/green.css";
 // … with this.
-import "elements-kit/ui/styles/accent/iris.css";
+import "elements-kit/ui/styles/colors/iris.css";
 ```
 
 Available accents: `amber`, `blue`, `bronze`, `brown`, `crimson`, `cyan`, `gold`, `grass`, `gray`, `green`, `indigo`, `iris`, `jade`, `lime`, `mint`, `orange`, `pink`, `plum`, `purple`, `red`, `ruby`, `sky`, `teal`, `tomato`, `violet`, `yellow`.
