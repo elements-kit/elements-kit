@@ -1,0 +1,17 @@
+:where(:root) {
+  --color-material-solid: white;
+  --color-material-translucent: rgba(255, 255, 255, 0.7);
+}
+:is(.dark, .dark-theme) {
+  --color-material-solid: var(--gray-2);
+  --color-material-translucent: var(--gray-a2);
+}
+
+:where([data-material-background="solid"]) {
+  --color-material: var(--color-material-solid);
+  --backdrop-filter-material: none;
+}
+:where([data-material-background="translucent"]) {
+  --color-material: var(--color-material-translucent);
+  --backdrop-filter-material: blur(64px);
+}

@@ -5,7 +5,7 @@ description: Optional theme layer — design tokens, color scales, light/dark, s
 
 import { Tabs, TabItem, Aside } from "@astrojs/starlight/components";
 
-Components in this section are **headless** — they ship with no CSS. The `elements-kit/ui/styles` layer is an *optional* theme package on top, modelled on [Radix Themes](https://www.radix-ui.com/themes). Skip it entirely and style with your own system, or import only the pieces you want.
+Components in this section are **headless** — they ship with no CSS. The `elements-kit/ui/styles` layer is an *optional* theme package on top. Skip it entirely and style with your own system, or import only the pieces you want.
 
 <Aside type="note">
   Core components don't depend on these styles. Importing `base.css` is a choice, not a requirement.
@@ -17,6 +17,7 @@ Components in this section are **headless** — they ship with no CSS. The `elem
   <TabItem label="Everything">
 ```ts
 import "elements-kit/ui/styles/base.css";
+import "elements-kit/ui/styles/material.css";
 import "elements-kit/ui/styles/scaling.css";
 import "elements-kit/ui/styles/radius.css";
 import "elements-kit/ui/styles/space.css";
@@ -48,8 +49,8 @@ Switches are `data-*` attributes on a root container — not classes you toggle,
 <body
   class="dark"
   data-radius="medium"
-  data-scaling="100%"
-  data-panel-background="translucent"
+  data-scaling="md"
+  data-material-background="translucent"
   data-has-background="true"
 >
   ...
@@ -59,8 +60,8 @@ Switches are `data-*` attributes on a root container — not classes you toggle,
 | Attribute | Values |
 | --- | --- |
 | `data-radius` | `none` · `small` · `medium` · `large` · `full` |
-| `data-scaling` | `90%` · `95%` · `100%` · `105%` · `110%` |
-| `data-panel-background` | `solid` · `translucent` |
+| `data-scaling` | `xs` · `sm` · `md` · `lg` · `xl` |
+| `data-material-background` | `solid` · `translucent` |
 | `data-has-background` | `true` |
 
 ## Light & dark
@@ -93,7 +94,7 @@ Semantic — read these in your component CSS:
 
 - `--color-background`
 - `--color-overlay`
-- `--color-panel-solid`, `--color-panel-translucent`, `--color-panel`
+- `--color-material-solid`, `--color-material-translucent`, `--color-material`, `--backdrop-filter-material`
 - `--color-surface`
 - `--color-transparent`
 - `--focus-1`..`--focus-12`, `--focus-a1`..`--focus-a12` (alias of the active accent)
@@ -132,7 +133,7 @@ Native form and text elements — `<button>`, `<input>`, `<a>`, `<h1>`–`<h6>`,
 
 `unset` uses `:where(...)` everywhere so it has zero specificity — your component classes (`.x-button`, `.x-checkbox`, …) and your own overrides always win.
 
-Composite components in this kit (Button, future Checkbox, Switch, Listbox…) all rely on it. If you skip the import, native button rendering will leak through `.x-button` styling. Forked from Radix Themes' [`rt-reset`](https://github.com/radix-ui/themes/blob/main/packages/radix-ui-themes/src/components/reset.css).
+Composite components in this kit (Button, future Checkbox, Switch, Listbox…) all rely on it. If you skip the import, native button rendering will leak through `.x-button` styling.
 
 ## Customization
 
@@ -140,9 +141,9 @@ Override any token at any level. Container-scoped overrides win over `:root`:
 
 ```css
 .brand-card {
-  --color-panel-solid: var(--accent-2);
+  --color-material-solid: var(--accent-2);
   --radius-3: var(--radius-5);
-  background: var(--color-panel);
+  background: var(--color-material);
   border-radius: var(--radius-3);
   padding: var(--space-4);
 }
