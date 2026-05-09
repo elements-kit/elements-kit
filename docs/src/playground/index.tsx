@@ -14,7 +14,7 @@ import {
   SandpackTests,
 } from "@codesandbox/sandpack-react";
 
-import packageJson from "../../package.json";
+import packageJson from "../../../package.json";
 
 import INDEX from "./files/index.js?raw";
 import VITE_CONFIG from "./files/vite.config.ts?raw";
