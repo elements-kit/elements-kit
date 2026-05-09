@@ -72,7 +72,7 @@ Border radius scales with `data-radius` on a parent — see [Radius](#radius) be
 Set `data-radius="<value>"` on a parent to control corner radius for everything beneath. The badge follows the same `radius-1`..`radius-6` scale as Button:
 
 ```html
-<div data-radius="full">
+<div data-radius="pill">
   <span class="x-badge" data-variant="soft">Pill</span>
 </div>
 <div data-radius="none">
@@ -80,7 +80,7 @@ Set `data-radius="<value>"` on a parent to control corner radius for everything 
 </div>
 ```
 
-Available values: `none`, `small`, `medium`, `large`, `full`. Each maps to a `--radius-factor` multiplier; `full` additionally sets `--radius-full: 9999px` for fully rounded pills.
+Available values: `none`, `small`, `medium`, `large`, `pill`. Each maps to a `--radius-factor` multiplier; `pill` additionally sets `--radius-pill: 9999px` for fully rounded pills.
 
 ## Theming
 

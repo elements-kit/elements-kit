@@ -1,0 +1,32 @@
+[data-color="success"] {
+  --color-1: var(--green-1);
+  --color-2: var(--green-2);
+  --color-3: var(--green-3);
+  --color-4: var(--green-4);
+  --color-5: var(--green-5);
+  --color-6: var(--green-6);
+  --color-7: var(--green-7);
+  --color-8: var(--green-8);
+  --color-9: var(--green-9);
+  --color-10: var(--green-10);
+  --color-11: var(--green-11);
+  --color-12: var(--green-12);
+
+  --color-a1: var(--green-a1);
+  --color-a2: var(--green-a2);
+  --color-a3: var(--green-a3);
+  --color-a4: var(--green-a4);
+  --color-a5: var(--green-a5);
+  --color-a6: var(--green-a6);
+  --color-a7: var(--green-a7);
+  --color-a8: var(--green-a8);
+  --color-a9: var(--green-a9);
+  --color-a10: var(--green-a10);
+  --color-a11: var(--green-a11);
+  --color-a12: var(--green-a12);
+
+  --accent-contrast: var(--green-contrast);
+  --accent-surface: var(--green-surface);
+  --accent-indicator: var(--green-indicator);
+  --accent-track: var(--green-track);
+}

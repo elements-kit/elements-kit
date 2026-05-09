@@ -41,22 +41,22 @@
   &:where([data-size="1"]) {
     --base-button-classic-active-padding-top: 1px;
     --base-button-height: var(--space-5);
-    border-radius: max(var(--radius-1), var(--radius-full));
+    border-radius: max(var(--radius-1), var(--radius-pill));
   }
   &:where([data-size="2"]) {
     --base-button-classic-active-padding-top: 2px;
     --base-button-height: var(--space-6);
-    border-radius: max(var(--radius-2), var(--radius-full));
+    border-radius: max(var(--radius-2), var(--radius-pill));
   }
   &:where([data-size="3"]) {
     --base-button-classic-active-padding-top: 2px;
     --base-button-height: var(--space-7);
-    border-radius: max(var(--radius-3), var(--radius-full));
+    border-radius: max(var(--radius-3), var(--radius-pill));
   }
   &:where([data-size="4"]) {
     --base-button-classic-active-padding-top: 2px;
     --base-button-height: var(--space-8);
-    border-radius: max(var(--radius-4), var(--radius-full));
+    border-radius: max(var(--radius-4), var(--radius-pill));
   }
 }
 

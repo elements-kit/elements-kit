@@ -66,12 +66,12 @@ Each size maps to a height token from the [space scale](/ui/styles#spacing):
 
 | `data-size` | height | radius |
 | --- | --- | --- |
-| `1` | `--space-5` (24px) | `max(--radius-1, --radius-full)` |
-| `2` | `--space-6` (32px) | `max(--radius-2, --radius-full)` |
-| `3` | `--space-7` (40px) | `max(--radius-3, --radius-full)` |
-| `4` | `--space-8` (48px) | `max(--radius-4, --radius-full)` |
+| `1` | `--space-5` (24px) | `max(--radius-1, --radius-pill)` |
+| `2` | `--space-6` (32px) | `max(--radius-2, --radius-pill)` |
+| `3` | `--space-7` (40px) | `max(--radius-3, --radius-pill)` |
+| `4` | `--space-8` (48px) | `max(--radius-4, --radius-pill)` |
 
-The radius respects `data-radius` on a parent — set `data-radius="full"` on the page root for pill buttons everywhere.
+The radius respects `data-radius` on a parent — set `data-radius="pill"` on the page root for pill buttons everywhere.
 
 ## Variants
 
@@ -104,7 +104,7 @@ The radius respects `data-radius` on a parent — set `data-radius="full"` on th
 Set `data-radius="<value>"` on a parent (e.g. `<body>`) to control corner radius for every button beneath. Values follow [Styles → Radius](/ui/styles#radius):
 
 ```html
-<div data-radius="full">
+<div data-radius="pill">
   <button class="unset x-button" data-variant="solid">Pill</button>
 </div>
 <div data-radius="none">
@@ -118,9 +118,9 @@ Set `data-radius="<value>"` on a parent (e.g. `<body>`) to control corner radius
 | `small` | tighter — `--radius-factor: 0.75` |
 | `medium` | default |
 | `large` | softer — `--radius-factor: 1.5` |
-| `full` | fully rounded — `--radius-full: 9999px` |
+| `pill` | fully rounded — `--radius-pill: 9999px` |
 
-The size's own radius is `max(--radius-N, --radius-full)`, so `data-radius="full"` always wins regardless of size.
+The size's own radius is `max(--radius-N, --radius-pill)`, so `data-radius="pill"` always wins regardless of size.
 
 ## Theming
 
