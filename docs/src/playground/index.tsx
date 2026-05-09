@@ -14,6 +14,8 @@ import {
   SandpackTests,
 } from "@codesandbox/sandpack-react";
 
+import packageJson from "../../package.json";
+
 import INDEX from "./files/index.js?raw";
 import VITE_CONFIG from "./files/vite.config.ts?raw";
 import TSCONFIG from "./files/tsconfig.json?raw";
@@ -21,7 +23,7 @@ import { githubDark, githubLight } from "./theme";
 
 const SHARED_SETUP: SandpackSetup = {
   dependencies: {
-    "elements-kit": "latest",
+    "elements-kit": `^${packageJson.version}`,
   },
   devDependencies: {
     typescript: "^6",
