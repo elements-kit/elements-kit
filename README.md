@@ -493,9 +493,3 @@ class XPicker extends HTMLElement {
 - [ARCHITECTURE.md](ARCHITECTURE.md) — how the library works
 - [CONTRIBUTING.md](CONTRIBUTING.md) — build, test, PR checklist
 
-## Roadmap
-
-- [ ] Context — share state across a subtree without prop drilling
-- [ ] UI library — pre-built reactive components built on ElementsKit primitives
-- [ ] More framework integrations (Vue, Solid, Angular, …)
-- [ ] Tutorial — building a full app from scratch
