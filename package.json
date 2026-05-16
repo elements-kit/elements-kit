@@ -23,10 +23,10 @@
   "homepage": "https://elements-kit.com/",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/waelbettayeb/elements-kit.git"
+    "url": "git+https://github.com/elements-kit/elements-kit.git"
   },
   "bugs": {
-    "url": "https://github.com/waelbettayeb/elements-kit/issues"
+    "url": "https://github.com/elements-kit/elements-kit/issues"
   },
   "main": "./dist/index.mjs",
   "types": "./dist/index.d.mts",

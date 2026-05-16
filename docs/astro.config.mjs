@@ -123,7 +123,7 @@ export default defineConfig({
             "@type": "SoftwareSourceCode",
             name: "ElementsKit",
             description: siteDescription,
-            codeRepository: "https://github.com/waelbettayeb/elements-kit",
+            codeRepository: "https://github.com/elements-kit/elements-kit",
             programmingLanguage: "TypeScript",
             license: "https://opensource.org/licenses/MIT",
             author: {
@@ -137,7 +137,7 @@ export default defineConfig({
       ],
 
       social: {
-        github: "https://github.com/waelbettayeb/elements-kit",
+        github: "https://github.com/elements-kit/elements-kit",
         twitter: "https://x.com/ElementsKit",
       },
       sidebar,
