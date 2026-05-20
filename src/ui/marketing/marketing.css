@@ -8,8 +8,11 @@
  * Backgrounds use theme.css semantic tokens (`--color-background`, `--color-overlay`).
  * Text + borders use `--base-color-N` / `--base-color-aN`. Accent (pillar icon)
  * follows `--color-9` — set `data-color="X"` on an ancestor to pick the accent
- * palette. Typography pulls from kit's `--font-size-N` / `--line-height-N` and
- * the `--scaling` factor.
+ * palette. Typography (sizes, line-heights, letter-spacing) pulls from kit's
+ * `--font-size-N` / `--line-height-N` / `--letter-spacing-N` and the `--scaling`
+ * factor — so `data-scaling="xs..xl"` resizes text. Radii follow `--radius-N`.
+ * Gaps / paddings / margins stay in `rem` on purpose — scaling is for type
+ * density, not container layout.
  *
  * Page-level CSS variables expected from the host site (with sensible fallbacks):
  *   --page-padding-left, --page-padding-right, --page-max-width, --font-heading
@@ -44,7 +47,7 @@
   & .section-paragraph {
     margin-top: 1.5rem;
     font-weight: var(--font-weight-medium);
-    letter-spacing: -0.025em;
+    letter-spacing: var(--letter-spacing-9);
     text-wrap: pretty;
   }
 
@@ -153,7 +156,7 @@
 .section-heading {
   font-family: var(--font-heading);
   font-weight: 600;
-  letter-spacing: -0.025em;
+  letter-spacing: var(--letter-spacing-9);
 }
 [dir="rtl"] .section-heading {
   line-height: 1.4;
@@ -304,7 +307,7 @@
   font-size: var(--font-size-6);
   line-height: 1.2;
   font-weight: 600;
-  letter-spacing: -0.025em;
+  letter-spacing: var(--letter-spacing-9);
   text-wrap: pretty;
   color: var(--base-color-11);
 }
@@ -387,7 +390,7 @@
   font-size: var(--font-size-5);
   line-height: 1.3;
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: var(--letter-spacing-8);
 }
 .pillar > svg:first-child {
   margin-bottom: 1.5rem;

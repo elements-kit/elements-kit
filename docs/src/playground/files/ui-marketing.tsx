@@ -174,8 +174,8 @@ export class App {
             <a
               class:unset
               class:x-button
-              data-size="2"
-              data-variant="ghost"
+              data-size="3"
+              data-variant="surface"
               href="#"
             >
               Optional CTA
@@ -194,8 +194,8 @@ export class App {
             <a
               class:unset
               class:x-button
-              data-size="2"
-              data-variant="ghost"
+              data-size="3"
+              data-variant="surface"
               href="#"
             >
               Optional CTA
@@ -217,8 +217,8 @@ export class App {
               <a
                 class:unset
                 class:x-button
-                data-size="2"
-                data-variant="ghost"
+                data-size="3"
+                data-variant="surface"
                 href="#"
               >
                 Learn more
@@ -240,8 +240,8 @@ export class App {
               <a
                 class:unset
                 class:x-button
-                data-size="2"
-                data-variant="ghost"
+                data-size="3"
+                data-variant="surface"
                 href="#"
               >
                 Learn more
@@ -264,8 +264,8 @@ export class App {
               <a
                 class:unset
                 class:x-button
-                data-size="2"
-                data-variant="ghost"
+                data-size="3"
+                data-variant="surface"
                 href="#"
               >
                 Learn more
@@ -287,8 +287,8 @@ export class App {
               <a
                 class:unset
                 class:x-button
-                data-size="2"
-                data-variant="ghost"
+                data-size="3"
+                data-variant="surface"
                 href="#"
               >
                 Learn more
@@ -317,8 +317,8 @@ export class App {
               <a
                 class:unset
                 class:x-button
-                data-size="2"
-                data-variant="ghost"
+                data-size="3"
+                data-variant="surface"
                 data-cta=""
                 href="#"
               >
@@ -383,7 +383,7 @@ export class App {
             <a
               class:unset
               class:x-button
-              data-size="2"
+              data-size="3"
               data-variant="ghost"
               href="#"
             >
@@ -409,7 +409,7 @@ export class App {
             <a
               class:unset
               class:x-button
-              data-size="2"
+              data-size="3"
               data-variant="ghost"
               href="#"
             >
@@ -437,7 +437,7 @@ export class App {
               <a
                 class:unset
                 class:x-button
-                data-size="2"
+                data-size="3"
                 data-variant="ghost"
                 href="#"
               >
@@ -458,7 +458,7 @@ export class App {
               <a
                 class:unset
                 class:x-button
-                data-size="2"
+                data-size="3"
                 data-variant="ghost"
                 href="#"
               >
@@ -479,7 +479,7 @@ export class App {
               <a
                 class:unset
                 class:x-button
-                data-size="2"
+                data-size="3"
                 data-variant="ghost"
                 href="#"
               >
