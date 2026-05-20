@@ -16,12 +16,14 @@ A CSS-only system for marketing pages. Class + data-attribute API, no JS. A page
 ## Install
 
 ```ts
-import "elements-kit/ui/styles/palette/gray.css";
-import "elements-kit/ui/styles/colors/base.css";
+import "elements-kit/ui/styles/theme.css";       // --color-background, --color-overlay, transitively --base-color-N
+import "elements-kit/ui/styles/scaling.css";     // --scaling factor (data-scaling="xs..xl")
+import "elements-kit/ui/styles/typography.css";  // --font-size-N, --line-height-N, --font-weight-*
+import "elements-kit/ui/styles/radius.css";      // --radius-N (data-radius="none..pill")
 import "elements-kit/ui/marketing/marketing.css";
 ```
 
-The whole file is wrapped in `@layer marketing`, so any unlayered host CSS wins on collision — no specificity wars. Colors come from the kit base scale (`--color-1..12`) when an ancestor sets `data-color="base"`. Accent color (e.g. the pillar icon) follows `--accent-9` from the host theme.
+The whole file is wrapped in `@layer marketing`, so any unlayered host CSS wins on collision — no specificity wars. Backgrounds use semantic tokens from theme.css (`--color-background`, `--color-overlay`) — they flip with `.dark` / `.light` on a parent. Text and borders use the base neutral palette (`--base-color-N`, `--base-color-aN`) defined in `palette/base.css` (defaults to gray; pick a different neutral with `data-gray-color="slate|sage|sand|mauve|olive"`). Typography scales follow kit tokens; display headings (≥48px) multiply by `--scaling` so `data-scaling="lg"` resizes them. Radii follow `--radius-N` so `data-radius="pill"` rounds marketing borders. The pillar icon follows `--color-9` — set `data-color="X"` on an ancestor (e.g. `data-color="mint"`) to pick the accent palette.
 
 Host-page CSS variables expected (sensible fallbacks ship in `.page-bounds`):
 
@@ -48,7 +50,7 @@ Host-page CSS variables expected (sensible fallbacks ship in `.page-bounds`):
         <p class="section-paragraph">Detail copy.</p>
         <a href="/learn">Learn more</a>
       </div>
-      <div class="river-visual" data-border="true">
+      <div class="river-visual" data-border>
         <img src="/feature.webp" alt="" />
       </div>
     </div>
@@ -62,10 +64,10 @@ The standard nesting is **page-section → page-bounds → (section-header) + (r
 
 ### Hero
 
-Top-of-page block. Animates children in on mount. Optional sparkles background.
+Top-of-page block. Flex column container.
 
 ```html
-<section class="hero" data-align="center" data-animate="true">
+<section class="hero" data-align="center">
   <h1 class="section-heading section-heading-1">Headline</h1>
   <p class="section-paragraph">Subhead</p>
 </section>
@@ -74,8 +76,6 @@ Top-of-page block. Animates children in on mount. Optional sparkles background.
 | Attribute | Values |
 | --- | --- |
 | `data-align` | `start` (default), `center` |
-| `data-sparkles` | `true` — adds sparkle background SVG |
-| `data-animate` | `true` — fade + blur + slide-in on load |
 
 :::tip[Do]
 Keep heading ≤ 2 lines on desktop. Paragraph ≤ 75ch.
@@ -87,21 +87,15 @@ Stack three CTAs side-by-side. Pick one primary plus an optional secondary link.
 
 ### Page section
 
-A page-level chunk. Black surface, vertical padding. Supports sticky stacking when adjacent siblings also carry `data-stacked`.
+A page-level chunk. Themed background (`--color-background`), vertical padding.
 
 ```html
-<section class="page-section" data-stacked>
+<section class="page-section">
   <div class="page-bounds">…</div>
 </section>
 ```
 
-| Attribute | Values |
-| --- | --- |
-| `data-stacked` | modifier — sticky-stacking surface; only takes effect when the next sibling is also `[data-stacked]` |
-
-:::tip[Do]
-Use `data-stacked` only on consecutive siblings that form a scrollytelling group.
-:::
+No data attributes.
 
 :::caution[Don't]
 Nest one `.page-section` inside another. Rivers and headers go directly inside `.page-bounds`.
@@ -162,10 +156,10 @@ Four sizes, paired with a base `.section-heading` class.
 
 | Class | Use for |
 | --- | --- |
-| `.section-heading-1` | hero / display headline (3rem → 3.75rem at lg) |
-| `.section-heading-2` | section header (2.25rem → 3rem at lg) |
-| `.section-heading-3` | river / sub-section (1.875rem → 2.25rem at lg) |
-| `.section-heading-4` | minor labels (1.25rem) |
+| `.section-heading-1` | hero / display headline (48px × scaling → 60px at lg via `--font-size-9`) |
+| `.section-heading-2` | section header (35px via `--font-size-8` → 48px × scaling at lg) |
+| `.section-heading-3` | river / sub-section (30px × scaling → 35px via `--font-size-8` at lg) |
+| `.section-heading-4` | minor labels (20px via `--font-size-5`) |
 
 Pick the level that matches the document outline (`<h1>` once per page), not the visual size. Pair `.section-heading-1` with `<h2>` if the page already has an `<h1>`.
 
@@ -175,7 +169,7 @@ Body text token. Preserves line breaks. Inline `<em>` highlights in the brightes
 
 ```html
 <p class="section-paragraph">
-  Default copy color is <em>--color-11</em>. Emphasized inline runs are <em>--color-12</em>.
+  Default copy color is <em>--base-color-11</em>. Emphasized inline runs are <em>--base-color-12</em>.
 </p>
 ```
 
@@ -220,14 +214,14 @@ Leave `.river-visual` empty as a spacer. Use a regular `<div>` if you need negat
   <a href="/learn">Learn more</a>
 </div>
 
-<div class="river-visual" data-border="true">
+<div class="river-visual" data-border>
   <img src="/feature.webp" alt="" />
 </div>
 ```
 
 | Element | Attribute | Values |
 | --- | --- | --- |
-| `.river-visual` | `data-border` | `true` — adds a 1px border + rounded corners |
+| `.river-visual` | `data-border` | presence — adds a 1px border + rounded corners |
 
 ### Pillar
 
@@ -275,11 +269,11 @@ Combine `data-border` with `data-align="center"`. The border treatment expects s
 
 ## Theming
 
-The marketing layer reads from two CSS variable namespaces:
+The marketing layer reads four token groups:
 
-- `--color-1..12` and `--color-a1..12` — neutrals. Resolved by `[data-color="base"]` in `colors/base.css`. Set `data-color="base"` on `<html>` or `<body>` so the aliases resolve.
-- `--accent-1..12` — brand accent. Resolved by the host (e.g. Radix `<Theme accentColor="…">`). Marketing only reads `--accent-9` (pillar icon).
+- `--color-background` (page bg) and `--color-overlay` (stacked surface overlay) — semantic role tokens from [theme.css](/ui/styles). Both flip automatically with `.dark` / `.light` on a parent.
+- `--base-color-1..12` and `--base-color-a1..12` — neutrals used for text + borders. Provided by `palette/gray.css` (or by Radix `<Theme>` if you're using Radix).
+- `--accent-1..12` — brand accent. Resolved by the host. Marketing only reads `--accent-9` (pillar icon).
+- Page CSS vars: `--page-padding-left`, `--page-padding-right`, `--page-max-width`, `--font-heading`.
 
-Switching the host accent re-themes the icon globally; switching `data-color` on a subtree re-themes the neutrals beneath it.
-
-Light/dark flips automatically via the host theme — marketing uses tokens, not hardcoded colors.
+Switching `.dark` ↔ `.light` on a parent re-themes the surface and text. Switching the host `accentColor` re-themes the icon. No `data-color` setup required.

@@ -1,3 +1,4 @@
+@import "./palette/base.css";
 @import "./palette/black-alpha.css";
 @import "./palette/white-alpha.css";
 
@@ -13,7 +14,7 @@
   --color-surface: rgba(255, 255, 255, 0.85);
 }
 :is(.dark, .dark-theme) {
-  --color-background: var(--gray-1);
+  --color-background: var(--base-color-1);
   --color-overlay: var(--black-a8);
   --color-surface: rgba(0, 0, 0, 0.25);
 }
@@ -96,8 +97,8 @@
 /* * * * * * * * * * * * * * * * * * * */
 
 :root {
-  color: var(--gray-12);
+  color: var(--base-color-12);
 }
-:where([data-has-background="true"]) {
+:where([data-surface="page"]) {
   background-color: var(--color-background);
 }

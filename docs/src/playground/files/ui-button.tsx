@@ -49,13 +49,13 @@ export class App {
     return (
       <div
         class:dark={dark}
-        data-has-background="true"
+        data-surface="page"
         data-color="mint"
         data-radius="medium"
         style:padding="24px"
         style:display="grid"
         style:gap="28px"
-        style:color="var(--gray-12)"
+        style:color="var(--base-color-12)"
         style:font-family="var(--default-font-family, system-ui, sans-serif)"
       >
         <section>
