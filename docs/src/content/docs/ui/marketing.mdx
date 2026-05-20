@@ -1,0 +1,277 @@
+---
+title: Marketing
+description: Layout primitives for marketing pages — hero, sections, rivers, pillars.
+---
+
+A CSS-only system for marketing pages. Class + data-attribute API, no JS. A page is a stack of `.page-section`s; each section uses `.page-bounds` to gutter and cap its content; rivers arrange a text + visual pair side-by-side; pillars are vertical mini-cards for grouped features.
+
+## Install
+
+```ts
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/colors/base.css";
+import "elements-kit/ui/marketing/marketing.css";
+```
+
+The whole file is wrapped in `@layer marketing`, so any unlayered host CSS wins on collision — no specificity wars. Colors come from the kit base scale (`--color-1..12`) when an ancestor sets `data-color="base"`. Accent color (e.g. the pillar icon) follows `--accent-9` from the host theme.
+
+Host-page CSS variables expected (sensible fallbacks ship in `.page-bounds`):
+
+| Variable | Purpose | Fallback |
+| --- | --- | --- |
+| `--page-padding-left` | left gutter for `.page-bounds` | `1rem` |
+| `--page-padding-right` | right gutter for `.page-bounds` | `1rem` |
+| `--page-max-width` | max width for `.page-bounds` | `72rem` |
+| `--font-heading` | heading font family | inherit |
+
+## Composition
+
+```html
+<section class="page-section">
+  <div class="page-bounds">
+    <header class="section-header">
+      <h2 class="section-heading section-heading-2">Title</h2>
+      <p class="section-paragraph">Lede paragraph.</p>
+    </header>
+
+    <div class="river" data-align="start">
+      <div class="river-content">
+        <h3 class="section-heading section-heading-3">Feature</h3>
+        <p class="section-paragraph">Detail copy.</p>
+        <a href="/learn">Learn more</a>
+      </div>
+      <div class="river-visual" data-border="true">
+        <img src="/feature.webp" alt="" />
+      </div>
+    </div>
+  </div>
+</section>
+```
+
+The standard nesting is **page-section → page-bounds → (section-header) + (river+ | pillar+)**. Heros sit at the top of the page and skip the wrapping `.page-section`.
+
+## Primitives
+
+### Hero
+
+Top-of-page block. Animates children in on mount. Optional sparkles background.
+
+```html
+<section class="hero" data-align="center" data-animate="true">
+  <h1 class="section-heading section-heading-1">Headline</h1>
+  <p class="section-paragraph">Subhead</p>
+</section>
+```
+
+| Attribute | Values |
+| --- | --- |
+| `data-align` | `start` (default), `center` |
+| `data-sparkles` | `true` — adds sparkle background SVG |
+| `data-animate` | `true` — fade + blur + slide-in on load |
+
+:::tip[Do]
+Keep heading ≤ 2 lines on desktop. Paragraph ≤ 75ch.
+:::
+
+:::caution[Don't]
+Stack three CTAs side-by-side. Pick one primary plus an optional secondary link.
+:::
+
+### Page section
+
+A page-level chunk. Black surface, vertical padding. Supports sticky stacking when adjacent siblings also carry `data-stacked`.
+
+```html
+<section class="page-section" data-stacked>
+  <div class="page-bounds">…</div>
+</section>
+```
+
+| Attribute | Values |
+| --- | --- |
+| `data-stacked` | modifier — sticky-stacking surface; only takes effect when the next sibling is also `[data-stacked]` |
+
+:::tip[Do]
+Use `data-stacked` only on consecutive siblings that form a scrollytelling group.
+:::
+
+:::caution[Don't]
+Nest one `.page-section` inside another. Rivers and headers go directly inside `.page-bounds`.
+:::
+
+### Page bounds
+
+Pure layout container. Applies `--page-padding-*` gutters and `--page-max-width` cap, centered.
+
+```html
+<div class="page-bounds">…</div>
+```
+
+No data attributes. Place directly inside `.page-section`.
+
+:::tip[Do]
+Let the var-driven system handle width and gutters.
+:::
+
+:::caution[Don't]
+Apply your own `max-width` or horizontal padding on children. Override the page CSS variables instead.
+:::
+
+### Section header
+
+Heading + paragraph + optional CTA cluster. Sits above rivers in a section.
+
+```html
+<header class="section-header" data-align="center">
+  <h2 class="section-heading section-heading-2">Title</h2>
+  <p class="section-paragraph">Lede.</p>
+  <a href="/cta">Action</a>
+</header>
+```
+
+| Attribute | Values |
+| --- | --- |
+| `data-align` | `start` (default), `center` |
+
+:::tip[Do]
+One heading + one paragraph + optional CTA.
+:::
+
+:::caution[Don't]
+Put marketing copy paragraphs inside the header. That's what River content is for.
+:::
+
+### Section heading
+
+Four sizes, paired with a base `.section-heading` class.
+
+```html
+<h1 class="section-heading section-heading-1">Display</h1>
+<h2 class="section-heading section-heading-2">Section</h2>
+<h3 class="section-heading section-heading-3">Sub-section</h3>
+<h4 class="section-heading section-heading-4">Eyebrow</h4>
+```
+
+| Class | Use for |
+| --- | --- |
+| `.section-heading-1` | hero / display headline (3rem → 3.75rem at lg) |
+| `.section-heading-2` | section header (2.25rem → 3rem at lg) |
+| `.section-heading-3` | river / sub-section (1.875rem → 2.25rem at lg) |
+| `.section-heading-4` | minor labels (1.25rem) |
+
+Pick the level that matches the document outline (`<h1>` once per page), not the visual size. Pair `.section-heading-1` with `<h2>` if the page already has an `<h1>`.
+
+### Section paragraph
+
+Body text token. Preserves line breaks. Inline `<em>` highlights in the brightest neutral.
+
+```html
+<p class="section-paragraph">
+  Default copy color is <em>--color-11</em>. Emphasized inline runs are <em>--color-12</em>.
+</p>
+```
+
+### River
+
+Two-column grid: text + visual side-by-side. Alternate `data-align` between adjacent rivers for a flowing rhythm.
+
+```html
+<div class="river" data-align="start">
+  <div class="river-content">…</div>
+  <div class="river-visual">…</div>
+</div>
+```
+
+| Attribute | Values |
+| --- | --- |
+| `data-align` | `start` (default — text left), `end` (text right), `center` (stacked, centered), `breakout` (custom grid for headline + trailing element) |
+| `data-large-visual` | modifier — visual takes 7/12, content 5/12 (only with `start` / `end`) |
+
+:::tip[Do]
+Alternate `data-align="start"` and `"end"` between adjacent rivers for visual rhythm.
+:::
+
+:::caution[Don't]
+Mix `data-align="center"` with `data-large-visual`. The 5/7 grid only applies to `start` / `end`.
+:::
+
+:::tip[Do]
+Keep visuals roughly the same aspect ratio across consecutive rivers.
+:::
+
+:::caution[Don't]
+Leave `.river-visual` empty as a spacer. Use a regular `<div>` if you need negative space.
+:::
+
+### River content / visual
+
+```html
+<div class="river-content">
+  <h3 class="section-heading section-heading-3">Heading</h3>
+  <p class="section-paragraph">Body.</p>
+  <a href="/learn">Learn more</a>
+</div>
+
+<div class="river-visual" data-border="true">
+  <img src="/feature.webp" alt="" />
+</div>
+```
+
+| Element | Attribute | Values |
+| --- | --- | --- |
+| `.river-visual` | `data-border` | `true` — adds a 1px border + rounded corners |
+
+### Pillar
+
+Vertical mini-card for a feature, benefit, or stat. Anatomy: icon → heading → paragraph → link.
+
+```html
+<div class="pillar" data-border="true">
+  <svg><!-- icon --></svg>
+  <h3 data-heading>Heading</h3>
+  <p data-paragraph>Description.</p>
+  <a href="/learn">Learn more</a>
+</div>
+```
+
+| Attribute | Values |
+| --- | --- |
+| `data-border` | `true` — card treatment (border + padding) |
+| `data-align` | `start` (default), `center` |
+
+The icon uses `--accent-9` so a single Radix accent change re-themes every pillar at once.
+
+:::tip[Do]
+When using icons, add them to every pillar in the group.
+:::
+
+:::caution[Don't]
+Mix icons-with-pillars and no-icons-with-pillars in the same row.
+:::
+
+:::tip[Do]
+Keep heading character counts comparable across a pillar group for a visually balanced layout.
+:::
+
+:::caution[Don't]
+Let one description run 4× the length of its siblings.
+:::
+
+:::tip[Do]
+Use `data-border` for elevated card-style pillars when the group sits on a colored surface.
+:::
+
+:::caution[Don't]
+Combine `data-border` with `data-align="center"`. The border treatment expects start-aligned content.
+:::
+
+## Theming
+
+The marketing layer reads from two CSS variable namespaces:
+
+- `--color-1..12` and `--color-a1..12` — neutrals. Resolved by `[data-color="base"]` in `colors/base.css`. Set `data-color="base"` on `<html>` or `<body>` so the aliases resolve.
+- `--accent-1..12` — brand accent. Resolved by the host (e.g. Radix `<Theme accentColor="…">`). Marketing only reads `--accent-9` (pillar icon).
+
+Switching the host accent re-themes the icon globally; switching `data-color` on a subtree re-themes the neutrals beneath it.
+
+Light/dark flips automatically via the host theme — marketing uses tokens, not hardcoded colors.
