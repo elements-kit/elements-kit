@@ -113,6 +113,7 @@
 /* * * * * * * * * * * * * * * * * * * */
 
 .page-bounds {
+  box-sizing: border-box;
   padding-left: var(--page-padding-left, 1rem);
   padding-right: var(--page-padding-right, 1rem);
   max-width: var(--page-max-width, 72rem);
@@ -157,6 +158,7 @@
   font-family: var(--font-heading);
   font-weight: 600;
   letter-spacing: var(--letter-spacing-9);
+  overflow-wrap: break-word;
 }
 [dir="rtl"] .section-heading {
   line-height: 1.4;
@@ -201,6 +203,7 @@
   line-height: var(--default-line-height, 1.5);
   text-wrap: pretty;
   white-space: pre-line;
+  overflow-wrap: break-word;
   color: var(--base-color-11);
 }
 .section-paragraph em {
@@ -220,6 +223,7 @@
 }
 .river > * {
   grid-column: 1 / -1;
+  min-width: 0;
 }
 
 @media (min-width: 48rem) {
@@ -357,6 +361,7 @@
   flex-direction: column;
   align-items: flex-start;
   row-gap: 1rem;
+  min-width: 0;
 }
 .river-content > .section-heading {
   text-wrap: balance;
@@ -368,6 +373,7 @@
 .river-visual {
   position: relative;
   order: 1;
+  min-width: 0;
 }
 .river-visual[data-border] {
   border-radius: var(--radius-4);
