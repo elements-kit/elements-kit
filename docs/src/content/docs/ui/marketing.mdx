@@ -3,7 +3,15 @@ title: Marketing
 description: Layout primitives for marketing pages — hero, sections, rivers, pillars.
 ---
 
+import Playground from "@/playground/Playground.astro";
+import MARKETING from "@/playground/files/ui-marketing.tsx?raw";
+
 A CSS-only system for marketing pages. Class + data-attribute API, no JS. A page is a stack of `.page-section`s; each section uses `.page-bounds` to gutter and cap its content; rivers arrange a text + visual pair side-by-side; pillars are vertical mini-cards for grouped features.
+
+<Playground
+  provider={{ files: { "/main.tsx": { code: MARKETING, active: true } } }}
+  preview={{}}
+/>
 
 ## Install
 
