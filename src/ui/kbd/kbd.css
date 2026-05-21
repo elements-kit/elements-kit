@@ -1,0 +1,76 @@
+.x-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-family: var(--default-font-family);
+  font-weight: normal;
+  vertical-align: text-top;
+  white-space: nowrap;
+  user-select: none;
+
+  position: relative;
+  top: -0.03em;
+
+  font-size: 0.75em;
+  min-width: 1.75em;
+  line-height: 1.7em;
+  box-sizing: border-box;
+  padding-left: 0.5em;
+  padding-right: 0.5em;
+  padding-bottom: 0.05em;
+  word-spacing: -0.1em;
+  border-radius: calc(var(--radius-factor) * 0.35em);
+  letter-spacing: var(--letter-spacing, var(--default-letter-spacing));
+
+  /* Don't stretch height in Flex/Grid layouts */
+  height: fit-content;
+
+  color: var(--base-color-12);
+  background-color: var(--base-color-a3);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SIZES                                                                                           *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-kbd {
+  &:where([data-size="1"]) {
+    font-size: calc(var(--font-size-1) * 0.8);
+    --letter-spacing: var(--letter-spacing-1);
+  }
+  &:where([data-size="2"]) {
+    font-size: calc(var(--font-size-2) * 0.8);
+    --letter-spacing: var(--letter-spacing-2);
+  }
+  &:where([data-size="3"]) {
+    font-size: calc(var(--font-size-3) * 0.8);
+    --letter-spacing: var(--letter-spacing-3);
+  }
+  &:where([data-size="4"]) {
+    font-size: calc(var(--font-size-4) * 0.8);
+    --letter-spacing: var(--letter-spacing-4);
+  }
+  &:where([data-size="5"]) {
+    font-size: calc(var(--font-size-5) * 0.8);
+    --letter-spacing: var(--letter-spacing-5);
+  }
+  &:where([data-size="6"]) {
+    font-size: calc(var(--font-size-6) * 0.8);
+    --letter-spacing: var(--letter-spacing-6);
+  }
+  &:where([data-size="7"]) {
+    font-size: calc(var(--font-size-7) * 0.8);
+    --letter-spacing: var(--letter-spacing-7);
+  }
+  &:where([data-size="8"]) {
+    font-size: calc(var(--font-size-8) * 0.8);
+    --letter-spacing: var(--letter-spacing-8);
+  }
+  &:where([data-size="9"]) {
+    font-size: calc(var(--font-size-9) * 0.8);
+    --letter-spacing: var(--letter-spacing-9);
+  }
+}

@@ -1,0 +1,51 @@
+---
+title: Kbd
+description: Keyboard key chip — nine sizes.
+---
+
+import Playground from "@/playground/Playground.astro";
+import KBD from "@/playground/files/ui-kbd.tsx?raw";
+
+A small chip for keyboard keys in inline text — e.g. shortcuts in help, hint text, command palettes. Class + data-attribute API: one `.x-kbd` class plus `data-size`. Flat tinted background (`--base-color-a3`).
+
+<Playground
+  provider={{ files: { "/main.tsx": { code: KBD, active: true } } }}
+  preview={{}}
+/>
+
+## Install
+
+```ts
+import "elements-kit/ui/styles/theme.css";
+import "elements-kit/ui/styles/scaling.css";
+import "elements-kit/ui/styles/radius.css";
+import "elements-kit/ui/styles/typography.css";
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/base/gray.css";
+
+import "elements-kit/ui/kbd/kbd.css";
+```
+
+## API
+
+```html
+<p>
+  Press <kbd class="x-kbd">⌘</kbd>+<kbd class="x-kbd">K</kbd> to open.
+</p>
+```
+
+| Attribute | Values |
+| --- | --- |
+| `data-size` | `1`–`9` |
+
+`unset` is **not required** on `<kbd>`.
+
+## Sizing
+
+Font-size is `calc(--font-size-N * 0.8)` — kbd reads slightly smaller than the surrounding body text. Sizes 1–9 track the type scale.
+
+## Notes
+
+- Border-radius uses `calc(var(--radius-factor) * 0.35em)` — corners scale with the page's `data-radius`.
+- Vertical position is nudged with `top: -0.03em` so the chip baseline aligns with surrounding text caps.
+- `user-select: none` prevents text selection of the key glyph.

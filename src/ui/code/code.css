@@ -1,0 +1,145 @@
+.x-code {
+  --code-variant-font-size-adjust: calc(var(--code-font-size-adjust) * 0.95);
+
+  font-family: var(--code-font-family);
+  font-size: calc(var(--code-variant-font-size-adjust) * 1em);
+  font-style: var(--code-font-style);
+  font-weight: var(--code-font-weight);
+  line-height: 1.25;
+  letter-spacing: calc(
+    var(--code-letter-spacing) +
+      var(--letter-spacing, var(--default-letter-spacing))
+  );
+  border-radius: calc((0.5px + 0.2em) * var(--radius-factor));
+
+  box-sizing: border-box;
+  padding-top: var(--code-padding-top);
+  padding-left: var(--code-padding-left);
+  padding-bottom: var(--code-padding-bottom);
+  padding-right: var(--code-padding-right);
+
+  /* Don't stretch height in Flex/Grid layouts */
+  height: fit-content;
+
+  /* Nested .x-code inherits its parent's size */
+  & :where(.x-code) {
+    font-size: inherit;
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SIZES                                                                                           *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-code {
+  &:where([data-size="1"]) {
+    font-size: calc(var(--font-size-1) * var(--code-variant-font-size-adjust));
+    line-height: var(--line-height-1);
+    --letter-spacing: var(--letter-spacing-1);
+  }
+  &:where([data-size="2"]) {
+    font-size: calc(var(--font-size-2) * var(--code-variant-font-size-adjust));
+    line-height: var(--line-height-2);
+    --letter-spacing: var(--letter-spacing-2);
+  }
+  &:where([data-size="3"]) {
+    font-size: calc(var(--font-size-3) * var(--code-variant-font-size-adjust));
+    line-height: var(--line-height-3);
+    --letter-spacing: var(--letter-spacing-3);
+  }
+  &:where([data-size="4"]) {
+    font-size: calc(var(--font-size-4) * var(--code-variant-font-size-adjust));
+    line-height: var(--line-height-4);
+    --letter-spacing: var(--letter-spacing-4);
+  }
+  &:where([data-size="5"]) {
+    font-size: calc(var(--font-size-5) * var(--code-variant-font-size-adjust));
+    line-height: var(--line-height-5);
+    --letter-spacing: var(--letter-spacing-5);
+  }
+  &:where([data-size="6"]) {
+    font-size: calc(var(--font-size-6) * var(--code-variant-font-size-adjust));
+    line-height: var(--line-height-6);
+    --letter-spacing: var(--letter-spacing-6);
+  }
+  &:where([data-size="7"]) {
+    font-size: calc(var(--font-size-7) * var(--code-variant-font-size-adjust));
+    line-height: var(--line-height-7);
+    --letter-spacing: var(--letter-spacing-7);
+  }
+  &:where([data-size="8"]) {
+    font-size: calc(var(--font-size-8) * var(--code-variant-font-size-adjust));
+    line-height: var(--line-height-8);
+    --letter-spacing: var(--letter-spacing-8);
+  }
+  &:where([data-size="9"]) {
+    font-size: calc(var(--font-size-9) * var(--code-variant-font-size-adjust));
+    line-height: var(--line-height-9);
+    --letter-spacing: var(--letter-spacing-9);
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * VARIANTS                                                                                        *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* soft (default) */
+
+.x-code:where(:not([data-variant="solid"], [data-variant="outline"], [data-variant="ghost"])) {
+  background-color: var(--color-a3);
+  color: var(--color-a11);
+
+  &:where([data-high-contrast]) {
+    color: var(--color-12);
+  }
+}
+
+/* solid */
+
+.x-code:where([data-variant="solid"]) {
+  background-color: var(--color-9);
+  color: var(--accent-contrast);
+
+  &::selection {
+    background-color: var(--color-7);
+    color: var(--color-12);
+  }
+
+  &:where([data-high-contrast]) {
+    background-color: var(--color-12);
+    color: var(--color-1);
+  }
+}
+
+/* outline */
+
+.x-code:where([data-variant="outline"]) {
+  box-shadow: inset 0 0 0 max(1px, 0.033em) var(--color-a8);
+  color: var(--color-a11);
+
+  &:where([data-high-contrast]) {
+    box-shadow:
+      inset 0 0 0 max(1px, 0.033em) var(--color-a7),
+      inset 0 0 0 max(1px, 0.033em) var(--base-color-a11);
+    color: var(--color-12);
+  }
+}
+
+/* ghost — no padding, no background */
+
+.x-code:where([data-variant="ghost"]) {
+  --code-variant-font-size-adjust: var(--code-font-size-adjust);
+  padding: 0;
+
+  &:where([data-color]) {
+    color: var(--color-a11);
+  }
+
+  &:where([data-color][data-high-contrast]) {
+    color: var(--color-12);
+  }
+}

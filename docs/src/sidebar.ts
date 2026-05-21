@@ -76,11 +76,15 @@ export const integrationsSidebar: SidebarItem[] = [
 
 export const uiSidebar: SidebarItem[] = [
   { label: "Overview", slug: "ui" },
-  { label: "Button", slug: "ui/button" },
+  { label: "Alert", slug: "ui/alert" },
   { label: "Badge", slug: "ui/badge" },
+  { label: "Button", slug: "ui/button" },
   { label: "Card", slug: "ui/card" },
   { label: "Checkbox", slug: "ui/checkbox" },
+  { label: "Code", slug: "ui/code" },
+  { label: "Kbd", slug: "ui/kbd" },
   { label: "Radio", slug: "ui/radio" },
+  { label: "Switch", slug: "ui/switch" },
   { label: "Marketing", slug: "ui/marketing" },
   { label: "Styles", slug: "ui/styles" },
 ];

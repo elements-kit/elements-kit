@@ -1,0 +1,94 @@
+---
+title: Switch
+description: Headless toggle switch — two variants, three sizes.
+---
+
+import Playground from "@/playground/Playground.astro";
+import SWITCH from "@/playground/files/ui-switch.tsx?raw";
+
+A native `<input type="checkbox" role="switch">` styled as a toggle. CSS-only animation between off/on. Two variants, three sizes, color theming. Use it where the change takes effect immediately — for forms with a Save button, use a [Checkbox](/ui/checkbox) instead.
+
+<Playground
+  provider={{ files: { "/main.tsx": { code: SWITCH, active: true } } }}
+  preview={{}}
+/>
+
+## Install
+
+```ts
+import "elements-kit/ui/styles/theme.css";
+import "elements-kit/ui/styles/scaling.css";
+import "elements-kit/ui/styles/radius.css";
+import "elements-kit/ui/styles/space.css";
+import "elements-kit/ui/styles/cursor.css";
+import "elements-kit/ui/styles/unset.css";
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/palette/black-alpha.css";
+import "elements-kit/ui/styles/palette/mint.css";
+import "elements-kit/ui/styles/colors/mint.css";
+
+import "elements-kit/ui/switch/switch.css";
+```
+
+## API
+
+```html
+<input
+  type="checkbox"
+  role="switch"
+  class="unset x-switch"
+  data-size="2"
+  data-variant="surface"
+/>
+```
+
+The `unset` class clears native `<input>` rendering. Add `role="switch"` so screen readers announce "switch" instead of "checkbox" — the visual is a switch, the role should match.
+
+| Attribute | Values |
+| --- | --- |
+| `data-variant` | `surface` (default), `soft` |
+| `data-size` | `1`, `2` (default), `3` |
+| `data-color` *(on a parent or the input)* | any imported color scale |
+| `data-high-contrast` | modifier |
+| `disabled` / `data-disabled` | native or attribute |
+
+## Sizing
+
+| `data-size` | height | width |
+| --- | --- | --- |
+| `1` | `--space-4` (~16px) | ~28px |
+| `2` *(default)* | `--space-5 × 5/6` (~20px) | ~35px |
+| `3` | `--space-5` (~24px) | ~42px |
+
+Width is always `height × 1.75`. Thumb is `height − 2px`.
+
+## Variants
+
+- **`surface`** *(default)* — bordered track, `--base-color-a3` off, `--color-9` on. Layered thumb shadow for depth.
+- **`soft`** — flat track, `--base-color-a3` off, `--color-a5` on. Desaturated thumb. Less visual weight.
+
+## States
+
+- **`:checked`** — thumb slides to the right, track fills with accent color.
+- **`:disabled`** / `[data-disabled]` — track + thumb muted, no hover.
+- **`:focus-visible`** — 2px `--focus-8` outline at `+2px` offset.
+
+## With a label
+
+```html
+<label style="display: inline-flex; align-items: center; gap: 0.5em;">
+  <input type="checkbox" role="switch" class="unset x-switch" />
+  <span>Notifications</span>
+</label>
+```
+
+## Accessibility
+
+- Always add `role="switch"` so the input announces as a toggle, not a checkbox.
+- Pair with a `<label>` (wrapping or `for=`).
+- Don't use a switch for actions that need confirmation — switches imply the change happens *now*.
+
+:::caution[Don't]
+Ship a switch without a visible label or `aria-label`. The state ("On" / "Off") alone has no meaning.
+:::
