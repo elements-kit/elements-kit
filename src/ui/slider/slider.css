@@ -1,0 +1,126 @@
+.x-slider {
+  --slider-thumb-size: calc(var(--slider-track-size) + var(--space-1));
+  --slider-fill-color: var(--color-9);
+
+  height: var(--slider-thumb-size);
+
+  /* Chromium paints native track + fill via accent-color. Firefox uses custom track/progress below. */
+  accent-color: var(--slider-fill-color);
+  cursor: var(--cursor-slider-thumb);
+
+  &:where([data-disabled], :disabled) {
+    --slider-fill-color: var(--base-color-a6);
+    opacity: 0.5;
+    cursor: var(--cursor-disabled);
+  }
+
+  &:where(:focus-visible) {
+    outline: 2px solid var(--focus-8);
+    outline-offset: 2px;
+  }
+
+  /* WebKit / Chromium — size track so thumb margin math matches ------------ */
+
+  &::-webkit-slider-runnable-track {
+    height: var(--slider-track-size);
+    border-radius: max(calc(var(--slider-track-size) / 3), var(--radius-thumb));
+  }
+
+  &::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    width: var(--slider-thumb-size);
+    height: var(--slider-thumb-size);
+    position: relative;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: white;
+    background-image: none;
+    border: 0;
+    border-radius: 50%;
+    box-shadow: var(--slider-thumb-shadow);
+    cursor: var(--cursor-slider-thumb);
+  }
+
+  &:where(:active)::-webkit-slider-thumb {
+    cursor: var(--cursor-slider-thumb-active);
+  }
+
+  /* Firefox — fully custom (styling thumb forces non-native mode) ---------- */
+
+  &::-moz-range-track {
+    height: var(--slider-track-size);
+    background-color: var(--slider-track-bg);
+    border-radius: max(calc(var(--slider-track-size) / 3), var(--radius-thumb));
+    box-shadow: var(--slider-track-shadow, none);
+  }
+
+  &::-moz-range-progress {
+    height: var(--slider-track-size);
+    background-color: var(--slider-fill-color);
+    border-radius: max(calc(var(--slider-track-size) / 3), var(--radius-thumb));
+  }
+
+  &::-moz-range-thumb {
+    width: var(--slider-thumb-size);
+    height: var(--slider-thumb-size);
+    background-color: white;
+    border: 0;
+    border-radius: 50%;
+    box-shadow: var(--slider-thumb-shadow);
+    cursor: var(--cursor-slider-thumb);
+  }
+
+  &:where(:active)::-moz-range-thumb {
+    cursor: var(--cursor-slider-thumb-active);
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SIZES                                                                                           *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-slider {
+  &:where([data-size="1"]) {
+    --slider-track-size: calc(var(--space-2) * 0.75);
+  }
+  &:where([data-size="2"]) {
+    --slider-track-size: var(--space-2);
+  }
+  &:where([data-size="3"]) {
+    --slider-track-size: calc(var(--space-2) * 1.25);
+  }
+}
+
+/* default size */
+.x-slider:where(:not([data-size])) {
+  --slider-track-size: var(--space-2);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * VARIANTS                                                                                        *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* surface (default) — track: gray-a3, range: solid color-9, thumb: 1px black-a4 outline */
+
+.x-slider:where(:not([data-variant="soft"])) {
+  --slider-track-bg: var(--base-color-a3);
+  --slider-track-shadow: inset 0 0 0 1px var(--base-color-a5);
+  --slider-thumb-shadow: 0 0 0 1px var(--black-a4);
+  --slider-fill-color: var(--color-9);
+}
+
+/* soft — track: gray-a4, range: desaturated color-a8, thumb: layered outline + drop */
+
+.x-slider:where([data-variant="soft"]) {
+  --slider-track-bg: var(--base-color-a4);
+  --slider-thumb-shadow:
+    0 0 0 1px var(--black-a3), 0 0 0 1px var(--base-color-a2),
+    0 0 0 1px var(--color-a2), 0 1px 2px var(--base-color-a4),
+    0 1px 3px -0.5px var(--base-color-a3);
+  --slider-fill-color: var(--color-a8);
+}

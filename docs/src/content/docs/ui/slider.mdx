@@ -1,0 +1,89 @@
+---
+title: Slider
+description: Headless range input — two variants, three sizes.
+---
+
+import Playground from "@/playground/Playground.astro";
+import SLIDER from "@/playground/files/ui-slider.tsx?raw";
+
+A native `<input type="range">` styled via class + data attributes. Two variants, three sizes, color theming. Filled track works in every modern browser with **zero JS**.
+
+The fill is painted differently per engine: Firefox uses the native `::-moz-range-progress` pseudo; WebKit uses Ana Tudor's [box-shadow trick](https://css-tricks.com/sliding-nightmare-understanding-range-input/) — a massive horizontal `box-shadow` on the thumb, clipped by `overflow: hidden` on the input. As the thumb moves, the shadow moves with it.
+
+<Playground
+  provider={{ files: { "/main.tsx": { code: SLIDER, active: true } } }}
+  preview={{}}
+/>
+
+## Install
+
+```ts
+import "elements-kit/ui/styles/theme.css";
+import "elements-kit/ui/styles/scaling.css";
+import "elements-kit/ui/styles/radius.css";
+import "elements-kit/ui/styles/space.css";
+import "elements-kit/ui/styles/cursor.css";
+import "elements-kit/ui/styles/unset.css";
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/palette/black-alpha.css";
+import "elements-kit/ui/styles/palette/mint.css";
+import "elements-kit/ui/styles/colors/mint.css";
+
+import "elements-kit/ui/slider/slider.css";
+```
+
+## API
+
+```html
+<input
+  type="range"
+  class="unset x-slider"
+  min="0"
+  max="100"
+  value="50"
+  data-size="2"
+  data-variant="surface"
+/>
+```
+
+| Attribute | Values |
+| --- | --- |
+| `data-variant` | `surface` (default), `soft` |
+| `data-size` | `1`, `2` (default), `3` |
+| `data-color` *(on a parent or the input)* | any imported color scale |
+| `disabled` / `data-disabled` | native or attribute |
+
+## Sizing
+
+| `data-size` | track | thumb |
+| --- | --- | --- |
+| `1` | `--space-2 × 0.75` (~6px) | track + `--space-1` (~10px) |
+| `2` *(default)* | `--space-2` (~8px) | track + `--space-1` (~12px) |
+| `3` | `--space-2 × 1.25` (~10px) | track + `--space-1` (~14px) |
+
+Thumb shape: `border-radius: max(--radius-1, --radius-thumb)` — sits flush with the page's `data-radius` setting.
+
+## Variants
+
+- **`surface`** *(default)* — bordered track, `--base-color-a3` background, 1px `--base-color-a5` border.
+- **`soft`** — flat track, `--base-color-a4` background, no border, thumb has tinted shadow.
+
+## Focus
+
+`:focus-visible` adds a 3px `--color-3` ring + 5px `--focus-8` outline around the thumb. The native track outline is suppressed.
+
+## Limitations
+
+The kit ships a **single-thumb** range input.
+
+- **Slight vertical bleed of the fill** — the WebKit box-shadow trick paints fill at the input's height (= thumb height). The fill extends ~`(thumb − track) / 2` px above and below the visible track. Negligible at default sizes.
+- **No range (X-to-Y) slider** — needs two thumbs + JS. Caller composes.
+- **No vertical orientation** — `appearance: slider-vertical` is inconsistent across browsers.
+- **No tick marks / step indicators** — render your own `<datalist>` if needed.
+
+## Accessibility
+
+- `<input type="range">` is keyboard-accessible by default — arrow keys move by `step`, home/end jump to min/max.
+- Pair with a `<label>` (wrapping or `for=`).
+- Set `aria-valuetext` if the displayed value differs from the input's raw number (e.g. "$1,200" instead of `1200`).

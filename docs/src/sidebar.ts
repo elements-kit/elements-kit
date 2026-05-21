@@ -84,6 +84,7 @@ export const uiSidebar: SidebarItem[] = [
   { label: "Code", slug: "ui/code" },
   { label: "Kbd", slug: "ui/kbd" },
   { label: "Radio", slug: "ui/radio" },
+  { label: "Slider", slug: "ui/slider" },
   { label: "Switch", slug: "ui/switch" },
   { label: "Marketing", slug: "ui/marketing" },
   { label: "Styles", slug: "ui/styles" },
