@@ -1,0 +1,116 @@
+---
+title: Card
+description: Block-level container with surface, border, and optional elevation.
+---
+
+import Playground from "@/playground/Playground.astro";
+import CARD from "@/playground/files/ui-card.tsx?raw";
+
+A block container with a clean surface, hairline border, and an interactive state when the card is rendered as a link or button. Class + data-attribute API: one `.x-card` class plus `data-variant` and `data-size`. Ports the layout structure from [Radix Themes Card](https://www.radix-ui.com/themes/docs/components/card) onto kit tokens.
+
+<Playground
+  provider={{ files: { "/main.tsx": { code: CARD, active: true } } }}
+  preview={{}}
+/>
+
+## Install
+
+```ts
+import "elements-kit/ui/styles/theme.css";
+import "elements-kit/ui/styles/scaling.css";
+import "elements-kit/ui/styles/radius.css";
+import "elements-kit/ui/styles/space.css";
+import "elements-kit/ui/styles/typography.css";
+import "elements-kit/ui/styles/shadow.css";
+import "elements-kit/ui/styles/material.css";
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/base/gray.css";
+
+import "elements-kit/ui/card/card.css";
+```
+
+`unset.css` is **not required** for `<div>`s. When the card is a `<button>` or `<a>`, add `unset` first to neutralise the native rendering before applying `.x-card`.
+
+## API
+
+```html
+<div class="x-card" data-variant="surface" data-size="3">
+  Card content.
+</div>
+```
+
+| Attribute | Values |
+| --- | --- |
+| `data-variant` | `surface` (default), `elevated`, `borderless` |
+| `data-size` | `1`, `2`, `3` (default), `4`, `5` |
+| `data-radius` *(on a parent)* | `none`, `small`, `medium`, `large`, `pill` |
+| `data-material-background` *(on a parent)* | `solid`, `translucent` |
+| `data-color` *(on a parent)* | any imported color scale — used by the focus ring |
+
+## Sizing
+
+`data-size` scales padding and border-radius together.
+
+| `data-size` | padding | radius |
+| --- | --- | --- |
+| `1` | `--space-3` | `--radius-4` |
+| `2` | `--space-4` | `--radius-4` |
+| `3` *(default)* | `--space-5` | `--radius-5` |
+| `4` | `--space-6` | `--radius-5` |
+| `5` | `--space-8` | `--radius-6` |
+
+Set `data-radius` on an ancestor to scale corner curvature globally; `--scaling` on `<html>` scales padding and radius together.
+
+## Variants
+
+- **`surface`** — 1px hairline border (`--base-color-a5`). Default. The everyday card.
+- **`elevated`** — same border plus `--shadow-2` elevation; hover lifts to `--shadow-3`. Use for primary, hover-able cards.
+- **`borderless`** — no border, no background. Hover fills with `--base-color-a3`. Use inside dense lists or as clickable rows.
+
+## Surface material
+
+The card reads `var(--color-material, var(--color-surface))` for its background, so by default it sits on the theme surface color. Wrap any ancestor with `data-material-background="translucent"` to swap to a frosted backdrop:
+
+```html
+<section data-material-background="translucent">
+  <div class="x-card">Frosted</div>
+</section>
+```
+
+Available values: `solid`, `translucent`. `translucent` adds a 64px backdrop blur.
+
+## Interactive cards
+
+When the card itself is an anchor, button, or label, hover and active states apply. Wrap the underlying element with `unset` to drop native styling first:
+
+```html
+<a href="/post" class="unset x-card" data-variant="elevated">
+  <h3>Post title</h3>
+  <p>Body…</p>
+</a>
+```
+
+| State | `surface` | `elevated` | `borderless` |
+| --- | --- | --- | --- |
+| hover | border bumps to `--base-color-a7` | shadow lifts to `--shadow-3` | fills with `--base-color-a3` |
+| active | border at `--base-color-a6` | shadow returns to `--shadow-2` | fills with `--base-color-a4` |
+
+Non-interactive cards (a plain `<div>`) skip these states entirely — no need to gate them with media queries.
+
+## Focus
+
+When a card is focusable, focus shows a 2px outline using `--focus-8`. Set `data-color` on an ancestor to pick the accent color for the focus ring.
+
+```html
+<div data-color="mint">
+  <a href="/post" class="unset x-card">…</a>
+</div>
+```
+
+## Theming
+
+Light/dark flips automatically via the `.dark` class on a parent — see [Light & dark](/ui/styles#light--dark). The surface picks up `--color-material` (translucent backdrop) or `--color-surface` (solid neutral), both defined in [theme.css](/ui/styles).
+
+## Accessibility
+
+`.x-card` ships with no ARIA role — it's a pure visual class. When the card is interactive, render it as an `<a>` or `<button>` so it picks up the correct semantics, keyboard handling, and the kit's focus styles. Wrap nested links in a non-interactive card with care: nested interactives are an accessibility footgun.

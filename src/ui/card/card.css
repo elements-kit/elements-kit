@@ -1,0 +1,172 @@
+/*
+ * Card primitive.
+ *
+ * Block-level container with surface, border, and optional shadow. Ports the
+ * structural ideas from Radix Themes' base-card + card (the `::before` background
+ * + `::after` inner border + `contain: paint` layout) onto kit tokens. Reads
+ * `--color-material` / `--backdrop-filter-material` (from material.css) for the
+ * surface, falling back to `--color-surface` so it works without
+ * `data-material-background` on an ancestor.
+ *
+ * API:
+ *   data-size="1..5"      padding + radius scale together
+ *   data-variant="surface | elevated | borderless"  default surface
+ *
+ * Interactive states (hover / active) apply only when the card is rendered as
+ * `<a>`, `<button>`, or `<label>`.
+ */
+
+.x-card {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--card-border-radius);
+
+  font-family: var(--default-font-family);
+  font-weight: var(--font-weight-regular);
+  font-style: normal;
+  text-align: start;
+
+  padding: var(--card-padding);
+  box-sizing: border-box;
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+    transition: inherit;
+    border-radius: calc(var(--card-border-radius) - var(--card-border-width));
+    inset: var(--card-border-width);
+  }
+
+  &::before {
+    z-index: -1;
+  }
+  & {
+    contain: paint;
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SIZES                                                                                           *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-card,
+.x-card:where([data-size="3"]) {
+  --card-padding: var(--space-5);
+  --card-border-radius: var(--radius-5);
+}
+
+.x-card:where([data-size="1"]) {
+  --card-padding: var(--space-3);
+  --card-border-radius: var(--radius-4);
+}
+
+.x-card:where([data-size="2"]) {
+  --card-padding: var(--space-4);
+  --card-border-radius: var(--radius-4);
+}
+
+.x-card:where([data-size="4"]) {
+  --card-padding: var(--space-6);
+  --card-border-radius: var(--radius-5);
+}
+
+.x-card:where([data-size="5"]) {
+  --card-padding: var(--space-8);
+  --card-border-radius: var(--radius-6);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * VARIANTS                                                                                        *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* surface (default) */
+
+.x-card,
+.x-card:where([data-variant="surface"]) {
+  --card-border-width: 1px;
+
+  &::before {
+    background-color: var(--color-material, var(--color-surface));
+    backdrop-filter: var(--backdrop-filter-material, none);
+  }
+  &::after {
+    box-shadow: 0 0 0 1px var(--base-color-a5);
+  }
+  &:where(:any-link, button, label) {
+    @media (hover: hover) {
+      &:where(:hover)::after {
+        box-shadow: 0 0 0 1px var(--base-color-a7);
+      }
+    }
+    &:where(:active:not([data-state="open"]))::after {
+      box-shadow: 0 0 0 1px var(--base-color-a6);
+    }
+  }
+}
+
+/* elevated */
+
+.x-card:where([data-variant="elevated"]) {
+  --card-border-width: 1px;
+
+  transition: box-shadow 120ms;
+  box-shadow: var(--shadow-2);
+
+  &::before {
+    background-color: var(--color-material, var(--color-surface));
+    backdrop-filter: var(--backdrop-filter-material, none);
+  }
+  &::after {
+    box-shadow: 0 0 0 1px var(--base-color-a3);
+  }
+  &:where(:any-link, button, label) {
+    @media (hover: hover) {
+      &:where(:hover) {
+        transition-duration: 40ms;
+        box-shadow: var(--shadow-3);
+      }
+    }
+    &:where(:active:not([data-state="open"])) {
+      transition-duration: 40ms;
+      box-shadow: var(--shadow-2);
+    }
+  }
+}
+
+/* borderless */
+
+.x-card:where([data-variant="borderless"]) {
+  --card-border-width: 0px;
+
+  &:where(:any-link, button, label) {
+    @media (hover: hover) {
+      &:where(:hover) {
+        background-color: var(--base-color-a3);
+      }
+    }
+    &:where(:active:not([data-state="open"])) {
+      background-color: var(--base-color-a4);
+    }
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * FOCUS                                                                                           *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-card:where(:focus-visible) {
+  outline: 2px solid var(--focus-8);
+  outline-offset: -1px;
+  &::after {
+    outline: inherit;
+  }
+}

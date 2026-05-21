@@ -53,7 +53,7 @@ The `unset` class ([Styles → Unset native styles](/ui/styles#unset-native-styl
 
 | Attribute | Values |
 | --- | --- |
-| `data-variant` | `classic`, `solid`, `soft`, `surface`, `outline`, `ghost` |
+| `data-variant` | `solid`, `soft`, `surface`, `outline`, `text`, `borderless` |
 | `data-size` | `1`, `2`, `3`, `4` |
 | `data-color` | any imported color scale (`mint`, `blue`, `iris`, …) |
 | `data-high-contrast` | modifier — boosts contrast against the page background |
@@ -75,12 +75,12 @@ The radius respects `data-radius` on a parent — set `data-radius="pill"` on th
 
 ## Variants
 
-- **`classic`** — raised, with subtle inner shadow. Default for primary actions.
 - **`solid`** — flat, color-driven fill. Confident primary action.
 - **`soft`** — tinted, low-emphasis background. Pairs well with surfaces.
 - **`surface`** — outlined panel with subtle fill. Borderline calls-to-action.
 - **`outline`** — bordered, transparent fill. Tertiary actions.
-- **`ghost`** — no background, no border. Toolbar-style.
+- **`text`** — no background, no border, and uses negative margins so the button sits flush with surrounding body copy. Use for inline calls-to-action inside paragraphs.
+- **`borderless`** — no background, no border, no margin trick. Standalone button without chrome. Toolbar-style.
 
 ## Use as a link
 

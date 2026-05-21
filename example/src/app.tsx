@@ -1,490 +1,299 @@
-import {
-  signal,
-  computed,
-  effect,
-  batch,
-  onCleanup,
-  effectScope,
-  untracked,
-  trigger,
-  reactive,
-} from "elements-kit/signals";
-import { For } from "elements-kit/for";
-import {
-  attributes,
-  ATTRIBUTES,
-  type Attributes,
-} from "elements-kit/attributes";
-import { defineElement } from "elements-kit/custom-elements";
-import type {
-  MaybeReactiveProps,
-  ReactiveProps,
-} from "elements-kit/jsx-runtime";
+import "elements-kit/ui/styles/theme.css";
+import "elements-kit/ui/styles/scaling.css";
+import "elements-kit/ui/styles/radius.css";
+import "elements-kit/ui/styles/space.css";
+import "elements-kit/ui/styles/shadow.css";
+import "elements-kit/ui/styles/typography.css";
+import "elements-kit/ui/styles/cursor.css";
+import "elements-kit/ui/styles/unset.css";
+// import any color scales you want to use for accent theming:
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/colors/base.css";
+import "elements-kit/ui/styles/palette/mint.css";
+import "elements-kit/ui/styles/colors/mint.css";
+import "elements-kit/ui/styles/palette/blue.css";
+import "elements-kit/ui/styles/colors/blue.css";
+import "elements-kit/ui/styles/palette/iris.css";
+import "elements-kit/ui/styles/colors/iris.css";
+import "elements-kit/ui/styles/palette/crimson.css";
+import "elements-kit/ui/styles/colors/crimson.css";
+import "elements-kit/ui/styles/palette/amber.css";
+import "elements-kit/ui/styles/colors/amber.css";
+// import any gray scales you want to use for neutral theming:
+import "elements-kit/ui/styles/palette/slate.css";
+import "elements-kit/ui/styles/base/slate.css";
+// and of course the button itself:
+import "elements-kit/ui/button/button.css";
 
-// ============ Demo 1: Counter ============
-const count = signal(0);
-const doubled = computed(() => count() * 2);
-const logs = signal<string[]>([]);
+import { signal } from "elements-kit/signals";
 
-effect(() => {
-  untracked(logs).push(`count: ${count()}, doubled: ${doubled()}`);
-  trigger(logs);
-});
+const dark = signal(false);
 
-// ============ Demo 2: Batch ============
-const x = signal(1);
-const y = signal(2);
-const batchLogs = signal<string[]>([]);
-effect(() => {
-  untracked(batchLogs).push(`x: ${x()}, y: ${y()}`);
-  trigger(batchLogs);
-});
+const VARIANTS = [
+  "solid",
+  "soft",
+  "surface",
+  "outline",
+  "text",
+  "borderless",
+] as const;
 
-// ============ Demo 3: Cleanup (simulated) ============
-const url = signal("/api/data");
-const fetchLogs = signal<string[]>([]);
-const abortCount = signal(0);
+const SIZES = [1, 2, 3, 4] as const;
 
-effect(() => {
-  const currentUrl = url();
-  untracked(fetchLogs).push(`Fetching: ${currentUrl}`);
-  trigger(fetchLogs);
-  onCleanup(() => {
-    abortCount(abortCount() + 1);
-    untracked(fetchLogs).push(`Aborted previous request`);
-    trigger(fetchLogs);
-  });
-});
+const ACCENTS = ["gray", "mint", "blue", "iris", "crimson", "amber"] as const;
 
-// ============ Demo 5: Untracked ============
-const count2 = signal(0);
-const secret = signal("hidden");
-const untrackedLogs = signal<string[]>([]);
-
-effect(() => {
-  untracked(untrackedLogs).push(`count: ${count2()} (tracked)`);
-  untracked(untrackedLogs).push(`secret: ${untracked(secret)} (untracked) `);
-  trigger(untrackedLogs);
-});
-
-// ============ App with Tabs ============
-let activeTab = signal(0);
+const RADII = ["none", "small", "medium", "large", "full"] as const;
 
 export class App {
   render() {
     return (
-      <div style="padding: 1.5rem; font-family: system-ui, sans-serif; max-width: 800px;">
-        <h2 style="margin-top: 0;">Signals Playground</h2>
-
-        <div style="display: flex; gap: 4px; margin-bottom: 1rem; flex-wrap: wrap;">
-          <For
-            each={[
-              "Counter",
-              "Batch",
-              "onCleanup",
-              "effectScope",
-              "untracked",
-              "Props",
-            ]}
-            by={(_log, i) => i}
+      <div
+        class:dark={dark}
+        data-surface="page"
+        data-color="mint"
+        data-radius="medium"
+        style:padding="24px"
+        style:display="grid"
+        style:gap="28px"
+        style:color="var(--base-color-12)"
+        style:font-family="var(--default-font-family, system-ui, sans-serif)"
+      >
+        <section>
+          <h3
+            style:margin="0 0 12px"
+            style:font-size="14px"
+            style:font-weight="600"
           >
-            {(name, i) => (
+            Theme
+          </h3>
+          <button
+            class:unset
+            class:x-button
+            data-size="2"
+            data-variant="soft"
+            on:click={() => dark(!dark())}
+          >
+            {() => (dark() ? "☀ Light mode" : "☾ Dark mode")}
+          </button>
+        </section>
+        <section>
+          <h3
+            style:margin="0 0 12px"
+            style:font-size="14px"
+            style:font-weight="600"
+          >
+            Variants
+          </h3>
+          <div
+            style:display="flex"
+            style:flex-wrap="wrap"
+            style:align-items="center"
+            style:gap="1rem"
+          >
+            {VARIANTS.map((variant) => (
               <button
-                on:click={() => activeTab(i)}
-                style:background={computed(() =>
-                  activeTab() === i ? "#3b82f6" : "#e5e7eb",
-                )}
-                style:color={computed(() =>
-                  activeTab() === i ? "white" : "black",
-                )}
-                style={{
-                  padding: "6px 12px",
-                  border: "none",
-                  "border-radius": "4px",
-                  cursor: "pointer",
-                }}
+                class:unset
+                class:x-button
+                data-size="2"
+                data-variant={variant}
               >
-                {name}
+                {variant.charAt(0).toUpperCase() + variant.slice(1)}
               </button>
-            )}
-          </For>
-        </div>
+            ))}
+          </div>
+        </section>
 
-        {() => activeTab() === 0 && <DemoCounter />}
-        {() => activeTab() === 1 && <DemoBatch />}
-        {() => activeTab() === 2 && <DemoCleanup />}
-        {() => activeTab() === 3 && <DemoEffectScope />}
-        {() => activeTab() === 4 && <DemoUntracked />}
-        {() => activeTab() === 5 && <DemoProps />}
-        <p style="font-size: 0.8em; color: #666; margin-top: 2rem;">
-          Open the console to see effect logs.
-        </p>
+        <section>
+          <h3
+            style:margin="0 0 12px"
+            style:font-size="14px"
+            style:font-weight="600"
+          >
+            Sizes
+          </h3>
+          <div
+            style:display="flex"
+            style:gap="8px"
+            style:align-items="center"
+            style:flex-wrap="wrap"
+          >
+            {SIZES.map((size) => (
+              <button
+                class:unset
+                class:x-button
+                data-size={String(size)}
+                data-variant="solid"
+              >
+                Size {size}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <h3
+            style:margin="0 0 12px"
+            style:font-size="14px"
+            style:font-weight="600"
+          >
+            Accent colors
+          </h3>
+          <div style:display="flex" style:gap="8px" style:flex-wrap="wrap">
+            {ACCENTS.map((color) => (
+              <button
+                class:unset
+                class:x-button
+                data-size="2"
+                data-variant="solid"
+                data-color={color}
+              >
+                {color}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <h3
+            style:margin="0 0 12px"
+            style:font-size="14px"
+            style:font-weight="600"
+          >
+            Radius
+          </h3>
+          <div style:display="grid" style:gap="12px">
+            {RADII.map((radius) => (
+              <div
+                data-radius={radius}
+                style:display="flex"
+                style:gap="8px"
+                style:align-items="center"
+                style:flex-wrap="wrap"
+              >
+                <code style:font-size="12px" style:min-width="60px">
+                  {radius}
+                </code>
+                <button
+                  class:unset
+                  class:x-button
+                  data-size="2"
+                  data-variant="solid"
+                >
+                  Solid
+                </button>
+                <button
+                  class:unset
+                  class:x-button
+                  data-size="2"
+                  data-variant="soft"
+                >
+                  Soft
+                </button>
+                <button
+                  class:unset
+                  class:x-button
+                  data-size="2"
+                  data-variant="outline"
+                >
+                  Outline
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <h3
+            style:margin="0 0 12px"
+            style:font-size="14px"
+            style:font-weight="600"
+          >
+            High contrast & disabled
+          </h3>
+          <div style:display="flex" style:gap="8px" style:flex-wrap="wrap">
+            <button
+              class:unset
+              class:x-button
+              data-size="2"
+              data-variant="solid"
+              data-high-contrast
+            >
+              High contrast
+            </button>
+            <button
+              class:unset
+              class:x-button
+              data-size="2"
+              data-variant="soft"
+              disabled
+            >
+              Disabled soft
+            </button>
+            <button
+              class:unset
+              class:x-button
+              data-size="2"
+              data-variant="outline"
+              disabled
+            >
+              Disabled outline
+            </button>
+          </div>
+        </section>
+
+        <section>
+          <h3
+            style:margin="0 0 12px"
+            style:font-size="14px"
+            style:font-weight="600"
+          >
+            As a link
+          </h3>
+          <div
+            style:display="flex"
+            style:gap="8px"
+            style:align-items="center"
+            style:flex-wrap="wrap"
+          >
+            <a
+              class:unset
+              class:x-button
+              data-size="2"
+              data-variant="solid"
+              href="#anchor"
+            >
+              Solid link
+            </a>
+            <a
+              class:unset
+              class:x-button
+              data-size="2"
+              data-variant="soft"
+              href="#anchor"
+            >
+              Soft link
+            </a>
+            <a
+              class:unset
+              class:x-button
+              data-size="2"
+              data-variant="outline"
+              href="#anchor"
+            >
+              Outline link
+            </a>
+            <a
+              class:unset
+              class:x-button
+              data-size="2"
+              data-variant="borderless"
+              href="#anchor"
+            >
+              Borderless link
+            </a>
+          </div>
+        </section>
       </div>
-    ) as Element;
-  }
-}
-
-function DemoCounter() {
-  return (
-    <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem;">
-      <h3 style="margin-top: 0;">Counter (signal + computed + effect)</h3>
-      <p>
-        Count: <strong>{() => count()}</strong>
-        {" — "}
-        Doubled: <strong>{doubled}</strong>
-      </p>
-      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-        <button on:click={() => count(count() + 1)}>+1</button>
-        <button on:click={() => count(count() - 1)}>−1</button>
-        <button on:click={() => count(0)}>Reset</button>
-      </div>
-      <div style="margin-top: 1rem;">
-        <strong>Effect logs:</strong>
-        <div
-          style={{
-            background: "#f9fafb",
-            padding: "0.5rem",
-            "border-radius": "4px",
-            "max-height": "100px",
-            overflow: "auto",
-            "font-family": "monospace",
-            "font-size": "0.85em",
-          }}
-        >
-          <For each={logs} by={(log, i) => i}>
-            {(log) => <div>{log}</div>}
-          </For>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DemoBatch() {
-  return (
-    <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem;">
-      <h3 style="margin-top: 0;">
-        Batch (multiple writes → single notification)
-      </h3>
-      <p>
-        x: <strong>{() => x()}</strong>
-        {" — "}
-        y: <strong>{() => y()}</strong>
-      </p>
-      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-        <button on:click={() => x(x() + 1)}>x +1</button>
-        <button on:click={() => y(y() + 1)}>y +1</button>
-        <button
-          on:click={() =>
-            batch(() => {
-              x(x() + 10);
-              y(y() + 10);
-            })
-          }
-        >
-          Batch (x+10, y+10)
-        </button>
-        <button
-          on:click={() => {
-            batchLogs([]);
-          }}
-        >
-          Clear logs
-        </button>
-      </div>
-      <div style="margin-top: 1rem;">
-        <strong>Effect logs (note: batch = 1 log, separate = 2 logs):</strong>
-        <div
-          style={{
-            background: "#f9fafb",
-            padding: "0.5rem",
-            "border-radius": "4px",
-            "max-height": "100px",
-            overflow: "auto",
-            "font-family": "monospace",
-            "font-size": "0.85em",
-          }}
-        >
-          <For each={batchLogs} by={(log) => log}>
-            {(log) => <div>{log}</div>}
-          </For>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DemoCleanup() {
-  return (
-    <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem;">
-      <h3 style="margin-top: 0;">onCleanup (fetch with abort)</h3>
-      <p>
-        URL: <strong>{() => url()}</strong>
-        {" — "}
-        Abort count: <strong>{abortCount}</strong>
-      </p>
-      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-        <button on:click={() => url("/api/data")}>Fetch /api/data</button>
-        <button on:click={() => url("/api/users")}>Fetch /api/users</button>
-        <button on:click={() => url("/api/posts")}>Fetch /api/posts</button>
-      </div>
-      <div style="margin-top: 1rem;">
-        <strong>Fetch logs:</strong>
-        <div
-          style={{
-            background: "#f9fafb",
-            padding: "0.5rem",
-            "border-radius": "4px",
-            "max-height": "100px",
-            overflow: "auto",
-            "font-family": "monospace",
-            "font-size": "0.85em",
-          }}
-        >
-          <For each={fetchLogs} by={(log, i) => i}>
-            {(log) => <div>{log}</div>}
-          </For>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const scopeLogs = signal<string[]>([]);
-const user = signal("Alice");
-const theme = signal("light");
-
-function DemoEffectScope() {
-  const stop: () => void = effectScope(() => {
-    effect(() => {
-      const logs = untracked(scopeLogs);
-      scopeLogs(logs.concat(`user: ${user()}`));
-    });
-    effect(() => {
-      const logs = untracked(scopeLogs);
-      scopeLogs(logs.concat(`theme: ${theme()}`));
-    });
-  });
-  return (
-    <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem;">
-      <h3 style="margin-top: 0;">effectScope (grouped effects)</h3>
-      <p>
-        user: <strong>{() => user()}</strong>
-        {" — "}
-        theme: <strong>{() => theme()}</strong>
-      </p>
-      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-        <button on:click={() => user(user() === "Alice" ? "Bob" : "Alice")}>
-          Toggle user
-        </button>
-        <button on:click={() => theme(theme() === "light" ? "dark" : "light")}>
-          Toggle theme
-        </button>
-        <button on:click={() => stop()}>Stop all effects</button>
-        <button on:click={() => scopeLogs([])}>Clear logs</button>
-      </div>
-      <div style="margin-top: 1rem;">
-        <strong>Scope logs (stop = silence):</strong>
-        <div
-          style={{
-            background: "#f9fafb",
-            padding: "0.5rem",
-            "border-radius": "4px",
-            "max-height": "100px",
-            overflow: "auto",
-            "font-family": "monospace",
-            "font-size": "0.85em",
-          }}
-        >
-          <For each={scopeLogs} by={(log, i) => i}>
-            {(log) => <div>{log}</div>}
-          </For>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DemoUntracked() {
-  return (
-    <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem;">
-      <h3 style="margin-top: 0;">untracked (read without subscribing)</h3>
-      <p>
-        count: <strong>{() => count2()}</strong>
-        {" — "}
-        secret: <strong>{() => secret()}</strong>
-      </p>
-      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-        <button on:click={() => count2(count2() + 1)}>
-          count +1 (tracked)
-        </button>
-        <button
-          on:click={() => secret(secret() === "hidden" ? "visible" : "hidden")}
-        >
-          Toggle secret
-        </button>
-        <button on:click={() => untrackedLogs([])}>Clear logs</button>
-      </div>
-      <div style="margin-top: 1rem;">
-        <strong>Logs (secret changes don't trigger re-run):</strong>
-        <div
-          style={{
-            background: "#f9fafb",
-            padding: "0.5rem",
-            "border-radius": "4px",
-            "max-height": "100px",
-            overflow: "auto",
-            "font-family": "monospace",
-            "font-size": "0.85em",
-          }}
-        >
-          <For each={untrackedLogs} by={(log, i) => i}>
-            {(log) => <div>{log}</div>}
-          </For>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ============ Demo 6: Props Matrix (fn / class / custom-element) ============
-
-const propsName = signal("Wael");
-const propsExcited = signal(false);
-const propsNameUpper = computed(() => propsName().toUpperCase());
-
-// — Function component — props auto-wrapped into per-key getters
-function FnGreeting(props: ReactiveProps<{ name: string; excited?: boolean }>) {
-  return (
-    <p style="margin: 0;">
-      <code>[fn]</code> Hello {() => props.name()}
-      {() => (props.excited?.() ? "!" : ".")}
-    </p>
-  );
-}
-
-// — Class component — constructor-typed props, applyProps assigns each key
-class ClassGreeting {
-  constructor(
-    _props?: MaybeReactiveProps<{ name: string; excited?: boolean }>,
-  ) {}
-  @reactive() name: string = "world";
-  @reactive() excited: boolean = false;
-  render(): Element {
-    return (
-      <p style="margin: 0;">
-        <code>[class]</code> Hello {() => this.name}
-        {() => (this.excited ? "!" : ".")}
-      </p>
-    ) as Element;
-  }
-}
-
-// — Custom element — @attributes + @reactive fields, registered globally
-@attributes
-class CeGreeting extends HTMLElement {
-  @reactive() name: string = "world";
-  @reactive() excited: boolean = false;
-  static [ATTRIBUTES]: Attributes<CeGreeting> = {
-    name(v) {
-      this.name = v ?? "world";
-    },
-    excited(v) {
-      this.excited = v != null;
-    },
-  };
-  connectedCallback() {
-    const root = this.attachShadow({ mode: "open" });
-    root.appendChild(
-      (
-        <p style="margin: 0;">
-          <code>[ce]</code> Hello {() => this.name}
-          {() => (this.excited ? "!" : ".")}
-        </p>
-      ) as Element,
     );
   }
-}
-defineElement("ce-greeting", CeGreeting);
-declare module "elements-kit/custom-elements" {
-  interface CustomElementRegistry {
-    "ce-greeting": typeof CeGreeting;
-  }
-}
-
-function Row(props: { label: string; children?: unknown }) {
-  return (
-    <div style="display: grid; grid-template-columns: 140px 1fr; gap: 8px; align-items: center; padding: 4px 0; border-bottom: 1px dashed #e5e7eb;">
-      <strong style="font-size: 0.85em; color: #6b7280;">{props.label}</strong>
-      <div>{props.children as any}</div>
-    </div>
-  );
-}
-
-function DemoProps() {
-  return (
-    <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem;">
-      <h3 style="margin-top: 0;">Props matrix — fn / class / custom-element</h3>
-      <p style="font-size: 0.85em; color: #6b7280;">
-        Same prop combinations across three component shapes. Mutate the signals
-        below — every reactive variant updates; the static one stays put.
-      </p>
-
-      <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1rem;">
-        <button
-          on:click={() => propsName(propsName() === "Wael" ? "Sam" : "Wael")}
-        >
-          Toggle name
-        </button>
-        <button on:click={() => propsExcited(!propsExcited())}>
-          Toggle excited
-        </button>
-      </div>
-
-      <h4 style="margin: 0 0 4px;">Function component</h4>
-      <div style="background: #f9fafb; padding: 8px; border-radius: 4px; margin-bottom: 12px;">
-        <Row label="static">
-          <FnGreeting name="static-fn" />
-        </Row>
-        <Row label="signal">
-          <FnGreeting name={propsName} />
-        </Row>
-        <Row label="computed + bool">
-          <FnGreeting name={propsNameUpper} excited />
-        </Row>
-        <Row label="signal + signal">
-          <FnGreeting name={propsName} excited={propsExcited} />
-        </Row>
-      </div>
-
-      <h4 style="margin: 0 0 4px;">Class component</h4>
-      <div style="background: #f9fafb; padding: 8px; border-radius: 4px; margin-bottom: 12px;">
-        <Row label="static">
-          <ClassGreeting name="static-class" />
-        </Row>
-        <Row label="signal">
-          <ClassGreeting name={propsName} />
-        </Row>
-        <Row label="computed + bool">
-          <ClassGreeting name={propsNameUpper} excited={true} />
-        </Row>
-        <Row label="signal + signal">
-          <ClassGreeting name={propsName} excited={propsExcited} />
-        </Row>
-      </div>
-
-      <h4 style="margin: 0 0 4px;">Custom element (attribute-bound)</h4>
-      <div style="background: #f9fafb; padding: 8px; border-radius: 4px;">
-        <Row label="static attr">
-          <ce-greeting name="static-ce" />
-        </Row>
-        <Row label="signal attr">
-          <ce-greeting name={propsName} />
-        </Row>
-        <Row label="computed attr">
-          <ce-greeting name={propsNameUpper} excited={propsExcited} />
-        </Row>
-      </div>
-    </div>
-  );
 }

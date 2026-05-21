@@ -6,9 +6,11 @@ import "elements-kit/ui/styles/shadow.css";
 import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/cursor.css";
 import "elements-kit/ui/styles/unset.css";
-// import any color scales you want to use for accent theming:
+// pick a neutral palette for --base-color-* (must match data-base-color on root):
 import "elements-kit/ui/styles/palette/gray.css";
-import "elements-kit/ui/styles/colors/gray.css";
+import "elements-kit/ui/styles/base/gray.css";
+// import any color scales you want to use for accent theming:
+import "elements-kit/ui/styles/colors/base.css";
 import "elements-kit/ui/styles/palette/mint.css";
 import "elements-kit/ui/styles/colors/mint.css";
 import "elements-kit/ui/styles/palette/blue.css";
@@ -19,9 +21,6 @@ import "elements-kit/ui/styles/palette/crimson.css";
 import "elements-kit/ui/styles/colors/crimson.css";
 import "elements-kit/ui/styles/palette/amber.css";
 import "elements-kit/ui/styles/colors/amber.css";
-// import any gray scales you want to use for neutral theming:
-import "elements-kit/ui/styles/palette/slate.css";
-import "elements-kit/ui/styles/base/slate.css";
 // and of course the button itself:
 import "elements-kit/ui/button/button.css";
 
@@ -30,12 +29,12 @@ import { signal } from "elements-kit/signals";
 const dark = signal(false);
 
 const VARIANTS = [
-  "classic",
   "solid",
   "soft",
   "surface",
   "outline",
-  "ghost",
+  "borderless",
+  "text",
 ] as const;
 
 const SIZES = [1, 2, 3, 4] as const;
@@ -51,6 +50,7 @@ export class App {
         class:dark={dark}
         data-surface="page"
         data-color="mint"
+        data-base-color="gray"
         data-radius="medium"
         style:padding="24px"
         style:display="grid"
@@ -286,10 +286,10 @@ export class App {
               class:unset
               class:x-button
               data-size="2"
-              data-variant="ghost"
+              data-variant="borderless"
               href="#anchor"
             >
-              Ghost link
+              Borderless link
             </a>
           </div>
         </section>

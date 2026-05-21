@@ -16,14 +16,16 @@ A CSS-only system for marketing pages. Class + data-attribute API, no JS. A page
 ## Install
 
 ```ts
-import "elements-kit/ui/styles/theme.css";       // --color-background, --color-overlay, transitively --base-color-N
+import "elements-kit/ui/styles/theme.css";       // --color-background, --color-overlay
 import "elements-kit/ui/styles/scaling.css";     // --scaling factor (data-scaling="xs..xl")
 import "elements-kit/ui/styles/typography.css";  // --font-size-N, --line-height-N, --font-weight-*
 import "elements-kit/ui/styles/radius.css";      // --radius-N (data-radius="none..pill")
+import "elements-kit/ui/styles/palette/gray.css"; // raw --gray-N
+import "elements-kit/ui/styles/base/gray.css";   // --base-color-N (or pair palette/<X>.css + base/<X>.css for a different neutral)
 import "elements-kit/ui/marketing/marketing.css";
 ```
 
-The whole file is wrapped in `@layer marketing`, so any unlayered host CSS wins on collision — no specificity wars. Backgrounds use semantic tokens from theme.css (`--color-background`, `--color-overlay`) — they flip with `.dark` / `.light` on a parent. Text and borders use the base neutral palette (`--base-color-N`, `--base-color-aN`) defined in `palette/base.css` (defaults to gray; pick a different neutral with `data-gray-color="slate|sage|sand|mauve|olive"`). Typography scales follow kit tokens; display headings (≥48px) multiply by `--scaling` so `data-scaling="lg"` resizes them. Radii follow `--radius-N` so `data-radius="pill"` rounds marketing borders. The pillar icon follows `--color-9` — set `data-color="X"` on an ancestor (e.g. `data-color="mint"`) to pick the accent palette.
+The whole file is wrapped in `@layer marketing`, so any unlayered host CSS wins on collision — no specificity wars. Backgrounds use semantic tokens from theme.css (`--color-background`, `--color-overlay`) — they flip with `.dark` / `.light` on a parent. Text and borders use the base neutral palette (`--base-color-N`, `--base-color-aN`) defined in `base/gray.css` (defaults to gray; pick a different neutral with `data-base-color="slate|sage|sand|mauve|olive"`). Typography scales follow kit tokens; display headings (≥48px) multiply by `--scaling` so `data-scaling="lg"` resizes them. Radii follow `--radius-N` so `data-radius="pill"` rounds marketing borders. The pillar icon follows `--color-9` — set `data-color="X"` on an ancestor (e.g. `data-color="mint"`) to pick the accent palette.
 
 Host-page CSS variables expected (sensible fallbacks ship in `.page-container`):
 
@@ -377,7 +379,7 @@ Use `[data-heading]` for long phrases. It's a display slot for a number or 1–2
 The marketing layer reads four token groups:
 
 - `--color-background` (page bg) and `--color-overlay` (stacked surface overlay) — semantic role tokens from [theme.css](/ui/styles). Both flip automatically with `.dark` / `.light` on a parent.
-- `--base-color-1..12` and `--base-color-a1..12` — neutrals used for text + borders. Provided by `palette/gray.css` (or by Radix `<Theme>` if you're using Radix).
+- `--base-color-1..12` and `--base-color-a1..12` — neutrals used for text + borders. Import `base/gray.css` (or another `base/<X>.css` to pick a different neutral and set `data-base-color="X"` on the root).
 - `--accent-1..12` — brand accent. Resolved by the host. Marketing only reads `--accent-9` (pillar icon).
 - Page CSS vars: `--page-padding-left`, `--page-padding-right`, `--page-max-width`, `--font-heading`.
 

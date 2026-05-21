@@ -5,10 +5,9 @@ import "elements-kit/ui/styles/space.css";
 import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/unset.css";
 import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/base/gray.css";
 import "elements-kit/ui/styles/palette/mint.css";
 import "elements-kit/ui/styles/colors/mint.css";
-import "elements-kit/ui/styles/palette/slate.css";
-import "elements-kit/ui/styles/base/slate.css";
 import "elements-kit/ui/marketing/marketing.css";
 import "elements-kit/ui/button/button.css";
 
@@ -81,6 +80,7 @@ export class App {
         class:dark={dark}
         data-surface="page"
         data-color="mint"
+        data-base-color="gray"
         data-radius="medium"
         style={{
           "--page-padding-left": "24px",
@@ -97,6 +97,7 @@ export class App {
           style:padding="12px 24px"
           style:display="flex"
           style:justify-content="flex-end"
+          style:gap="8px"
           style:border-bottom="1px solid var(--base-color-a6)"
           style:background="var(--base-color-a2)"
           style:backdrop-filter="blur(12px)"
@@ -384,7 +385,7 @@ export class App {
               class:unset
               class:x-button
               data-size="3"
-              data-variant="ghost"
+              data-variant="borderless"
               href="#"
             >
               Learn more
@@ -410,7 +411,7 @@ export class App {
               class:unset
               class:x-button
               data-size="3"
-              data-variant="ghost"
+              data-variant="borderless"
               href="#"
             >
               Learn more
@@ -438,7 +439,7 @@ export class App {
                 class:unset
                 class:x-button
                 data-size="3"
-                data-variant="ghost"
+                data-variant="borderless"
                 href="#"
               >
                 Learn more
@@ -459,7 +460,7 @@ export class App {
                 class:unset
                 class:x-button
                 data-size="3"
-                data-variant="ghost"
+                data-variant="borderless"
                 href="#"
               >
                 Learn more
@@ -480,7 +481,7 @@ export class App {
                 class:unset
                 class:x-button
                 data-size="3"
-                data-variant="ghost"
+                data-variant="borderless"
                 href="#"
               >
                 Learn more
@@ -530,7 +531,7 @@ export class App {
                 class:unset
                 class:x-button
                 data-size="3"
-                data-variant="ghost"
+                data-variant="borderless"
                 href="#"
               >
                 Learn more

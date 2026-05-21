@@ -1,4 +1,4 @@
-[data-gray-color="slate"] {
+[data-base-color="slate"] {
   --base-color-1: var(--slate-1);
   --base-color-2: var(--slate-2);
   --base-color-3: var(--slate-3);
