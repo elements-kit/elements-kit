@@ -441,7 +441,10 @@
 
 @media (min-width: 64rem) {
   .testimonial {
-    --card-padding: 6rem 8rem;
+    --card-padding-block-start: 6rem;
+    --card-padding-block-end: 6rem;
+    --card-padding-inline-start: 8rem;
+    --card-padding-inline-end: 8rem;
   }
 }
 
@@ -507,7 +510,10 @@
 /* * * * * * * * * * * * * * * * * * * */
 
 .cta-banner {
-  --card-padding: 3rem 1.5rem;
+  --card-padding-block-start: 3rem;
+  --card-padding-block-end: 3rem;
+  --card-padding-inline-start: 1.5rem;
+  --card-padding-inline-end: 1.5rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -516,13 +522,19 @@
 
 @media (min-width: 48rem) {
   .cta-banner {
-    --card-padding: 5rem 2.5rem;
+    --card-padding-block-start: 5rem;
+    --card-padding-block-end: 5rem;
+    --card-padding-inline-start: 2.5rem;
+    --card-padding-inline-end: 2.5rem;
   }
 }
 
 @media (min-width: 64rem) {
   .cta-banner {
-    --card-padding: 8rem 4.5rem;
+    --card-padding-block-start: 8rem;
+    --card-padding-block-end: 8rem;
+    --card-padding-inline-start: 4.5rem;
+    --card-padding-inline-end: 4.5rem;
   }
 }
 

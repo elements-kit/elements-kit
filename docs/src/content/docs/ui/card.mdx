@@ -67,6 +67,50 @@ Set `data-radius` on an ancestor to scale corner curvature globally; `--scaling`
 - **`elevated`** — same border plus `--shadow-2` elevation; hover lifts to `--shadow-3`. Use for primary, hover-able cards.
 - **`borderless`** — no border, no background. Hover fills with `--base-color-a3`. Use inside dense lists or as clickable rows.
 
+## Inset
+
+`data-inset` on a direct child of `.x-card` makes that child bleed past the card's padding to the card's edge. Common case: a hero image at the top of a card.
+
+```
+without inset:                with data-inset="top":
+
+┌─────────────────────┐       ┌─────────────────────┐
+│  ░░░░░░░░░░░░░░░░░  │       │░░░░░░░░░░░░░░░░░░░░░│
+│  ░░░ HERO IMAGE ░░  │       │░░░░ HERO IMAGE ░░░░░│
+│  ░░░░░░░░░░░░░░░░░  │       │░░░░░░░░░░░░░░░░░░░░░│
+│                     │       ├─────────────────────┤
+│  Heading            │       │  Heading            │
+│  Body               │       │  Body               │
+└─────────────────────┘       └─────────────────────┘
+```
+
+```html
+<div class="x-card">
+  <img data-inset="top" src="/hero.webp" alt="" />
+  <h3>Title</h3>
+  <p>Body</p>
+</div>
+```
+
+| Value | Side | Use case |
+| --- | --- | --- |
+| `data-inset="top"` | block-start | Vertical card — hero at top |
+| `data-inset="bottom"` | block-end | Vertical card — footer media at bottom |
+| `data-inset="start"` | inline-start (left LTR / right RTL) | Horizontal card — leading media |
+| `data-inset="end"` | inline-end | Horizontal card — trailing media |
+
+**Pick the pair that matches your card's orientation.** `top` / `bottom` are physical (block axis). `start` / `end` are logical (inline axis) and flip automatically in RTL.
+
+The inset element rounds the corners it bleeds into and squares the others. The corner radius is computed from the card's `--card-border-radius`, so it always lines up flush with the card's border.
+
+:::caution[Don't]
+Wrap inset elements in extra parents — `data-inset` must be a **direct child** of `.x-card`. The selector reads padding vars from the immediate parent card.
+:::
+
+:::tip[Do]
+For full-bleed media (image fills the whole card), set `data-padding="none"` on the card or stack two insets (top + bottom). The kit covers the common single-side cases.
+:::
+
 ## Surface material
 
 The card reads `var(--color-material, var(--color-surface))` for its background, so by default it sits on the theme surface color. Wrap any ancestor with `data-material-background="translucent"` to swap to a frosted backdrop:

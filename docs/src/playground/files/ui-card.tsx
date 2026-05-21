@@ -237,6 +237,60 @@ export class App {
           />
         </a>
 
+        {/* ============ INSET ============ */}
+        <Heading>Inset</Heading>
+
+        <Label>data-inset="top" — hero image bleed</Label>
+        <div class:x-card>
+          <div
+            data-inset="top"
+            style:aspect-ratio="16/9"
+            style:background="linear-gradient(135deg, var(--mint-4), var(--mint-9))"
+          />
+          <div style:margin-top="16px">
+            <CardBody
+              title="Card with top-inset hero"
+              body="Image fills the top of the card edge-to-edge. Body content sits below at normal padding."
+            />
+          </div>
+        </div>
+
+        <Label>data-inset="bottom"</Label>
+        <div class:x-card>
+          <CardBody
+            title="Card with bottom-inset footer"
+            body="Footer media sits flush at the bottom of the card."
+          />
+          <div
+            data-inset="bottom"
+            style:aspect-ratio="16/4"
+            style:margin-top="16px"
+            style:background="linear-gradient(135deg, var(--mint-9), var(--mint-4))"
+          />
+        </div>
+
+        <Label>data-inset="start" — horizontal card with leading media</Label>
+        <div
+          class:x-card
+          style:display="flex"
+          style:flex-direction="row"
+          style:gap="16px"
+          style:align-items="stretch"
+        >
+          <div
+            data-inset="start"
+            style:width="160px"
+            style:flex-shrink="0"
+            style:background="linear-gradient(135deg, var(--mint-4), var(--mint-9))"
+          />
+          <div>
+            <CardBody
+              title="Horizontal card"
+              body="Leading media bleeds to the inline-start edge. In RTL, it flips to the right side automatically."
+            />
+          </div>
+        </div>
+
         {/* ============ TRANSLUCENT MATERIAL ============ */}
         <Heading>Translucent material</Heading>
 

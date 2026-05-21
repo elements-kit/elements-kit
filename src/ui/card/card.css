@@ -27,7 +27,10 @@
   font-style: normal;
   text-align: start;
 
-  padding: var(--card-padding);
+  padding-block-start: var(--card-padding-block-start, var(--card-padding));
+  padding-block-end: var(--card-padding-block-end, var(--card-padding));
+  padding-inline-start: var(--card-padding-inline-start, var(--card-padding));
+  padding-inline-end: var(--card-padding-inline-end, var(--card-padding));
   box-sizing: border-box;
 
   &::before,
@@ -169,4 +172,98 @@
   &::after {
     outline: inherit;
   }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * Inset                                                                                           *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/*
+ * `data-inset` on a direct child of `.x-card` makes that child bleed past the
+ * card's padding to the card's edge. Use `top` / `bottom` on vertical cards,
+ * `start` / `end` on horizontal cards (RTL-aware).
+ */
+
+.x-card > [data-inset] {
+  --inset-radius: calc(var(--card-border-radius) - var(--card-border-width));
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.x-card > [data-inset="top"] {
+  margin-block-start: calc(
+    0px - var(--card-padding-block-start, var(--card-padding)) +
+      var(--card-border-width)
+  );
+  margin-inline-start: calc(
+    0px - var(--card-padding-inline-start, var(--card-padding)) +
+      var(--card-border-width)
+  );
+  margin-inline-end: calc(
+    0px - var(--card-padding-inline-end, var(--card-padding)) +
+      var(--card-border-width)
+  );
+  border-start-start-radius: var(--inset-radius);
+  border-start-end-radius: var(--inset-radius);
+  border-end-start-radius: 0;
+  border-end-end-radius: 0;
+}
+
+.x-card > [data-inset="bottom"] {
+  margin-block-end: calc(
+    0px - var(--card-padding-block-end, var(--card-padding)) +
+      var(--card-border-width)
+  );
+  margin-inline-start: calc(
+    0px - var(--card-padding-inline-start, var(--card-padding)) +
+      var(--card-border-width)
+  );
+  margin-inline-end: calc(
+    0px - var(--card-padding-inline-end, var(--card-padding)) +
+      var(--card-border-width)
+  );
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+  border-end-start-radius: var(--inset-radius);
+  border-end-end-radius: var(--inset-radius);
+}
+
+.x-card > [data-inset="start"] {
+  margin-block-start: calc(
+    0px - var(--card-padding-block-start, var(--card-padding)) +
+      var(--card-border-width)
+  );
+  margin-block-end: calc(
+    0px - var(--card-padding-block-end, var(--card-padding)) +
+      var(--card-border-width)
+  );
+  margin-inline-start: calc(
+    0px - var(--card-padding-inline-start, var(--card-padding)) +
+      var(--card-border-width)
+  );
+  border-start-start-radius: var(--inset-radius);
+  border-start-end-radius: 0;
+  border-end-start-radius: var(--inset-radius);
+  border-end-end-radius: 0;
+}
+
+.x-card > [data-inset="end"] {
+  margin-block-start: calc(
+    0px - var(--card-padding-block-start, var(--card-padding)) +
+      var(--card-border-width)
+  );
+  margin-block-end: calc(
+    0px - var(--card-padding-block-end, var(--card-padding)) +
+      var(--card-border-width)
+  );
+  margin-inline-end: calc(
+    0px - var(--card-padding-inline-end, var(--card-padding)) +
+      var(--card-border-width)
+  );
+  border-start-start-radius: 0;
+  border-start-end-radius: var(--inset-radius);
+  border-end-start-radius: 0;
+  border-end-end-radius: var(--inset-radius);
 }
