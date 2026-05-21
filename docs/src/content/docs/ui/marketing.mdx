@@ -22,6 +22,9 @@ import "elements-kit/ui/styles/typography.css";  // --font-size-N, --line-height
 import "elements-kit/ui/styles/radius.css";      // --radius-N (data-radius="none..pill")
 import "elements-kit/ui/styles/palette/gray.css"; // raw --gray-N
 import "elements-kit/ui/styles/base/gray.css";   // --base-color-N (or pair palette/<X>.css + base/<X>.css for a different neutral)
+import "elements-kit/ui/styles/shadow.css";      // --shadow-N (used by .x-card elevated variant)
+import "elements-kit/ui/styles/material.css";    // --color-material (used by .x-card surface)
+import "elements-kit/ui/card/card.css";          // .x-card — testimonial / cta-banner / bordered pillar compose with this
 import "elements-kit/ui/marketing/marketing.css";
 ```
 
@@ -230,7 +233,18 @@ Leave `.river-visual` empty as a spacer. Use a regular `<div>` if you need negat
 Vertical mini-card for a feature, benefit, or stat. Anatomy: icon → heading → paragraph → link.
 
 ```html
-<div class="pillar" data-border="true">
+<div class="pillar">
+  <svg><!-- icon --></svg>
+  <h3 data-heading>Heading</h3>
+  <p data-paragraph>Description.</p>
+  <a href="/learn">Learn more</a>
+</div>
+```
+
+For a card-style pillar (border + padding + background), compose with `.x-card`:
+
+```html
+<div class="x-card pillar">
   <svg><!-- icon --></svg>
   <h3 data-heading>Heading</h3>
   <p data-paragraph>Description.</p>
@@ -240,8 +254,9 @@ Vertical mini-card for a feature, benefit, or stat. Anatomy: icon → heading �
 
 | Attribute | Values |
 | --- | --- |
-| `data-border` | `true` — card treatment (border + padding) |
 | `data-align` | `start` (default), `center` |
+
+Pair with any `.x-card` variant (`data-variant="elevated"` for shadow, `data-variant="borderless"` for hover-only) and any `data-size` to control padding.
 
 The icon uses `--accent-9` so a single Radix accent change re-themes every pillar at once.
 
@@ -262,11 +277,11 @@ Let one description run 4× the length of its siblings.
 :::
 
 :::tip[Do]
-Use `data-border` for elevated card-style pillars when the group sits on a colored surface.
+Add `.x-card` for elevated card-style pillars when the group sits on a colored surface.
 :::
 
 :::caution[Don't]
-Combine `data-border` with `data-align="center"`. The border treatment expects start-aligned content.
+Combine `.x-card` with `data-align="center"`. The card treatment expects start-aligned content.
 :::
 
 ### Testimonial
@@ -274,7 +289,7 @@ Combine `data-border` with `data-align="center"`. The border treatment expects s
 Quote card. Anatomy: oversized opening quote glyph → blockquote body → figcaption (cite + title).
 
 ```html
-<figure class="testimonial">
+<figure class="x-card testimonial">
   <blockquote>
     The kit <em>cut our design-to-ship loop in half</em>.
   </blockquote>
@@ -284,6 +299,8 @@ Quote card. Anatomy: oversized opening quote glyph → blockquote body → figca
   </figcaption>
 </figure>
 ```
+
+`.testimonial` composes with `.x-card` for the surface — add `data-variant="elevated"` for shadow elevation, `data-variant="borderless"` to drop the border. Wrap any ancestor with `data-material-background="translucent"` for a frosted backdrop.
 
 | Element | Notes |
 | --- | --- |
@@ -306,7 +323,7 @@ Stack multiple paragraphs in the blockquote. One thought, one card.
 Bordered call-to-action panel. Centered by default; flips to start-aligned with `data-align="start"`.
 
 ```html
-<div class="cta-banner">
+<div class="x-card cta-banner">
   <h2 class="section-heading section-heading-2">Ship faster with composable primitives.</h2>
   <p class="section-paragraph">
     Class + data-attribute API. No runtime, no theming surprises.

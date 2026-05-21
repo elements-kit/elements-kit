@@ -8,6 +8,9 @@ import "elements-kit/ui/styles/palette/gray.css";
 import "elements-kit/ui/styles/base/gray.css";
 import "elements-kit/ui/styles/palette/mint.css";
 import "elements-kit/ui/styles/colors/mint.css";
+import "elements-kit/ui/styles/shadow.css";
+import "elements-kit/ui/styles/material.css";
+import "elements-kit/ui/card/card.css";
 import "elements-kit/ui/marketing/marketing.css";
 import "elements-kit/ui/button/button.css";
 
@@ -392,8 +395,8 @@ export class App {
             </a>
           </div>
 
-          <Label>data-border="true"</Label>
-          <div class:pillar data-border>
+          <Label>Composed with .x-card</Label>
+          <div class:x-card class:pillar>
             <svg
               viewBox="0 0 24 24"
               fill="currentColor"
@@ -493,7 +496,7 @@ export class App {
           <Heading>Testimonial</Heading>
 
           <Label>Default</Label>
-          <figure class:testimonial>
+          <figure class:x-card class:testimonial>
             <blockquote>
               The kit <em>cut our design-to-ship loop in half</em>. Primitives
               compose cleanly, tokens stay consistent, and our team stopped
@@ -509,7 +512,7 @@ export class App {
           <Heading>CTA banner</Heading>
 
           <Label>data-align="center" (default)</Label>
-          <div class:cta-banner>
+          <div class:x-card class:cta-banner>
             <h2 class:section-heading class:section-heading-2>
               Ship faster with composable primitives.
             </h2>
@@ -540,7 +543,7 @@ export class App {
           </div>
 
           <Label>data-align="start"</Label>
-          <div class:cta-banner data-align="start">
+          <div class:x-card class:cta-banner data-align="start">
             <h2 class:section-heading class:section-heading-2>
               Start-aligned variant
             </h2>
