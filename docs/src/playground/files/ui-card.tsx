@@ -142,7 +142,7 @@ export class App {
         <Label>data-variant="borderless"</Label>
         <div class:x-card data-variant="borderless">
           <CardBody
-            title="Ghost card"
+            title="Borderless card"
             body="No surface, no border. Hover fill applies only when the card is interactive."
           />
         </div>
@@ -233,7 +233,7 @@ export class App {
         >
           <CardBody
             title="Hover me"
-            body="Ghost variant: fills with --base-color-a3 on hover, --base-color-a4 on active."
+            body="Borderless variant: fills with --base-color-a3 on hover, --base-color-a4 on active."
           />
         </a>
 

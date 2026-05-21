@@ -89,7 +89,9 @@
 
 /* soft (default) */
 
-.x-code:where(:not([data-variant="solid"], [data-variant="outline"], [data-variant="ghost"])) {
+.x-code:where(
+  :not([data-variant="solid"], [data-variant="outline"], [data-variant="text"])
+) {
   background-color: var(--color-a3);
   color: var(--color-a11);
 
@@ -129,9 +131,9 @@
   }
 }
 
-/* ghost — no padding, no background */
+/* text — no padding, no background */
 
-.x-code:where([data-variant="ghost"]) {
+.x-code:where([data-variant="text"]) {
   --code-variant-font-size-adjust: var(--code-font-size-adjust);
   padding: 0;
 

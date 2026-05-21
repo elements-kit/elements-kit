@@ -17,7 +17,7 @@ import { signal } from "elements-kit/signals";
 
 const dark = signal(false);
 
-const VARIANTS = ["soft", "solid", "outline", "ghost"] as const;
+const VARIANTS = ["soft", "solid", "outline", "text"] as const;
 const SIZES = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
 
 export class App {
@@ -63,7 +63,11 @@ export class App {
         <h3 style:margin="16px 0 0">Sizes</h3>
         <div style:display="flex" style:flex-direction="column" style:gap="6px">
           {SIZES.map((size) => (
-            <div style:display="flex" style:gap="12px" style:align-items="center">
+            <div
+              style:display="flex"
+              style:gap="12px"
+              style:align-items="center"
+            >
               <code class:x-code data-size={String(size)}>
                 size-{size}
               </code>
@@ -75,16 +79,28 @@ export class App {
         <h3 style:margin="16px 0 0">In a paragraph</h3>
         <p style:line-height="1.6">
           Run <code class:x-code>npm run dev</code> to start the dev server.
-          Then visit <code class:x-code data-color="iris">http://localhost:3000</code>{" "}
+          Then visit{" "}
+          <code class:x-code data-color="iris">
+            http://localhost:3000
+          </code>{" "}
           to see your changes. To deploy, push to{" "}
-          <code class:x-code data-variant="outline">main</code>.
+          <code class:x-code data-variant="outline">
+            main
+          </code>
+          .
         </p>
 
         <h3 style:margin="16px 0 0">Colors</h3>
         <p>
-          <code class:x-code data-color="mint">success</code>{" "}
-          <code class:x-code data-color="iris">info</code>{" "}
-          <code class:x-code data-color="crimson">error</code>{" "}
+          <code class:x-code data-color="mint">
+            success
+          </code>{" "}
+          <code class:x-code data-color="iris">
+            info
+          </code>{" "}
+          <code class:x-code data-color="crimson">
+            error
+          </code>{" "}
           <code class:x-code data-variant="solid" data-color="mint">
             solid mint
           </code>

@@ -38,7 +38,7 @@ import "elements-kit/ui/code/code.css";
 
 | Attribute | Values |
 | --- | --- |
-| `data-variant` | `soft` (default), `solid`, `outline`, `ghost` |
+| `data-variant` | `soft` (default), `solid`, `outline`, `text` |
 | `data-size` | `1`–`9` (default: inherits parent text size) |
 | `data-color` | any imported color scale |
 | `data-high-contrast` | modifier |
@@ -47,14 +47,14 @@ import "elements-kit/ui/code/code.css";
 
 ## Sizing
 
-`data-size` tracks the text scale (`--font-size-1` through `--font-size-9`). Each variant uses `font-size: calc(var(--font-size-N) * 0.95)` so code reads slightly smaller than surrounding body text. The `ghost` variant skips this scaling — `1em` exactly.
+`data-size` tracks the text scale (`--font-size-1` through `--font-size-9`). Each variant uses `font-size: calc(var(--font-size-N) * 0.95)` so code reads slightly smaller than surrounding body text. The `text` variant skips this scaling — `1em` exactly.
 
 ## Variants
 
 - **`soft`** *(default)* — `--color-a3` background, `--color-a11` text.
 - **`solid`** — `--color-9` fill, `--accent-contrast` text. For emphasis (rare for inline code).
 - **`outline`** — 1px `--color-a8` inset border, transparent background.
-- **`ghost`** — no background, no padding. Tinted text only — use inside dense content where backgrounds would compete.
+- **`text`** — no background, no padding. Tinted text only — use inside dense content where backgrounds would compete.
 
 ## Theming
 
