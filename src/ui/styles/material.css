@@ -4,7 +4,7 @@
 }
 :is(.dark, .dark-theme) {
   --color-material-solid: var(--base-color-2);
-  --color-material-translucent: var(--base-color-a2);
+  --color-material-translucent: var(--black-a7);
 }
 
 :where([data-material-background="solid"]) {
