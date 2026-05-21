@@ -1,0 +1,119 @@
+.x-radio {
+  appearance: none;
+  -webkit-appearance: none;
+
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  vertical-align: text-bottom;
+
+  margin: 0;
+  padding: 0;
+
+  width: var(--radio-size);
+  height: var(--radio-size);
+  border-radius: 100%;
+
+  cursor: var(--cursor-radio);
+
+  transition:
+    background-color 80ms,
+    box-shadow 80ms;
+
+  &:where([data-disabled], :disabled) {
+    cursor: var(--cursor-disabled);
+  }
+
+  /* Dot indicator — drawn at scale(0.4) of the radio size for subpixel-perfect centering. */
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 100%;
+    background-color: currentColor;
+    transform: scale(0);
+    transition: transform 80ms;
+  }
+
+  &:where(:checked)::after {
+    transform: scale(0.4);
+  }
+
+  &:where(:focus-visible) {
+    outline: 2px solid var(--focus-8);
+    outline-offset: 2px;
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SIZES                                                                                           *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-radio {
+  &:where([data-size="1"]) {
+    --radio-size: calc(var(--space-4) * 0.875);
+  }
+  &:where([data-size="2"]) {
+    --radio-size: var(--space-4);
+  }
+  &:where([data-size="3"]) {
+    --radio-size: calc(var(--space-4) * 1.25);
+  }
+}
+
+/* default size */
+.x-radio:where(:not([data-size])) {
+  --radio-size: var(--space-4);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * VARIANTS                                                                                        *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* surface (default) */
+
+.x-radio:where(:not([data-variant="soft"])) {
+  background-color: var(--color-surface);
+  box-shadow: inset 0 0 0 1px var(--base-color-a7);
+
+  &:where(:checked) {
+    background-color: var(--color-9);
+    color: var(--accent-contrast);
+    box-shadow: none;
+  }
+
+  &:where([data-high-contrast]) {
+    &:where(:checked) {
+      background-color: var(--color-12);
+      color: var(--base-color-1);
+    }
+  }
+
+  &:where([data-disabled], :disabled) {
+    background-color: var(--base-color-a3);
+    box-shadow: inset 0 0 0 1px var(--base-color-a6);
+    color: var(--base-color-a8);
+  }
+}
+
+/* soft */
+
+.x-radio:where([data-variant="soft"]) {
+  background-color: var(--color-a4);
+  color: var(--color-a11);
+
+  &:where([data-high-contrast]) {
+    &:where(:checked) {
+      color: var(--color-12);
+    }
+  }
+
+  &:where([data-disabled], :disabled) {
+    background-color: var(--base-color-a3);
+    color: var(--base-color-a8);
+  }
+}

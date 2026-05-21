@@ -1,0 +1,117 @@
+---
+title: Radio
+description: Headless radio button styled by the optional theme layer — two variants, three sizes.
+---
+
+import Playground from "@/playground/Playground.astro";
+import RADIO from "@/playground/files/ui-radio.tsx?raw";
+
+A native `<input type="radio">` styled via class + data attributes from the optional [styles layer](/ui/styles). Two variants, three sizes, color theming, high-contrast and disabled states. Indicator is a `currentColor` dot drawn via `::after` at `scale(0.4)` — no glyph, no SVG, no JS.
+
+<Playground
+  provider={{ files: { "/main.tsx": { code: RADIO, active: true } } }}
+  preview={{}}
+/>
+
+## Install
+
+```ts
+import "elements-kit/ui/styles/theme.css";
+import "elements-kit/ui/styles/scaling.css";
+import "elements-kit/ui/styles/radius.css";
+import "elements-kit/ui/styles/space.css";
+import "elements-kit/ui/styles/typography.css";
+import "elements-kit/ui/styles/cursor.css";
+import "elements-kit/ui/styles/unset.css";
+// pick a neutral palette for --base-color-* (must match data-base-color on root):
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/base/gray.css";
+// import any color scales you want to use for accent theming:
+import "elements-kit/ui/styles/palette/mint.css";
+import "elements-kit/ui/styles/colors/mint.css";
+// and the radio itself:
+import "elements-kit/ui/radio/radio.css";
+```
+
+See [Styles](/ui/styles) for the full token system, accent/gray scale lists, and theming knobs.
+
+## API
+
+```html
+<input
+  type="radio"
+  class="unset x-radio"
+  name="plan"
+  value="hobby"
+  data-variant="surface"
+  data-size="2"
+/>
+```
+
+The `unset` class ([Styles → Unset native styles](/ui/styles#unset-native-styles)) clears the browser's default `<input>` rendering so `.x-radio` styles render predictably. Skip it and you'll see the OS-native radio leak through.
+
+Radios in the same group share a `name=` attribute. The browser handles single-selection within the group natively — no JS, no `.x-radio-group` class needed.
+
+| Attribute | Values |
+| --- | --- |
+| `data-variant` | `surface` (default), `soft` |
+| `data-size` | `1`, `2` (default), `3` |
+| `data-color` *(on a parent or the input)* | any imported color scale (`mint`, `blue`, `iris`, …) |
+| `data-high-contrast` | modifier — boosts contrast against the page background |
+| `disabled` / `data-disabled` | native `:disabled` state, or `data-disabled` on non-input elements |
+
+## Sizing
+
+| `data-size` | box |
+| --- | --- |
+| `1` | `--space-4 × 0.875` (~14px) |
+| `2` *(default)* | `--space-4` (~16px) |
+| `3` | `--space-4 × 1.25` (~20px) |
+
+The dot is always 40% of the box (`scale(0.4)` transform), so it scales with the box without per-size tuning.
+
+## Variants
+
+- **`surface`** *(default)* — 1px hairline border using `--base-color-a7`. Background fills with `--color-9` and contrast dot on `:checked`.
+- **`soft`** — tinted background using `--color-a4` at every state. Dot uses `--color-a11` so it reads at low emphasis.
+
+## States
+
+Radios don't have an `:indeterminate` state — that's checkbox-only. Otherwise the state set is the same as the [Checkbox](/ui/checkbox): `:checked`, `:disabled` / `[data-disabled]`, `:focus-visible` (2px `--focus-8` outline at `+2px` offset).
+
+## With a label
+
+Wrap each input in a `<label>` (or pair via `for=`) so text and box are both clickable. Group radios by giving them the same `name=`:
+
+```html
+<label style="display: inline-flex; align-items: center; gap: 0.5em;">
+  <input type="radio" class="unset x-radio" name="plan" value="hobby" />
+  <span>Hobby</span>
+</label>
+<label style="display: inline-flex; align-items: center; gap: 0.5em;">
+  <input type="radio" class="unset x-radio" name="plan" value="pro" />
+  <span>Pro</span>
+</label>
+```
+
+For vertical stacks, wrap the labels in a flex column with `gap: var(--space-1)`. The kit deliberately doesn't ship a `.x-radio-group` class — flex + gap is one line.
+
+## Theming
+
+Set `data-color="<color>"` on the input or any ancestor (e.g. `<body>`) to theme the accent fill. Light/dark flips automatically via the `.dark` class on a parent — see [Light & dark](/ui/styles#light--dark).
+
+```html
+<body data-color="iris">
+  <input type="radio" class="unset x-radio" name="x" checked />
+</body>
+```
+
+## Accessibility
+
+- Every radio needs a `<label>` — either wrapping the input or paired via `for=`.
+- Radios in a logical group **must** share a `name=` attribute. Without it the browser treats each as a standalone toggle.
+- For a multi-radio group, preselect one option by default. Screen readers announce "0 of N selected" otherwise, which reads as broken to most users.
+
+:::caution[Don't]
+Ship radios in the same logical group with different `name=` attributes. Multiple can be selected, and the keyboard arrow-key navigation between siblings stops working.
+:::
