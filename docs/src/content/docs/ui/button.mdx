@@ -56,6 +56,7 @@ The `unset` class ([Styles → Unset native styles](/ui/styles#unset-native-styl
 | `data-variant` | `solid`, `soft`, `surface`, `outline`, `text`, `borderless` |
 | `data-size` | `1`, `2`, `3`, `4` |
 | `data-color` | any imported color scale (`mint`, `blue`, `iris`, …) |
+| `data-icon` | modifier — square shape sized by height. Use for icon-only buttons. |
 | `data-high-contrast` | modifier — boosts contrast against the page background |
 | `data-loading` | modifier — sets `position: relative` for a spinner overlay |
 | `disabled` / `data-disabled` | native `:disabled` state, or `data-disabled` on non-button elements |
@@ -81,6 +82,31 @@ The radius respects `data-radius` on a parent — set `data-radius="pill"` on th
 - **`outline`** — bordered, transparent fill. Tertiary actions.
 - **`text`** — no background, no border, and uses negative margins so the button sits flush with surrounding body copy. Use for inline calls-to-action inside paragraphs.
 - **`borderless`** — no background, no border, no margin trick. Standalone button without chrome. Toolbar-style.
+
+## Icon button
+
+Add `data-icon` to make the button a square sized by height — for icon-only buttons (toolbar actions, close, etc.). Works with every variant and every size.
+
+```html
+<button class="unset x-button" data-variant="soft" data-size="2" data-icon aria-label="Close">
+  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+    <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.5" fill="none" />
+  </svg>
+</button>
+```
+
+| Size | Shape |
+| --- | --- |
+| `1` | 24×24 |
+| `2` | 32×32 |
+| `3` | 40×40 |
+| `4` | 48×48 |
+
+For `data-variant="text"` icon buttons, the kit swaps the asymmetric padding for uniform square padding (4 / 6 / 8 / 12px per size) so the icon sits centered. The negative-margin trick still applies — the button inlines flush with surrounding text.
+
+:::caution[Don't]
+Ship an icon-only button without `aria-label` or visually-hidden text. Screen readers have nothing to read.
+:::
 
 ## Use as a link
 

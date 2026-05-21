@@ -394,3 +394,40 @@
 .x-button:where(:not([data-variant="text"])) {
   font-weight: var(--font-weight-medium);
 }
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * ICON BUTTON                                                                                     *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/*
+ * `data-icon` makes the button a square (icon-only). For solid/soft/surface/outline/borderless,
+ * the button gets aspect-ratio: 1 sized by --base-button-height. For text (the inline-with-body
+ * variant), padding becomes uniform so the icon sits centered without horizontal bleed.
+ */
+
+.x-button:where([data-icon]):where(:not([data-variant="text"])) {
+  aspect-ratio: 1;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.x-button:where([data-icon][data-variant="text"]) {
+  &:where([data-size="1"]) {
+    --button-text-padding-x: var(--space-1);
+    --button-text-padding-y: var(--space-1);
+  }
+  &:where([data-size="2"]) {
+    --button-text-padding-x: calc(var(--space-1) * 1.5);
+    --button-text-padding-y: calc(var(--space-1) * 1.5);
+  }
+  &:where([data-size="3"]) {
+    --button-text-padding-x: var(--space-2);
+    --button-text-padding-y: var(--space-2);
+  }
+  &:where([data-size="4"]) {
+    --button-text-padding-x: var(--space-3);
+    --button-text-padding-y: var(--space-3);
+  }
+}

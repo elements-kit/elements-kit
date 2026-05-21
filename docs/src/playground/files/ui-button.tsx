@@ -109,6 +109,45 @@ export class App {
             style:font-size="14px"
             style:font-weight="600"
           >
+            Icon buttons
+          </h3>
+          <div
+            style:display="flex"
+            style:flex-wrap="wrap"
+            style:align-items="center"
+            style:gap="1rem"
+          >
+            {VARIANTS.map((variant) => (
+              <button
+                class:unset
+                class:x-button
+                data-size="2"
+                data-variant={variant}
+                data-icon
+                aria-label={`${variant} icon button`}
+              >
+                <svg
+                  viewBox="0 0 16 16"
+                  width="16"
+                  height="16"
+                  aria-hidden="true"
+                  style:fill="none"
+                  style:stroke="currentColor"
+                  style:stroke-width="1.5"
+                >
+                  <path d="M4 4l8 8M12 4l-8 8" />
+                </svg>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <h3
+            style:margin="0 0 12px"
+            style:font-size="14px"
+            style:font-weight="600"
+          >
             Sizes
           </h3>
           <div
