@@ -112,7 +112,7 @@ export class App {
           </button>
         </div>
 
-        <div class:page-bounds>
+        <div class:page-container>
           {/* ============ HERO ============ */}
           <Heading>Hero</Heading>
 
@@ -486,6 +486,144 @@ export class App {
                 Learn more
               </a>
             </div>
+          </div>
+
+          {/* ============ TESTIMONIAL ============ */}
+          <Heading>Testimonial</Heading>
+
+          <Label>Default</Label>
+          <figure class:testimonial>
+            <blockquote>
+              The kit <em>cut our design-to-ship loop in half</em>. Primitives
+              compose cleanly, tokens stay consistent, and our team stopped
+              re-inventing the same five layouts.
+            </blockquote>
+            <figcaption>
+              <cite>Jane Doe</cite>
+              <span data-title>Staff Engineer, Acme Co</span>
+            </figcaption>
+          </figure>
+
+          {/* ============ CTA BANNER ============ */}
+          <Heading>CTA banner</Heading>
+
+          <Label>data-align="center" (default)</Label>
+          <div class:cta-banner>
+            <h2 class:section-heading class:section-heading-2>
+              Ship faster with composable primitives.
+            </h2>
+            <p class:section-paragraph>
+              Drop the kit into any framework. Class + data-attribute API, no
+              runtime, no theming surprises.
+            </p>
+            <div data-cta>
+              <a
+                class:unset
+                class:x-button
+                data-size="3"
+                data-variant="solid"
+                href="#"
+              >
+                Get in touch
+              </a>
+              <a
+                class:unset
+                class:x-button
+                data-size="3"
+                data-variant="ghost"
+                href="#"
+              >
+                Learn more
+              </a>
+            </div>
+          </div>
+
+          <Label>data-align="start"</Label>
+          <div class:cta-banner data-align="start">
+            <h2 class:section-heading class:section-heading-2>
+              Start-aligned variant
+            </h2>
+            <p class:section-paragraph>
+              Same primitive, flipped to start alignment for a denser, less
+              ceremonial CTA.
+            </p>
+            <div data-cta>
+              <a
+                class:unset
+                class:x-button
+                data-size="3"
+                data-variant="solid"
+                href="#"
+              >
+                Get in touch
+              </a>
+            </div>
+          </div>
+
+          {/* ============ STATISTIC ============ */}
+          <Heading>Statistic</Heading>
+
+          <Label>Default (medium)</Label>
+          <div class:statistic>
+            <p data-leading>Up to</p>
+            <p data-heading>75%</p>
+            <p data-description>
+              faster builds across the engineering org.
+            </p>
+          </div>
+
+          <Label>data-size="1" (small)</Label>
+          <div class:statistic data-size="1">
+            <p data-leading>Up to</p>
+            <p data-heading>75%</p>
+            <p data-description>
+              faster builds across the engineering org.
+            </p>
+          </div>
+
+          <Label>data-size="3" (large display)</Label>
+          <div class:statistic data-size="3">
+            <p data-leading>Up to</p>
+            <p data-heading>75%</p>
+            <p data-description>
+              faster builds across the engineering org.
+            </p>
+          </div>
+
+          <Label>3-up row (default size)</Label>
+          <div
+            style:display="grid"
+            style:grid-template-columns="repeat(3, minmax(0, 1fr))"
+            style:gap="32px"
+          >
+            <div class:statistic>
+              <p data-leading>Used by</p>
+              <p data-heading>120+</p>
+              <p data-description>
+                teams shipping to production.
+              </p>
+            </div>
+            <div class:statistic>
+              <p data-leading>Average</p>
+              <p data-heading>3.2×</p>
+              <p data-description>
+                faster page assembly on a typical marketing site.
+              </p>
+            </div>
+            <div class:statistic>
+              <p data-leading>Since</p>
+              <p data-heading>2024</p>
+              <p data-description>
+                with monthly releases and zero breaking changes.
+              </p>
+            </div>
+          </div>
+
+          <Label>data-align="center"</Label>
+          <div class:statistic data-align="center">
+            <p data-leading>Up to</p>
+            <p data-heading>99.99%</p>
+            <p data-description>uptime across managed deployments.</p>
           </div>
         </div>
       </div>

@@ -6,7 +6,7 @@ description: Layout primitives for marketing pages — hero, sections, rivers, p
 import Playground from "@/playground/Playground.astro";
 import MARKETING from "@/playground/files/ui-marketing.tsx?raw";
 
-A CSS-only system for marketing pages. Class + data-attribute API, no JS. A page is a stack of `.page-section`s; each section uses `.page-bounds` to gutter and cap its content; rivers arrange a text + visual pair side-by-side; pillars are vertical mini-cards for grouped features.
+A CSS-only system for marketing pages. Class + data-attribute API, no JS. A page is a stack of `.page-section`s; each section uses `.page-container` to gutter and cap its content; rivers arrange a text + visual pair side-by-side; pillars and testimonials are vertical mini-cards; `.cta-banner` is a centered call-to-action panel; `.statistic` surfaces large display numbers.
 
 <Playground
   provider={{ files: { "/main.tsx": { code: MARKETING, active: true } } }}
@@ -25,20 +25,20 @@ import "elements-kit/ui/marketing/marketing.css";
 
 The whole file is wrapped in `@layer marketing`, so any unlayered host CSS wins on collision — no specificity wars. Backgrounds use semantic tokens from theme.css (`--color-background`, `--color-overlay`) — they flip with `.dark` / `.light` on a parent. Text and borders use the base neutral palette (`--base-color-N`, `--base-color-aN`) defined in `palette/base.css` (defaults to gray; pick a different neutral with `data-gray-color="slate|sage|sand|mauve|olive"`). Typography scales follow kit tokens; display headings (≥48px) multiply by `--scaling` so `data-scaling="lg"` resizes them. Radii follow `--radius-N` so `data-radius="pill"` rounds marketing borders. The pillar icon follows `--color-9` — set `data-color="X"` on an ancestor (e.g. `data-color="mint"`) to pick the accent palette.
 
-Host-page CSS variables expected (sensible fallbacks ship in `.page-bounds`):
+Host-page CSS variables expected (sensible fallbacks ship in `.page-container`):
 
 | Variable | Purpose | Fallback |
 | --- | --- | --- |
-| `--page-padding-left` | left gutter for `.page-bounds` | `1rem` |
-| `--page-padding-right` | right gutter for `.page-bounds` | `1rem` |
-| `--page-max-width` | max width for `.page-bounds` | `72rem` |
+| `--page-padding-left` | left gutter for `.page-container` | `1rem` |
+| `--page-padding-right` | right gutter for `.page-container` | `1rem` |
+| `--page-max-width` | max width for `.page-container` | `72rem` |
 | `--font-heading` | heading font family | inherit |
 
 ## Composition
 
 ```html
 <section class="page-section">
-  <div class="page-bounds">
+  <div class="page-container">
     <header class="section-header">
       <h2 class="section-heading section-heading-2">Title</h2>
       <p class="section-paragraph">Lede paragraph.</p>
@@ -58,7 +58,7 @@ Host-page CSS variables expected (sensible fallbacks ship in `.page-bounds`):
 </section>
 ```
 
-The standard nesting is **page-section → page-bounds → (section-header) + (river+ | pillar+)**. Heros sit at the top of the page and skip the wrapping `.page-section`.
+The standard nesting is **page-section → page-container → (section-header) + (river+ | pillar+ | testimonial+ | cta-banner | statistic+)**. Heros sit at the top of the page and skip the wrapping `.page-section`.
 
 ## Primitives
 
@@ -91,14 +91,14 @@ A page-level chunk. Themed background (`--color-background`), vertical padding.
 
 ```html
 <section class="page-section">
-  <div class="page-bounds">…</div>
+  <div class="page-container">…</div>
 </section>
 ```
 
 No data attributes.
 
 :::caution[Don't]
-Nest one `.page-section` inside another. Rivers and headers go directly inside `.page-bounds`.
+Nest one `.page-section` inside another. Rivers and headers go directly inside `.page-container`.
 :::
 
 ### Page bounds
@@ -106,7 +106,7 @@ Nest one `.page-section` inside another. Rivers and headers go directly inside `
 Pure layout container. Applies `--page-padding-*` gutters and `--page-max-width` cap, centered.
 
 ```html
-<div class="page-bounds">…</div>
+<div class="page-container">…</div>
 ```
 
 No data attributes. Place directly inside `.page-section`.
@@ -265,6 +265,111 @@ Use `data-border` for elevated card-style pillars when the group sits on a color
 
 :::caution[Don't]
 Combine `data-border` with `data-align="center"`. The border treatment expects start-aligned content.
+:::
+
+### Testimonial
+
+Quote card. Anatomy: oversized opening quote glyph → blockquote body → figcaption (cite + title).
+
+```html
+<figure class="testimonial">
+  <blockquote>
+    The kit <em>cut our design-to-ship loop in half</em>.
+  </blockquote>
+  <figcaption>
+    <cite>Jane Doe</cite>
+    <span data-title>Staff Engineer, Acme Co</span>
+  </figcaption>
+</figure>
+```
+
+| Element | Notes |
+| --- | --- |
+| `> blockquote` | Pulls quote glyphs via `::before` / `::after`. `<em>` inside renders in `--base-color-12`. |
+| `> figcaption > cite` | Name. Always non-italic. |
+| `> figcaption > [data-title]` | Role / company line. |
+
+The quote glyph color follows `--color-9` — set `data-color="X"` on an ancestor to re-theme.
+
+:::tip[Do]
+Keep quote body under ~3 lines on desktop. Use `<em>` to highlight the punchy phrase.
+:::
+
+:::caution[Don't]
+Stack multiple paragraphs in the blockquote. One thought, one card.
+:::
+
+### CTA banner
+
+Bordered call-to-action panel. Centered by default; flips to start-aligned with `data-align="start"`.
+
+```html
+<div class="cta-banner">
+  <h2 class="section-heading section-heading-2">Ship faster with composable primitives.</h2>
+  <p class="section-paragraph">
+    Class + data-attribute API. No runtime, no theming surprises.
+  </p>
+  <div data-cta>
+    <a href="/start">Get started</a>
+  </div>
+</div>
+```
+
+| Attribute | Values |
+| --- | --- |
+| `data-align` | `center` (default), `start` |
+
+Wrap CTAs in a `<div data-cta>` — that's the row that picks up the flex-wrap + gap.
+
+:::tip[Do]
+Use sparingly. One CTA banner near the bottom of the page, not every section.
+:::
+
+:::caution[Don't]
+Add a background image inside the primitive. Decorate from the caller — the kit handles layout only.
+:::
+
+### Statistic
+
+Vertical stack: small leading label → large display number → body description.
+
+```html
+<div class="statistic">
+  <p data-leading>Up to</p>
+  <p data-heading>75%</p>
+  <p data-description>faster builds across the org.</p>
+</div>
+```
+
+| Element | Notes |
+| --- | --- |
+| `[data-leading]` | Small label above the number. Optional. |
+| `[data-heading]` | Display number (48px × scaling, up to `--font-size-9` at lg). |
+| `[data-description]` | Body sentence below. |
+
+| Attribute | Values |
+| --- | --- |
+| `data-size` | `1` (small), default (medium), `3` (large display) |
+| `data-align` | `start` (default), `center` |
+
+Sizes mirror `.x-button` — `data-size="1"` for inline / dense rows, no attribute for the standard section-level stat, `data-size="3"` for hero-tier display numbers (weight 550, tight tracking, scales via `--scaling`).
+
+To align multiple statistics in a row, wrap them in your own grid — there's no `.statistic-row` primitive:
+
+```html
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2rem">
+  <div class="statistic">…</div>
+  <div class="statistic">…</div>
+  <div class="statistic">…</div>
+</div>
+```
+
+:::tip[Do]
+Keep the numbers comparable in magnitude (all percentages, or all counts) within a row.
+:::
+
+:::caution[Don't]
+Use `[data-heading]` for long phrases. It's a display slot for a number or 1–2 words.
 :::
 
 ## Theming
