@@ -1,0 +1,140 @@
+.x-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  vertical-align: text-bottom;
+
+  margin: 0;
+  padding: 0;
+
+  width: var(--checkbox-size);
+  height: var(--checkbox-size);
+  border-radius: var(--checkbox-border-radius);
+
+  cursor: var(--cursor-checkbox);
+
+  transition:
+    background-color 80ms,
+    box-shadow 80ms;
+
+  &:where([data-disabled], :disabled) {
+    cursor: var(--cursor-disabled);
+  }
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  &:where(:checked)::before {
+    content: "\2713";
+    font-family: var(--default-font-family);
+    font-size: var(--checkbox-indicator-size);
+    font-weight: 700;
+    line-height: 1;
+    color: currentColor;
+  }
+
+  /* Drawn as a bar — Unicode dash glyphs (−, –, —) all sit at the math axis,
+     which is ~55% from the top of the line box, so they read as low-set.
+     A pseudo with explicit width/height centers exactly. */
+  &:where(:indeterminate)::before {
+    content: "";
+    width: calc(var(--checkbox-indicator-size) * 0.7);
+    height: max(1.5px, calc(var(--checkbox-indicator-size) * 0.15));
+    background-color: currentColor;
+    border-radius: 1px;
+  }
+
+  &:where(:focus-visible) {
+    outline: 2px solid var(--focus-8);
+    outline-offset: 2px;
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SIZES                                                                                           *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-checkbox {
+  &:where([data-size="1"]) {
+    --checkbox-size: calc(var(--space-4) * 0.875);
+    --checkbox-indicator-size: calc(9px * var(--scaling));
+    --checkbox-border-radius: calc(var(--radius-1) * 0.875);
+  }
+  &:where([data-size="2"]) {
+    --checkbox-size: var(--space-4);
+    --checkbox-indicator-size: calc(10px * var(--scaling));
+    --checkbox-border-radius: var(--radius-1);
+  }
+  &:where([data-size="3"]) {
+    --checkbox-size: calc(var(--space-4) * 1.25);
+    --checkbox-indicator-size: calc(12px * var(--scaling));
+    --checkbox-border-radius: calc(var(--radius-1) * 1.25);
+  }
+}
+
+/* default size */
+.x-checkbox:where(:not([data-size])) {
+  --checkbox-size: var(--space-4);
+  --checkbox-indicator-size: calc(10px * var(--scaling));
+  --checkbox-border-radius: var(--radius-1);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * VARIANTS                                                                                        *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* surface (default) */
+
+.x-checkbox:where(:not([data-variant="soft"])) {
+  background-color: var(--color-surface);
+  box-shadow: inset 0 0 0 1px var(--base-color-a7);
+
+  &:where(:checked, :indeterminate) {
+    background-color: var(--color-9);
+    color: var(--accent-contrast);
+    box-shadow: none;
+  }
+
+  &:where([data-high-contrast]) {
+    &:where(:checked, :indeterminate) {
+      background-color: var(--color-12);
+      color: var(--base-color-1);
+    }
+  }
+
+  &:where([data-disabled], :disabled) {
+    background-color: transparent;
+    box-shadow: inset 0 0 0 1px var(--base-color-a6);
+    color: var(--base-color-a8);
+  }
+}
+
+/* soft */
+
+.x-checkbox:where([data-variant="soft"]) {
+  background-color: var(--color-a5);
+  color: var(--color-a11);
+
+  &:where([data-high-contrast]) {
+    &:where(:checked, :indeterminate) {
+      color: var(--color-12);
+    }
+  }
+
+  &:where([data-disabled], :disabled) {
+    background-color: var(--base-color-a3);
+    color: var(--base-color-a8);
+  }
+}
