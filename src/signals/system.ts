@@ -249,7 +249,7 @@ export function createReactiveSystem({
    *
    * @param link - The first subscriber link from which propagation begins.
    */
-  function propagate(link: Link): void {
+  function propagate(link: Link, innerWrite: boolean): void {
     let next = link.nextSub;
     let stack: Stack<Link | undefined> | undefined;
 
@@ -267,6 +267,9 @@ export function createReactiveSystem({
         )
       ) {
         sub.flags = flags | ReactiveFlags.Pending;
+        if (innerWrite) {
+          sub.flags |= ReactiveFlags.Recursed;
+        }
       } else if (
         !(flags & (ReactiveFlags.RecursedCheck | ReactiveFlags.Recursed))
       ) {
@@ -345,8 +348,8 @@ export function createReactiveSystem({
         (flags & (ReactiveFlags.Mutable | ReactiveFlags.Dirty)) ===
         (ReactiveFlags.Mutable | ReactiveFlags.Dirty)
       ) {
+        const subs = dep.subs!;
         if (update(dep)) {
-          const subs = dep.subs!;
           if (subs.nextSub !== undefined) {
             shallowPropagate(subs);
           }
@@ -356,9 +359,7 @@ export function createReactiveSystem({
         (flags & (ReactiveFlags.Mutable | ReactiveFlags.Pending)) ===
         (ReactiveFlags.Mutable | ReactiveFlags.Pending)
       ) {
-        if (link.nextSub !== undefined || link.prevSub !== undefined) {
-          stack = { value: link, prev: stack };
-        }
+        stack = { value: link, prev: stack };
         link = dep.deps!;
         sub = dep;
         ++checkDepth;
@@ -374,18 +375,13 @@ export function createReactiveSystem({
       }
 
       while (checkDepth--) {
-        const firstSub = sub.subs!;
-        const hasMultipleSubs = firstSub.nextSub !== undefined;
-        if (hasMultipleSubs) {
-          link = stack!.value;
-          stack = stack!.prev;
-        } else {
-          link = firstSub;
-        }
+        link = stack!.value;
+        stack = stack!.prev;
         if (dirty) {
+          const subs = sub.subs!;
           if (update(sub)) {
-            if (hasMultipleSubs) {
-              shallowPropagate(firstSub);
+            if (subs.nextSub !== undefined) {
+              shallowPropagate(subs);
             }
             sub = link.sub;
             continue;
@@ -402,7 +398,7 @@ export function createReactiveSystem({
         }
       }
 
-      return dirty;
+      return dirty && !!sub.flags;
     } while (true);
   }
 

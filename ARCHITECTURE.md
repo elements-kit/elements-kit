@@ -128,6 +128,7 @@ Each subpath is a stable import entry declared in [package.json](package.json) `
 1. Helpers that allocate a resource register teardown via `onCleanup` (works inside `effect` / `effectScope` / `computed`).
 2. Helpers returning composite objects implement `[Symbol.dispose]` for explicit / `using` teardown. Helpers returning raw `Signal<T>` / `Computed<T>` rely **only** on `onCleanup` — core reactive types must not carry `Symbol.dispose`.
 3. When no enclosing `effectScope` exists, the caller owns cleanup via the `effectScope` disposer or by explicitly disposing the `Disposable`.
+4. **Disposal order is LIFO, depth-first reverse.** When an effect or scope tears down, its child effects and scopes dispose **before** the parent's own `onCleanup` callbacks fire, and siblings dispose in **reverse creation order**. The same order applies on effect re-run: previous-run cleanups fire deepest-first, then the body re-executes. Helpers can rely on this when ordering resource release (a child observing a resource its parent owns can safely use the parent's state in its cleanup).
 
 ### 6a. Scope contract at element boundaries
 

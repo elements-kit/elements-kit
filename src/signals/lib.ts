@@ -84,8 +84,26 @@ interface SignalNode<T = any> extends ReactiveNode {
 // Module-level scheduler state
 // ---------------------------------------------------------------------------
 
+/**
+ * Marks a parent (effect or scope) whose deps include at least one child
+ * effect or child scope. Gates the dispose-children-first slow path in
+ * `run` / `updateComputed` so leaf effects pay no extra cost.
+ *
+ * The bit lives outside the {@link ReactiveFlags} range and is never read by
+ * `system.ts`.
+ * @internal
+ */
+const HasChildEffect = 64;
+
 /** Monotonically increasing counter; incremented on each tracking run to stamp links. */
 let cycle = 0;
+/**
+ * Depth counter for nested effect / re-run frames. Used to gate
+ * `innerWrite` propagation so that a write occurring inside an effect's
+ * own run marks downstream subscribers `Recursed | Pending` instead of
+ * just `Pending`.
+ */
+let runDepth = 0;
 /** Depth counter for nested `batch` calls; flush is deferred while > 0. */
 let batchDepth = 0;
 /** Read cursor into the `queued` array during flush. */
@@ -125,15 +143,23 @@ const { link, unlink, propagate, checkDirty, shallowPropagate } =
   createReactiveSystem({
     /**
      * Called by the graph engine when a Mutable+Dirty node needs to recompute.
-     * Delegates to `updateComputed` for computed nodes and `updateSignal` for
-     * plain signals.
+     * Dispatches by tagged property:
+     *
+     * - `'getter' in node`     → computed: delegate to `updateComputed`.
+     * - `'currentValue' in node` → signal: delegate to `updateSignal`.
+     * - else                    → effectScope: mark `Mutable` and report
+     *   "changed", so any parent effect re-evaluates as if the scope itself
+     *   propagated.
      */
-    update(node: SignalNode | ComputedNode): boolean {
-      if (node.depsTail !== undefined) {
+    update(node: SignalNode | ComputedNode | ReactiveNode): boolean {
+      if ("getter" in node) {
         return updateComputed(node as ComputedNode);
-      } else {
+      }
+      if ("currentValue" in node) {
         return updateSignal(node as SignalNode);
       }
+      node.flags = ReactiveFlags.Mutable;
+      return true;
     },
 
     /**
@@ -167,26 +193,39 @@ const { link, unlink, propagate, checkDirty, shallowPropagate } =
     /**
      * Called when a dep node loses its last subscriber.
      *
-     * - Non-Mutable nodes (effects / effectScopes): disposed via
-     *   `effectScopeOper` so their own deps are released.
-     * - Mutable nodes with deps (computed): reset to Dirty so they recompute
-     *   lazily if a new subscriber appears later.
+     * Dispatch by tagged property:
+     *
+     * - **computed** (`'getter' in node`): if it had deps, reset to Dirty so
+     *   it recomputes lazily if a new subscriber appears later. Cleanups
+     *   registered via {@link onCleanup} during the previous run are flushed
+     *   (outside any tracking context). Child effects/scopes created in the
+     *   getter are released in LIFO order via {@link disposeAllDepsInReverse}.
+     * - **signal** (`'currentValue' in node`): no-op. Signals stay live so a
+     *   future subscriber can read the latest value.
+     * - **effect** (`'fn' in node`): cascade-dispose via `effectOper`
+     *   (children first, then own cleanup).
+     * - **effectScope** (else): cascade-dispose via `effectScopeOper`.
      */
     unwatched(node) {
-      if (!(node.flags & ReactiveFlags.Mutable)) {
-        effectScopeOper.call(node);
-      } else if (node.depsTail !== undefined) {
+      if ("getter" in node) {
         const c = node as ComputedNode;
-        if (c.onCleanup !== undefined) {
-          const fns = c.onCleanup;
-          c.onCleanup = undefined;
-          untracked(() => {
-            for (const fn of fns) fn();
-          });
+        if (c.depsTail !== undefined) {
+          if (c.onCleanup !== undefined) {
+            const fns = c.onCleanup;
+            c.onCleanup = undefined;
+            untracked(() => {
+              for (const fn of fns) fn();
+            });
+          }
+          c.flags = ReactiveFlags.Mutable | ReactiveFlags.Dirty;
+          disposeAllDepsInReverse(c);
         }
-        node.depsTail = undefined;
-        node.flags = ReactiveFlags.Mutable | ReactiveFlags.Dirty;
-        purgeDeps(node);
+      } else if ("currentValue" in node) {
+        // Signals stay live until something else disposes them.
+      } else if ("fn" in node) {
+        effectOper.call(node as EffectNode);
+      } else {
+        effectScopeOper.call(node);
       }
     },
   });
@@ -410,10 +449,13 @@ export function effect(fn: () => void): () => void {
   activeOwner = e;
   if (prevSub !== undefined) {
     link(e, prevSub, 0);
+    prevSub.flags |= HasChildEffect;
   }
   try {
+    ++runDepth;
     e.fn();
   } finally {
+    --runDepth;
     activeSub = prevSub;
     activeOwner = prevOwner;
     e.flags &= ~ReactiveFlags.RecursedCheck;
@@ -453,13 +495,17 @@ export function effectScope(fn: () => void): () => void {
     depsTail: undefined,
     subs: undefined,
     subsTail: undefined,
-    flags: ReactiveFlags.None,
+    // `Mutable` so the scope participates in propagation — when a signal /
+    // computed inside the scope is read, the scope's parent subscribers
+    // (i.e. an enclosing effect) get notified through us.
+    flags: ReactiveFlags.Mutable,
   };
   const prevSub = setActiveSub(e);
   const prevOwner = activeOwner;
   activeOwner = e;
   if (prevSub !== undefined) {
     link(e, prevSub, 0);
+    prevSub.flags |= HasChildEffect;
   }
   try {
     fn();
@@ -603,14 +649,14 @@ export function trigger<T = void>(fn: Computed<T>) {
       fn();
     } finally {
       activeSub = prevSub;
+      sub.flags = ReactiveFlags.None;
       let link = sub.deps;
       while (link !== undefined) {
         const dep = link.dep;
         link = unlink(link, sub);
         const subs = dep.subs;
         if (subs !== undefined) {
-          sub.flags = ReactiveFlags.None;
-          propagate(subs);
+          propagate(subs, !!runDepth);
           shallowPropagate(subs);
         }
       }
@@ -632,6 +678,21 @@ export function trigger<T = void>(fn: Computed<T>) {
  */
 function updateComputed(c: ComputedNode): boolean {
   ++cycle;
+
+  // If the previous evaluation created child effects/scopes, dispose them
+  // in reverse creation order BEFORE running the getter and BEFORE the
+  // computed's own cleanup. This matches the LIFO disposal contract.
+  if (c.flags & HasChildEffect) {
+    let l = c.depsTail;
+    while (l !== undefined) {
+      const prev = l.prevDep;
+      const dep = l.dep;
+      if (!("getter" in dep) && !("currentValue" in dep)) {
+        unlink(l, c);
+      }
+      l = prev;
+    }
+  }
 
   if (c.onCleanup !== undefined) {
     const cleanups = c.onCleanup;
@@ -683,6 +744,21 @@ function run(e: EffectNode): void {
   ) {
     ++cycle;
 
+    // Dispose any child effects/scopes in reverse creation order BEFORE
+    // running the previous-run cleanup or the new body. Their own
+    // `effectOper` invocations cascade into their cleanups too.
+    if (flags & HasChildEffect) {
+      let l = e.depsTail;
+      while (l !== undefined) {
+        const prev = l.prevDep;
+        const dep = l.dep;
+        if (!("getter" in dep) && !("currentValue" in dep)) {
+          unlink(l, e);
+        }
+        l = prev;
+      }
+    }
+
     // Run and clear any cleanup from the previous execution before re-running.
     if (e.onCleanup !== undefined) {
       const cleanups = e.onCleanup;
@@ -698,15 +774,20 @@ function run(e: EffectNode): void {
     const prevOwner = activeOwner;
     activeOwner = e;
     try {
+      ++runDepth;
       e.fn();
     } finally {
+      --runDepth;
       activeSub = prevSub;
       activeOwner = prevOwner;
       e.flags &= ~ReactiveFlags.RecursedCheck;
       purgeDeps(e);
     }
-  } else {
-    e.flags = ReactiveFlags.Watching;
+  } else if (e.deps !== undefined) {
+    // Restore Watching when the effect was touched by the notify chain but
+    // no dep is actually dirty. Preserve the HasChildEffect bit so a real
+    // re-run later still enters the slow path.
+    e.flags = ReactiveFlags.Watching | (flags & HasChildEffect);
   }
 }
 
@@ -803,7 +884,7 @@ function signalOper<T>(this: SignalNode<T>, ...value: [T]): T | void {
       this.flags = ReactiveFlags.Mutable | ReactiveFlags.Dirty;
       const subs = this.subs;
       if (subs !== undefined) {
-        propagate(subs);
+        propagate(subs, !!runDepth);
         if (!batchDepth) {
           flush();
         }
@@ -818,13 +899,12 @@ function signalOper<T>(this: SignalNode<T>, ...value: [T]): T | void {
         }
       }
     }
-    let sub = activeSub;
-    while (sub !== undefined) {
-      if (sub.flags & (ReactiveFlags.Mutable | ReactiveFlags.Watching)) {
-        link(this, sub, cycle);
-        break;
-      }
-      sub = sub.subs?.sub;
+    // Scopes are now `Mutable` themselves, so a direct link to `activeSub`
+    // suffices — no need to walk up the sub chain looking for a Mutable
+    // ancestor.
+    const sub = activeSub;
+    if (sub !== undefined) {
+      link(this, sub, cycle);
     }
     return this.currentValue;
   }
@@ -839,7 +919,11 @@ function signalOper<T>(this: SignalNode<T>, ...value: [T]): T | void {
  * @internal
  */
 function effectOper(this: EffectNode): void {
-  // Run and clear any registered cleanup before tearing down the effect.
+  // Dispose children first (depth-first, reverse creation order), then
+  // run this effect's own `onCleanup` callbacks. This keeps the LIFO
+  // contract: a child's cleanup sees its parent's state intact, and an
+  // outer cleanup runs after every descendant has been torn down.
+  effectScopeOper.call(this);
   if (this.onCleanup !== undefined) {
     const cleanups = this.onCleanup;
     this.onCleanup = undefined;
@@ -847,30 +931,32 @@ function effectOper(this: EffectNode): void {
       for (const fn of cleanups) fn();
     });
   }
-  effectScopeOper.call(this);
 }
 
 /**
  * The shared disposal implementation for both effect nodes and effectScope
  * nodes.
  *
- * For effect nodes this is also called indirectly via the `unwatched` callback
- * when the owning scope is disposed, triggering cleanup cascades through the
- * entire ownership tree.
+ * Called directly to dispose an `effectScope` handle, and indirectly via
+ * `effectOper` (effect disposal) and the `unwatched` callback (cascade
+ * disposal when a parent scope is torn down).
  *
  * Steps:
- * 1. Call and clear any registered `onCleanup` (handles cascade disposal where
- *    `effectOper` is not called directly).
- * 2. Reset `depsTail` and `flags` so the node is inert.
- * 3. Purge all dep links (which may recursively trigger `unwatched` on
- *    nested effects).
+ * 1. Reset `flags` so the node is inert.
+ * 2. Dispose every dep link in **reverse creation order** — child effects /
+ *    scopes get their `unwatched` callback fired in LIFO order, which
+ *    cascades cleanup through the entire ownership tree.
+ * 3. Run and clear any `onCleanup` registered on this node itself (covers
+ *    `effectScope(() => { onCleanup(...) })`). For effects this is a no-op:
+ *    `effectOper` already drained `onCleanup` after calling us.
  * 4. Unlink from any parent scope's sub-chain.
  *
  * @internal
  */
 function effectScopeOper(this: ReactiveNode): void {
-  // Handle cascade disposal: effectOper may not have been called if this node
-  // is being torn down because its parent scope was disposed.
+  this.flags = ReactiveFlags.None;
+  disposeAllDepsInReverse(this);
+
   const cleanups = (this as EffectNode).onCleanup;
   if (cleanups !== undefined) {
     (this as EffectNode).onCleanup = undefined;
@@ -879,9 +965,6 @@ function effectScopeOper(this: ReactiveNode): void {
     });
   }
 
-  this.depsTail = undefined;
-  this.flags = ReactiveFlags.None;
-  purgeDeps(this);
   const sub = this.subs;
   if (sub !== undefined) {
     unlink(sub);
@@ -889,11 +972,29 @@ function effectScopeOper(this: ReactiveNode): void {
 }
 
 /**
- * Removes all dep links from `sub` that were not refreshed during the most
- * recent tracking run (i.e. stale links appended after `depsTail`).
+ * Disposes every dep link of `sub` in **reverse creation order**.
  *
- * Called at the end of each tracking run (`updateComputed`, `run`) to prune
- * dependencies that the node no longer reads.
+ * Used for teardown: child effects and scopes are linked in the order they
+ * were created, so walking from `depsTail` back to `deps` releases them
+ * LIFO — descendants tear down before their parents.
+ *
+ * @internal
+ */
+function disposeAllDepsInReverse(sub: ReactiveNode): void {
+  let l = sub.depsTail;
+  while (l !== undefined) {
+    const prev = l.prevDep;
+    unlink(l, sub);
+    l = prev;
+  }
+}
+
+/**
+ * Removes stale dep links from `sub` after a tracking run — anything that
+ * was present before but not re-linked this run (lives past `depsTail`).
+ *
+ * Forward walk; used by `updateComputed` / `run` at the end of evaluation.
+ * For full teardown, use {@link disposeAllDepsInReverse} instead.
  *
  * @internal
  */

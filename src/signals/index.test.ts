@@ -1559,3 +1559,404 @@ describe("enterprise: type guard robustness", () => {
     stopS();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Regression tests ported from upstream alien-signals (post-v3.1.2)
+// ---------------------------------------------------------------------------
+
+describe("alien-signals regressions", () => {
+  // https://github.com/stackblitz/alien-signals/pull/112  (issue #99)
+  it("#99 consecutive inner resets through computed chain", () => {
+    const s = signal(0);
+    const c = computed(() => s());
+    let runs = 0;
+
+    effect(() => {
+      runs++;
+      if (c() > 0) {
+        s(0);
+      }
+    });
+
+    expect(runs).toBe(1);
+    s(1);
+    expect(s()).toBe(0);
+    expect(runs).toBe(2);
+    s(2);
+    expect(s()).toBe(0);
+    expect(runs).toBe(3);
+    s(3);
+    expect(s()).toBe(0);
+    expect(runs).toBe(4);
+  });
+
+  // https://github.com/stackblitz/alien-signals/issues/115
+  it("outer effect keeps responding to its own dep after inner re-runs", () => {
+    const a = signal(0);
+    const b = signal(0);
+    let outerRuns = 0;
+    let innerRuns = 0;
+
+    effect(() => {
+      a();
+      outerRuns++;
+      effect(() => {
+        b();
+        innerRuns++;
+      });
+    });
+    expect(outerRuns).toBe(1);
+    expect(innerRuns).toBe(1);
+
+    b(1);
+    expect(outerRuns).toBe(1);
+    expect(innerRuns).toBeGreaterThanOrEqual(2);
+
+    a(1);
+    expect(outerRuns).toBe(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// LIFO disposal contract (upstream PR #116, adapted to onCleanup arrays)
+// ---------------------------------------------------------------------------
+
+describe("disposal order (LIFO, depth-first reverse)", () => {
+  it("cleanup order on outer re-run: inner before outer, before new run", () => {
+    const log: string[] = [];
+    const a = signal(0);
+
+    effect(() => {
+      a();
+      log.push("outer:run");
+      effect(() => {
+        log.push("inner:run");
+        onCleanup(() => log.push("inner:cleanup"));
+      });
+      onCleanup(() => log.push("outer:cleanup"));
+    });
+    expect(log).toEqual(["outer:run", "inner:run"]);
+
+    log.length = 0;
+    a(1);
+    expect(log).toEqual([
+      "inner:cleanup",
+      "outer:cleanup",
+      "outer:run",
+      "inner:run",
+    ]);
+  });
+
+  it("cleanup order on dispose: inner before outer", () => {
+    const log: string[] = [];
+
+    const dispose = effect(() => {
+      log.push("outer:run");
+      effect(() => {
+        log.push("inner:run");
+        onCleanup(() => log.push("inner:cleanup"));
+      });
+      onCleanup(() => log.push("outer:cleanup"));
+    });
+    log.length = 0;
+    dispose();
+    expect(log).toEqual(["inner:cleanup", "outer:cleanup"]);
+  });
+
+  it("sibling cleanup order on dispose: reverse creation (LIFO)", () => {
+    const log: string[] = [];
+
+    const dispose = effect(() => {
+      effect(() => {
+        onCleanup(() => log.push("inner1:cleanup"));
+      });
+      effect(() => {
+        onCleanup(() => log.push("inner2:cleanup"));
+      });
+      effect(() => {
+        onCleanup(() => log.push("inner3:cleanup"));
+      });
+      onCleanup(() => log.push("outer:cleanup"));
+    });
+    dispose();
+    expect(log).toEqual([
+      "inner3:cleanup",
+      "inner2:cleanup",
+      "inner1:cleanup",
+      "outer:cleanup",
+    ]);
+  });
+
+  it("sibling cleanup order on outer re-run: reverse creation (LIFO)", () => {
+    const log: string[] = [];
+    const a = signal(0);
+
+    effect(() => {
+      a();
+      effect(() => {
+        onCleanup(() => log.push("inner1:cleanup"));
+      });
+      effect(() => {
+        onCleanup(() => log.push("inner2:cleanup"));
+      });
+      effect(() => {
+        onCleanup(() => log.push("inner3:cleanup"));
+      });
+      onCleanup(() => log.push("outer:cleanup"));
+    });
+    log.length = 0;
+
+    a(1);
+    expect(log.slice(0, 4)).toEqual([
+      "inner3:cleanup",
+      "inner2:cleanup",
+      "inner1:cleanup",
+      "outer:cleanup",
+    ]);
+  });
+
+  it("three-level nested cleanup on dispose: deepest first", () => {
+    const log: string[] = [];
+
+    const dispose = effect(() => {
+      effect(() => {
+        effect(() => {
+          onCleanup(() => log.push("grandchild:cleanup"));
+        });
+        onCleanup(() => log.push("child:cleanup"));
+      });
+      onCleanup(() => log.push("outer:cleanup"));
+    });
+    dispose();
+    expect(log).toEqual([
+      "grandchild:cleanup",
+      "child:cleanup",
+      "outer:cleanup",
+    ]);
+  });
+
+  it("computed unwatched: child effect cleanups run in reverse creation (LIFO)", () => {
+    // When the computed loses its last subscriber and gets unwatched, any
+    // effects it created during its getter must be cleaned up LIFO.
+    const log: string[] = [];
+    const c = computed(() => {
+      effect(() => {
+        onCleanup(() => log.push("e1"));
+      });
+      effect(() => {
+        onCleanup(() => log.push("e2"));
+      });
+      effect(() => {
+        onCleanup(() => log.push("e3"));
+      });
+      return 0;
+    });
+    const dispose = effect(() => {
+      c();
+    });
+    log.length = 0;
+    dispose();
+    expect(log).toEqual(["e3", "e2", "e1"]);
+  });
+
+  it("effect created inside computed: old inner cleanup runs before new inner setup", () => {
+    const a = signal(0);
+    const log: string[] = [];
+
+    const c = computed(() => {
+      log.push("computed:eval");
+      effect(() => {
+        log.push("inner:run");
+        onCleanup(() => log.push("inner:cleanup"));
+      });
+      return a();
+    });
+
+    effect(() => {
+      c();
+    });
+    log.length = 0;
+
+    a(1);
+    expect(log).toEqual(["inner:cleanup", "computed:eval", "inner:run"]);
+  });
+
+  // https://github.com/stackblitz/alien-signals/pull/111  (issue #105)
+  it("#105 signal and computed link to the same node in effectScope", () => {
+    const a = signal(0);
+    const b = computed(() => 0);
+    let triggers = 0;
+
+    effect(() => {
+      triggers += 1;
+      effectScope(() => {
+        effectScope(() => {
+          a();
+          b();
+        });
+      });
+    });
+
+    expect(triggers).toBe(1);
+    a(a() + 1);
+    expect(triggers).toBe(2);
+    trigger(b);
+    expect(triggers).toBe(3);
+  });
+
+  it("#105 effect responds to both signal and computed changes through scope", () => {
+    const s = signal(0);
+    const c = computed(() => s() * 2);
+    let triggers = 0;
+
+    effect(() => {
+      triggers += 1;
+      effectScope(() => {
+        s();
+        c();
+      });
+    });
+
+    expect(triggers).toBe(1);
+    s(1);
+    expect(triggers).toBe(2);
+    trigger(c);
+    expect(triggers).toBe(3);
+  });
+
+  it("#105 scope responds to consecutive signal updates", () => {
+    const s = signal(0);
+    let triggers = 0;
+
+    effect(() => {
+      triggers += 1;
+      effectScope(() => {
+        s();
+      });
+    });
+
+    expect(triggers).toBe(1);
+    s(1);
+    expect(triggers).toBe(2);
+    s(2);
+    expect(triggers).toBe(3);
+  });
+
+  it("#105 computed in standalone scope caches and cleans up", () => {
+    const s = signal(0);
+    let computeCount = 0;
+
+    const dispose = effectScope(() => {
+      const c = computed(() => {
+        computeCount++;
+        return s();
+      });
+      expect(c()).toBe(0);
+      expect(c()).toBe(0);
+    });
+
+    // Computed should cache (only 1 evaluation, not 2)
+    expect(computeCount).toBe(1);
+    dispose();
+  });
+
+  it("scope dispose runs child effect cleanup", () => {
+    const log: string[] = [];
+    const dispose = effectScope(() => {
+      effect(() => {
+        onCleanup(() => log.push("inner:cleanup"));
+      });
+    });
+    dispose();
+    expect(log).toEqual(["inner:cleanup"]);
+  });
+
+  it("scope dispose: sibling effects clean up in reverse creation (LIFO)", () => {
+    const log: string[] = [];
+    const dispose = effectScope(() => {
+      effect(() => {
+        onCleanup(() => log.push("e1:cleanup"));
+      });
+      effect(() => {
+        onCleanup(() => log.push("e2:cleanup"));
+      });
+      effect(() => {
+        onCleanup(() => log.push("e3:cleanup"));
+      });
+    });
+    dispose();
+    expect(log).toEqual(["e3:cleanup", "e2:cleanup", "e1:cleanup"]);
+  });
+
+  it("scope dispose: nested effect cleanup runs depth-first reverse", () => {
+    const log: string[] = [];
+    const dispose = effectScope(() => {
+      effect(() => {
+        effect(() => {
+          onCleanup(() => log.push("grandchild:cleanup"));
+        });
+        onCleanup(() => log.push("child:cleanup"));
+      });
+    });
+    dispose();
+    expect(log).toEqual(["grandchild:cleanup", "child:cleanup"]);
+  });
+
+  it("scope as intermediate parent: cleanup order respects nesting", () => {
+    const a = signal(0);
+    const log: string[] = [];
+
+    effect(() => {
+      a();
+      log.push("outer:run");
+      effectScope(() => {
+        effect(() => {
+          log.push("inner:run");
+          onCleanup(() => log.push("inner:cleanup"));
+        });
+      });
+      onCleanup(() => log.push("outer:cleanup"));
+    });
+    log.length = 0;
+
+    a(1);
+    expect(log).toEqual([
+      "inner:cleanup",
+      "outer:cleanup",
+      "outer:run",
+      "inner:run",
+    ]);
+  });
+
+  it("cleanup order is correct on outer re-run after a prior inner-only re-run", () => {
+    // Regression: an inner re-run routes the outer through run()'s
+    // not-dirty branch (restoring Watching). The HasChildEffect bit must
+    // survive that visit so the next *real* outer re-run still disposes
+    // children before its own cleanup.
+    const a = signal(0);
+    const b = signal(0);
+    const log: string[] = [];
+
+    effect(() => {
+      a();
+      log.push("outer:run");
+      effect(() => {
+        b();
+        log.push("inner:run");
+        onCleanup(() => log.push("inner:cleanup"));
+      });
+      onCleanup(() => log.push("outer:cleanup"));
+    });
+
+    b(1); // inner re-runs alone; outer is touched via notify chain
+    log.length = 0;
+
+    a(1);
+    expect(log).toEqual([
+      "inner:cleanup",
+      "outer:cleanup",
+      "outer:run",
+      "inner:run",
+    ]);
+  });
+});
