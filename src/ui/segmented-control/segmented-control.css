@@ -56,7 +56,18 @@
     calc(var(--seg-track-radius) - var(--seg-inset))
   );
 
+  /* Light: --color-background (white) lifts above the alpha-overlay track.
+   * Dark: --color-background ≤ track surface, so layer another alpha
+   * step instead — stacks above the existing overlay without breaking
+   * accent theming (--base-color-* tracks accent, --gray-* doesn't). */
+  --seg-indicator-bg: var(--color-background);
+
   border-radius: var(--seg-track-radius);
+}
+
+:is(.dark, .dark-theme) :where(.x-segmented-control:not(.light, .light-theme)),
+:is(.dark, .dark-theme):where(.x-segmented-control:not(.light, .light-theme)) {
+  --seg-indicator-bg: var(--base-color-a3);
 }
 
 /***************************************************************************************************
@@ -166,7 +177,7 @@
   inset: var(--seg-inset);
   z-index: -1;
 
-  background-color: var(--color-background);
+  background-color: var(--seg-indicator-bg);
   border-radius: var(--seg-indicator-radius);
   box-shadow:
     0 0 0 0.5px var(--base-color-a3),
@@ -208,7 +219,7 @@
     right: anchor(--x-seg-active right);
     width: auto;
 
-    background-color: var(--color-background);
+    background-color: var(--seg-indicator-bg);
     border-radius: var(--seg-indicator-radius);
     box-shadow:
       0 0 0 0.5px var(--base-color-a3),
