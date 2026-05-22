@@ -43,12 +43,6 @@ export const librarySidebar: SidebarItem[] = [
       { label: "Slots", slug: "custom-elements/slots" },
     ],
   },
-  {
-    label: "Components",
-    items: [
-      { label: "dom-lifecycle", slug: "components/dom-lifecycle" },
-    ],
-  },
   { label: "Utilities", slug: "utilities" },
 ];
 
@@ -100,6 +94,10 @@ export const uiSidebar: SidebarItem[] = [
       { label: "Slider", slug: "ui/slider", badge: cssBadge },
       { label: "Switch", slug: "ui/switch", badge: cssBadge },
     ],
+  },
+  {
+    label: "Utilities",
+    items: [{ label: "dom-lifecycle", slug: "components/dom-lifecycle" }],
   },
   {
     label: "Marketing",
