@@ -1,0 +1,379 @@
+/*
+ * Segmented control — CSS-only.
+ *
+ * Decorates native <input type="radio"> markup. Author owns semantics
+ * (group label via <legend> or aria-label[ledby], shared name, value,
+ * checked, disabled). CSS owns layout, indicator, transitions.
+ *
+ * Indicator is two-tier:
+ *   Tier 1 (universal) — per-label ::before crossfades on :has(:checked).
+ *   Tier 2 (modern)    — single ::after slides via CSS Anchor Positioning.
+ *
+ * Markup contract:
+ *   <div class="x-segmented-control" role="radiogroup" aria-label="...">
+ *     <label>
+ *       <input type="radio" name="g" value="a" checked>
+ *       <span>A</span>
+ *     </label>
+ *     <label><input type="radio" name="g" value="b"><span>B</span></label>
+ *   </div>
+ */
+
+.x-segmented-control {
+  position: relative;
+  display: inline-grid;
+  grid-auto-flow: column;
+  /* `minmax(0, 1fr)` (not the `1fr` shorthand) forces truly equal columns
+   * regardless of per-label content width. Without it, longer labels grow
+   * their column past the 1fr share, the indicator inherits that variable
+   * width via anchor-size, and the slide between segments visibly stretches. */
+  grid-auto-columns: minmax(0, 1fr);
+  align-items: stretch;
+  vertical-align: top;
+  min-width: max-content;
+  isolation: isolate;
+
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  color: var(--base-color-12);
+  background-color: var(--color-surface);
+  background-image: linear-gradient(
+    var(--base-color-a3),
+    var(--base-color-a3)
+  );
+
+  font-family: var(--default-font-family);
+  font-style: normal;
+  text-align: center;
+
+  --seg-inset: 1px;
+  --seg-transition-duration: 100ms;
+  --seg-track-radius: max(var(--radius-2), var(--radius-pill));
+  --seg-indicator-radius: max(
+    0.5px,
+    calc(var(--seg-track-radius) - var(--seg-inset))
+  );
+
+  border-radius: var(--seg-track-radius);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * ITEM (label)                                                                                    *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-segmented-control > label {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  user-select: none;
+  cursor: var(--cursor-button);
+
+  color: var(--base-color-a11);
+  font-weight: var(--font-weight-regular);
+  letter-spacing: var(--tab-inactive-letter-spacing);
+
+  transition: color var(--seg-transition-duration);
+}
+
+.x-segmented-control > label:where(:first-child) {
+  border-top-left-radius: inherit;
+  border-bottom-left-radius: inherit;
+}
+.x-segmented-control > label:where(:last-child) {
+  border-top-right-radius: inherit;
+  border-bottom-right-radius: inherit;
+}
+
+/* Visually hide the native radio while keeping it focusable & form-participating. */
+.x-segmented-control :where(input[type="radio"]) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  clip-path: inset(50%);
+  pointer-events: none;
+  appearance: none;
+}
+
+/* Active label — color only. font-weight/letter-spacing intentionally NOT
+ * swapped: either change re-flows the label's natural width, which together
+ * with `min-width: max-content` on the container makes the whole control
+ * reshape per selection. The anchored indicator then sees a different cell
+ * width each frame and visually stretches mid-transition. The indicator
+ * itself + a11y semantics carry the active state. */
+.x-segmented-control > label:where(:has(:checked)) {
+  color: var(--base-color-12);
+}
+
+/* Focus ring surfaces on the label (input is visually hidden). */
+.x-segmented-control > label:where(:has(:focus-visible)) {
+  outline: 2px solid var(--focus-8);
+  outline-offset: -1px;
+  border-radius: inherit;
+}
+
+/* Hover wash on inactive segments only. */
+@media (hover: hover) {
+  .x-segmented-control > label:where(:not(:has(:checked, :disabled)):hover) {
+    background-color: var(--base-color-a2);
+  }
+}
+
+/* Separators between adjacent inactive segments — hairlines that fade
+ * when either neighbour becomes active or focused, matching Radix.
+ */
+.x-segmented-control > label + label::after {
+  content: "";
+  position: absolute;
+  /* Logical inset so the hairline lands at the label's logical-start edge
+   * (left in LTR, right in RTL) — between two adjacent segments either way. */
+  inset-inline-start: 0;
+  top: var(--seg-inset);
+  bottom: var(--seg-inset);
+  width: 1px;
+  margin-inline-start: -0.5px;
+  background-color: var(--base-color-a4);
+  z-index: -1;
+  transition: opacity var(--seg-transition-duration) ease-out;
+}
+.x-segmented-control
+  > label:where(:has(:checked, :focus-visible))::after,
+.x-segmented-control
+  > label:where(:has(:checked, :focus-visible))
+  + label::after {
+  opacity: 0;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * INDICATOR — Tier 1 (universal crossfade)                                                        *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-segmented-control > label::before {
+  content: "";
+  position: absolute;
+  inset: var(--seg-inset);
+  z-index: -1;
+
+  background-color: var(--color-background);
+  border-radius: var(--seg-indicator-radius);
+  box-shadow:
+    0 0 0 0.5px var(--base-color-a3),
+    0 1px 2px var(--base-color-a4);
+
+  opacity: 0;
+  transition: opacity var(--seg-transition-duration) ease-out;
+}
+
+.x-segmented-control > label:where(:has(:checked))::before {
+  opacity: 1;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * INDICATOR — Tier 2 (anchor-positioning slide, unbounded N)                                      *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+@supports (anchor-name: --x) {
+  /* Suppress Tier 1 — single shared indicator slides instead. */
+  .x-segmented-control > label::before {
+    display: none;
+  }
+
+  .x-segmented-control > label:where(:has(:checked)) {
+    anchor-name: --x-seg-active;
+  }
+
+  .x-segmented-control::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    top: var(--seg-inset);
+    bottom: var(--seg-inset);
+    /* Anchor BOTH edges so the indicator stretches between them with no
+     * width interpolation — keeps motion smooth in LTR and RTL. */
+    left: anchor(--x-seg-active left);
+    right: anchor(--x-seg-active right);
+    width: auto;
+
+    background-color: var(--color-background);
+    border-radius: var(--seg-indicator-radius);
+    box-shadow:
+      0 0 0 0.5px var(--base-color-a3),
+      0 1px 2px var(--base-color-a4);
+
+    transition:
+      left var(--seg-transition-duration) cubic-bezier(0.45, 0.05, 0.55, 0.95),
+      right var(--seg-transition-duration) cubic-bezier(0.45, 0.05, 0.55, 0.95);
+  }
+
+  /* No selection — hide the slider. */
+  .x-segmented-control:not(:has(:checked))::after {
+    display: none;
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * DISABLED                                                                                        *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-segmented-control:where(:disabled, [data-disabled]) {
+  color: var(--base-color-a8);
+  background-image: linear-gradient(
+    var(--base-color-a2),
+    var(--base-color-a2)
+  );
+}
+
+.x-segmented-control:where(:disabled, [data-disabled]) > label,
+.x-segmented-control > label:where(:has(:disabled)) {
+  cursor: var(--cursor-disabled);
+  color: var(--base-color-a8);
+}
+
+.x-segmented-control:where(:disabled, [data-disabled]) > label::before,
+.x-segmented-control > label:where(:has(:disabled))::before {
+  background-color: var(--base-color-a3);
+  box-shadow: none;
+}
+
+@supports (anchor-name: --x) {
+  .x-segmented-control:where(:disabled, [data-disabled])::after,
+  .x-segmented-control:where(:has(> label:where(:has(:disabled)):has(:checked)))::after {
+    background-color: var(--base-color-a3);
+    box-shadow: none;
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * MOTION                                                                                          *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+@media (prefers-reduced-motion: reduce) {
+  .x-segmented-control,
+  .x-segmented-control > label,
+  .x-segmented-control > label::before,
+  .x-segmented-control > label + label::after,
+  .x-segmented-control::after {
+    transition: none;
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * FORCED COLORS                                                                                   *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+@media (forced-colors: active) {
+  .x-segmented-control {
+    background-image: none;
+    border: 1px solid ButtonText;
+  }
+  .x-segmented-control > label {
+    color: ButtonText;
+  }
+  .x-segmented-control > label:where(:has(:checked)) {
+    color: HighlightText;
+  }
+  .x-segmented-control > label::before,
+  .x-segmented-control::after {
+    background-color: Highlight;
+    box-shadow: none;
+    border: 1px solid HighlightText;
+  }
+  .x-segmented-control > label:where(:has(:focus-visible)) {
+    outline-color: Highlight;
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SIZES                                                                                           *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-segmented-control:where(:not([data-size])),
+.x-segmented-control:where([data-size="2"]) {
+  height: var(--space-6);
+  --seg-track-radius: max(var(--radius-2), var(--radius-pill));
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-2);
+
+  & > label {
+    padding-inline: var(--space-3);
+  }
+}
+
+.x-segmented-control:where([data-size="1"]) {
+  height: var(--space-5);
+  --seg-track-radius: max(var(--radius-1), var(--radius-pill));
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
+
+  & > label {
+    padding-inline: var(--space-2);
+    gap: var(--space-1);
+  }
+}
+
+.x-segmented-control:where([data-size="3"]) {
+  height: var(--space-7);
+  --seg-track-radius: max(var(--radius-3), var(--radius-pill));
+  font-size: var(--font-size-3);
+  line-height: var(--line-height-3);
+
+  & > label {
+    padding-inline: var(--space-4);
+    gap: var(--space-2);
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * VARIANTS                                                                                        *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* surface (default) — Radix-style: surface track + white indicator. */
+
+/* soft — tinted track using the active color scale. */
+.x-segmented-control:where([data-variant="soft"]) {
+  background-image: linear-gradient(var(--color-a3), var(--color-a3));
+
+  & > label {
+    color: var(--color-a11);
+  }
+  & > label:where(:has(:checked)) {
+    color: var(--color-a12, var(--color-12));
+  }
+  & > label + label::after {
+    background-color: var(--color-a4);
+  }
+}
+
+/* High contrast — boost active text against indicator. */
+.x-segmented-control:where([data-high-contrast]) > label:where(:has(:checked)) {
+  color: var(--base-color-12);
+}
+.x-segmented-control:where(
+    [data-high-contrast][data-variant="soft"]
+  ) > label:where(:has(:checked)) {
+  color: var(--color-12);
+}

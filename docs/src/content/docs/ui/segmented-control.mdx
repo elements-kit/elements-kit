@@ -1,0 +1,169 @@
+---
+title: Segmented Control
+description: CSS-only segmented control over native radios — two-tier indicator with crossfade fallback and CSS Anchor Positioning slide upgrade.
+---
+
+import Playground from "@/playground/Playground.astro";
+import SEG from "@/playground/files/ui-segmented-control.tsx?raw";
+
+A grid of native `<input type="radio">` styled via class + data attributes from the optional [styles layer](/ui/styles). No JS, no per-N rules, no segment cap. The indicator is **two-tier**: an opacity crossfade per label as the universal baseline, with a single sliding indicator powered by [CSS Anchor Positioning](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_anchor_positioning) wherever it's supported.
+
+<Playground
+  provider={{ files: { "/main.tsx": { code: SEG, active: true } } }}
+  preview={{}}
+/>
+
+## Install
+
+```ts
+import "elements-kit/ui/styles/theme.css";
+import "elements-kit/ui/styles/scaling.css";
+import "elements-kit/ui/styles/radius.css";
+import "elements-kit/ui/styles/space.css";
+import "elements-kit/ui/styles/typography.css";
+import "elements-kit/ui/styles/cursor.css";
+import "elements-kit/ui/styles/unset.css";
+// pick a neutral palette for --base-color-* (must match data-base-color on root):
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/base/gray.css";
+// import any color scales you want to use for accent theming:
+import "elements-kit/ui/styles/palette/mint.css";
+import "elements-kit/ui/styles/colors/mint.css";
+// and the segmented control itself:
+import "elements-kit/ui/segmented-control/segmented-control.css";
+```
+
+See [Styles](/ui/styles) for the full token system, accent/gray scale lists, and theming knobs.
+
+## API
+
+```html
+<div
+  class="unset x-segmented-control"
+  role="radiogroup"
+  aria-label="View"
+  data-variant="surface"
+  data-size="2"
+>
+  <label>
+    <input type="radio" name="view" value="grid" checked />
+    <span>Grid</span>
+  </label>
+  <label>
+    <input type="radio" name="view" value="list" />
+    <span>List</span>
+  </label>
+  <label>
+    <input type="radio" name="view" value="kanban" />
+    <span>Kanban</span>
+  </label>
+</div>
+```
+
+The `unset` class ([Styles → Unset native styles](/ui/styles#unset-native-styles)) clears the browser's default rendering on the container and the radios so `.x-segmented-control` styles render predictably.
+
+Markup contract: the container holds `<label>` direct children, each wrapping one `<input type="radio">` and its visible text. CSS visually hides the input (the label is the hit target) and renders the indicator behind it.
+
+| Attribute *(on the container)* | Values |
+| --- | --- |
+| `data-size` | `1`, `2` *(default)*, `3` |
+| `data-variant` | `surface` *(default)*, `soft` |
+| `data-color` *(on a parent or the container)* | any imported color scale (`mint`, `blue`, `iris`, …) |
+| `data-high-contrast` | modifier — boosts active text against indicator |
+| `data-radius` *(on a parent)* | inherits from the [Styles radius scale](/ui/styles#radius) |
+| `data-disabled` | non-fieldset containers; on a `<fieldset>` use the native `disabled` attribute |
+
+| Attribute *(on each input)* | Notes |
+| --- | --- |
+| `type="radio"` | required |
+| `name` | required, shared across siblings in one group |
+| `value` | required for form submission |
+| `checked` | preselect one — recommended (see [Accessibility](#accessibility)) |
+| `disabled` | disables a single segment; arrow-key nav skips it automatically |
+
+ARIA attributes (`role`, `aria-label` / `aria-labelledby`) are author-supplied — the CSS adds nothing.
+
+## Sizing
+
+| `data-size` | height | radius |
+| --- | --- | --- |
+| `1` | `--space-5` (~24px) | `--radius-1` |
+| `2` *(default)* | `--space-6` (~32px) | `--radius-2` |
+| `3` | `--space-7` (~40px) | `--radius-3` |
+
+At sizes ≥ 2 the track meets the [WCAG 2.5.5 target-size minimum](https://www.w3.org/WAI/WCAG21/Understanding/target-size.html) for pointer hit-areas.
+
+## Variants
+
+- **`surface`** *(default)* — Radix-style: surface track tinted with `--base-color-a3`, indicator fills with `--color-background` and a 1px hairline + 1px shadow. Inactive text uses `--base-color-a11`; active jumps to `--base-color-12` and `--font-weight-medium`.
+- **`soft`** — accent-tinted track using `--color-a3`. Inactive text uses `--color-a11`; active uses `--color-12`. Pairs well with `data-color`.
+
+## States
+
+- `:checked` — surfaces the indicator (crossfade in Tier 1; slide in Tier 2) and bumps text weight + letter-spacing for clarity without relying on color alone.
+- `:focus-visible` — 2px `--focus-8` ring on the label (not the hidden input).
+- `:hover` — inactive segments get a subtle `--base-color-a2` wash; active and disabled don't react.
+- `:disabled` / `[data-disabled]` — desaturates colors, drops the shadow, and switches cursor to `--cursor-disabled`.
+
+## Theming
+
+Set `data-color="<color>"` on the container or any ancestor (e.g. `<body>`) to theme the accent. Affects the `soft` variant's track and the focus ring. Light/dark flips automatically via the `.dark` class on a parent — see [Light & dark](/ui/styles#light--dark).
+
+```html
+<body data-color="iris">
+  <div class="unset x-segmented-control" data-variant="soft" role="radiogroup" aria-label="Tone">
+    <label><input type="radio" name="tone" value="quiet" checked /><span>Quiet</span></label>
+    <label><input type="radio" name="tone" value="bold" /><span>Bold</span></label>
+  </div>
+</body>
+```
+
+## How the indicator works
+
+Two layers, feature-detected with `@supports (anchor-name: --x)`:
+
+- **Tier 1 — universal.** Each `<label>::before` is the indicator; default `opacity: 0`, raised to `1` on `:has(:checked)`. 100ms ease-out transition gives a gentle crossfade between segments. No N math, no per-index rules.
+- **Tier 2 — modern, slide.** Inside the `@supports` block the per-label `::before` is hidden and a single `.x-segmented-control::after` element slides between segments. The active label becomes the anchor (`anchor-name: --x-seg-active` on `:has(:checked)`) and the indicator reads `anchor(--x-seg-active left)` / `anchor-size(--x-seg-active width)` to follow it. Works at any segment count without changing the stylesheet.
+
+Author writes the same markup either way. Browsers without anchor positioning get the crossfade; browsers with it get the slide.
+
+## Accessibility
+
+Native radios carry the entire APG pattern. CSS only paints. Author responsibilities, in order of importance:
+
+1. **A group label is mandatory.** Either wrap the control in `<fieldset>` + `<legend>` (preferred — free for screen readers and form labels) or put `role="radiogroup"` plus `aria-labelledby` / `aria-label` on the container.
+2. **Shared `name=`** across every radio in the group. Different `name`s break single-select and break the keyboard model.
+3. **`value=`** on every radio so form submission produces a meaningful entry.
+4. **Preselect a default.** Without `checked`, screen readers announce "0 of N selected" — a smell that reads as broken. Skip preselection only when the field is genuinely optional and the surrounding UI makes that clear.
+5. **Disabled semantics.** Use `<fieldset disabled>` for the whole group or `disabled` on a single `<input>`; don't toggle `aria-disabled` manually. Native arrow-key nav skips disabled inputs automatically.
+6. **Focus model.** Native: Tab into the group, ←/→/↑/↓ to move + select, Tab out. CSS surfaces the focus ring on the visible label, not on the hidden input.
+7. **Don't rely on color alone.** Active segment also bumps `font-weight: var(--font-weight-medium)` and `letter-spacing: var(--tab-active-letter-spacing)` — Radix-mirrored.
+8. **Forced colors.** A 1px border on the indicator and `Highlight` / `HighlightText` / `ButtonText` fallbacks keep it visible in Windows High Contrast.
+9. **Reduced motion.** `prefers-reduced-motion: reduce` removes every transition.
+
+APG pattern: [WAI-ARIA Authoring Practices — Radio Group](https://www.w3.org/WAI/ARIA/apg/patterns/radio/).
+
+:::caution[Don't]
+Ship radios in the same logical group with different `name=` attributes — multiple can be selected, and the keyboard arrow-key model between siblings stops working.
+:::
+
+:::caution[Don't]
+Use this for switching a visible panel — that's the [Tabs pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/) with `role="tablist"` + `aria-controls` and a roving-tabindex implementation. Use radios only for picking a value.
+:::
+
+:::caution[Don't]
+Add `aria-checked` or `aria-selected` to the radios. Native radio semantics already announce state; layering ARIA on top is a regression.
+:::
+
+## When not to use
+
+- **Multi-select** — use a checkbox group; segmented controls are single-select by nature.
+- **7+ options** — switch to a `<select>` or a listbox; segmented controls compete for space the more segments you add.
+- **Tabs** — switching a visible panel is the [Tabs APG pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/) (roving tabindex + `aria-controls`), not radios.
+
+## Browser support
+
+- **Tier 1 (crossfade)** — works in every browser meeting `elements-kit`'s build targets (Chrome / Firefox 100+, Safari 16+). Relies on `:has()`, shipped in Safari 15.4, Chrome 105, Firefox 121.
+- **Tier 2 (anchor slide)** — auto-enables on browsers that ship [CSS Anchor Positioning](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_anchor_positioning) (Chrome / Edge 125+, Safari 26+, Firefox once shipped unflagged). No polyfill needed.
+
+A browser that lacks both `:has()` and anchor positioning still gets functional, accessible radios — just without an indicator.
