@@ -50,8 +50,6 @@ Utilities are pre-built factories that wrap common browser APIs in signals — s
 | `sync` | `utilities/event-driven` | `[Computed<T> \| Signal<T>, () => void]` |
 | `setContext` | `utilities/context` | `void` |
 | `getContext` | `utilities/context` | `T \| undefined` |
-| `<dom-lifecycle>` | `utilities/dom-lifecycle` | Custom element |
-| `DomLifecycleElement` | `utilities/dom-lifecycle` | `class` |
 
 ---
 
@@ -867,127 +865,6 @@ function createPrevious<T>(
 
 ---
 
-## DOM lifecycle
-
-Drop-in custom element. Place inside any element (or wrap children) to be notified when the surrounding subtree connects, disconnects, moves, or is adopted into another document. Built on the platform's own custom-element callbacks — no `MutationObserver`, no global registry. Useful when a JSX `ref` callback fires too early — e.g. resolving `getContext`, measuring layout, attaching observers that need a connected ancestor.
-
-Position-tracking callbacks (`onConnect`, `onDisconnect`, `onMove`) receive the **lifecycle element itself**. Read `self.parentElement` for the surrounding element, `self.firstElementChild` / `self.children` for wrapped content, or `self.getRootNode()` to walk through a shadow root. `self` is always non-null — even when the lifecycle element is the direct child of a `ShadowRoot` (where `parentElement` is `null`).
-
-**Render-inert by default**: `display: contents` removes its layout box so it doesn't affect the parent's layout, and `role="none"` strips its implicit a11y role. Children passed inside it participate in layout and a11y as if the wrapper weren't there. Caveat: structural CSS selectors (`:empty`, `:first-child`, `:nth-child`) still see the element in the DOM tree.
-
-### `<dom-lifecycle>`
-
-```tsx
-import "elements-kit/utilities/dom-lifecycle";
-
-function FocusOnMount() {
-  return (
-    <div>
-      <dom-lifecycle
-        onConnect={(el) => (el.parentElement as HTMLElement | null)?.focus()}
-      />
-    </div>
-  );
-}
-```
-
-Wrap children — read the wrapped subtree through `self.firstElementChild`:
-
-```tsx
-<section>
-  <dom-lifecycle onConnect={(el) => measure(el.firstElementChild)}>
-    <h1>Title</h1>
-    <p>Body</p>
-  </dom-lifecycle>
-</section>
-```
-
-#### Wrap children to consume context
-
-Call `getContext(self, …)` inside `onConnect` — the walk goes from the wrapper up through its ancestors, so any outer provider resolves. Expose the result as a signal so wrapped children read it without each one running its own lookup.
-
-```tsx
-import { signal } from "elements-kit/signals";
-import { getContext } from "elements-kit/utilities/context";
-import "elements-kit/utilities/dom-lifecycle";
-
-const THEME = Symbol("theme");
-
-function ThemedSection() {
-  const theme = signal<string | undefined>(undefined);
-  return (
-    <dom-lifecycle onConnect={(el) => theme(getContext<string>(el, THEME))}>
-      <h1 data-theme={() => theme() ?? "default"}>Title</h1>
-      <p data-theme={() => theme() ?? "default"}>Body</p>
-    </dom-lifecycle>
-  );
-}
-```
-
-The wrapper is transparent in the ancestor walk, so wrapped children may also call `getContext` directly on themselves and reach the same outer provider. Use `onConnect` when you want to read once at mount and fan the value out to multiple children via a single signal.
-
-#### Observing descendant mutations
-
-`<dom-lifecycle>` only fires on its **own** (re)connection — it does **not** observe descendant mutations (children being added, removed, or replaced while the wrapper stays mounted). For per-child mount/unmount inside its subtree, either nest a `<dom-lifecycle>` per child or use `createMutationObserver` on `el` inside `onConnect`:
-
-```tsx
-import { createMutationObserver } from "elements-kit/utilities/mutation-observer";
-
-<dom-lifecycle
-  onConnect={(el) => {
-    createMutationObserver(el, { childList: true }, (records) => {
-      for (const r of records) {
-        // r.addedNodes, r.removedNodes
-      }
-    });
-  }}
->
-  <For each={items}>{(item) => <li>{item}</li>}</For>
-</dom-lifecycle>
-```
-
-#### Callbacks
-
-| Callback | Mirrors | Argument | Fires on |
-|----------|---------|----------|----------|
-| `onConnect` | `connectedCallback` | `self: DomLifecycleElement` | every connection — `self.parentElement` is the surrounding element, `self.firstElementChild` is the wrapped content |
-| `onDisconnect` | `disconnectedCallback` | `self: DomLifecycleElement` | every disconnection — `self.parentElement` is `null` per spec; capture the parent inside `onConnect` if you need it on disconnect |
-| `onMove` | `connectedMoveCallback` | `self: DomLifecycleElement` | move via `Node.moveBefore()` (in browsers without that API, the disconnect+connect pair fires instead) |
-| `onAdopted` | `adoptedCallback` | `(oldDocument, newDocument)` | when the element is adopted into a new document |
-
-```tsx
-<div>
-  <dom-lifecycle
-    onConnect={(el) => {
-      const io = new IntersectionObserver((entries) => {});
-      if (el.parentElement) io.observe(el.parentElement);
-    }}
-    onDisconnect={(el) => {
-      // pair cleanup with the resource you opened in onConnect
-      // el.parentElement is null here per spec
-    }}
-    onMove={(el) => {
-      // fires instead of disconnect+connect when moveBefore() is used
-    }}
-  />
-</div>
-```
-
-`onConnect` / `onDisconnect` re-fire on every (re)connection (item moves in `<For>`, portal moves between parents). The user removes the element themselves; it does not self-remove. To make a callback one-shot, set the property to `null` after the first fire.
-
-```ts
-class DomLifecycleElement extends HTMLElement {
-  onConnect: ((self: DomLifecycleElement) => void) | null;
-  onDisconnect: ((self: DomLifecycleElement) => void) | null;
-  onMove: ((self: DomLifecycleElement) => void) | null;
-  onAdopted: ((oldDocument: Document, newDocument: Document) => void) | null;
-}
-```
-
-Works inside open and closed shadow roots, after `cloneNode(true)`, after `innerHTML` upgrade, and under strict CSP — same guarantees the platform gives any custom element.
-
----
-
 ## Context
 
 DOM-tree dependency injection — pass values down a custom-element subtree without prop drilling or globals. Provider registers a value on a host element; descendants look it up by walking `parentNode` (crossing into shadow hosts via `getRootNode().host`). Innermost provider wins. Reactivity is opt-in: pass a `Signal` / `Computed` and read it inside an effect.
@@ -1029,7 +906,7 @@ function setContext<T>(host: EventTarget, key: PropertyKey, value: T): void
 
 Walks up from `consumer` (across open shadow boundaries) and returns the first registered value for `key`, or `undefined`. One-shot — does not subscribe. Caller decides how to read the result (call signals inside an effect for reactive reads).
 
-The consumer must be in the DOM tree at call time. Inside a JSX `ref` callback the element has not yet been inserted, so a synchronous `getContext(el, …)` returns `undefined`. Defer the lookup to mount time with [`<dom-lifecycle>`](#dom-lifecycle):
+The consumer must be in the DOM tree at call time. Inside a JSX `ref` callback the element has not yet been inserted, so a synchronous `getContext(el, …)` returns `undefined`. Defer the lookup to mount time with [`<dom-lifecycle>`](/components/dom-lifecycle/):
 
 ```tsx
 import { signal } from "elements-kit/signals";
@@ -1072,7 +949,7 @@ function getContext<T>(consumer: Element, key: PropertyKey): T | undefined
 
 ### Consuming context from a component
 
-For a component body that needs `getContext` after connection, defer with [`<dom-lifecycle>`](#dom-lifecycle) — it's render-inert (zero layout box, no a11y role) and its `onConnect` fires once the consumer is in the tree:
+For a component body that needs `getContext` after connection, defer with [`<dom-lifecycle>`](/components/dom-lifecycle/) — it's render-inert (zero layout box, no a11y role) and its `onConnect` fires once the consumer is in the tree:
 
 ```tsx
 import { signal } from "elements-kit/signals";

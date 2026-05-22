@@ -43,6 +43,12 @@ export const librarySidebar: SidebarItem[] = [
       { label: "Slots", slug: "custom-elements/slots" },
     ],
   },
+  {
+    label: "Components",
+    items: [
+      { label: "dom-lifecycle", slug: "components/dom-lifecycle" },
+    ],
+  },
   { label: "Utilities", slug: "utilities" },
 ];
 
