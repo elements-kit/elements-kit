@@ -64,7 +64,7 @@ Set `data-radius` on an ancestor to scale corner curvature globally; `--scaling`
 ## Variants
 
 - **`surface`** — 1px hairline border (`--base-color-a5`). Default. The everyday card.
-- **`elevated`** — same border plus `--shadow-2` elevation; hover lifts to `--shadow-3`. Use for primary, hover-able cards.
+- **`elevated`** — same border plus a tailored drop shadow. Uses dual outer-on-element + inner-on-`::after` shadows (`--card-elevated-box-shadow-outer` / `-inner`) with matching 6-layer counts across base/hover/active so the lift transitions smoothly. Use for primary, hover-able cards.
 - **`borderless`** — no border, no background. Hover fills with `--base-color-a3`. Use inside dense lists or as clickable rows.
 
 ## Inset

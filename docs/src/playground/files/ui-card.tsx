@@ -12,8 +12,12 @@ import "elements-kit/ui/styles/colors/mint.css";
 // pick a neutral palette for --base-color-* (must match data-base-color on root):
 import "elements-kit/ui/styles/palette/gray.css";
 import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/palette/black-alpha.css";
+import "elements-kit/ui/styles/palette/white-alpha.css";
+import "elements-kit/ui/styles/colors/base.css";
 
 import "elements-kit/ui/card/card.css";
+import "elements-kit/ui/button/button.css";
 
 import { signal } from "elements-kit/signals";
 
@@ -35,9 +39,10 @@ function Label({ children }: { children: any }) {
   );
 }
 
-function Heading({ children }: { children: any }) {
+function Heading({ children, id }: { children: any; id?: string }) {
   return (
     <h2
+      id={id}
       style:font-size="20px"
       style:font-weight="600"
       style:letter-spacing="-0.01em"
@@ -106,15 +111,10 @@ export class App {
         >
           <button
             class:unset
+            class:x-button
+            data-size="1"
+            data-variant="soft"
             on:click={() => dark(!dark())}
-            style:font-family="var(--code-font-family, ui-monospace, monospace)"
-            style:font-size="12px"
-            style:padding="6px 12px"
-            style:border="1px solid var(--base-color-a6)"
-            style:border-radius="6px"
-            style:background="var(--base-color-a2)"
-            style:color="var(--base-color-12)"
-            style:cursor="pointer"
           >
             {() => (dark() ? "☀ Light" : "☾ Dark")}
           </button>
@@ -134,8 +134,8 @@ export class App {
         <Label>data-variant="elevated"</Label>
         <div class:x-card data-variant="elevated">
           <CardBody
-            title="Classic card"
-            body="Surface + --shadow-2 elevation. Hover lifts (when interactive)."
+            title="Elevated card"
+            body="Surface + --shadow-2 elevation. Hover lifts (see Interactive section below)."
           />
         </div>
 
@@ -143,7 +143,7 @@ export class App {
         <div class:x-card data-variant="borderless">
           <CardBody
             title="Borderless card"
-            body="No surface, no border. Hover fill applies only when the card is interactive."
+            body="No surface, no border. Hover fill applies only when interactive."
           />
         </div>
 
@@ -191,7 +191,7 @@ export class App {
         </div>
 
         {/* ============ INTERACTIVE ============ */}
-        <Heading>Interactive (anchor / button)</Heading>
+        <Heading id="interactive">Interactive (anchor / button)</Heading>
 
         <Label>Anchor — surface variant</Label>
         <a
@@ -218,7 +218,7 @@ export class App {
         >
           <CardBody
             title="Hover me"
-            body="Classic variant: shadow elevation lifts from --shadow-2 → --shadow-3 on hover."
+            body="Elevated variant: shadow elevation lifts from --shadow-2 → --shadow-3 on hover."
           />
         </a>
 

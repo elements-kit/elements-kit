@@ -85,6 +85,84 @@
 
 /***************************************************************************************************
  *                                                                                                 *
+ * TOKENS                                                                                          *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+:where([data-base-color]) {
+  /* surface — single ring on ::after, lifts contrast on hover/active */
+  --card-surface-box-shadow: 0 0 0 1px var(--base-color-a5);
+  --card-surface-hover-box-shadow: 0 0 0 1px var(--base-color-a7);
+  --card-surface-active-box-shadow: 0 0 0 1px var(--base-color-a6);
+
+  /* elevated — dual outer (on element) + inner (on ::after) shadows.
+   * Outer uses zero-spread placeholders so transitions interpolate cleanly
+   * against the expanded hover state. All four lists share 6 layers. */
+  --card-elevated-box-shadow-inner:
+    0 0 0 1px var(--base-color-a3), 0 0 0 1px transparent,
+    0 0 0 0.5px var(--black-a1), 0 1px 1px 0 var(--base-color-a2),
+    0 2px 1px -1px var(--black-a1), 0 1px 3px 0 var(--black-a1);
+  --card-elevated-box-shadow-outer:
+    0 0 0 0 var(--base-color-a3), 0 0 0 0 transparent, 0 0 0 0 var(--black-a1),
+    0 1px 1px -1px var(--base-color-a2), 0 2px 1px -2px var(--black-a1),
+    0 1px 3px -1px var(--black-a1);
+  --card-elevated-hover-box-shadow-inner:
+    0 0 0 1px var(--base-color-a4), 0 1px 1px 1px var(--black-a1),
+    0 2px 1px -1px var(--base-color-a3), 0 2px 3px -2px var(--black-a1),
+    0 3px 12px -4px var(--base-color-a3), 0 4px 16px -8px var(--black-a1);
+  --card-elevated-hover-box-shadow-outer:
+    0 0 0 0 var(--base-color-a4), 0 1px 1px 0 var(--black-a1),
+    0 2px 1px -2px var(--base-color-a3), 0 2px 3px -3px var(--black-a1),
+    0 3px 12px -5px var(--base-color-a3), 0 4px 16px -9px var(--black-a1);
+  --card-elevated-active-box-shadow-inner:
+    0 0 0 1px var(--base-color-a3), 0 0 0 1px transparent,
+    0 0 0 0.5px var(--black-a1), 0 1px 1px 0 var(--base-color-a4),
+    0 2px 1px -1px var(--black-a1), 0 1px 3px 0 var(--black-a1);
+  --card-elevated-active-box-shadow-outer:
+    0 0 0 0 var(--base-color-a3), 0 0 0 0 transparent, 0 0 0 0 var(--black-a1),
+    0 1px 1px -1px var(--base-color-a4), 0 2px 1px -2px var(--black-a1),
+    0 1px 3px -1px var(--black-a1);
+
+  @supports (color: color-mix(in oklab, white, black)) {
+    --card-surface-box-shadow: 0 0 0 1px
+      color-mix(in oklab, var(--base-color-a5), var(--base-color-5) 25%);
+    --card-surface-hover-box-shadow: 0 0 0 1px
+      color-mix(in oklab, var(--base-color-a7), var(--base-color-7) 25%);
+    --card-surface-active-box-shadow: 0 0 0 1px
+      color-mix(in oklab, var(--base-color-a6), var(--base-color-6) 25%);
+  }
+}
+
+:is(.dark, .dark-theme),
+:is(.dark, .dark-theme) :where([data-base-color]:not(.light, .light-theme)) {
+  --card-elevated-box-shadow-inner:
+    0 0 0 1px var(--base-color-a6), 0 0 0 1px transparent,
+    0 0 0 0.5px var(--black-a3), 0 1px 1px 0 var(--black-a6),
+    0 2px 1px -1px var(--black-a6), 0 1px 3px 0 var(--black-a5);
+  --card-elevated-box-shadow-outer:
+    0 0 0 0 var(--base-color-a6), 0 0 0 0 transparent, 0 0 0 0 var(--black-a3),
+    0 1px 1px -1px var(--black-a6), 0 2px 1px -2px var(--black-a6),
+    0 1px 3px -1px var(--black-a5);
+  --card-elevated-hover-box-shadow-inner:
+    0 0 0 1px var(--base-color-a6), 0 0 1px 1px var(--base-color-a4),
+    0 0 1px -1px var(--base-color-a4), 0 0 3px -2px var(--base-color-a3),
+    0 0 12px -2px var(--base-color-a3), 0 0 16px -8px var(--base-color-a7);
+  --card-elevated-hover-box-shadow-outer:
+    0 0 0 0 var(--base-color-a6), 0 0 1px 0 var(--base-color-a4),
+    0 0 1px -2px var(--base-color-a4), 0 0 3px -3px var(--base-color-a3),
+    0 0 12px -3px var(--base-color-a3), 0 0 16px -9px var(--base-color-a7);
+  --card-elevated-active-box-shadow-inner:
+    0 0 0 1px var(--base-color-a6), 0 0 0 1px transparent,
+    0 0 0 0.5px var(--black-a3), 0 1px 1px 0 var(--black-a6),
+    0 2px 1px -1px var(--black-a6), 0 1px 3px 0 var(--black-a5);
+  --card-elevated-active-box-shadow-outer:
+    0 0 0 0 var(--base-color-a6), 0 0 0 0 transparent, 0 0 0 0 var(--black-a3),
+    0 1px 1px -1px var(--black-a6), 0 2px 1px -2px var(--black-a6),
+    0 1px 3px -1px var(--black-a5);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
  * VARIANTS                                                                                        *
  *                                                                                                 *
  ***************************************************************************************************/
@@ -100,16 +178,19 @@
     backdrop-filter: var(--backdrop-filter-material, none);
   }
   &::after {
-    box-shadow: 0 0 0 1px var(--base-color-a5);
+    box-shadow: var(--card-surface-box-shadow);
   }
   &:where(:any-link, button, label) {
     @media (hover: hover) {
       &:where(:hover)::after {
-        box-shadow: 0 0 0 1px var(--base-color-a7);
+        box-shadow: var(--card-surface-hover-box-shadow);
       }
     }
+    &:where([data-state="open"])::after {
+      box-shadow: var(--card-surface-hover-box-shadow);
+    }
     &:where(:active:not([data-state="open"]))::after {
-      box-shadow: 0 0 0 1px var(--base-color-a6);
+      box-shadow: var(--card-surface-active-box-shadow);
     }
   }
 }
@@ -120,25 +201,38 @@
   --card-border-width: 1px;
 
   transition: box-shadow 120ms;
-  box-shadow: var(--shadow-2);
+  box-shadow: var(--card-elevated-box-shadow-outer);
 
   &::before {
     background-color: var(--color-material, var(--color-surface));
     backdrop-filter: var(--backdrop-filter-material, none);
   }
   &::after {
-    box-shadow: 0 0 0 1px var(--base-color-a3);
+    box-shadow: var(--card-elevated-box-shadow-inner);
   }
   &:where(:any-link, button, label) {
     @media (hover: hover) {
       &:where(:hover) {
         transition-duration: 40ms;
-        box-shadow: var(--shadow-3);
+        box-shadow: var(--card-elevated-hover-box-shadow-outer);
+        &::after {
+          box-shadow: var(--card-elevated-hover-box-shadow-inner);
+        }
+      }
+    }
+    &:where([data-state="open"]) {
+      transition-duration: 40ms;
+      box-shadow: var(--card-elevated-hover-box-shadow-outer);
+      &::after {
+        box-shadow: var(--card-elevated-hover-box-shadow-inner);
       }
     }
     &:where(:active:not([data-state="open"])) {
       transition-duration: 40ms;
-      box-shadow: var(--shadow-2);
+      box-shadow: var(--card-elevated-active-box-shadow-outer);
+      &::after {
+        box-shadow: var(--card-elevated-active-box-shadow-inner);
+      }
     }
   }
 }
@@ -148,11 +242,22 @@
 .x-card:where([data-variant="borderless"]) {
   --card-border-width: 0px;
 
+  &::before {
+    background-color: transparent;
+    backdrop-filter: none;
+  }
+  &::after {
+    box-shadow: none;
+  }
+
   &:where(:any-link, button, label) {
     @media (hover: hover) {
       &:where(:hover) {
         background-color: var(--base-color-a3);
       }
+    }
+    &:where([data-state="open"]) {
+      background-color: var(--base-color-a3);
     }
     &:where(:active:not([data-state="open"])) {
       background-color: var(--base-color-a4);
@@ -171,6 +276,11 @@
   outline-offset: -1px;
   &::after {
     outline: inherit;
+  }
+  &:where(:active:not([data-state="open"])) {
+    &::before {
+      background-image: linear-gradient(var(--focus-a2), var(--focus-a2));
+    }
   }
 }
 
