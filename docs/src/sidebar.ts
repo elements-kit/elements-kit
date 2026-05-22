@@ -78,6 +78,7 @@ const cssBadge = { text: "CSS", variant: "tip" } as const;
 
 export const uiSidebar: SidebarItem[] = [
   { label: "Overview", slug: "ui" },
+  { label: "Styles", slug: "ui/styles" },
   {
     label: "Components",
     items: [
@@ -111,7 +112,6 @@ export const uiSidebar: SidebarItem[] = [
       { label: "Statistic", slug: "ui/statistic", badge: cssBadge },
     ],
   },
-  { label: "Styles", slug: "ui/styles" },
 ];
 
 export type Topic = {

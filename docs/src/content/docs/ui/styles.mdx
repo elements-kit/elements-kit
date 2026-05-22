@@ -51,7 +51,8 @@ Switches are `data-*` attributes on a root container — not classes you toggle,
   data-radius="medium"
   data-scaling="md"
   data-material-background="translucent"
-  data-has-background="true"
+  data-color="iris"
+  data-base-color="slate"
 >
   ...
 </body>
@@ -62,7 +63,8 @@ Switches are `data-*` attributes on a root container — not classes you toggle,
 | `data-radius` | `none` · `small` · `medium` · `large` · `pill` |
 | `data-scaling` | `xs` · `sm` · `md` · `lg` · `xl` |
 | `data-material-background` | `solid` · `translucent` |
-| `data-has-background` | `true` |
+| `data-color` | accent name — see [accent list](#customization) |
+| `data-base-color` | `gray` · `mauve` · `olive` · `sage` · `sand` · `slate` |
 
 ## Light & dark
 
@@ -99,7 +101,12 @@ Semantic — read these in your component CSS:
 - `--color-transparent`
 - `--focus-1`..`--focus-12`, `--focus-a1`..`--focus-a12` (alias of the active color)
 
-Scales — `--gray-1`..`--gray-12` plus `--gray-a1`..`--gray-a12` (alpha). Same shape for `--color-*` (the active accent), plus `--black-a*` and `--white-a*` from `colors/black-alpha.css` / `colors/white-alpha.css` (auto-imported by `theme.css`).
+Scales:
+
+- `--base-color-1`..`--base-color-12` plus `--base-color-a1`..`--base-color-a12` — the active gray (set by [`base/<scale>.css`](https://github.com/elements-kit/elements-kit/tree/main/src/ui/styles/base) or `data-base-color`).
+- `--color-1`..`--color-12` plus `--color-a1`..`--color-a12` — the active accent (set by [`colors/<color>.css`](https://github.com/elements-kit/elements-kit/tree/main/src/ui/styles/colors) or `data-color`).
+- `--<color>-1`..`--<color>-12` plus alpha — raw palette scales from [`palette/<color>.css`](https://github.com/elements-kit/elements-kit/tree/main/src/ui/styles/palette), e.g. `--blue-9`.
+- `--black-a1`..`--black-a12` and `--white-a1`..`--white-a12` — alpha-on-color scales from `palette/black-alpha.css` / `palette/white-alpha.css` (auto-imported by `theme.css`).
 
 ### Typography
 
@@ -158,6 +165,6 @@ import "elements-kit/ui/styles/colors/green.css";
 import "elements-kit/ui/styles/colors/iris.css";
 ```
 
-Available accents: `amber`, `blue`, `bronze`, `brown`, `crimson`, `cyan`, `gold`, `grass`, `gray`, `green`, `indigo`, `iris`, `jade`, `lime`, `mint`, `orange`, `pink`, `plum`, `purple`, `red`, `ruby`, `sky`, `teal`, `tomato`, `violet`, `yellow`.
+Available accents: `amber`, `blue`, `bronze`, `brown`, `crimson`, `cyan`, `gold`, `grass`, `gray`, `green`, `indigo`, `iris`, `jade`, `lime`, `mint`, `orange`, `pink`, `plum`, `purple`, `red`, `ruby`, `sky`, `teal`, `tomato`, `violet`, `yellow`. Plus semantic aliases that point at the active gray or a fixed hue: `base`, `success`, `error`, `warning`, `info`.
 
-Available gray scales (pick one): `mauve`, `olive`, `sage`, `sand`, `slate`.
+Available base (gray) colors (pick one): `gray`, `mauve`, `olive`, `sage`, `sand`, `slate`.
