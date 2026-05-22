@@ -124,28 +124,28 @@ export class App {
         <Heading>Variants</Heading>
 
         <Label>data-variant="surface" (default)</Label>
-        <div class:x-card>
+        <a class:unset class:x-card href="#" style:display="block" style:color="inherit">
           <CardBody
             title="Surface card"
-            body="1px hairline border using --base-color-a5. The everyday card."
+            body="1px hairline border using --base-color-a5. Hover bumps to a7."
           />
-        </div>
+        </a>
 
         <Label>data-variant="elevated"</Label>
-        <div class:x-card data-variant="elevated">
+        <a class:unset class:x-card data-variant="elevated" href="#" style:display="block" style:color="inherit">
           <CardBody
             title="Elevated card"
-            body="Surface + --shadow-2 elevation. Hover lifts (see Interactive section below)."
+            body="Dual outer + inner shadow. Hover lifts both layers."
           />
-        </div>
+        </a>
 
         <Label>data-variant="borderless"</Label>
-        <div class:x-card data-variant="borderless">
+        <a class:unset class:x-card data-variant="borderless" href="#" style:display="block" style:color="inherit">
           <CardBody
             title="Borderless card"
-            body="No surface, no border. Hover fill applies only when interactive."
+            body="Transparent until hover, then fills with --base-color-a3."
           />
-        </div>
+        </a>
 
         {/* ============ SIZES ============ */}
         <Heading>Sizes</Heading>
