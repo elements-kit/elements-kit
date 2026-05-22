@@ -10,6 +10,10 @@ export const githubLight: SandpackTheme = {
     disabled: "#d1d4d8",
     hover: "#24292e",
     accent: "#24292e",
+    error: "#cf222e",
+    errorSurface: "#ffebe9",
+    warning: "#9a6700",
+    warningSurface: "#fff8c5",
   },
   syntax: {
     keyword: "#d73a49",
@@ -43,6 +47,10 @@ export const githubDark: SandpackTheme = {
     disabled: "#30363d",
     hover: "#e6edf3",
     accent: "#58a6ff",
+    error: "#ffa198",
+    errorSurface: "#2d1213",
+    warning: "#e3b341",
+    warningSurface: "#3a2d00",
   },
   syntax: {
     keyword: "#ff7b72",

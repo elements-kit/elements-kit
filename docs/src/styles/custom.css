@@ -138,6 +138,14 @@
   width: 100%;
 }
 
+/* Stdout / terminal panel in the preview overlay: Sandpack's own
+ * `stdoutPreview` wrapper doesn't apply `colors.base`, so log rows inherit
+ * black and become invisible in dark mode. Force the row text to read off
+ * the theme's primary text color. */
+.ek-playground-frame .sp-console-item {
+  color: var(--sp-colors-base, currentColor);
+}
+
 /* Panels: even split, no per-panel resize. */
 .ek-playground-frame > * {
   min-width: 0;
