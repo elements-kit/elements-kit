@@ -4,6 +4,10 @@
 
   height: var(--slider-thumb-size);
 
+  /* Defeat `all: unset` from unset.css so Chrome paints the native track. */
+  appearance: auto;
+  -webkit-appearance: auto;
+
   /* Chromium paints native track + fill via accent-color. Firefox uses custom track/progress below. */
   accent-color: var(--slider-fill-color);
   cursor: var(--cursor-slider-thumb);
