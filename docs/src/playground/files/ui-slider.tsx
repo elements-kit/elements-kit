@@ -69,7 +69,6 @@ export class App {
                 </label>
                 <input
                   type="range"
-                  class:unset
                   class:x-slider
                   data-size={String(size)}
                   min="0"
@@ -96,7 +95,6 @@ export class App {
                 </label>
                 <input
                   type="range"
-                  class:unset
                   class:x-slider
                   data-variant={variant}
                   min="0"
@@ -123,7 +121,6 @@ export class App {
                 </label>
                 <input
                   type="range"
-                  class:unset
                   class:x-slider
                   data-color={color}
                   min="0"
@@ -139,7 +136,6 @@ export class App {
           <h3 style:margin="0 0 12px">Disabled</h3>
           <input
             type="range"
-            class:unset
             class:x-slider
             min="0"
             max="100"
