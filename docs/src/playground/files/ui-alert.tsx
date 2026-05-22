@@ -3,8 +3,13 @@ import "elements-kit/ui/styles/scaling.css";
 import "elements-kit/ui/styles/radius.css";
 import "elements-kit/ui/styles/space.css";
 import "elements-kit/ui/styles/typography.css";
+import "elements-kit/ui/styles/cursor.css";
+import "elements-kit/ui/styles/shadow.css";
+import "elements-kit/ui/styles/unset.css";
 import "elements-kit/ui/styles/palette/gray.css";
 import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/palette/black-alpha.css";
+import "elements-kit/ui/styles/colors/base.css";
 import "elements-kit/ui/styles/palette/mint.css";
 import "elements-kit/ui/styles/colors/mint.css";
 import "elements-kit/ui/styles/palette/blue.css";
@@ -15,6 +20,7 @@ import "elements-kit/ui/styles/palette/crimson.css";
 import "elements-kit/ui/styles/colors/crimson.css";
 
 import "elements-kit/ui/alert/alert.css";
+import "elements-kit/ui/button/button.css";
 
 import { signal } from "elements-kit/signals";
 
@@ -43,6 +49,7 @@ export class App {
     return (
       <div
         class:dark={dark}
+        data-color="mint"
         data-base-color="gray"
         data-radius="medium"
         style:padding="24px"
@@ -53,21 +60,18 @@ export class App {
         style:font-family="var(--default-font-family, system-ui, sans-serif)"
       >
         <button
+          class:unset
+          class:x-button
+          data-size="1"
+          data-variant="soft"
           on:click={() => dark(!dark())}
-          style:width="fit-content"
-          style:padding="6px 12px"
-          style:border="1px solid var(--base-color-a6)"
-          style:border-radius="6px"
-          style:background="var(--base-color-a2)"
-          style:color="var(--base-color-12)"
-          style:cursor="pointer"
         >
           {() => (dark() ? "☀ Light" : "☾ Dark")}
         </button>
 
         <h3 style:margin="0">Variants</h3>
         {VARIANTS.map((variant) => (
-          <div class:x-alert data-variant={variant} data-color="amber">
+          <div class:unset class:x-alert data-variant={variant} data-color="amber">
             <InfoIcon />
             <div>
               <strong>{variant}</strong> — Heads up. Your trial ends in 7 days.
@@ -77,28 +81,28 @@ export class App {
 
         <h3 style:margin="16px 0 0">Sizes</h3>
         {SIZES.map((size) => (
-          <div class:x-alert data-size={String(size)} data-color="blue">
+          <div class:unset class:x-alert data-size={String(size)} data-color="blue">
             <InfoIcon />
             <div>Size {size} — example body copy goes here.</div>
           </div>
         ))}
 
         <h3 style:margin="16px 0 0">Colors</h3>
-        <div class:x-alert data-color="mint">
+        <div class:unset class:x-alert data-color="mint">
           <InfoIcon />
           <div>Mint — informational</div>
         </div>
-        <div class:x-alert data-color="amber">
+        <div class:unset class:x-alert data-color="amber">
           <InfoIcon />
           <div>Amber — warning</div>
         </div>
-        <div class:x-alert data-color="crimson">
+        <div class:unset class:x-alert data-color="crimson">
           <InfoIcon />
           <div>Crimson — error</div>
         </div>
 
         <h3 style:margin="16px 0 0">High contrast</h3>
-        <div class:x-alert data-variant="soft" data-color="amber" data-high-contrast>
+        <div class:unset class:x-alert data-variant="soft" data-color="amber" data-high-contrast>
           <InfoIcon />
           <div>High-contrast soft variant — color bumps to --color-12.</div>
         </div>

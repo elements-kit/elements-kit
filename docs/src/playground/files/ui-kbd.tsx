@@ -1,11 +1,20 @@
 import "elements-kit/ui/styles/theme.css";
 import "elements-kit/ui/styles/scaling.css";
 import "elements-kit/ui/styles/radius.css";
+import "elements-kit/ui/styles/space.css";
 import "elements-kit/ui/styles/typography.css";
+import "elements-kit/ui/styles/cursor.css";
+import "elements-kit/ui/styles/shadow.css";
+import "elements-kit/ui/styles/unset.css";
 import "elements-kit/ui/styles/palette/gray.css";
 import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/palette/black-alpha.css";
+import "elements-kit/ui/styles/colors/base.css";
+import "elements-kit/ui/styles/palette/mint.css";
+import "elements-kit/ui/styles/colors/mint.css";
 
 import "elements-kit/ui/kbd/kbd.css";
+import "elements-kit/ui/button/button.css";
 
 import { signal } from "elements-kit/signals";
 
@@ -18,7 +27,9 @@ export class App {
     return (
       <div
         class:dark={dark}
+        data-color="mint"
         data-base-color="gray"
+        data-radius="medium"
         style:padding="24px"
         style:display="grid"
         style:gap="20px"
@@ -27,14 +38,11 @@ export class App {
         style:font-family="var(--default-font-family, system-ui, sans-serif)"
       >
         <button
+          class:unset
+          class:x-button
+          data-size="1"
+          data-variant="soft"
           on:click={() => dark(!dark())}
-          style:width="fit-content"
-          style:padding="6px 12px"
-          style:border="1px solid var(--base-color-a6)"
-          style:border-radius="6px"
-          style:background="var(--base-color-a2)"
-          style:color="var(--base-color-12)"
-          style:cursor="pointer"
         >
           {() => (dark() ? "☀ Light" : "☾ Dark")}
         </button>
@@ -44,8 +52,8 @@ export class App {
           {SIZES.map((size) => (
             <div style:display="flex" style:gap="12px" style:align-items="center">
               <span style:font-size={`var(--font-size-${size})`}>
-                Press <kbd class:x-kbd data-size={String(size)}>⌘</kbd>+
-                <kbd class:x-kbd data-size={String(size)}>K</kbd> to open
+                Press <kbd class:unset class:x-kbd data-size={String(size)}>⌘</kbd>+
+                <kbd class:unset class:x-kbd data-size={String(size)}>K</kbd> to open
               </span>
             </div>
           ))}
@@ -53,9 +61,9 @@ export class App {
 
         <h3 style:margin="16px 0 0">Multi-key combos</h3>
         <p style:line-height="2">
-          Save: <kbd class:x-kbd>⌘</kbd>+<kbd class:x-kbd>S</kbd>{" "}
-          &nbsp;Quit: <kbd class:x-kbd>⌘</kbd>+<kbd class:x-kbd>Q</kbd>{" "}
-          &nbsp;Refresh: <kbd class:x-kbd>⌘</kbd>+<kbd class:x-kbd>⇧</kbd>+<kbd class:x-kbd>R</kbd>
+          Save: <kbd class:unset class:x-kbd>⌘</kbd>+<kbd class:unset class:x-kbd>S</kbd>{" "}
+          &nbsp;Quit: <kbd class:unset class:x-kbd>⌘</kbd>+<kbd class:unset class:x-kbd>Q</kbd>{" "}
+          &nbsp;Refresh: <kbd class:unset class:x-kbd>⌘</kbd>+<kbd class:unset class:x-kbd>⇧</kbd>+<kbd class:unset class:x-kbd>R</kbd>
         </p>
       </div>
     );
