@@ -227,20 +227,22 @@ customElements.define("x-counter", CounterElement);
 
 ### Typed JSX for custom elements
 
-Register the tag and augment the `CustomElementRegistry` interface — JSX infers the full prop shape (attributes, events, slots, children) from the class itself.
+Register the tag and augment `ElementsKit.CustomElementRegistry` in the global namespace — JSX infers the full prop shape (attributes, events, slots, children) from the class itself.
 
 ```ts
 import { defineElement } from "elements-kit/custom-elements";
 
 defineElement("x-counter", CounterElement);
 
-declare module "elements-kit/custom-elements" {
-  interface CustomElementRegistry {
-    "x-counter": typeof CounterElement;
+declare global {
+  namespace ElementsKit {
+    interface CustomElementRegistry {
+      "x-counter": typeof CounterElement;
+    }
   }
 }
 
-// Now `<x-counter count={5} />` is fully typed — no hand-written `declare global` block.
+// Now `<x-counter count={5} />` is fully typed.
 ```
 
 See [Types](docs/src/content/docs/elements/types.mdx) for the full set of prop-inference helpers.

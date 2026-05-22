@@ -331,7 +331,7 @@ Touching `style`, attributes, or child nodes inside the constructor throws in so
 
 ElementsKit sets `jsxImportSource: "elements-kit"`, so TypeScript pulls the `JSX` namespace from the runtime's own module. **Global `JSX` augmentations don't merge with that namespace** and have no effect — typed props on `<x-my-element />` come from a different surface.
 
-Augment `CustomElementRegistry` from `"elements-kit/custom-elements"` instead. The JSX runtime reads tag names from that interface to type props and refs.
+Augment `ElementsKit.CustomElementRegistry` in the global namespace instead. The JSX runtime reads tag names from that interface to type props and refs.
 
 ```ts
 import { defineElement } from "elements-kit/custom-elements";
@@ -339,16 +339,18 @@ import { defineElement } from "elements-kit/custom-elements";
 class XCounter extends HTMLElement {}
 defineElement("x-counter", XCounter);
 
-declare module "elements-kit/custom-elements" {
-  interface CustomElementRegistry {
-    "x-counter": typeof XCounter;
+declare global {
+  namespace ElementsKit {
+    interface CustomElementRegistry {
+      "x-counter": typeof XCounter;
+    }
   }
 }
 
 // <x-counter /> — typed props, typed ref
 ```
 
-The same pattern applies when registering with `customElements.define` directly — augment `CustomElementRegistry` regardless of which registration call you use.
+The same pattern applies when registering with `customElements.define` directly — augment `ElementsKit.CustomElementRegistry` regardless of which registration call you use.
 
 ---
 
