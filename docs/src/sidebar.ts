@@ -74,20 +74,22 @@ export const integrationsSidebar: SidebarItem[] = [
   },
 ];
 
+const cssBadge = { text: "CSS", variant: "tip" } as const;
+
 export const uiSidebar: SidebarItem[] = [
   { label: "Overview", slug: "ui" },
-  { label: "Alert", slug: "ui/alert" },
-  { label: "Badge", slug: "ui/badge" },
-  { label: "Button", slug: "ui/button" },
-  { label: "Card", slug: "ui/card" },
-  { label: "Checkbox", slug: "ui/checkbox" },
-  { label: "Code", slug: "ui/code" },
-  { label: "Kbd", slug: "ui/kbd" },
-  { label: "Link", slug: "ui/link" },
-  { label: "Progress", slug: "ui/progress" },
-  { label: "Radio", slug: "ui/radio" },
-  { label: "Slider", slug: "ui/slider" },
-  { label: "Switch", slug: "ui/switch" },
+  { label: "Alert", slug: "ui/alert", badge: cssBadge },
+  { label: "Badge", slug: "ui/badge", badge: cssBadge },
+  { label: "Button", slug: "ui/button", badge: cssBadge },
+  { label: "Card", slug: "ui/card", badge: cssBadge },
+  { label: "Checkbox", slug: "ui/checkbox", badge: cssBadge },
+  { label: "Code", slug: "ui/code", badge: cssBadge },
+  { label: "Kbd", slug: "ui/kbd", badge: cssBadge },
+  { label: "Link", slug: "ui/link", badge: cssBadge },
+  { label: "Progress", slug: "ui/progress", badge: cssBadge },
+  { label: "Radio", slug: "ui/radio", badge: cssBadge },
+  { label: "Slider", slug: "ui/slider", badge: cssBadge },
+  { label: "Switch", slug: "ui/switch", badge: cssBadge },
   { label: "Marketing", slug: "ui/marketing" },
   { label: "Styles", slug: "ui/styles" },
 ];
