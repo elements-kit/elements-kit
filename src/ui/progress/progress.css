@@ -1,0 +1,82 @@
+.x-progress {
+  appearance: none;
+  -webkit-appearance: none;
+  display: block;
+  width: 100%;
+  height: var(--progress-height);
+  border: 0;
+  border-radius: max(calc(var(--progress-height) / 3), var(--radius-thumb));
+  overflow: hidden;
+
+  /* Firefox: track paints on the element itself (no ::-moz-progress-track pseudo). */
+  background-color: var(--base-color-a3);
+  box-shadow: inset 0 0 0 1px var(--base-color-a5);
+
+  /* WebKit / Chromium ------------------------------------------------------ */
+
+  &::-webkit-progress-bar {
+    background-color: var(--base-color-a3);
+    box-shadow: inset 0 0 0 1px var(--base-color-a5);
+    border-radius: inherit;
+  }
+
+  &::-webkit-progress-value {
+    background-color: var(--color-9);
+    border-radius: inherit;
+    transition: width 120ms linear;
+  }
+
+  /* Firefox ---------------------------------------------------------------- */
+
+  &::-moz-progress-bar {
+    background-color: var(--color-9);
+    border-radius: inherit;
+    transition: width 120ms linear;
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SIZES                                                                                           *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-progress {
+  &:where([data-size="1"]) {
+    --progress-height: var(--space-1);
+  }
+  &:where([data-size="2"]) {
+    --progress-height: calc(var(--space-2) * 0.75);
+  }
+  &:where([data-size="3"]) {
+    --progress-height: var(--space-2);
+  }
+}
+
+.x-progress:where(:not([data-size])) {
+  --progress-height: calc(var(--space-2) * 0.75);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * VARIANTS                                                                                        *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* soft — desaturated track + softer fill */
+
+.x-progress:where([data-variant="soft"]) {
+  background-color: var(--base-color-a4);
+  box-shadow: none;
+
+  &::-webkit-progress-bar {
+    background-color: var(--base-color-a4);
+    box-shadow: none;
+  }
+  &::-webkit-progress-value {
+    background-color: var(--color-a8);
+  }
+  &::-moz-progress-bar {
+    background-color: var(--color-a8);
+  }
+}

@@ -1,0 +1,46 @@
+.x-link {
+  color: var(--color-a11);
+
+  &:where(:any-link, button) {
+    cursor: var(--cursor-link);
+    text-decoration-line: none;
+    text-decoration-style: solid;
+    text-decoration-thickness: min(2px, max(1px, 0.05em));
+    text-underline-offset: calc(0.025em + 2px);
+    text-decoration-color: var(--color-a5);
+  }
+
+  &:where(:disabled, [aria-disabled="true"]) {
+    cursor: var(--cursor-disabled);
+    opacity: 0.5;
+  }
+
+  &:where(:focus-visible) {
+    border-radius: calc(0.07em * var(--radius-factor, 1));
+    outline: 2px solid var(--focus-8);
+    outline-offset: 2px;
+    text-decoration-line: none;
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * UNDERLINE                                                                                       *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-link:where(:not([data-underline]), [data-underline="auto"], [data-underline="hover"]) {
+  @media (hover: hover) {
+    &:where(:hover) {
+      text-decoration-line: underline;
+    }
+  }
+}
+
+.x-link:where([data-underline="always"]) {
+  text-decoration-line: underline;
+}
+
+.x-link:where([data-underline="none"]) {
+  text-decoration-line: none;
+}

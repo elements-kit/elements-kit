@@ -1,0 +1,77 @@
+---
+title: Link
+description: Accent-colored anchor with configurable underline behavior and focus ring.
+---
+
+import Playground from "@/playground/Playground.astro";
+import LINK from "@/playground/files/ui-link.tsx?raw";
+
+A native `<a>` styled with the current accent color and a thin underline. Four underline modes (`auto`, `hover`, `always`, `none`) cover most patterns: inline-in-paragraph, hover-only navigation, and quiet links. Also works on `<button>` for action links that don't navigate.
+
+<Playground
+  provider={{ files: { "/main.tsx": { code: LINK, active: true } } }}
+  preview={{}}
+/>
+
+## Install
+
+```ts
+import "elements-kit/ui/styles/theme.css";
+import "elements-kit/ui/styles/scaling.css";
+import "elements-kit/ui/styles/radius.css";
+import "elements-kit/ui/styles/space.css";
+import "elements-kit/ui/styles/cursor.css";
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/palette/black-alpha.css";
+import "elements-kit/ui/styles/palette/mint.css";
+import "elements-kit/ui/styles/colors/mint.css";
+
+import "elements-kit/ui/link/link.css";
+```
+
+## API
+
+```html
+<a class="x-link" data-underline="auto" href="#">Read more</a>
+<button class="unset x-link" type="button">Action link</button>
+```
+
+When using a `<button>`, pair `x-link` with `unset` to strip native button rendering (background, border, padding). Anchors don't need it.
+
+| Attribute | Values |
+| --- | --- |
+| `data-underline` | `auto` (default), `hover`, `always`, `none` |
+| `data-color` *(on a parent or the element)* | any imported color scale |
+| `aria-disabled="true"` *(on `<a>`)* / `disabled` *(on `<button>`)* | disabled state |
+
+## Underline modes
+
+- **`auto`** *(default)* — underline appears on hover (and is always on for high-contrast / inline-in-paragraph cases). Best for inline links inside body copy.
+- **`hover`** — underline only on hover. Quietest default. Use in navs and dense lists.
+- **`always`** — underline always visible. Use when the link should read as a link without hover affordance (e.g. lists of references).
+- **`none`** — no underline ever. Use sparingly — pair with sufficient color contrast and another affordance (icon, position) so the link is still identifiable.
+
+## States
+
+- **`:hover`** — underline behavior follows `data-underline` (gated by `@media (hover: hover)` so it doesn't trigger on touch).
+- **`:focus-visible`** — 2px `--focus-8` outline at `+2px` offset. The outline replaces the underline.
+- **Disabled** — for `<a>`, set `aria-disabled="true"` (HTML anchors have no native `:disabled`). For `<button class="x-link">`, use the native `disabled` attribute. Both dim to 50% opacity and switch the cursor.
+
+## As a button
+
+Use `<button class="x-link">` when the click triggers an action (e.g. "Sign out") rather than navigation. The link styling carries over, but the element semantics stay correct for screen readers and keyboard activation.
+
+```html
+<button class="unset x-link" type="button" on:click={signOut}>Sign out</button>
+```
+
+## Accessibility
+
+- Use `<a href>` for navigation, `<button>` for actions. Never an `<a>` without `href`.
+- For disabled anchors, prefer `aria-disabled="true"` over removing `href` — it preserves the focus order and conveys state to assistive tech. Pair with a click handler that no-ops on disabled state.
+- Don't rely on color alone to distinguish links from text — `data-underline="auto"` or `"always"` ensures a non-color affordance.
+
+:::caution[Don't]
+Use `data-underline="none"` for inline links inside body copy — they become indistinguishable from text for users with reduced color perception.
+:::

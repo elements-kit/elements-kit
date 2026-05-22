@@ -1,0 +1,82 @@
+---
+title: Progress
+description: Native <progress> styled as a determinate or indeterminate bar — two variants, three sizes.
+---
+
+import Playground from "@/playground/Playground.astro";
+import PROGRESS from "@/playground/files/ui-progress.tsx?raw";
+
+A native `<progress>` element styled as a slim bar. Sizes scale the height, variants switch between bordered surface and soft fills. Omit `value` to show the UA-native indeterminate animation.
+
+<Playground
+  provider={{ files: { "/main.tsx": { code: PROGRESS, active: true } } }}
+  preview={{}}
+/>
+
+## Install
+
+```ts
+import "elements-kit/ui/styles/theme.css";
+import "elements-kit/ui/styles/scaling.css";
+import "elements-kit/ui/styles/radius.css";
+import "elements-kit/ui/styles/space.css";
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/palette/black-alpha.css";
+import "elements-kit/ui/styles/palette/mint.css";
+import "elements-kit/ui/styles/colors/mint.css";
+
+import "elements-kit/ui/progress/progress.css";
+```
+
+## API
+
+```html
+<progress
+  class="x-progress"
+  data-size="2"
+  data-variant="surface"
+  value="40"
+  max="100"
+/>
+```
+
+| Attribute | Values |
+| --- | --- |
+| `data-variant` | `surface` (default), `soft` |
+| `data-size` | `1`, `2` (default), `3` |
+| `data-color` *(on a parent or the element)* | any imported color scale |
+| `value` | number in `[0, max]` — omit for indeterminate |
+| `max` | number, defaults to `1` per HTML spec; commonly set to `100` |
+
+## Sizing
+
+| `data-size` | height |
+| --- | --- |
+| `1` | `--space-1` (~4px) |
+| `2` *(default)* | `--space-2 × 0.75` (~6px) |
+| `3` | `--space-2` (~8px) |
+
+Width fills the parent (`width: 100%`).
+
+## Variants
+
+- **`surface`** *(default)* — bordered track (`--base-color-a3` + 1px `--base-color-a5` inset), solid `--color-9` fill.
+- **`soft`** — flat `--base-color-a4` track, desaturated `--color-a8` fill. Less visual weight.
+
+## States
+
+- **Determinate** — set `value` and `max`. The fill animates between values (120ms).
+- **Indeterminate** — omit `value`. The UA paints its native animation (a moving stripe in Chromium, a sliding bar in Firefox). Engines differ visually; for fully consistent indeterminate styling, override with custom keyframes.
+
+## Accessibility
+
+`<progress>` is announced as "progress bar" with current value and max. No extra ARIA needed for the simple case. For indeterminate progress that's running a long operation, add an `aria-label` describing what's happening:
+
+```html
+<progress class="x-progress" aria-label="Loading projects" />
+```
+
+:::caution[Don't]
+Use a progress bar to indicate a state with discrete steps. For multi-step flows use a stepper / breadcrumb pattern instead.
+:::
