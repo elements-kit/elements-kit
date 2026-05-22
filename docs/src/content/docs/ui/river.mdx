@@ -1,0 +1,89 @@
+---
+title: River
+description: Two-column text + visual layout — alternate alignments for rhythm.
+---
+
+import Playground from "@/playground/Playground.astro";
+import RIVER from "@/playground/files/ui-river.tsx?raw";
+
+A `.river` is a text + visual pair side-by-side. Alternate `data-align="start"` and `"end"` between adjacent rivers for visual rhythm. Stacks below md.
+
+<Playground
+  provider={{ files: { "/main.tsx": { code: RIVER, active: true } } }}
+  preview={{}}
+/>
+
+## Install
+
+```ts
+import "elements-kit/ui/styles/theme.css";
+import "elements-kit/ui/styles/scaling.css";
+import "elements-kit/ui/styles/radius.css";
+import "elements-kit/ui/styles/space.css";
+import "elements-kit/ui/styles/typography.css";
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/base/gray.css";
+
+import "elements-kit/ui/marketing/marketing.css";
+```
+
+## API
+
+```html
+<div class="river" data-align="start">
+  <div class="river-content">
+    <h3 class="section-heading section-heading-3">Heading</h3>
+    <p class="section-paragraph">Body.</p>
+    <a href="/learn">Learn more</a>
+  </div>
+  <div class="river-visual" data-border>
+    <img src="/feature.webp" alt="" />
+  </div>
+</div>
+```
+
+| Element | Attribute | Values |
+| --- | --- | --- |
+| `.river` | `data-align` | `start` (default, text left), `end` (text right), `center` (stacked, centered), `breakout` (custom grid for headline + trailing element) |
+| `.river` | `data-large-visual` | modifier — visual takes 7/12, content 5/12 (only with `start` / `end`) |
+| `.river-visual` | `data-border` | presence — adds a 1px border + rounded corners |
+
+## Children
+
+- **`.river-content`** — the text column. Use [Section heading](/ui/section) + Section paragraph + a link/button.
+- **`.river-visual`** — the visual column. Add `data-border` for a framed treatment (screenshots, UI shots).
+
+## Tips
+
+:::tip[Do]
+Alternate `data-align="start"` and `"end"` between adjacent rivers for visual rhythm.
+:::
+
+:::caution[Don't]
+Mix `data-align="center"` with `data-large-visual`. The 5/7 grid only applies to `start` / `end`.
+:::
+
+:::tip[Do]
+Keep visuals at a similar aspect ratio across consecutive rivers.
+:::
+
+:::caution[Don't]
+Leave `.river-visual` empty as a spacer. Use a regular `<div>` if you need negative space.
+:::
+
+## Breakout
+
+For oversized callout paragraphs that break the normal rhythm, use `data-align="breakout"`. A visually hidden heading is required as the first child for document outline correctness.
+
+```html
+<div class="river" data-align="breakout">
+  <h3 class="section-heading" style="position:absolute; …visually-hidden">
+    Section title for outline
+  </h3>
+  <div class="river-content">
+    <p class="section-paragraph"><em>Large quote-style paragraph.</em></p>
+    <a class="x-button" data-cta="" href="#">Learn more</a>
+  </div>
+  <div class="river-visual">…</div>
+</div>
+```

@@ -1,0 +1,63 @@
+---
+title: CTA Banner
+description: Bordered call-to-action panel — heading, copy, and CTA row.
+---
+
+import Playground from "@/playground/Playground.astro";
+import CTA_BANNER from "@/playground/files/ui-cta-banner.tsx?raw";
+
+A `.cta-banner` is a bordered call-to-action panel. Centered by default; flips to start-aligned with `data-align="start"`. Composes with [`.x-card`](/ui/card) for the surface.
+
+<Playground
+  provider={{ files: { "/main.tsx": { code: CTA_BANNER, active: true } } }}
+  preview={{}}
+/>
+
+## Install
+
+```ts
+import "elements-kit/ui/styles/theme.css";
+import "elements-kit/ui/styles/scaling.css";
+import "elements-kit/ui/styles/radius.css";
+import "elements-kit/ui/styles/space.css";
+import "elements-kit/ui/styles/typography.css";
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/palette/mint.css";
+import "elements-kit/ui/styles/colors/mint.css";
+import "elements-kit/ui/styles/shadow.css";
+import "elements-kit/ui/styles/material.css";
+import "elements-kit/ui/card/card.css";
+
+import "elements-kit/ui/marketing/marketing.css";
+```
+
+## API
+
+```html
+<div class="x-card cta-banner">
+  <h2 class="section-heading section-heading-2">Ship faster with composable primitives.</h2>
+  <p class="section-paragraph">
+    Class + data-attribute API. No runtime, no theming surprises.
+  </p>
+  <div data-cta>
+    <a href="/start">Get started</a>
+  </div>
+</div>
+```
+
+| Attribute | Values |
+| --- | --- |
+| `data-align` | `center` (default), `start` |
+
+Wrap CTAs in a `<div data-cta>` — that's the row that picks up the flex-wrap + gap.
+
+## Tips
+
+:::tip[Do]
+Use sparingly. One CTA banner near the bottom of the page, not every section.
+:::
+
+:::caution[Don't]
+Add a background image inside the primitive. Decorate from the caller — the kit handles layout only.
+:::

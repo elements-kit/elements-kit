@@ -1,0 +1,71 @@
+---
+title: Testimonial
+description: Quote card with oversized opening glyph, citation, and role line.
+---
+
+import Playground from "@/playground/Playground.astro";
+import TESTIMONIAL from "@/playground/files/ui-testimonial.tsx?raw";
+
+A `.testimonial` is a quote card: oversized opening quote glyph → blockquote body → figcaption (cite + title). Composes with [`.x-card`](/ui/card) for the surface — required.
+
+<Playground
+  provider={{ files: { "/main.tsx": { code: TESTIMONIAL, active: true } } }}
+  preview={{}}
+/>
+
+## Install
+
+```ts
+import "elements-kit/ui/styles/theme.css";
+import "elements-kit/ui/styles/scaling.css";
+import "elements-kit/ui/styles/radius.css";
+import "elements-kit/ui/styles/space.css";
+import "elements-kit/ui/styles/typography.css";
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/palette/mint.css";
+import "elements-kit/ui/styles/colors/mint.css";
+import "elements-kit/ui/styles/shadow.css";
+import "elements-kit/ui/styles/material.css";
+import "elements-kit/ui/card/card.css";
+
+import "elements-kit/ui/marketing/marketing.css";
+```
+
+## API
+
+```html
+<figure class="x-card testimonial">
+  <blockquote>
+    The kit <em>cut our design-to-ship loop in half</em>.
+  </blockquote>
+  <figcaption>
+    <cite>Jane Doe</cite>
+    <span data-title>Staff Engineer, Acme Co</span>
+  </figcaption>
+</figure>
+```
+
+| Element | Notes |
+| --- | --- |
+| `> blockquote` | Pulls quote glyphs via `::before` / `::after`. `<em>` inside renders in `--base-color-12`. |
+| `> figcaption > cite` | Name. Always non-italic. |
+| `> figcaption > [data-title]` | Role / company line. |
+
+## Variants
+
+Inherits all `.x-card` variants — add `data-variant="elevated"` for shadow, `data-variant="borderless"` to drop the border. Wrap any ancestor with `data-material-background="translucent"` for a frosted backdrop.
+
+## Theming
+
+The quote glyph color follows `--color-9` — set `data-color="X"` on an ancestor to re-theme.
+
+## Tips
+
+:::tip[Do]
+Keep quote body under ~3 lines on desktop. Use `<em>` to highlight the punchy phrase.
+:::
+
+:::caution[Don't]
+Stack multiple paragraphs in the blockquote. One thought, one card.
+:::

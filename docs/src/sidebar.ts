@@ -78,19 +78,35 @@ const cssBadge = { text: "CSS", variant: "tip" } as const;
 
 export const uiSidebar: SidebarItem[] = [
   { label: "Overview", slug: "ui" },
-  { label: "Alert", slug: "ui/alert", badge: cssBadge },
-  { label: "Badge", slug: "ui/badge", badge: cssBadge },
-  { label: "Button", slug: "ui/button", badge: cssBadge },
-  { label: "Card", slug: "ui/card", badge: cssBadge },
-  { label: "Checkbox", slug: "ui/checkbox", badge: cssBadge },
-  { label: "Code", slug: "ui/code", badge: cssBadge },
-  { label: "Kbd", slug: "ui/kbd", badge: cssBadge },
-  { label: "Link", slug: "ui/link", badge: cssBadge },
-  { label: "Progress", slug: "ui/progress", badge: cssBadge },
-  { label: "Radio", slug: "ui/radio", badge: cssBadge },
-  { label: "Slider", slug: "ui/slider", badge: cssBadge },
-  { label: "Switch", slug: "ui/switch", badge: cssBadge },
-  { label: "Marketing", slug: "ui/marketing" },
+  {
+    label: "Components",
+    items: [
+      { label: "Alert", slug: "ui/alert", badge: cssBadge },
+      { label: "Badge", slug: "ui/badge", badge: cssBadge },
+      { label: "Button", slug: "ui/button", badge: cssBadge },
+      { label: "Card", slug: "ui/card", badge: cssBadge },
+      { label: "Checkbox", slug: "ui/checkbox", badge: cssBadge },
+      { label: "Code", slug: "ui/code", badge: cssBadge },
+      { label: "Kbd", slug: "ui/kbd", badge: cssBadge },
+      { label: "Link", slug: "ui/link", badge: cssBadge },
+      { label: "Progress", slug: "ui/progress", badge: cssBadge },
+      { label: "Radio", slug: "ui/radio", badge: cssBadge },
+      { label: "Slider", slug: "ui/slider", badge: cssBadge },
+      { label: "Switch", slug: "ui/switch", badge: cssBadge },
+    ],
+  },
+  {
+    label: "Marketing",
+    items: [
+      { label: "Hero", slug: "ui/hero", badge: cssBadge },
+      { label: "Section", slug: "ui/section", badge: cssBadge },
+      { label: "River", slug: "ui/river", badge: cssBadge },
+      { label: "Pillar", slug: "ui/pillar", badge: cssBadge },
+      { label: "Testimonial", slug: "ui/testimonial", badge: cssBadge },
+      { label: "CTA Banner", slug: "ui/cta-banner", badge: cssBadge },
+      { label: "Statistic", slug: "ui/statistic", badge: cssBadge },
+    ],
+  },
   { label: "Styles", slug: "ui/styles" },
 ];
 

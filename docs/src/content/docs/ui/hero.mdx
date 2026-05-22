@@ -1,0 +1,56 @@
+---
+title: Hero
+description: Top-of-page block — flex column with optional center alignment.
+---
+
+import Playground from "@/playground/Playground.astro";
+import HERO from "@/playground/files/ui-hero.tsx?raw";
+
+The `.hero` primitive is the top block of a marketing page. Flex column, vertically rhythmed via marketing tokens. Skip the wrapping `.page-section` — heros sit at the top of the page, above sections.
+
+<Playground
+  provider={{ files: { "/main.tsx": { code: HERO, active: true } } }}
+  preview={{}}
+/>
+
+## Install
+
+```ts
+import "elements-kit/ui/styles/theme.css";
+import "elements-kit/ui/styles/scaling.css";
+import "elements-kit/ui/styles/radius.css";
+import "elements-kit/ui/styles/space.css";
+import "elements-kit/ui/styles/typography.css";
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/base/gray.css";
+
+import "elements-kit/ui/marketing/marketing.css";
+```
+
+## API
+
+```html
+<section class="hero" data-align="center">
+  <h1 class="section-heading section-heading-1">Headline</h1>
+  <p class="section-paragraph">Subhead</p>
+  <a class="x-button" data-size="3" data-variant="solid" href="/start">Get started</a>
+</section>
+```
+
+| Attribute | Values |
+| --- | --- |
+| `data-align` | `start` (default), `center` |
+
+Compose with [Section heading](/ui/section) for the headline and [Section paragraph](/ui/section) for the subhead. Action buttons can be any `<a class="x-button">` or `<button class="x-button">` — see [Button](/ui/button).
+
+:::tip[Do]
+Keep the heading to ≤ 2 lines on desktop. Paragraph ≤ 75ch.
+:::
+
+:::caution[Don't]
+Stack three CTAs side-by-side. Pick one primary plus an optional secondary link.
+:::
+
+:::caution[Don't]
+Wrap the hero in `.page-section`. The hero is meant to live at the top of the page, outside the section stack.
+:::

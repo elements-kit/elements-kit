@@ -21,6 +21,7 @@ import "elements-kit/ui/styles/palette/amber.css";
 import "elements-kit/ui/styles/colors/amber.css";
 
 import "elements-kit/ui/switch/switch.css";
+import "elements-kit/ui/button/button.css";
 
 import { signal } from "elements-kit/signals";
 
@@ -59,14 +60,11 @@ export class App {
         style:font-family="var(--default-font-family, system-ui, sans-serif)"
       >
         <button
+          class:unset
+          class:x-button
+          data-size="1"
+          data-variant="soft"
           on:click={() => dark(!dark())}
-          style:width="fit-content"
-          style:padding="6px 12px"
-          style:border="1px solid var(--base-color-a6)"
-          style:border-radius="6px"
-          style:background="var(--base-color-a2)"
-          style:color="var(--base-color-12)"
-          style:cursor="pointer"
         >
           {() => (dark() ? "☀ Light" : "☾ Dark")}
         </button>

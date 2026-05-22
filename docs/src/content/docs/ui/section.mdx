@@ -1,0 +1,134 @@
+---
+title: Section
+description: Page section, container, header, headings, and paragraph — the building blocks of a marketing page.
+---
+
+import Playground from "@/playground/Playground.astro";
+import SECTION from "@/playground/files/ui-section.tsx?raw";
+
+A "section" is composed of five primitives that almost always travel together: `.page-section` (themed background + vertical padding) → `.page-container` (max-width + gutters) → `.section-header` (heading + lede + optional CTA) → `.section-heading-1..4` (typographic scale) and `.section-paragraph` (body text token).
+
+<Playground
+  provider={{ files: { "/main.tsx": { code: SECTION, active: true } } }}
+  preview={{}}
+/>
+
+## Install
+
+```ts
+import "elements-kit/ui/styles/theme.css";
+import "elements-kit/ui/styles/scaling.css";
+import "elements-kit/ui/styles/radius.css";
+import "elements-kit/ui/styles/space.css";
+import "elements-kit/ui/styles/typography.css";
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/base/gray.css";
+
+import "elements-kit/ui/marketing/marketing.css";
+```
+
+## Composition
+
+```html
+<section class="page-section">
+  <div class="page-container">
+    <header class="section-header">
+      <h2 class="section-heading section-heading-2">Title</h2>
+      <p class="section-paragraph">Lede paragraph.</p>
+    </header>
+
+    <!-- rivers, pillars, etc. -->
+  </div>
+</section>
+```
+
+Standard nesting: **page-section → page-container → (section-header) + (river+ | pillar+ | testimonial+ | cta-banner | statistic+)**.
+
+## Page section
+
+A page-level chunk. Themed background (`--color-background`), vertical padding.
+
+```html
+<section class="page-section">…</section>
+```
+
+No data attributes.
+
+:::caution[Don't]
+Nest one `.page-section` inside another.
+:::
+
+## Page container
+
+Pure layout container. Applies `--page-padding-*` gutters and `--page-max-width` cap, centered.
+
+```html
+<div class="page-container">…</div>
+```
+
+No data attributes. Place directly inside `.page-section`.
+
+| CSS variable | Purpose | Fallback |
+| --- | --- | --- |
+| `--page-padding-left` | left gutter | `1rem` |
+| `--page-padding-right` | right gutter | `1rem` |
+| `--page-max-width` | max width | `72rem` |
+
+## Section header
+
+Heading + paragraph + optional CTA cluster. Sits above rivers in a section.
+
+```html
+<header class="section-header" data-align="center">
+  <h2 class="section-heading section-heading-2">Title</h2>
+  <p class="section-paragraph">Lede.</p>
+  <a href="/cta">Action</a>
+</header>
+```
+
+| Attribute | Values |
+| --- | --- |
+| `data-align` | `start` (default), `center` |
+
+:::tip[Do]
+One heading + one paragraph + optional CTA.
+:::
+
+## Section heading
+
+Four sizes, paired with a base `.section-heading` class.
+
+```html
+<h1 class="section-heading section-heading-1">Display</h1>
+<h2 class="section-heading section-heading-2">Section</h2>
+<h3 class="section-heading section-heading-3">Sub-section</h3>
+<h4 class="section-heading section-heading-4">Eyebrow</h4>
+```
+
+| Class | Use for |
+| --- | --- |
+| `.section-heading-1` | hero / display headline (48px × scaling → 60px at lg via `--font-size-9`) |
+| `.section-heading-2` | section header (35px via `--font-size-8` → 48px × scaling at lg) |
+| `.section-heading-3` | river / sub-section (30px × scaling → 35px via `--font-size-8` at lg) |
+| `.section-heading-4` | minor labels (20px via `--font-size-5`) |
+
+Pick the level that matches the document outline (`<h1>` once per page), not the visual size.
+
+## Section paragraph
+
+Body text token. Inline `<em>` highlights in the brightest neutral.
+
+```html
+<p class="section-paragraph">
+  Default copy color is <em>--base-color-11</em>.
+  Emphasized inline runs are <em>--base-color-12</em>.
+</p>
+```
+
+## Theming
+
+- `--color-background` / `--color-overlay` — semantic surface tokens from [theme.css](/ui/styles). Flip with `.dark` / `.light`.
+- `--base-color-1..12` / `--base-color-a1..12` — neutrals for text + borders.
+- `--font-heading` — heading font family.
+
+The whole marketing layer is wrapped in `@layer marketing`, so any unlayered host CSS wins on collision.

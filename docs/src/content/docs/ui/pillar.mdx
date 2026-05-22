@@ -1,0 +1,88 @@
+---
+title: Pillar
+description: Vertical mini-card for a feature, benefit, or stat.
+---
+
+import Playground from "@/playground/Playground.astro";
+import PILLAR from "@/playground/files/ui-pillar.tsx?raw";
+
+A `.pillar` is a vertical mini-card: icon → heading → paragraph → link. Use in 2/3/4-up grids inside a section. Compose with [`.x-card`](/ui/card) for surface treatment.
+
+<Playground
+  provider={{ files: { "/main.tsx": { code: PILLAR, active: true } } }}
+  preview={{}}
+/>
+
+## Install
+
+```ts
+import "elements-kit/ui/styles/theme.css";
+import "elements-kit/ui/styles/scaling.css";
+import "elements-kit/ui/styles/radius.css";
+import "elements-kit/ui/styles/space.css";
+import "elements-kit/ui/styles/typography.css";
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/palette/mint.css";
+import "elements-kit/ui/styles/colors/mint.css";
+import "elements-kit/ui/styles/shadow.css";
+import "elements-kit/ui/styles/material.css";
+import "elements-kit/ui/card/card.css";       /* required for card-composed pillars */
+
+import "elements-kit/ui/marketing/marketing.css";
+```
+
+## API
+
+```html
+<div class="pillar">
+  <svg><!-- icon --></svg>
+  <h3 data-heading>Heading</h3>
+  <p data-paragraph>Description.</p>
+  <a href="/learn">Learn more</a>
+</div>
+```
+
+| Attribute | Values |
+| --- | --- |
+| `data-align` | `start` (default), `center` |
+
+## Composed with .x-card
+
+For a card-style pillar (border + padding + background), add `.x-card`:
+
+```html
+<div class="x-card pillar">…</div>
+```
+
+Pair with any `.x-card` variant (`data-variant="elevated"` for shadow, `data-variant="borderless"` for hover-only) and any `data-size` to control padding.
+
+## Theming
+
+The icon uses `--color-9` — set `data-color="X"` on an ancestor (e.g. `data-color="mint"`) to re-theme every pillar at once.
+
+## Tips
+
+:::tip[Do]
+When using icons, add them to every pillar in the group.
+:::
+
+:::caution[Don't]
+Mix icons-with-pillars and no-icons-with-pillars in the same row.
+:::
+
+:::tip[Do]
+Keep heading character counts comparable across a pillar group for a visually balanced layout.
+:::
+
+:::caution[Don't]
+Let one description run 4× the length of its siblings.
+:::
+
+:::tip[Do]
+Add `.x-card` for elevated card-style pillars when the group sits on a colored surface.
+:::
+
+:::caution[Don't]
+Combine `.x-card` with `data-align="center"`. The card treatment expects start-aligned content.
+:::

@@ -1,0 +1,73 @@
+---
+title: Statistic
+description: Display-number block with leading label and trailing description.
+---
+
+import Playground from "@/playground/Playground.astro";
+import STATISTIC from "@/playground/files/ui-statistic.tsx?raw";
+
+A `.statistic` is a vertical stack: small leading label → large display number → body description. Use to surface high-impact metrics in a marketing page. Group multiple into your own grid for a row of stats.
+
+<Playground
+  provider={{ files: { "/main.tsx": { code: STATISTIC, active: true } } }}
+  preview={{}}
+/>
+
+## Install
+
+```ts
+import "elements-kit/ui/styles/theme.css";
+import "elements-kit/ui/styles/scaling.css";
+import "elements-kit/ui/styles/radius.css";
+import "elements-kit/ui/styles/space.css";
+import "elements-kit/ui/styles/typography.css";
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/base/gray.css";
+
+import "elements-kit/ui/marketing/marketing.css";
+```
+
+## API
+
+```html
+<div class="statistic">
+  <p data-leading>Up to</p>
+  <p data-heading>75%</p>
+  <p data-description>faster builds across the org.</p>
+</div>
+```
+
+| Element | Notes |
+| --- | --- |
+| `[data-leading]` | Small label above the number. Optional. |
+| `[data-heading]` | Display number (48px × scaling, up to `--font-size-9` at lg). |
+| `[data-description]` | Body sentence below. |
+
+| Attribute | Values |
+| --- | --- |
+| `data-size` | `1` (small), default (medium), `3` (large display) |
+| `data-align` | `start` (default), `center` |
+
+Sizes mirror `.x-button` — `data-size="1"` for inline / dense rows, no attribute for the standard section-level stat, `data-size="3"` for hero-tier display numbers (weight 550, tight tracking, scales via `--scaling`).
+
+## Grouping
+
+To align multiple statistics in a row, wrap them in your own grid — there's no `.statistic-row` primitive:
+
+```html
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2rem">
+  <div class="statistic">…</div>
+  <div class="statistic">…</div>
+  <div class="statistic">…</div>
+</div>
+```
+
+## Tips
+
+:::tip[Do]
+Keep the numbers comparable in magnitude (all percentages, or all counts) within a row.
+:::
+
+:::caution[Don't]
+Use `[data-heading]` for long phrases. It's a display slot for a number or 1–2 words.
+:::
