@@ -133,7 +133,7 @@
   flex-direction: row;
   align-items: stretch;
   height: var(--text-input-height);
-  padding: var(--text-input-border-width);
+  padding: 0;
   border-radius: var(--text-input-border-radius);
   cursor: text;
 
@@ -199,7 +199,7 @@
   flex-direction: column;
   align-items: stretch;
   min-height: var(--text-input-min-height);
-  padding: var(--text-input-border-width);
+  padding: 0;
   border-radius: var(--text-input-border-radius);
   cursor: text;
 
@@ -255,30 +255,6 @@
   display: flex;
   align-items: center;
   cursor: text;
-}
-
-/* Input wrapper — horizontal margins absorb wrapper border */
-
-.x-text-input:where(:has(> input))
-  > :where(:not(input, textarea)):where(:has(~ input)) {
-  margin-left: calc(var(--text-input-border-width) * -1);
-}
-
-.x-text-input:where(:has(> input)) > input ~ :where(:not(input, textarea)) {
-  margin-right: calc(var(--text-input-border-width) * -1);
-}
-
-/* Textarea wrapper — vertical margins absorb wrapper border */
-
-.x-text-input:where(:has(> textarea))
-  > :where(:not(input, textarea)):where(:has(~ textarea)) {
-  margin-top: calc(var(--text-input-border-width) * -1);
-}
-
-.x-text-input:where(:has(> textarea))
-  > textarea
-  ~ :where(:not(input, textarea)) {
-  margin-bottom: calc(var(--text-input-border-width) * -1);
 }
 
 /***************************************************************************************************
@@ -371,9 +347,8 @@
   --text-input-selection-color: var(--focus-a5);
   --text-input-focus-color: var(--focus-8);
 
-  background-clip: content-box;
   background-color: var(--color-surface);
-  box-shadow: inset 0 0 0 var(--text-input-border-width) var(--base-color-a7);
+  border: var(--text-input-border-width) solid var(--base-color-a7);
   color: var(--base-color-12);
 
   &:where(input)::placeholder,
@@ -466,5 +441,5 @@
 .x-text-input:where(:not([data-variant="soft"])):where(
     :has(> :is(input, textarea):is(:disabled, :read-only))
   ) {
-  box-shadow: inset 0 0 0 var(--text-input-border-width) var(--base-color-a6);
+  border-color: var(--base-color-a6);
 }
