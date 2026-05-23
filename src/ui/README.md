@@ -120,6 +120,7 @@ v0 = the load-bearing set. Composite surfaces and inputs that depend on form sem
 | `x-text-input` | — *(native `<input>` / `<textarea>` semantics)* | 2 | — *(CSS only)* |
 | `x-arrow` | — *(decorative)* | 2 | — *(CSS only)* |
 | `x-accordion` | [Disclosure](https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/) *(native `<details>` semantics)* | 2 | — *(CSS only)* |
+| `x-toggle` | [Button](https://www.w3.org/WAI/ARIA/apg/patterns/button/) *(native checkbox/radio semantics)* | 2 | — *(CSS only)* |
 | `x-form` | — | 2 | `MutationObserver`, dot-prop util |
 | `x-checkbox` | [Checkbox](https://www.w3.org/WAI/ARIA/apg/patterns/checkbox/) | 2 | `ElementInternals` |
 | `x-radio-group` + `x-radio` | [Radio](https://www.w3.org/WAI/ARIA/apg/patterns/radio/) | 2 | `x-roving-tabindex`, `ElementInternals` |

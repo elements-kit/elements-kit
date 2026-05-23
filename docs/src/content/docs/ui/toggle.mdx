@@ -1,0 +1,116 @@
+---
+title: Toggle
+description: Headless toggle button — a <label> styled like a button, wrapping a native checkbox or radio. Binary on/off or exclusive single-select groups, all driven by :has(input:checked). No JavaScript.
+---
+
+import Playground from "@/playground/Playground.astro";
+import TOGGLE from "@/playground/files/ui-toggle.tsx?raw";
+
+A `<label>` styled like a button, wrapping a native `<input type="checkbox">` (binary toggle) or `<input type="radio">` (exclusive group). The label paints the chrome; the input keeps form semantics + keyboard handling + native single-open via the `name` attribute. Pressed state is driven by `:has(input:checked)` — no JavaScript.
+
+<Playground
+  provider={{ files: { "/main.tsx": { code: TOGGLE, active: true } } }}
+  preview={{}}
+/>
+
+## Install
+
+```ts
+import "elements-kit/ui/styles/theme.css";
+import "elements-kit/ui/styles/scaling.css";
+import "elements-kit/ui/styles/radius.css";
+import "elements-kit/ui/styles/space.css";
+import "elements-kit/ui/styles/typography.css";
+import "elements-kit/ui/styles/cursor.css";
+import "elements-kit/ui/styles/unset.css";
+// neutral palette:
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/base/gray.css";
+// any accent scales you want:
+import "elements-kit/ui/styles/palette/mint.css";
+import "elements-kit/ui/styles/colors/mint.css";
+// and the toggle itself:
+import "elements-kit/ui/toggle/toggle.css";
+```
+
+## API
+
+```html
+<!-- Binary toggle (checkbox) -->
+<label class="x-toggle" data-variant="surface" data-size="2">
+  <input type="checkbox" class="unset" />
+  Bold
+</label>
+
+<!-- Exclusive group (radio, native name attribute) -->
+<label class="x-toggle">
+  <input type="radio" name="align" class="unset" />
+  Left
+</label>
+<label class="x-toggle">
+  <input type="radio" name="align" class="unset" checked />
+  Center
+</label>
+<label class="x-toggle">
+  <input type="radio" name="align" class="unset" />
+  Right
+</label>
+```
+
+The `unset` class on the input strips native chrome ([Styles → Unset native styles](/ui/styles#unset-native-styles)). Visually only the label shows.
+
+| Attribute | Values |
+| --- | --- |
+| `data-variant` | `surface` *(default)*, `soft` |
+| `data-size` | `1`, `2` *(default)*, `3` |
+| `data-icon` | makes the toggle a square (icon-only) — drops horizontal padding, locks `aspect-ratio: 1` |
+| `data-color` *(on element or any ancestor)* | any imported color scale |
+| `disabled` *(on the wrapped input)* | greys out + stops clicks |
+
+## Sizing
+
+| `data-size` | height | padding-x | font-size |
+| --- | --- | --- | --- |
+| `1` | `--space-5` | `--space-2` | `--font-size-1` |
+| `2` *(default)* | `--space-6` | `--space-3` | `--font-size-2` |
+| `3` | `--space-7` | `--space-4` | `--font-size-3` |
+
+## Variants
+
+The rest state uses base (neutral) tokens; the pressed state uses accent (`--color-*`) tokens that fall back to base via [colors/base.css](https://github.com/) when no `data-color` is set. Both variants stack three hue-independent signals — alpha step, ring/weight, and `font-weight: 500 → 600` — so pressed stays clearly distinct from rest even in the all-gray case.
+
+- **`surface`** *(default)* — thin `--base-color-a5` ring + muted `--base-color-a11` text at rest. Pressed: soft `--color-a5` fill + stronger `--color-a8` ring + `--color-12` text. Hover bumps the pressed bg one alpha step deeper (`--color-a6`).
+- **`soft`** — `--base-color-a3` tinted track at rest. Pressed: `--color-a5` accent-tinted track + `--color-12` text.
+
+Set `data-color="iris"` on the toggle or any ancestor to tint the pressed state. Without an accent, the pressed state stays gray (just deeper than rest) — still clearly active.
+
+## Grouping
+
+For an exclusive single-select group, give all the radio inputs the same `name`:
+
+```html
+<div style="display: inline-flex; gap: 4px">
+  <label class="x-toggle"><input type="radio" name="align" class="unset" /> Left</label>
+  <label class="x-toggle"><input type="radio" name="align" class="unset" /> Center</label>
+  <label class="x-toggle"><input type="radio" name="align" class="unset" /> Right</label>
+</div>
+```
+
+The kit deliberately doesn't ship a `.x-toggle-group` class — flex + gap is one line.
+
+For a joined-pill segmented control (no gaps between items, one continuous bar), use [`x-segmented-control`](/ui/segmented-control) instead.
+
+## States
+
+- **`:has(input:checked)`** — pressed. Drives the bg + color flip.
+- **`:hover`** — subtle wash on the bg.
+- **`:focus-within`** — `2px` `--focus-8` outline at `+1px` offset (on the label, since the input is visually hidden).
+- **`:has(input:disabled)`** — `0.6` opacity, `pointer-events: none`.
+
+## Accessibility
+
+Native checkbox / radio semantics are intact — the input is visually hidden via off-screen positioning but remains in the tab order and announced by screen readers. Click events bubble through the label to the input, so `space` / `enter` toggles state via the browser default behavior. The visible focus outline lives on the label because the input itself has no visual.
+
+:::caution[Don't]
+Remove the wrapped `<input>` and use `<button aria-pressed>` instead — that would require JavaScript to toggle the attribute and lose native form participation.
+:::

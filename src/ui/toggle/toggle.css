@@ -1,0 +1,169 @@
+/***************************************************************************************************
+ *                                                                                                 *
+ * x-toggle — CSS-only toggle button. Wraps a <label> around a native checkbox or radio input.     *
+ *                                                                                                 *
+ * The label paints the button chrome; the input keeps form semantics + keyboard + native single-  *
+ * open via the shared `name` attribute. The "pressed" state is driven entirely by                 *
+ * :has(input:checked) — no JS.                                                                    *
+ *                                                                                                 *
+ *   <label class="x-toggle"><input type="checkbox" class="unset" /> Bold</label>                  *
+ *   <label class="x-toggle"><input type="radio" name="align" class="unset" /> Left</label>        *
+ *                                                                                                 *
+ * Multi-select group = multiple checkboxes. Exclusive group = radios with shared `name`.          *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  vertical-align: top;
+
+  height: var(--toggle-height);
+  padding: 0 var(--toggle-padding-inline);
+  border-radius: max(var(--toggle-radius), var(--radius-pill));
+
+  font-family: var(--default-font-family);
+  font-size: var(--toggle-font-size);
+  font-weight: 500;
+  line-height: 1;
+  text-align: center;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: var(--cursor-button);
+
+  transition:
+    background-color 120ms ease-out,
+    box-shadow 120ms ease-out,
+    color 120ms ease-out;
+}
+
+/* Visually hide the wrapped input — keep it in the tab order + form-participating. */
+.x-toggle > input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Focus indication on the label when its input gets keyboard focus. */
+.x-toggle:where(:focus-within) {
+  outline: 2px solid var(--focus-8);
+  outline-offset: 1px;
+}
+
+/* Disabled — driven by the native input. */
+.x-toggle:where(:has(input:disabled)) {
+  opacity: 0.6;
+  pointer-events: none;
+  cursor: var(--cursor-disabled);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SIZES                                                                                           *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-toggle:where([data-size="1"]) {
+  --toggle-height: var(--space-5);
+  --toggle-padding-inline: var(--space-2);
+  --toggle-radius: var(--radius-1);
+  --toggle-font-size: var(--font-size-1);
+}
+
+.x-toggle:where(:not([data-size]), [data-size="2"]) {
+  --toggle-height: var(--space-6);
+  --toggle-padding-inline: var(--space-3);
+  --toggle-radius: var(--radius-2);
+  --toggle-font-size: var(--font-size-2);
+}
+
+.x-toggle:where([data-size="3"]) {
+  --toggle-height: var(--space-7);
+  --toggle-padding-inline: var(--space-4);
+  --toggle-radius: var(--radius-3);
+  --toggle-font-size: var(--font-size-3);
+}
+
+/* `data-icon` makes the toggle a square (icon-only). Drops horizontal padding
+   and locks width = height via aspect-ratio. Min-width: 0 lets aspect-ratio
+   win over the intrinsic min-content width that inline padding would impose. */
+.x-toggle:where([data-icon]) {
+  aspect-ratio: 1;
+  padding-inline: 0;
+  min-width: 0;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * VARIANTS                                                                                        *
+ *                                                                                                 *
+ * Rest: base (neutral) tokens. Pressed: accent (--color-*) tokens that auto-fall-back to base     *
+ * via colors/base.css when no data-color is set. Three hue-independent signals (alpha step, ring  *
+ * strength, font-weight) make pressed clearly distinct from rest even in the all-gray case.       *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* surface (default) — thin neutral ring at rest, soft accent fill on press. */
+
+.x-toggle:where(:not([data-variant]), [data-variant="surface"]) {
+  background-color: transparent;
+  box-shadow: inset 0 0 0 1px var(--base-color-a5);
+  color: var(--base-color-a11);
+  font-weight: 500;
+}
+
+@media (hover: hover) {
+  .x-toggle:where(:not([data-variant]), [data-variant="surface"]):where(
+      :hover
+    ) {
+    background-color: var(--base-color-a2);
+  }
+}
+
+.x-toggle:where(:not([data-variant]), [data-variant="surface"]):where(
+    :has(input:checked)
+  ) {
+  background-color: var(--color-a4);
+  box-shadow: inset 0 0 0 1px var(--color-a8);
+  color: var(--color-a12, var(--color-12));
+  font-weight: 600;
+}
+
+@media (hover: hover) {
+  .x-toggle:where(:not([data-variant]), [data-variant="surface"]):where(
+      :has(input:checked):hover
+    ) {
+    background-color: var(--color-a5);
+  }
+}
+
+/* soft — neutral tinted track at rest, accent tinted track on press. */
+
+.x-toggle:where([data-variant="soft"]) {
+  background-color: var(--base-color-a3);
+  color: var(--base-color-a11);
+  font-weight: 500;
+}
+
+@media (hover: hover) {
+  .x-toggle:where([data-variant="soft"]):where(:hover) {
+    background-color: var(--base-color-a4);
+  }
+}
+
+.x-toggle:where([data-variant="soft"]):where(:has(input:checked)) {
+  background-color: var(--color-a4);
+  color: var(--color-a12, var(--color-12));
+  font-weight: 600;
+}
+
+@media (hover: hover) {
+  .x-toggle:where([data-variant="soft"]):where(:has(input:checked):hover) {
+    background-color: var(--color-a6);
+  }
+}
