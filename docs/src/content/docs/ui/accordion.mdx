@@ -1,0 +1,146 @@
+---
+title: Accordion
+description: Headless disclosure built on native <details>. Single-open grouping, animated open/close, zero JavaScript.
+---
+
+import Playground from "@/playground/Playground.astro";
+import ACCORDION from "@/playground/files/ui-accordion.tsx?raw";
+
+A native `<details>` styled via a single class. Animated open *and* close via `::details-content` + the CSS Grid `0fr → 1fr` trick + `transition-behavior: allow-discrete`. Single-open grouping via the native `name` attribute. Two variants, three sizes, color theming. No JavaScript.
+
+<Playground
+  provider={{ files: { "/main.tsx": { code: ACCORDION, active: true } } }}
+  preview={{}}
+/>
+
+## Install
+
+```ts
+import "elements-kit/ui/styles/theme.css";
+import "elements-kit/ui/styles/scaling.css";
+import "elements-kit/ui/styles/radius.css";
+import "elements-kit/ui/styles/space.css";
+import "elements-kit/ui/styles/typography.css";
+import "elements-kit/ui/styles/cursor.css";
+import "elements-kit/ui/styles/unset.css";
+// pick a neutral palette for --base-color-* (must match data-base-color on root):
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/base/gray.css";
+// and the accordion itself:
+import "elements-kit/ui/accordion/accordion.css";
+```
+
+## API
+
+```html
+<!-- Single-open group: same `name` on all items -->
+<details class="x-accordion" name="faq" data-size="2">
+  <summary>How does it work?</summary>
+  <p>Any HTML inside.</p>
+</details>
+<details class="x-accordion" name="faq">
+  <summary>Is it accessible?</summary>
+  <p>Native disclosure semantics.</p>
+</details>
+
+<!-- Multi-open: omit `name` -->
+<details class="x-accordion">
+  <summary>Standalone</summary>
+  <p>Content.</p>
+</details>
+```
+
+| Attribute | Values |
+| --- | --- |
+| `name` *(native HTML)* | any string — items sharing a name form an exclusive group |
+| `data-variant` | `surface` *(default — bordered card)*, `soft` *(tinted block, no border)*, `borderless` *(no chrome — color-only hover)* |
+| `data-size` | `1`, `2` *(default)*, `3` |
+| `data-color` *(on parent or self)* | any imported color scale |
+| `aria-disabled="true"` | greys out and stops clicks; screen readers announce as disabled |
+| `open` *(native HTML)* | initial open state |
+
+## Sizing
+
+| `data-size` | summary padding | font-size |
+| --- | --- | --- |
+| `1` | `--space-2 / --space-3` | `--font-size-2` |
+| `2` *(default)* | `--space-3 / --space-4` | `--font-size-3` |
+| `3` | `--space-4 / --space-5` | `--font-size-4` |
+
+## Variants
+
+- **`surface`** *(default)* — `--color-material` background with a soft `--base-color-a5` border and `--radius-4` corners. In light mode the body sits at `--base-color-a2`; in dark mode that tint moves to the summary. Stacked siblings collapse their adjoining borders into one card.
+- **`soft`** — surface minus the border. Shares the panel bg, per-mode alpha flip on summary/body, and hover behavior; just no `1px solid` ring around it. Mid-emphasis between `surface` and `borderless`.
+- **`borderless`** — no border, no background, no horizontal padding. Hover affordance is a text-color shift (`a12 → 12`) — no bg wash. The trigger color also stays at full strength while `[open]`. For FAQs inside body copy.
+
+The primitive ships **no chevron** — keep it quiet by default. If you want one, place an SVG (or anything else) inside `<summary>` and rotate it with your own `[open] > summary svg { transform: rotate(180deg); }` rule. See the playground for an example.
+
+## Single-open grouping
+
+Browser-enforced via the native `name` attribute. Opening one item closes its siblings.
+
+```html
+<details class="x-accordion" name="faq"><summary>One</summary>…</details>
+<details class="x-accordion" name="faq"><summary>Two</summary>…</details>
+<details class="x-accordion" name="faq"><summary>Three</summary>…</details>
+```
+
+Omit `name` and each item opens independently.
+
+## Animation
+
+Three pieces cooperate to animate both open and close, cross-browser:
+
+1. **`::details-content`** — addresses the content wrapper as a pseudo-element so we can style it without an extra DOM node.
+2. **`display: grid; grid-template-rows: 0fr → 1fr`** — the classic grid trick. The implicit row track holds the rendered children of `<details>` (minus `<summary>`). Transitioning the track between `0fr` and `1fr` is universal CSS — no `interpolate-size` needed, so it works in every current browser. `padding-block-end` is animated alongside so the bottom padding grows in lockstep.
+3. **`transition-behavior: allow-discrete`** on `content-visibility` — defers the browser's instant content-hide until the row collapse finishes, so the close animation runs to completion.
+
+Without `allow-discrete`, the browser would yank the content the moment `[open]` flipped off and the close would be invisible.
+
+Respects `prefers-reduced-motion: reduce` — transitions are removed.
+
+## States
+
+- **`[open]`** — content expanded.
+- **`:focus-visible`** on `summary` — 2px `--focus-8` outline at `-2px` inset offset.
+- **`aria-disabled="true"`** — `0.6` opacity, `pointer-events: none` on the summary. `<details>` has no native `disabled` and isn't a form control, so `:disabled` doesn't apply; `aria-disabled` is the spec-correct hook and is announced by screen readers.
+
+## Nested accordions
+
+Nest a `<details class="x-accordion">` inside another's content. Cascade Just Works — sizing tokens scope per item, single-open grouping scopes per name.
+
+```html
+<details class="x-accordion" name="outer">
+  <summary>Parent</summary>
+  <details class="x-accordion" name="inner">
+    <summary>Child</summary>
+    <p>Deep content.</p>
+  </details>
+</details>
+```
+
+## Theming
+
+Set `data-color="<color>"` on the accordion or any ancestor to theme the accent. Light/dark flips automatically via the `.dark` class on a parent — see [Light & dark](/ui/styles#light--dark).
+
+## Accessibility
+
+`<details>` / `<summary>` is a native disclosure widget. Keyboard support (Enter, Space to toggle) and screen-reader announcement (`disclosure triangle, collapsed/expanded`) come from the browser.
+
+- Put the trigger label in `<summary>` directly — wrap with `<h3>` *inside* the summary only if document outline matters. Don't wrap `<details>` in a heading.
+- For long content panels, the disclosure region is implicitly labeled by the summary. No `aria-controls` needed.
+
+:::caution[Don't]
+Set `aria-expanded` on `<summary>`. The browser owns it. Adding the attribute manually fights the native state and confuses assistive tech.
+:::
+
+## Browser support
+
+| Feature | Chrome | Safari | Firefox |
+| --- | --- | --- | --- |
+| `<details name>` grouping | 120+ | 17.4+ | 129+ |
+| `::details-content` | 131+ | 18.2+ | 137+ |
+| `transition-behavior: allow-discrete` | 117+ | 17.4+ | 129+ |
+| `grid-template-rows` transition | universal | universal | universal |
+
+All current browsers support the full set. Older browsers degrade to instant open and close — disclosure still works; grouping falls back to multi-open. No JavaScript fallback is shipped.

@@ -1,0 +1,294 @@
+/***************************************************************************************************
+ *                                                                                                 *
+ * x-accordion — CSS-only disclosure built on <details name="…"> + ::details-content.              *
+ *                                                                                                 *
+ * Animation uses the classic CSS Grid 0fr → 1fr trick inside ::details-content so it works in     *
+ * every current browser. Earlier drafts used interpolate-size + block-size:auto — that's          *
+ * Chromium-only as of May 2026 and snapped instantly in Firefox / Safari.                         *
+ *                                                                                                 *
+ *   - display: grid; grid-template-rows: 0fr → 1fr  → universal CSS height animation              *
+ *   - padding-block-end: 0 → var(--…)                → bottom padding grows in lockstep           *
+ *   - transition-behavior: allow-discrete            → defers content-visibility flip until end   *
+ *                                                                                                 *
+ * No chevron — keep the primitive quiet. Consumers can place their own SVG in <summary> if they   *
+ * want one (see the playground for an example).                                                   *
+ *                                                                                                 *
+ * Single-open grouping comes free via the native <details name="group"> attribute.                *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* No root color — let summary pick up --color-11 (accent-aware, falls back to
+   base via colors/base.css when no data-color is set). */
+
+.x-accordion::details-content {
+  display: grid;
+  grid-template-rows: 0fr;
+  overflow: clip;
+
+  /* Explicit content-visibility on both states — don't rely on the UA default,
+     which flickers on close in current Firefox/Safari ::details-content impls. */
+  content-visibility: hidden;
+
+  padding-inline: var(--accordion-summary-padding-inline);
+  padding-block-start: 0;
+  padding-block-end: 0;
+
+  transition:
+    content-visibility var(--accordion-duration) ease allow-discrete,
+    grid-template-rows var(--accordion-duration) ease,
+    padding-block-start var(--accordion-duration) ease,
+    padding-block-end var(--accordion-duration) ease;
+}
+
+.x-accordion[open]::details-content {
+  grid-template-rows: 1fr;
+  content-visibility: visible;
+  padding-block-start: var(--accordion-summary-padding-block);
+  padding-block-end: var(--accordion-summary-padding-block);
+}
+
+/* Direct DOM children of <details> (excluding <summary>) become grid items inside
+   ::details-content. Without min-block-size: 0 they refuse to shrink below their
+   intrinsic content size and the row can't fully collapse — overflow: clip on the
+   grid item lets the wipe stay clean during the transition. */
+.x-accordion > *:not(summary) {
+  min-block-size: 0;
+  overflow: clip;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .x-accordion::details-content {
+    transition: none;
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SUMMARY (the trigger)                                                                           *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-accordion > summary {
+  list-style: none;
+  cursor: var(--cursor-button);
+
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+
+  padding: var(--accordion-summary-padding-block)
+    var(--accordion-summary-padding-inline);
+  font-size: var(--accordion-font-size);
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--color-11);
+
+  user-select: none;
+  -webkit-user-select: none;
+
+  transition: background-color 120ms ease-out;
+}
+
+.x-accordion > summary::-webkit-details-marker {
+  display: none;
+}
+
+.x-accordion > summary:where(:focus-visible) {
+  outline: 2px solid var(--focus-8);
+  outline-offset: -2px;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SIZES                                                                                           *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-accordion {
+  &:where([data-size="1"]) {
+    --accordion-summary-padding-block: var(--space-2);
+    --accordion-summary-padding-inline: var(--space-3);
+    --accordion-font-size: var(--font-size-2);
+    --accordion-duration: 180ms;
+  }
+  &:where([data-size="2"]) {
+    --accordion-summary-padding-block: var(--space-3);
+    --accordion-summary-padding-inline: var(--space-4);
+    --accordion-font-size: var(--font-size-3);
+    --accordion-duration: 200ms;
+  }
+  &:where([data-size="3"]) {
+    --accordion-summary-padding-block: var(--space-4);
+    --accordion-summary-padding-inline: var(--space-5);
+    --accordion-font-size: var(--font-size-4);
+    --accordion-duration: 220ms;
+  }
+}
+
+/* default size */
+.x-accordion:where(:not([data-size])) {
+  --accordion-summary-padding-block: var(--space-3);
+  --accordion-summary-padding-inline: var(--space-4);
+  --accordion-font-size: var(--font-size-3);
+  --accordion-duration: 200ms;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * VARIANTS                                                                                        *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* surface (default) + soft share the per-mode summary/body alpha flip recipe.
+   Only difference: surface uses the bright panel as outer bg + adds a 1px ring;
+   soft uses a dim base-color tint and drops the ring. Both keep the internal
+   contrast between summary and body. */
+
+.x-accordion:where(
+  :not([data-variant]),
+  [data-variant="surface"],
+  [data-variant="soft"]
+) {
+  border-radius: var(--radius-4);
+  overflow: hidden; /* clips the summary tint + hover wash to rounded corners */
+
+  --accordion-summary-bg: transparent;
+  --accordion-summary-hover-bg: var(--base-color-a2);
+  --accordion-body-bg: var(--base-color-a2);
+}
+
+:where(.dark, .dark-theme)
+  .x-accordion:where(
+    :not([data-variant]),
+    [data-variant="surface"],
+    [data-variant="soft"]
+  ) {
+  --accordion-summary-bg: var(--base-color-a2);
+  --accordion-summary-hover-bg: var(--base-color-a3);
+  --accordion-body-bg: transparent;
+}
+
+.x-accordion:where(
+    :not([data-variant]),
+    [data-variant="surface"],
+    [data-variant="soft"]
+  )
+  > summary {
+  background-color: var(--accordion-summary-bg);
+}
+
+.x-accordion:where(
+    :not([data-variant]),
+    [data-variant="surface"],
+    [data-variant="soft"]
+  )::details-content {
+  background-color: var(--accordion-body-bg);
+}
+
+@media (hover: hover) {
+  .x-accordion:where(
+      :not([data-variant]),
+      [data-variant="surface"],
+      [data-variant="soft"]
+    )
+    > summary:where(:hover) {
+    background-color: var(--accordion-summary-hover-bg);
+  }
+}
+
+/* Surface — bright panel + 1px border ring */
+.x-accordion:where(:not([data-variant]), [data-variant="surface"]) {
+  background-color: var(--color-material, var(--color-surface));
+  border: 1px solid var(--base-color-a5);
+}
+
+/* Soft — accent-tinted block. Solid color steps so the tint is visible against
+   any page background (including data-surface="page"'s solid white).
+   - Light: outer at --color-4 (visible tint vs white page) + summary panel-bright.
+   - Dark:  outer at --color-3 (page is already dark, don't over-tint) +
+            summary at --color-4 (one step lifted above outer). */
+.x-accordion:where([data-variant="soft"]) {
+  background-color: var(--color-a2);
+  --accordion-summary-bg: var(--color-a2);
+  --accordion-summary-hover-bg: var(--color-a3);
+  --accordion-body-bg: transparent;
+}
+
+:where(.dark, .dark-theme) .x-accordion:where([data-variant="soft"]) {
+  background-color: var(--color-a2);
+  --accordion-summary-bg: var(--color-a2);
+  --accordion-summary-hover-bg: var(--color-a3);
+}
+
+/* Adjacent surface siblings collapse top/bottom into a single card. */
+.x-accordion:where(:not([data-variant]), [data-variant="surface"])
+  + .x-accordion:where(:not([data-variant]), [data-variant="surface"]) {
+  margin-block-start: -1px;
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+}
+
+.x-accordion:where(:not([data-variant]), [data-variant="surface"]):has(
+    + .x-accordion:where(:not([data-variant]), [data-variant="surface"])
+  ) {
+  border-end-start-radius: 0;
+  border-end-end-radius: 0;
+}
+
+/* Adjacent soft siblings: flatten adjoining corners (no negative margin —
+   soft has no border to overlap). */
+.x-accordion:where([data-variant="soft"])
+  + .x-accordion:where([data-variant="soft"]) {
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+}
+
+.x-accordion:where([data-variant="soft"]):has(
+    + .x-accordion:where([data-variant="soft"])
+  ) {
+  border-end-start-radius: 0;
+  border-end-end-radius: 0;
+}
+
+/* borderless — no chrome. Hover affordance is a text-color shift only,
+   so the trigger reads as inline text. [open] keeps the strong color. */
+
+.x-accordion:where([data-variant="borderless"]) > summary {
+  padding-inline: 0;
+  color: var(--color-a11);
+  transition:
+    background-color 120ms ease-out,
+    color 120ms ease-out;
+}
+
+@media (hover: hover) {
+  .x-accordion:where([data-variant="borderless"]) > summary:where(:hover) {
+    color: var(--color-12);
+  }
+}
+
+.x-accordion:where([data-variant="borderless"][open]) > summary {
+  color: var(--color-12);
+}
+
+.x-accordion:where([data-variant="borderless"])::details-content {
+  padding-inline: 0;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * DISABLED                                                                                        *
+ *                                                                                                 *
+ * <details> has no native disabled attribute and isn't a form control, so :disabled doesn't        *
+ * apply. Use [aria-disabled="true"] — semantic, accessible, mirrors link.css.                     *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-accordion:where([aria-disabled="true"]) {
+  opacity: 0.6;
+}
+
+.x-accordion:where([aria-disabled="true"]) > summary {
+  pointer-events: none;
+  cursor: var(--cursor-disabled);
+}
