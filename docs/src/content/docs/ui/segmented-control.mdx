@@ -95,7 +95,7 @@ At sizes ≥ 2 the track meets the [WCAG 2.5.5 target-size minimum](https://www.
 
 ## Variants
 
-- **`surface`** *(default)* — Radix-style: surface track tinted with `--base-color-a3`, indicator fills with `--color-background` and a 1px hairline + 1px shadow. Inactive text uses `--base-color-a11`; active jumps to `--base-color-12` and `--font-weight-medium`.
+- **`surface`** *(default)* — surface track tinted with `--base-color-a3`, indicator fills with `--color-background` and a 1px hairline + 1px shadow. Inactive text uses `--base-color-a11`; active jumps to `--base-color-12` and `--font-weight-medium`.
 - **`soft`** — accent-tinted track using `--color-a3`. Inactive text uses `--color-a11`; active uses `--color-12`. Pairs well with `data-color`.
 
 ## States
@@ -137,7 +137,7 @@ Native radios carry the entire APG pattern. CSS only paints. Author responsibili
 4. **Preselect a default.** Without `checked`, screen readers announce "0 of N selected" — a smell that reads as broken. Skip preselection only when the field is genuinely optional and the surrounding UI makes that clear.
 5. **Disabled semantics.** Use `<fieldset disabled>` for the whole group or `disabled` on a single `<input>`; don't toggle `aria-disabled` manually. Native arrow-key nav skips disabled inputs automatically.
 6. **Focus model.** Native: Tab into the group, ←/→/↑/↓ to move + select, Tab out. CSS surfaces the focus ring on the visible label, not on the hidden input.
-7. **Don't rely on color alone.** Active segment also bumps `font-weight: var(--font-weight-medium)` and `letter-spacing: var(--tab-active-letter-spacing)` — Radix-mirrored.
+7. **Don't rely on color alone.** Active segment also bumps `font-weight: var(--font-weight-medium)` and `letter-spacing: var(--tab-active-letter-spacing)`.
 8. **Forced colors.** A 1px border on the indicator and `Highlight` / `HighlightText` / `ButtonText` fallbacks keep it visible in Windows High Contrast.
 9. **Reduced motion.** `prefers-reduced-motion: reduce` removes every transition.
 
