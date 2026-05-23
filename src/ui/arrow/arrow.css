@@ -1,0 +1,94 @@
+.x-arrow {
+  --arrow-direction: 1;
+
+  display: inline-block;
+  position: relative;
+  flex-shrink: 0;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.125em;
+  color: inherit;
+
+  transform: scaleX(var(--arrow-direction)) translateX(0);
+  transition: transform 0.2s ease;
+}
+
+[dir="rtl"] .x-arrow,
+.x-arrow[dir="rtl"] {
+  --arrow-direction: -1;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * CHEVRON HEAD (original SVG path, filled, rendered via mask-image)                               *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-arrow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: currentColor;
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='black' d='M7.28033 3.21967C6.98744 2.92678 6.51256 2.92678 6.21967 3.21967C5.92678 3.51256 5.92678 3.98744 6.21967 4.28033L7.28033 3.21967ZM11 8L11.5303 8.53033C11.8232 8.23744 11.8232 7.76256 11.5303 7.46967L11 8ZM6.21967 11.7197C5.92678 12.0126 5.92678 12.4874 6.21967 12.7803C6.51256 13.0732 6.98744 13.0732 7.28033 12.7803L6.21967 11.7197ZM6.21967 4.28033L10.4697 8.53033L11.5303 7.46967L7.28033 3.21967L6.21967 4.28033ZM10.4697 7.46967L6.21967 11.7197L7.28033 12.7803L11.5303 8.53033L10.4697 7.46967Z'/></svg>");
+  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='black' d='M7.28033 3.21967C6.98744 2.92678 6.51256 2.92678 6.21967 3.21967C5.92678 3.51256 5.92678 3.98744 6.21967 4.28033L7.28033 3.21967ZM11 8L11.5303 8.53033C11.8232 8.23744 11.8232 7.76256 11.5303 7.46967L11 8ZM6.21967 11.7197C5.92678 12.0126 5.92678 12.4874 6.21967 12.7803C6.51256 13.0732 6.98744 13.0732 7.28033 12.7803L6.21967 11.7197ZM6.21967 4.28033L10.4697 8.53033L11.5303 7.46967L7.28033 3.21967L6.21967 4.28033ZM10.4697 7.46967L6.21967 11.7197L7.28033 12.7803L11.5303 8.53033L10.4697 7.46967Z'/></svg>");
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: 100% 100%;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SHAFT LINE (original SVG path via mask-image — exact thickness, position, vertical centering)   *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-arrow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: currentColor;
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' d='M1.75 8H11'/></svg>");
+  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' d='M1.75 8H11'/></svg>");
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: 100% 100%;
+
+  clip-path: inset(0 0 0 100%);
+  transition: clip-path 0.2s ease;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * HOVER / FOCUS                                                                                   *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+*:where(:hover) > .x-arrow,
+*:where(:focus-visible) > .x-arrow {
+  transform: scaleX(var(--arrow-direction)) translateX(0.25em);
+}
+
+*:where(:hover) > .x-arrow::after,
+*:where(:focus-visible) > .x-arrow::after {
+  clip-path: inset(0 0 0 0);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * REDUCED MOTION                                                                                  *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+@media (prefers-reduced-motion: reduce) {
+  .x-arrow,
+  .x-arrow::after {
+    transition: none;
+  }
+}
+

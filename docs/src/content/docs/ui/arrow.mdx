@@ -1,0 +1,83 @@
+---
+title: Arrow
+description: Animated CTA chevron — pure CSS, one class, inherits color and font-size.
+---
+
+import Playground from "@/playground/Playground.astro";
+import ARROW from "@/playground/files/ui-arrow.tsx?raw";
+
+A small CTA arrow drawn entirely in CSS — no SVG, no `mask-image`, no `clip-path`. At rest it shows a chevron `›`; on parent `:hover` or `:focus-visible` the chevron slides 0.25em right and a shaft line wipes in beneath it.
+
+Color follows `currentColor`. Size follows parent `font-size` (always `1em × 1em`). Mirrors automatically inside `dir="rtl"`. Respects `prefers-reduced-motion`.
+
+<Playground
+  provider={{ files: { "/main.tsx": { code: ARROW, active: true } } }}
+  preview={{}}
+/>
+
+## Install
+
+```ts
+import "elements-kit/ui/arrow/arrow.css";
+```
+
+## API
+
+```html
+<a href="/contact">
+  Schedule a demo
+  <span class="x-arrow" aria-hidden="true"></span>
+</a>
+```
+
+| Property | Source | Notes |
+| --- | --- | --- |
+| color | `currentColor` (inherits parent `color`) | match text or accent |
+| size | `1em × 1em` (inherits parent `font-size`) | scale by changing parent font size |
+| direction | `:dir(rtl)` ancestor | mirrors via `--arrow-direction: -1` |
+| animation trigger | parent `:hover`, `:focus-visible` | wraps in any focusable element |
+
+There are no `data-*` attributes — the arrow is intentionally one shape, one size class, one color contract. Variants come from the surrounding element.
+
+## How the shape is drawn
+
+- **Chevron `::before`** — a `0.5em × 0.5em` square with only `border-top` and `border-right`; rotated 45° so the two strokes meet at the right tip.
+- **Shaft line `::after`** — a flat `0.578em × 1.5px` rounded rectangle, hidden by default via `transform: scaleX(0)` with `transform-origin: left center`. Hover scales it to `1`, producing a left-to-right draw.
+- **Slide** — parent `:hover` / `:focus-visible` adds `translateX(0.25em)` to the element's own transform. A CSS variable `--arrow-direction` (1 or -1) multiplies the translation so RTL flows naturally without a second rule.
+
+## Recipes
+
+### Inside a primary CTA
+
+```html
+<a class="x-button" data-variant="solid" href="https://app.quba.ae">
+  Get started
+  <span class="x-arrow" aria-hidden="true"></span>
+</a>
+```
+
+### Inside a text link
+
+```html
+<a href="/blog/data-protection-uae" style="color: var(--color-11)">
+  Read the guide
+  <span class="x-arrow" aria-hidden="true"></span>
+</a>
+```
+
+### In RTL
+
+```html
+<div dir="rtl">
+  <a href="/ar/contact">
+    اطلب عرضًا
+    <span class="x-arrow" aria-hidden="true"></span>
+  </a>
+</div>
+```
+
+## Accessibility
+
+- The arrow is decorative; always include `aria-hidden="true"` so screen readers don't announce it.
+- Don't wrap the arrow's animation around essential UI — it activates on `:hover` and `:focus-visible` of the parent, so a focusable parent is required for the animation to reach keyboard users.
+- `prefers-reduced-motion: reduce` removes the transitions but preserves the end state, so users who disable motion still see the hovered/focused state, just instantly.
