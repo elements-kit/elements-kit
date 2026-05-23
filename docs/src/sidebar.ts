@@ -99,6 +99,7 @@ export const uiSidebar: SidebarItem[] = [
       },
       { label: "Slider", slug: "ui/slider", badge: cssBadge },
       { label: "Switch", slug: "ui/switch", badge: cssBadge },
+      { label: "Text Input", slug: "ui/text-input", badge: cssBadge },
     ],
   },
   {
