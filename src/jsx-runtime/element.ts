@@ -7,6 +7,12 @@ import type {
 } from "./types";
 import type { JSX } from ".";
 import { applyProps } from "./properties";
+import {
+  MATHML_NAMESPACE,
+  MathMLElements,
+  SVG_NAMESPACE,
+  SvgElements,
+} from "./constants";
 import { effectScope, resolveProps, untracked } from "../signals";
 import { attachDisposables } from "./dispose";
 import "../polyfill";
@@ -97,7 +103,16 @@ function createNodeElement(
 // ─ Node helpers ───────────────────────────────────────────────────────────────
 
 function resolveNode(type: JSX.ElementType): PropsTarget {
-  if (typeof type === "string") return document.createElement(type);
+  if (typeof type === "string") {
+    // SVG checked first — SVG appears far more often than MathML in real apps.
+    if (SvgElements.has(type)) {
+      return document.createElementNS(SVG_NAMESPACE, type);
+    }
+    if (MathMLElements.has(type)) {
+      return document.createElementNS(MATHML_NAMESPACE, type);
+    }
+    return document.createElement(type);
+  }
   if (type instanceof Element || type instanceof DocumentFragment) return type;
   return new (type as new (...args: any[]) => ComponentInstance)();
 }

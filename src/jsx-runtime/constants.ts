@@ -106,4 +106,117 @@ export function svgNamespace(ns: string): string | undefined {
   return undefined;
 }
 
+export const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
+export const MATHML_NAMESPACE = "http://www.w3.org/1998/Math/MathML";
+
+/**
+ * Tag names that must be created in the SVG namespace. `document.createElement`
+ * (no namespace) produces an HTMLUnknownElement for these and the browser
+ * won't paint the visual; createElementNS is required. Ambiguous tags that
+ * exist in both HTML and SVG (`a`, `script`, `style`, `title`) are deliberately
+ * left out and default to HTML — consumers using the SVG variants are rare and
+ * can build them imperatively.
+ */
+export const SvgElements: Set<string> = new Set([
+  "svg",
+  "g",
+  "path",
+  "circle",
+  "rect",
+  "line",
+  "polyline",
+  "polygon",
+  "ellipse",
+  "defs",
+  "use",
+  "symbol",
+  "text",
+  "tspan",
+  "textPath",
+  "mask",
+  "clipPath",
+  "linearGradient",
+  "radialGradient",
+  "stop",
+  "pattern",
+  "marker",
+  "image",
+  "foreignObject",
+  "switch",
+  "desc",
+  "metadata",
+  "view",
+  "filter",
+  "feBlend",
+  "feColorMatrix",
+  "feComponentTransfer",
+  "feComposite",
+  "feConvolveMatrix",
+  "feDiffuseLighting",
+  "feDisplacementMap",
+  "feDistantLight",
+  "feDropShadow",
+  "feFlood",
+  "feFuncA",
+  "feFuncB",
+  "feFuncG",
+  "feFuncR",
+  "feGaussianBlur",
+  "feImage",
+  "feMerge",
+  "feMergeNode",
+  "feMorphology",
+  "feOffset",
+  "fePointLight",
+  "feSpecularLighting",
+  "feSpotLight",
+  "feTile",
+  "feTurbulence",
+  "animate",
+  "animateMotion",
+  "animateTransform",
+  "set",
+  "mpath",
+]);
+
+/**
+ * Tag names that must be created in the MathML namespace. Same problem as
+ * `SvgElements` — `document.createElement("math")` is an HTMLUnknownElement,
+ * formulae render only when created via `createElementNS(MATHML_NAMESPACE, …)`.
+ */
+export const MathMLElements: Set<string> = new Set([
+  "math",
+  "annotation",
+  "annotation-xml",
+  "maction",
+  "menclose",
+  "merror",
+  "mfenced",
+  "mfrac",
+  "mi",
+  "mmultiscripts",
+  "mn",
+  "mo",
+  "mover",
+  "mpadded",
+  "mphantom",
+  "mprescripts",
+  "mroot",
+  "mrow",
+  "ms",
+  "mspace",
+  "msqrt",
+  "mstyle",
+  "msub",
+  "msubsup",
+  "msup",
+  "mtable",
+  "mtd",
+  "mtext",
+  "mtr",
+  "munder",
+  "munderover",
+  "semantics",
+]);
+
 export const ReservedNameSpaces = new Set(["class", "on", "style", "prop"]);

@@ -74,3 +74,63 @@ describe("namespaced attributes via JSX", () => {
     expect(el.getAttributeNS(XML, "lang")).toBe("en");
   });
 });
+
+describe("SVG element namespace", () => {
+  const SVG = "http://www.w3.org/2000/svg";
+
+  it("creates <svg> in the SVG namespace", () => {
+    const el = (<svg />) as SVGSVGElement;
+    expect(el.namespaceURI).toBe(SVG);
+    expect(el).toBeInstanceOf(SVGElement);
+  });
+
+  it("creates SVG children (<path>, <g>, <circle>) in the SVG namespace", () => {
+    const el = (
+      <svg>
+        <g>
+          <path d="M0 0L10 10" />
+          <circle cx="5" cy="5" r="3" />
+        </g>
+      </svg>
+    ) as SVGSVGElement;
+
+    const path = el.querySelector("path")!;
+    const circle = el.querySelector("circle")!;
+    const g = el.querySelector("g")!;
+    expect(path.namespaceURI).toBe(SVG);
+    expect(circle.namespaceURI).toBe(SVG);
+    expect(g.namespaceURI).toBe(SVG);
+  });
+
+  it("keeps HTML elements in the HTML namespace", () => {
+    const el = (<div />) as HTMLDivElement;
+    expect(el.namespaceURI).toBe("http://www.w3.org/1999/xhtml");
+  });
+});
+
+describe("MathML element namespace", () => {
+  const MATHML = "http://www.w3.org/1998/Math/MathML";
+
+  it("creates <math> in the MathML namespace", () => {
+    const el = (<math />) as Element;
+    expect(el.namespaceURI).toBe(MATHML);
+  });
+
+  it("creates MathML children (<mfrac>, <mi>, <mn>) in the MathML namespace", () => {
+    const el = (
+      <math>
+        <mfrac>
+          <mi>x</mi>
+          <mn>2</mn>
+        </mfrac>
+      </math>
+    ) as Element;
+
+    const mfrac = el.querySelector("mfrac")!;
+    const mi = el.querySelector("mi")!;
+    const mn = el.querySelector("mn")!;
+    expect(mfrac.namespaceURI).toBe(MATHML);
+    expect(mi.namespaceURI).toBe(MATHML);
+    expect(mn.namespaceURI).toBe(MATHML);
+  });
+});
