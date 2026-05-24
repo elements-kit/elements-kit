@@ -133,6 +133,11 @@
   height: fit-content;
   padding: var(--select-text-padding-y) var(--select-text-padding-x);
 
+  /* Reserve chevron space at the end so option text doesn't overlap it. */
+  padding-inline-end: calc(
+    var(--select-chevron-inset) + var(--select-chevron-size) + var(--space-1)
+  );
+
   --margin-top: 0px;
   --margin-right: 0px;
   --margin-bottom: 0px;
