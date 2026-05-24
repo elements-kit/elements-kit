@@ -1,0 +1,91 @@
+---
+title: Select
+description: Headless select — a styled native <select>. We own the trigger chrome; the browser owns the option popup. No JavaScript.
+---
+
+import Playground from "@/playground/Playground.astro";
+import SELECT from "@/playground/files/ui-select.tsx?raw";
+
+A native `<select>` with CSS-only chrome. The trigger (closed state) is styled here — sizes, variants, colors, focus ring, disabled state, and a custom chevron. The option popup stays OS-native, which means full keyboard navigation, native mobile pickers, and screen-reader announcement all work without a line of JS.
+
+<Playground
+  provider={{ files: { "/main.tsx": { code: SELECT, active: true } } }}
+  preview={{}}
+/>
+
+## Install
+
+```ts
+import "elements-kit/ui/styles/theme.css";
+import "elements-kit/ui/styles/scaling.css";
+import "elements-kit/ui/styles/radius.css";
+import "elements-kit/ui/styles/space.css";
+import "elements-kit/ui/styles/typography.css";
+import "elements-kit/ui/styles/cursor.css";
+import "elements-kit/ui/styles/unset.css";
+// neutral palette:
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/base/gray.css";
+// any accent scales you want:
+import "elements-kit/ui/styles/palette/mint.css";
+import "elements-kit/ui/styles/colors/mint.css";
+// and the select itself:
+import "elements-kit/ui/select/select.css";
+```
+
+## API
+
+```html
+<select class="x-select unset" data-variant="surface" data-size="2">
+  <option value="">Pick one</option>
+  <option value="apple">Apple</option>
+  <option value="orange">Orange</option>
+</select>
+```
+
+Pair `class="x-select"` with `class="unset"` to strip native chrome ([Styles → Unset native styles](/ui/styles#unset-native-styles)). Without `.unset`, browser-default styling will fight the variant rules.
+
+| Attribute | Values |
+| --- | --- |
+| `data-variant` | `surface` *(default)*, `soft`, `text` |
+| `data-size` | `1`, `2` *(default)*, `3` |
+| `data-color` *(on element or any ancestor)* | any imported color scale — tints `soft` and `text` |
+| `disabled` *(native)* | greys out + stops clicks |
+
+## Sizing
+
+| `data-size` | height | padding-x | font-size |
+| --- | --- | --- | --- |
+| `1` | `--space-5` | `--space-2` | `--font-size-1` |
+| `2` *(default)* | `--space-6` | `--space-3` | `--font-size-2` |
+| `3` | `--space-7` | `--space-4` | `--font-size-3` |
+
+Padding is symmetric (`padding-inline`). The trigger uses `appearance: auto`, so the UA sizes it to fit the widest `<option>` automatically — switching selection doesn't reflow the layout.
+
+## Variants
+
+- **`surface`** *(default)* — `transparent` background, thin `--base-color-a7` inset ring, neutral `--base-color-12` text. Hover deepens the ring to `--base-color-a8`. Surface stays neutral even when an ancestor sets `data-color`.
+- **`soft`** — `--color-a3` accent-tinted track, `--color-12` text. Hover bumps the track to `--color-a4`. Without an accent, `--color-*` falls back to `--base-color-*` and the select stays gray-tinted.
+- **`text`** — transparent, content-box height, negative-margin offset so it sits inline with surrounding body text (same recipe as `x-button[data-variant="text"]`). Hover gives a subtle `--color-a3` wash.
+
+## States
+
+- **`:focus-visible`** — `2px` `--focus-8` outline at `-1px` offset (inset).
+- **`:hover`** — surface bumps the ring, soft + text deepen the background.
+- **`:disabled`** — `0.6` opacity + `pointer-events: none`, plus per-variant fallback colors so the disabled state still reads as a control rather than a blank rectangle.
+
+## Chevron
+
+The chevron is the browser's native dropdown indicator (`appearance: auto`). Visuals vary slightly per browser — Chrome / Firefox draw a small triangle, Safari draws a chunkier double-arrow — but every chevron is correctly positioned, accessibly labelled, and synced with the OS picker. This is the trade-off that buys us correct width sizing (fits widest option) and vertical centering of long option text without CSS hacks.
+
+## Accessibility
+
+Native `<select>` semantics are intact — keyboard navigation, screen-reader announcement, form participation, mobile picker UI, and the option popup all come from the platform. We only style the closed trigger.
+
+:::caution[Don't]
+Replace this with `<button aria-haspopup="listbox">` + a custom popup to "get more control." You'll re-implement focus management, keyboard navigation, scroll containment, and mobile pickers — and lose them on the platforms where the native version already works.
+:::
+
+:::note[Popup styling]
+The option list popup is rendered by the operating system and varies per browser. That's the contract of a CSS-only primitive — for a fully styled popup you need JS state + a Listbox primitive ([roadmap reference](/ui#initial-primitive-catalog)).
+:::

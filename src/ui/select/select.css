@@ -1,0 +1,203 @@
+/***************************************************************************************************
+ *                                                                                                 *
+ * x-select — native <select> with `appearance: auto`. We lean on the UA for the chevron, width    *
+ * (sizes to the widest <option>, not the selected one), vertical centering, focus behavior, and   *
+ * the option popup. Variant chrome (ring, fill, color, focus outline) layers on top via standard  *
+ * CSS properties that browsers honor on selects even when appearance: auto.                       *                         *
+ *                                                                                                 *
+ *   <select class="x-select unset" data-variant="surface" data-size="2">                          *
+ *     <option>One</option>                                                                        *
+ *     <option>Two</option>                                                                        *
+ *   </select>                                                                                     *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-select {
+  /* `appearance: auto` restores the UA's native renderer for <select>. That's
+     what gives us correct width (fits the widest option), vertical centering of
+     option text, focus handling, and the OS chevron — none of which can be
+     replicated reliably with appearance: none on a replaced element. Variant
+     chrome (color, bg, ring, outline) still applies on top. */
+  appearance: auto;
+  -webkit-appearance: auto;
+
+  display: inline-block;
+  flex-shrink: 0;
+  vertical-align: top;
+
+  font-family: var(--default-font-family);
+  font-weight: 500;
+  font-style: normal;
+  text-align: start;
+
+  cursor: var(--cursor-button);
+}
+
+.x-select:where(:focus-visible) {
+  outline: 2px solid var(--focus-8);
+  outline-offset: -1px;
+}
+
+/* Native dropdown indicator (CSS Forms Level 1 — Chrome 130+). Moves the trigger's
+   inline-end padding to AFTER the chevron, so the icon sits inset from the right
+   edge by --select-padding-inline (matches the left-edge inset) and the text can
+   run right up to the chevron. Falls back gracefully where ::picker-icon isn't
+   supported — the UA just renders its default chevron position. */
+.x-select::picker-icon {
+  margin-inline-end: var(--select-padding-inline);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SIZES                                                                                           *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-select:where([data-size="1"]) {
+  --select-padding-inline: var(--space-2);
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
+  letter-spacing: var(--letter-spacing-1);
+  border-radius: max(var(--radius-1), var(--radius-pill));
+}
+.x-select:where([data-size="1"]):where(:not([data-variant="text"])) {
+  height: var(--space-5);
+  padding-inline-start: var(--select-padding-inline);
+  padding-inline-end: 0;
+}
+.x-select:where([data-size="1"]):where([data-variant="text"]) {
+  --select-text-padding-x: var(--space-2);
+  --select-text-padding-y: var(--space-1);
+}
+
+.x-select:where(:not([data-size]), [data-size="2"]) {
+  --select-padding-inline: var(--space-3);
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-2);
+  letter-spacing: var(--letter-spacing-2);
+  border-radius: max(var(--radius-2), var(--radius-pill));
+}
+.x-select:where(:not([data-size]), [data-size="2"]):where(
+    :not([data-variant="text"])
+  ) {
+  height: var(--space-6);
+  padding-inline-start: var(--select-padding-inline);
+  padding-inline-end: 0;
+}
+.x-select:where(:not([data-size]), [data-size="2"]):where(
+    [data-variant="text"]
+  ) {
+  --select-text-padding-x: var(--space-2);
+  --select-text-padding-y: var(--space-1);
+}
+
+.x-select:where([data-size="3"]) {
+  --select-padding-inline: var(--space-4);
+  font-size: var(--font-size-3);
+  line-height: var(--line-height-3);
+  letter-spacing: var(--letter-spacing-3);
+  border-radius: max(var(--radius-3), var(--radius-pill));
+}
+.x-select:where([data-size="3"]):where(:not([data-variant="text"])) {
+  height: var(--space-7);
+  padding-inline-start: var(--select-padding-inline);
+  padding-inline-end: 0;
+}
+.x-select:where([data-size="3"]):where([data-variant="text"]) {
+  --select-text-padding-x: var(--space-3);
+  --select-text-padding-y: calc(var(--space-1) * 1.5);
+}
+
+.x-select:where([data-variant="text"]) {
+  box-sizing: content-box;
+  height: fit-content;
+  padding: var(--select-text-padding-y) var(--select-text-padding-x);
+
+  --margin-top: 0px;
+  --margin-right: 0px;
+  --margin-bottom: 0px;
+  --margin-left: 0px;
+
+  --margin-top-override: calc(var(--margin-top) - var(--select-text-padding-y));
+  --margin-right-override: calc(
+    var(--margin-right) - var(--select-text-padding-x)
+  );
+  --margin-bottom-override: calc(
+    var(--margin-bottom) - var(--select-text-padding-y)
+  );
+  --margin-left-override: calc(
+    var(--margin-left) - var(--select-text-padding-x)
+  );
+
+  margin: var(--margin-top-override) var(--margin-right-override)
+    var(--margin-bottom-override) var(--margin-left-override);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * VARIANTS                                                                                        *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* surface (default) */
+
+.x-select:where(:not([data-variant]), [data-variant="surface"]) {
+  color: var(--base-color-12);
+  background-color: transparent;
+  box-shadow: inset 0 0 0 1px var(--base-color-a7);
+}
+
+@media (hover: hover) {
+  .x-select:where(:not([data-variant]), [data-variant="surface"]):where(
+      :hover
+    ) {
+    box-shadow: inset 0 0 0 1px var(--base-color-a8);
+  }
+}
+
+.x-select:where(:not([data-variant]), [data-variant="surface"]):where(
+    :disabled
+  ) {
+  color: var(--base-color-a11);
+  background-color: var(--base-color-a2);
+  box-shadow: inset 0 0 0 1px var(--base-color-a6);
+}
+
+/* soft */
+
+.x-select:where([data-variant="soft"]) {
+  color: var(--color-12);
+  background-color: var(--color-a3);
+}
+
+@media (hover: hover) {
+  .x-select:where([data-variant="soft"]):where(:hover) {
+    background-color: var(--color-a4);
+  }
+}
+
+.x-select:where([data-variant="soft"]):where(:focus-visible) {
+  outline-color: var(--color-8);
+}
+
+.x-select:where([data-variant="soft"]):where(:disabled) {
+  color: var(--base-color-a11);
+  background-color: var(--base-color-a3);
+}
+
+/* text */
+
+.x-select:where([data-variant="text"]) {
+  color: var(--color-12);
+}
+
+@media (hover: hover) {
+  .x-select:where([data-variant="text"]):where(:hover) {
+    background-color: var(--color-a3);
+  }
+}
+
+.x-select:where([data-variant="text"]):where(:disabled) {
+  color: var(--base-color-a11);
+  background-color: transparent;
+}

@@ -39,10 +39,7 @@
 
   color: var(--base-color-12);
   background-color: var(--color-surface);
-  background-image: linear-gradient(
-    var(--base-color-a3),
-    var(--base-color-a3)
-  );
+  background-image: linear-gradient(var(--base-color-a3), var(--base-color-a3));
 
   font-family: var(--default-font-family);
   font-style: normal;
@@ -141,7 +138,7 @@
 }
 
 /* Separators between adjacent inactive segments — hairlines that fade
- * when either neighbour becomes active or focused, matching Radix.
+ * when either neighbour becomes active or focused.
  */
 .x-segmented-control > label + label::after {
   content: "";
@@ -157,8 +154,7 @@
   z-index: -1;
   transition: opacity var(--seg-transition-duration) ease-out;
 }
-.x-segmented-control
-  > label:where(:has(:checked, :focus-visible))::after,
+.x-segmented-control > label:where(:has(:checked, :focus-visible))::after,
 .x-segmented-control
   > label:where(:has(:checked, :focus-visible))
   + label::after {
@@ -244,10 +240,7 @@
 
 .x-segmented-control:where(:disabled, [data-disabled]) {
   color: var(--base-color-a8);
-  background-image: linear-gradient(
-    var(--base-color-a2),
-    var(--base-color-a2)
-  );
+  background-image: linear-gradient(var(--base-color-a2), var(--base-color-a2));
 }
 
 .x-segmented-control:where(:disabled, [data-disabled]) > label,
@@ -264,7 +257,9 @@
 
 @supports (anchor-name: --x) {
   .x-segmented-control:where(:disabled, [data-disabled])::after,
-  .x-segmented-control:where(:has(> label:where(:has(:disabled)):has(:checked)))::after {
+  .x-segmented-control:where(
+      :has(> label:where(:has(:disabled)):has(:checked))
+    )::after {
     background-color: var(--base-color-a3);
     box-shadow: none;
   }
@@ -362,7 +357,7 @@
  *                                                                                                 *
  ***************************************************************************************************/
 
-/* surface (default) — Radix-style: surface track + white indicator. */
+/* surface (default): surface track + white indicator. */
 
 /* soft — tinted track using the active color scale. */
 .x-segmented-control:where([data-variant="soft"]) {
@@ -383,8 +378,7 @@
 .x-segmented-control:where([data-high-contrast]) > label:where(:has(:checked)) {
   color: var(--base-color-12);
 }
-.x-segmented-control:where(
-    [data-high-contrast][data-variant="soft"]
-  ) > label:where(:has(:checked)) {
+.x-segmented-control:where([data-high-contrast][data-variant="soft"])
+  > label:where(:has(:checked)) {
   color: var(--color-12);
 }

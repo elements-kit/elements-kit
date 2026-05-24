@@ -1,9 +1,7 @@
 /*
  * Card primitive.
  *
- * Block-level container with surface, border, and optional shadow. Ports the
- * structural ideas from Radix Themes' base-card + card (the `::before` background
- * + `::after` inner border + `contain: paint` layout) onto kit tokens. Reads
+ * Block-level container with surface, border, and optional shadow. Reads
  * `--color-material` / `--backdrop-filter-material` (from material.css) for the
  * surface, falling back to `--color-surface` so it works without
  * `data-material-background` on an ancestor.

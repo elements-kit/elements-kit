@@ -99,6 +99,7 @@ export const uiSidebar: SidebarItem[] = [
         slug: "ui/segmented-control",
         badge: cssBadge,
       },
+      { label: "Select", slug: "ui/select", badge: cssBadge },
       { label: "Slider", slug: "ui/slider", badge: cssBadge },
       { label: "Switch", slug: "ui/switch", badge: cssBadge },
       { label: "Text Input", slug: "ui/text-input", badge: cssBadge },
