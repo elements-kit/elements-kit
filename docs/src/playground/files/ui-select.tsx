@@ -104,6 +104,39 @@ export class App {
         </section>
 
         <section>
+          <SectionHeading>
+            Truncation ·{" "}
+            <small style:color="var(--base-color-a10)" style:font-weight="400">
+              fixed <code>width</code> (not <code>min-width</code>) triggers
+              ellipsis on long options
+            </small>
+          </SectionHeading>
+          <Row>
+            <select
+              class:x-select
+              class:unset
+              data-variant="surface"
+              style:width="16ch"
+            >
+              <option>A really long option label that overflows</option>
+              <option>Short</option>
+              <option>Medium length one</option>
+            </select>
+            <select
+              class:x-select
+              class:unset
+              data-variant="soft"
+              style:width="16ch"
+            >
+              <option>
+                Another lengthy option that demonstrates the ellipsis
+              </option>
+              <option>Short</option>
+            </select>
+          </Row>
+        </section>
+
+        <section>
           <SectionHeading>Sizes</SectionHeading>
           <div style:display="grid" style:gap="12px">
             {SIZES.map((size) => (
@@ -190,7 +223,6 @@ export class App {
             ))}
           </div>
         </section>
-
       </div>
     );
   }

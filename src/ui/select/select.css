@@ -1,9 +1,7 @@
 /***************************************************************************************************
  *                                                                                                 *
- * x-select — native <select> with `appearance: auto`. We lean on the UA for the chevron, width    *
- * (sizes to the widest <option>, not the selected one), vertical centering, focus behavior, and   *
- * the option popup. Variant chrome (ring, fill, color, focus outline) layers on top via standard  *
- * CSS properties that browsers honor on selects even when appearance: auto.                       *                         *
+ * x-select — native <select>. The popup is OS-native;                                             *
+ * we only own the closed trigger.                                                                 *
  *                                                                                                 *
  *   <select class="x-select unset" data-variant="surface" data-size="2">                          *
  *     <option>One</option>                                                                        *
@@ -13,38 +11,40 @@
  ***************************************************************************************************/
 
 .x-select {
-  /* `appearance: auto` restores the UA's native renderer for <select>. That's
-     what gives us correct width (fits the widest option), vertical centering of
-     option text, focus handling, and the OS chevron — none of which can be
-     replicated reliably with appearance: none on a replaced element. Variant
-     chrome (color, bg, ring, outline) still applies on top. */
-  appearance: auto;
-  -webkit-appearance: auto;
-
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
   flex-shrink: 0;
+  user-select: none;
   vertical-align: top;
+
+  appearance: none;
+  -webkit-appearance: none;
 
   font-family: var(--default-font-family);
   font-weight: 500;
   font-style: normal;
   text-align: start;
 
+  /* Truncate long selected-option text with an ellipsis. Without this, the option
+     text overflows into / under the chevron region (chevron is at `right N center`
+     inside the content area). The user controls visible width via min-width / width
+     in `ch` (or any unit); ellipsis kicks in when an option exceeds it. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
   cursor: var(--cursor-button);
+
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' d='M3 5l3 3 3-3'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right var(--select-chevron-inset) center;
+  background-size: var(--select-chevron-size) var(--select-chevron-size);
 }
 
 .x-select:where(:focus-visible) {
   outline: 2px solid var(--focus-8);
   outline-offset: -1px;
-}
-
-/* Native dropdown indicator (CSS Forms Level 1 — Chrome 130+). Moves the trigger's
-   inline-end padding to AFTER the chevron, so the icon sits inset from the right
-   edge by --select-padding-inline (matches the left-edge inset) and the text can
-   run right up to the chevron. Falls back gracefully where ::picker-icon isn't
-   supported — the UA just renders its default chevron position. */
-.x-select::picker-icon {
-  margin-inline-end: var(--select-padding-inline);
 }
 
 /***************************************************************************************************
@@ -54,16 +54,28 @@
  ***************************************************************************************************/
 
 .x-select:where([data-size="1"]) {
-  --select-padding-inline: var(--space-2);
+  --select-chevron-size: 9px;
+  --select-chevron-inset: var(--space-2);
+  gap: var(--space-1);
   font-size: var(--font-size-1);
   line-height: var(--line-height-1);
   letter-spacing: var(--letter-spacing-1);
   border-radius: max(var(--radius-1), var(--radius-pill));
 }
 .x-select:where([data-size="1"]):where(:not([data-variant="text"])) {
-  height: var(--space-5);
-  padding-inline-start: var(--select-padding-inline);
-  padding-inline-end: 0;
+  /* Symmetric padding-block (instead of explicit `height`) is what makes the
+     option text actually center vertically on a native <select>. Replaced
+     elements ignore line-height-fills-box tricks — they pull the rendered
+     glyph down to the box baseline, leaving the centered background chevron
+     hovering above the text. Calc'd padding makes the visual height still
+     equal --space-5 but with the text guaranteed in the middle. */
+  padding-block: calc((var(--space-5) - var(--line-height-1)) / 2);
+  padding-inline-start: var(--space-2);
+  /* Reserve chevron space at the end (inset + glyph + small gap) so option text
+     never overlaps the background-image chevron. */
+  padding-inline-end: calc(
+    var(--select-chevron-inset) + var(--select-chevron-size) + var(--space-1)
+  );
 }
 .x-select:where([data-size="1"]):where([data-variant="text"]) {
   --select-text-padding-x: var(--space-2);
@@ -71,7 +83,9 @@
 }
 
 .x-select:where(:not([data-size]), [data-size="2"]) {
-  --select-padding-inline: var(--space-3);
+  --select-chevron-size: 9px;
+  --select-chevron-inset: var(--space-3);
+  gap: calc(var(--space-1) * 1.5);
   font-size: var(--font-size-2);
   line-height: var(--line-height-2);
   letter-spacing: var(--letter-spacing-2);
@@ -80,9 +94,11 @@
 .x-select:where(:not([data-size]), [data-size="2"]):where(
     :not([data-variant="text"])
   ) {
-  height: var(--space-6);
-  padding-inline-start: var(--select-padding-inline);
-  padding-inline-end: 0;
+  padding-block: calc((var(--space-6) - var(--line-height-2)) / 2);
+  padding-inline-start: var(--space-3);
+  padding-inline-end: calc(
+    var(--select-chevron-inset) + var(--select-chevron-size) + var(--space-1)
+  );
 }
 .x-select:where(:not([data-size]), [data-size="2"]):where(
     [data-variant="text"]
@@ -92,16 +108,20 @@
 }
 
 .x-select:where([data-size="3"]) {
-  --select-padding-inline: var(--space-4);
+  --select-chevron-size: 11px;
+  --select-chevron-inset: var(--space-4);
+  gap: var(--space-2);
   font-size: var(--font-size-3);
   line-height: var(--line-height-3);
   letter-spacing: var(--letter-spacing-3);
   border-radius: max(var(--radius-3), var(--radius-pill));
 }
 .x-select:where([data-size="3"]):where(:not([data-variant="text"])) {
-  height: var(--space-7);
-  padding-inline-start: var(--select-padding-inline);
-  padding-inline-end: 0;
+  padding-block: calc((var(--space-7) - var(--line-height-3)) / 2);
+  padding-inline-start: var(--space-4);
+  padding-inline-end: calc(
+    var(--select-chevron-inset) + var(--select-chevron-size) + var(--space-2)
+  );
 }
 .x-select:where([data-size="3"]):where([data-variant="text"]) {
   --select-text-padding-x: var(--space-3);
