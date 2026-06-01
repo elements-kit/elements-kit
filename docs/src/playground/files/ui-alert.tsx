@@ -6,8 +6,8 @@ import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/cursor.css";
 import "elements-kit/ui/styles/shadow.css";
 import "elements-kit/ui/styles/unset.css";
-import "elements-kit/ui/styles/palette/neutral.css";
-import "elements-kit/ui/styles/base/neutral.css";
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/base/gray.css";
 import "elements-kit/ui/styles/palette/black-alpha.css";
 import "elements-kit/ui/styles/accent/base.css";
 import "elements-kit/ui/styles/palette/mint.css";
@@ -50,7 +50,7 @@ export class App {
       <div
         class:dark={dark}
         data-accent="mint"
-        data-base-color="neutral"
+        data-base-color="gray"
         data-radius="medium"
         style:padding="24px"
         style:display="grid"
@@ -71,12 +71,7 @@ export class App {
 
         <h3 style:margin="0">Variants</h3>
         {VARIANTS.map((variant) => (
-          <div
-            class:unset
-            class:x-alert
-            data-variant={variant}
-            data-accent="amber"
-          >
+          <div class:unset class:x-alert data-variant={variant} data-accent="amber">
             <InfoIcon />
             <div>
               <strong>{variant}</strong> — Heads up. Your trial ends in 7 days.
@@ -86,12 +81,7 @@ export class App {
 
         <h3 style:margin="16px 0 0">Sizes</h3>
         {SIZES.map((size) => (
-          <div
-            class:unset
-            class:x-alert
-            data-size={String(size)}
-            data-accent="blue"
-          >
+          <div class:unset class:x-alert data-size={String(size)} data-accent="blue">
             <InfoIcon />
             <div>Size {size} — example body copy goes here.</div>
           </div>
@@ -112,13 +102,7 @@ export class App {
         </div>
 
         <h3 style:margin="16px 0 0">High contrast</h3>
-        <div
-          class:unset
-          class:x-alert
-          data-variant="soft"
-          data-accent="amber"
-          data-high-contrast
-        >
+        <div class:unset class:x-alert data-variant="soft" data-accent="amber" data-high-contrast>
           <InfoIcon />
           <div>High-contrast soft variant — color bumps to --accent-12.</div>
         </div>

@@ -5,8 +5,8 @@ import "elements-kit/ui/styles/space.css";
 import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/cursor.css";
 import "elements-kit/ui/styles/unset.css";
-import "elements-kit/ui/styles/palette/neutral.css";
-import "elements-kit/ui/styles/base/neutral.css";
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/base/gray.css";
 import "elements-kit/ui/styles/palette/mint.css";
 import "elements-kit/ui/styles/accent/mint.css";
 import "elements-kit/ui/styles/palette/blue.css";
@@ -66,7 +66,7 @@ export class App {
       <div
         class:dark={dark}
         data-accent="mint"
-        data-base-color="neutral"
+        data-base-color="gray"
         data-radius="medium"
         style:padding="24px"
         style:display="grid"
@@ -278,12 +278,7 @@ export class App {
 
           <div style:height="16px" />
 
-          <details
-            class:x-accordion
-            data-variant="soft"
-            data-accent="mint"
-            open
-          >
+          <details class:x-accordion data-variant="soft" data-accent="mint" open>
             <summary>
               data-accent="mint" — soft
               <Chevron />

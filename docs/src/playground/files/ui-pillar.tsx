@@ -4,8 +4,8 @@ import "elements-kit/ui/styles/radius.css";
 import "elements-kit/ui/styles/space.css";
 import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/unset.css";
-import "elements-kit/ui/styles/palette/neutral.css";
-import "elements-kit/ui/styles/base/neutral.css";
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/base/gray.css";
 import "elements-kit/ui/styles/palette/mint.css";
 import "elements-kit/ui/styles/accent/mint.css";
 import "elements-kit/ui/styles/shadow.css";
@@ -36,36 +36,21 @@ function Label({ children }: { children: any }) {
 
 function CircleIcon() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      style:width="2rem"
-      style:height="2rem"
-    >
+    <svg viewBox="0 0 24 24" fill="currentColor" style:width="2rem" style:height="2rem">
       <circle cx="12" cy="12" r="10" />
     </svg>
   );
 }
 function SquareIcon() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      style:width="2rem"
-      style:height="2rem"
-    >
+    <svg viewBox="0 0 24 24" fill="currentColor" style:width="2rem" style:height="2rem">
       <rect x="4" y="4" width="16" height="16" rx="3" />
     </svg>
   );
 }
 function TriangleIcon() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      style:width="2rem"
-      style:height="2rem"
-    >
+    <svg viewBox="0 0 24 24" fill="currentColor" style:width="2rem" style:height="2rem">
       <polygon points="12,2 22,20 2,20" />
     </svg>
   );
@@ -78,7 +63,7 @@ export class App {
         class:dark={dark}
         data-surface="page"
         data-accent="mint"
-        data-base-color="neutral"
+        data-base-color="gray"
         data-radius="medium"
         style={{
           "--page-padding-left": "24px",
@@ -112,37 +97,16 @@ export class App {
           <div class:pillar>
             <CircleIcon />
             <h4 data-heading>Composable</h4>
-            <p data-paragraph>
-              Class + data attributes only. No JS. Drop into any framework.
-            </p>
-            <a
-              class:unset
-              class:x-button
-              data-size="2"
-              data-variant="text"
-              href="#"
-            >
-              Learn more
-            </a>
+            <p data-paragraph>Class + data attributes only. No JS. Drop into any framework.</p>
+            <a class:unset class:x-button data-size="2" data-variant="text" href="#">Learn more</a>
           </div>
 
           <Label>Composed with .x-card</Label>
           <div class:x-card class:pillar>
             <SquareIcon />
             <h4 data-heading>Themeable</h4>
-            <p data-paragraph>
-              Colors flow from <code>--accent-*</code> tokens. Swap once,
-              applies everywhere.
-            </p>
-            <a
-              class:unset
-              class:x-button
-              data-size="2"
-              data-variant="text"
-              href="#"
-            >
-              Learn more
-            </a>
+            <p data-paragraph>Colors flow from <code>--accent-*</code> tokens. Swap once, applies everywhere.</p>
+            <a class:unset class:x-button data-size="2" data-variant="text" href="#">Learn more</a>
           </div>
 
           <Label>data-align="center"</Label>
@@ -162,43 +126,19 @@ export class App {
               <CircleIcon />
               <h4 data-heading>Composable</h4>
               <p data-paragraph>Class + data attributes only. No JS.</p>
-              <a
-                class:unset
-                class:x-button
-                data-size="2"
-                data-variant="text"
-                href="#"
-              >
-                Learn more
-              </a>
+              <a class:unset class:x-button data-size="2" data-variant="text" href="#">Learn more</a>
             </div>
             <div class:pillar>
               <SquareIcon />
               <h4 data-heading>Themeable</h4>
               <p data-paragraph>Tokens flow through every variant.</p>
-              <a
-                class:unset
-                class:x-button
-                data-size="2"
-                data-variant="text"
-                href="#"
-              >
-                Learn more
-              </a>
+              <a class:unset class:x-button data-size="2" data-variant="text" href="#">Learn more</a>
             </div>
             <div class:pillar>
               <TriangleIcon />
               <h4 data-heading>Responsive</h4>
               <p data-paragraph>Mobile-first. No JS resize handlers.</p>
-              <a
-                class:unset
-                class:x-button
-                data-size="2"
-                data-variant="text"
-                href="#"
-              >
-                Learn more
-              </a>
+              <a class:unset class:x-button data-size="2" data-variant="text" href="#">Learn more</a>
             </div>
           </div>
         </div>

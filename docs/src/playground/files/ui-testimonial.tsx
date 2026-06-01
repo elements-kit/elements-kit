@@ -4,8 +4,8 @@ import "elements-kit/ui/styles/radius.css";
 import "elements-kit/ui/styles/space.css";
 import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/unset.css";
-import "elements-kit/ui/styles/palette/neutral.css";
-import "elements-kit/ui/styles/base/neutral.css";
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/base/gray.css";
 import "elements-kit/ui/styles/palette/mint.css";
 import "elements-kit/ui/styles/accent/mint.css";
 import "elements-kit/ui/styles/shadow.css";
@@ -41,7 +41,7 @@ export class App {
         class:dark={dark}
         data-surface="page"
         data-accent="mint"
-        data-base-color="neutral"
+        data-base-color="gray"
         data-radius="medium"
         style={{
           "--page-padding-left": "24px",
@@ -74,9 +74,7 @@ export class App {
           <Label>Default (.x-card .testimonial)</Label>
           <figure class:x-card class:testimonial>
             <blockquote>
-              The kit <em>cut our design-to-ship loop in half</em>. Primitives
-              compose cleanly, tokens stay consistent, and our team stopped
-              re-inventing the same five layouts.
+              The kit <em>cut our design-to-ship loop in half</em>. Primitives compose cleanly, tokens stay consistent, and our team stopped re-inventing the same five layouts.
             </blockquote>
             <figcaption>
               <cite>Jane Doe</cite>
@@ -87,8 +85,7 @@ export class App {
           <Label>Elevated (data-variant="elevated")</Label>
           <figure class:x-card class:testimonial data-variant="elevated">
             <blockquote>
-              We shipped a marketing site in a week.{" "}
-              <em>The composition model just clicks.</em>
+              We shipped a marketing site in a week. <em>The composition model just clicks.</em>
             </blockquote>
             <figcaption>
               <cite>Alex Kim</cite>
@@ -99,8 +96,7 @@ export class App {
           <Label>Borderless (data-variant="borderless")</Label>
           <figure class:x-card class:testimonial data-variant="borderless">
             <blockquote>
-              Tokens flow through every primitive.{" "}
-              <em>Theming once theme-d everything.</em>
+              Tokens flow through every primitive. <em>Theming once theme-d everything.</em>
             </blockquote>
             <figcaption>
               <cite>Sam Patel</cite>

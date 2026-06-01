@@ -6,8 +6,8 @@ import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/cursor.css";
 import "elements-kit/ui/styles/shadow.css";
 import "elements-kit/ui/styles/unset.css";
-import "elements-kit/ui/styles/palette/neutral.css";
-import "elements-kit/ui/styles/base/neutral.css";
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/base/gray.css";
 import "elements-kit/ui/styles/palette/black-alpha.css";
 import "elements-kit/ui/styles/accent/base.css";
 import "elements-kit/ui/styles/palette/mint.css";
@@ -32,7 +32,7 @@ export class App {
     return (
       <div
         class:dark={dark}
-        data-base-color="neutral"
+        data-base-color="gray"
         data-accent="mint"
         data-radius="medium"
         style:padding="24px"
@@ -83,11 +83,8 @@ export class App {
 
         <h3 style:margin="16px 0 0">In a paragraph</h3>
         <p style:line-height="1.6">
-          Run{" "}
-          <code class:unset class:x-code>
-            npm run dev
-          </code>{" "}
-          to start the dev server. Then visit{" "}
+          Run <code class:unset class:x-code>npm run dev</code> to start the dev server.
+          Then visit{" "}
           <code class:unset class:x-code data-accent="iris">
             http://localhost:3000
           </code>{" "}
@@ -109,12 +106,7 @@ export class App {
           <code class:unset class:x-code data-accent="crimson">
             error
           </code>{" "}
-          <code
-            class:unset
-            class:x-code
-            data-variant="solid"
-            data-accent="mint"
-          >
+          <code class:unset class:x-code data-variant="solid" data-accent="mint">
             solid mint
           </code>
         </p>

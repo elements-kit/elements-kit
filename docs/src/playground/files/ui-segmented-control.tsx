@@ -6,8 +6,8 @@ import "elements-kit/ui/styles/shadow.css";
 import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/cursor.css";
 import "elements-kit/ui/styles/unset.css";
-import "elements-kit/ui/styles/palette/neutral.css";
-import "elements-kit/ui/styles/base/neutral.css";
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/base/gray.css";
 import "elements-kit/ui/styles/palette/mint.css";
 import "elements-kit/ui/styles/accent/mint.css";
 import "elements-kit/ui/styles/palette/iris.css";
@@ -72,7 +72,7 @@ export class App {
         class:dark={dark}
         data-surface="page"
         data-accent="mint"
-        data-base-color="neutral"
+        data-base-color="gray"
         data-radius="medium"
         style:padding="24px"
         style:display="grid"
@@ -107,12 +107,7 @@ export class App {
                 aria-label={`Size ${size}`}
               >
                 <label>
-                  <input
-                    type="radio"
-                    name={`size-${size}`}
-                    value="day"
-                    checked
-                  />
+                  <input type="radio" name={`size-${size}`} value="day" checked />
                   <span>Day</span>
                 </label>
                 <label>
@@ -146,12 +141,7 @@ export class App {
                 aria-label={variant}
               >
                 <label>
-                  <input
-                    type="radio"
-                    name={`v-${variant}`}
-                    value="grid"
-                    checked
-                  />
+                  <input type="radio" name={`v-${variant}`} value="grid" checked />
                   <span>Grid</span>
                 </label>
                 <label>
@@ -319,12 +309,7 @@ export class App {
           >
             {Array.from({ length: 11 }).map((_, i) => (
               <label>
-                <input
-                  type="radio"
-                  name="hour"
-                  value={String(i)}
-                  checked={i === 5}
-                />
+                <input type="radio" name="hour" value={String(i)} checked={i === 5} />
                 <span>{String(i)}</span>
               </label>
             ))}

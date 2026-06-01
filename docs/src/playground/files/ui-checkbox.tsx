@@ -7,8 +7,8 @@ import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/cursor.css";
 import "elements-kit/ui/styles/unset.css";
 // pick a neutral palette for --base-color-* (must match data-base-color on root):
-import "elements-kit/ui/styles/palette/neutral.css";
-import "elements-kit/ui/styles/base/neutral.css";
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/base/gray.css";
 // import any color scales you want to use for accent theming:
 import "elements-kit/ui/styles/palette/mint.css";
 import "elements-kit/ui/styles/accent/mint.css";
@@ -38,7 +38,11 @@ const setIndeterminate = (el: HTMLInputElement) => {
 
 function SectionHeading({ children }: { children: any }) {
   return (
-    <h3 style:margin="0 0 12px" style:font-size="14px" style:font-weight="600">
+    <h3
+      style:margin="0 0 12px"
+      style:font-size="14px"
+      style:font-weight="600"
+    >
       {children}
     </h3>
   );
@@ -64,7 +68,7 @@ export class App {
         class:dark={dark}
         data-surface="page"
         data-accent="mint"
-        data-base-color="neutral"
+        data-base-color="gray"
         data-radius="medium"
         style:padding="24px"
         style:display="grid"
@@ -268,10 +272,7 @@ export class App {
 
         <section>
           <SectionHeading>
-            Checkbox cards{" "}
-            <small style:color="var(--base-color-a10)" style:font-weight="400">
-              composition with .x-card
-            </small>
+            Checkbox cards <small style:color="var(--base-color-a10)" style:font-weight="400">composition with .x-card</small>
           </SectionHeading>
           <div
             style:display="grid"

@@ -7,8 +7,8 @@ import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/cursor.css";
 import "elements-kit/ui/styles/unset.css";
 // pick a neutral palette for --base-color-* (must match data-base-color on root):
-import "elements-kit/ui/styles/palette/neutral.css";
-import "elements-kit/ui/styles/base/neutral.css";
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/base/gray.css";
 // import any color scales you want to use for accent theming:
 import "elements-kit/ui/styles/palette/mint.css";
 import "elements-kit/ui/styles/accent/mint.css";
@@ -34,7 +34,11 @@ const ACCENTS = ["mint", "blue", "iris", "crimson", "amber"] as const;
 
 function SectionHeading({ children }: { children: any }) {
   return (
-    <h3 style:margin="0 0 12px" style:font-size="14px" style:font-weight="600">
+    <h3
+      style:margin="0 0 12px"
+      style:font-size="14px"
+      style:font-weight="600"
+    >
       {children}
     </h3>
   );
@@ -60,7 +64,7 @@ export class App {
         class:dark={dark}
         data-surface="page"
         data-accent="mint"
-        data-base-color="neutral"
+        data-base-color="gray"
         data-radius="medium"
         style:padding="24px"
         style:display="grid"
@@ -277,7 +281,10 @@ export class App {
         <section>
           <SectionHeading>
             Radio cards{" "}
-            <small style:color="var(--base-color-a10)" style:font-weight="400">
+            <small
+              style:color="var(--base-color-a10)"
+              style:font-weight="400"
+            >
               composition with .x-card
             </small>
           </SectionHeading>
@@ -308,7 +315,10 @@ export class App {
                 <div style:font-weight="600" style:margin-bottom="2px">
                   Hobby
                 </div>
-                <div style:color="var(--base-color-11)" style:font-size="13px">
+                <div
+                  style:color="var(--base-color-11)"
+                  style:font-size="13px"
+                >
                   Free forever. Personal projects only.
                 </div>
               </div>
@@ -334,7 +344,10 @@ export class App {
                 <div style:font-weight="600" style:margin-bottom="2px">
                   Pro
                 </div>
-                <div style:color="var(--base-color-11)" style:font-size="13px">
+                <div
+                  style:color="var(--base-color-11)"
+                  style:font-size="13px"
+                >
                   Unlimited projects, priority support.
                 </div>
               </div>
@@ -360,7 +373,10 @@ export class App {
                 <div style:font-weight="600" style:margin-bottom="2px">
                   Enterprise
                 </div>
-                <div style:color="var(--base-color-11)" style:font-size="13px">
+                <div
+                  style:color="var(--base-color-11)"
+                  style:font-size="13px"
+                >
                   SSO, audit logs, dedicated SLA.
                 </div>
               </div>

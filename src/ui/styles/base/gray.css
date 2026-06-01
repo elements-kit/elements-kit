@@ -1,0 +1,32 @@
+[data-base-color="gray"] {
+  --base-color-1: var(--gray-1);
+  --base-color-2: var(--gray-2);
+  --base-color-3: var(--gray-3);
+  --base-color-4: var(--gray-4);
+  --base-color-5: var(--gray-5);
+  --base-color-6: var(--gray-6);
+  --base-color-7: var(--gray-7);
+  --base-color-8: var(--gray-8);
+  --base-color-9: var(--gray-9);
+  --base-color-10: var(--gray-10);
+  --base-color-11: var(--gray-11);
+  --base-color-12: var(--gray-12);
+
+  --base-color-a1: var(--gray-a1);
+  --base-color-a2: var(--gray-a2);
+  --base-color-a3: var(--gray-a3);
+  --base-color-a4: var(--gray-a4);
+  --base-color-a5: var(--gray-a5);
+  --base-color-a6: var(--gray-a6);
+  --base-color-a7: var(--gray-a7);
+  --base-color-a8: var(--gray-a8);
+  --base-color-a9: var(--gray-a9);
+  --base-color-a10: var(--gray-a10);
+  --base-color-a11: var(--gray-a11);
+  --base-color-a12: var(--gray-a12);
+
+  --base-color-surface: var(--gray-surface);
+  --base-color-indicator: var(--gray-indicator);
+  --base-color-track: var(--gray-track);
+  --base-color-contrast: var(--gray-contrast);
+}
