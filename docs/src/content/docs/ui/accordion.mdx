@@ -23,9 +23,9 @@ import "elements-kit/ui/styles/space.css";
 import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/cursor.css";
 import "elements-kit/ui/styles/unset.css";
-// pick a neutral palette for --base-color-* (must match data-base-color on root):
+// pick a neutral palette for --neutral-* (must match data-neutral on root):
 import "elements-kit/ui/styles/palette/gray.css";
-import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/neutral/gray.css";
 // and the accordion itself:
 import "elements-kit/ui/accordion/accordion.css";
 ```
@@ -69,7 +69,7 @@ import "elements-kit/ui/accordion/accordion.css";
 
 ## Variants
 
-- **`surface`** *(default)* — `--color-material` background with a soft `--base-color-a5` border and `--radius-4` corners. In light mode the body sits at `--base-color-a2`; in dark mode that tint moves to the summary. Stacked siblings collapse their adjoining borders into one card.
+- **`surface`** *(default)* — `--color-material` background with a soft `--neutral-a5` border and `--radius-4` corners. In light mode the body sits at `--neutral-a2`; in dark mode that tint moves to the summary. Stacked siblings collapse their adjoining borders into one card.
 - **`soft`** — surface minus the border. Shares the panel bg, per-mode alpha flip on summary/body, and hover behavior; just no `1px solid` ring around it. Mid-emphasis between `surface` and `borderless`.
 - **`borderless`** — no border, no background, no horizontal padding. Hover affordance is a text-color shift (`a12 → 12`) — no bg wash. The trigger color also stays at full strength while `[open]`. For FAQs inside body copy.
 

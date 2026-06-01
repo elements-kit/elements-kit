@@ -1,0 +1,32 @@
+[data-accent="neutral"] {
+  --accent-1: var(--neutral-1);
+  --accent-2: var(--neutral-2);
+  --accent-3: var(--neutral-3);
+  --accent-4: var(--neutral-4);
+  --accent-5: var(--neutral-5);
+  --accent-6: var(--neutral-6);
+  --accent-7: var(--neutral-7);
+  --accent-8: var(--neutral-8);
+  --accent-9: var(--neutral-9);
+  --accent-10: var(--neutral-10);
+  --accent-11: var(--neutral-11);
+  --accent-12: var(--neutral-12);
+
+  --accent-a1: var(--neutral-a1);
+  --accent-a2: var(--neutral-a2);
+  --accent-a3: var(--neutral-a3);
+  --accent-a4: var(--neutral-a4);
+  --accent-a5: var(--neutral-a5);
+  --accent-a6: var(--neutral-a6);
+  --accent-a7: var(--neutral-a7);
+  --accent-a8: var(--neutral-a8);
+  --accent-a9: var(--neutral-a9);
+  --accent-a10: var(--neutral-a10);
+  --accent-a11: var(--neutral-a11);
+  --accent-a12: var(--neutral-a12);
+
+  --accent-contrast: var(--neutral-contrast);
+  --accent-surface: var(--neutral-surface);
+  --accent-indicator: var(--neutral-indicator);
+  --accent-track: var(--neutral-track);
+}

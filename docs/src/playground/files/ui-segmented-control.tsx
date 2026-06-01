@@ -7,7 +7,7 @@ import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/cursor.css";
 import "elements-kit/ui/styles/unset.css";
 import "elements-kit/ui/styles/palette/gray.css";
-import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/neutral/gray.css";
 import "elements-kit/ui/styles/palette/mint.css";
 import "elements-kit/ui/styles/accent/mint.css";
 import "elements-kit/ui/styles/palette/iris.css";
@@ -41,7 +41,7 @@ function SectionHeading({
       {caption ? (
         <code
           style:font-size="12px"
-          style:color="var(--base-color-11)"
+          style:color="var(--neutral-11)"
           style:display="block"
           style:margin-top="4px"
         >
@@ -72,12 +72,12 @@ export class App {
         class:dark={dark}
         data-surface="page"
         data-accent="mint"
-        data-base-color="gray"
+        data-neutral="gray"
         data-radius="medium"
         style:padding="24px"
         style:display="grid"
         style:gap="28px"
-        style:color="var(--base-color-12)"
+        style:color="var(--neutral-12)"
         style:font-family="var(--default-font-family, system-ui, sans-serif)"
       >
         <section>
@@ -107,7 +107,12 @@ export class App {
                 aria-label={`Size ${size}`}
               >
                 <label>
-                  <input type="radio" name={`size-${size}`} value="day" checked />
+                  <input
+                    type="radio"
+                    name={`size-${size}`}
+                    value="day"
+                    checked
+                  />
                   <span>Day</span>
                 </label>
                 <label>
@@ -141,7 +146,12 @@ export class App {
                 aria-label={variant}
               >
                 <label>
-                  <input type="radio" name={`v-${variant}`} value="grid" checked />
+                  <input
+                    type="radio"
+                    name={`v-${variant}`}
+                    value="grid"
+                    checked
+                  />
                   <span>Grid</span>
                 </label>
                 <label>
@@ -224,7 +234,7 @@ export class App {
             style:gap="6px"
             style:width="fit-content"
           >
-            <legend style:font-size="13px" style:color="var(--base-color-11)">
+            <legend style:font-size="13px" style:color="var(--neutral-11)">
               View density
             </legend>
             <div class:unset class:x-segmented-control role="radiogroup">
@@ -256,7 +266,7 @@ export class App {
               style:gap="6px"
               style:width="fit-content"
             >
-              <legend style:font-size="13px" style:color="var(--base-color-11)">
+              <legend style:font-size="13px" style:color="var(--neutral-11)">
                 Whole group
               </legend>
               <div
@@ -309,7 +319,12 @@ export class App {
           >
             {Array.from({ length: 11 }).map((_, i) => (
               <label>
-                <input type="radio" name="hour" value={String(i)} checked={i === 5} />
+                <input
+                  type="radio"
+                  name="hour"
+                  value={String(i)}
+                  checked={i === 5}
+                />
                 <span>{String(i)}</span>
               </label>
             ))}

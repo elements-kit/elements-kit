@@ -1,0 +1,32 @@
+[data-neutral="olive"] {
+  --neutral-1: var(--olive-1);
+  --neutral-2: var(--olive-2);
+  --neutral-3: var(--olive-3);
+  --neutral-4: var(--olive-4);
+  --neutral-5: var(--olive-5);
+  --neutral-6: var(--olive-6);
+  --neutral-7: var(--olive-7);
+  --neutral-8: var(--olive-8);
+  --neutral-9: var(--olive-9);
+  --neutral-10: var(--olive-10);
+  --neutral-11: var(--olive-11);
+  --neutral-12: var(--olive-12);
+
+  --neutral-a1: var(--olive-a1);
+  --neutral-a2: var(--olive-a2);
+  --neutral-a3: var(--olive-a3);
+  --neutral-a4: var(--olive-a4);
+  --neutral-a5: var(--olive-a5);
+  --neutral-a6: var(--olive-a6);
+  --neutral-a7: var(--olive-a7);
+  --neutral-a8: var(--olive-a8);
+  --neutral-a9: var(--olive-a9);
+  --neutral-a10: var(--olive-a10);
+  --neutral-a11: var(--olive-a11);
+  --neutral-a12: var(--olive-a12);
+
+  --neutral-contrast: var(--olive-contrast);
+  --neutral-surface: var(--olive-surface);
+  --neutral-indicator: var(--olive-indicator);
+  --neutral-track: var(--olive-track);
+}

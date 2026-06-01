@@ -6,7 +6,7 @@ import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/cursor.css";
 import "elements-kit/ui/styles/unset.css";
 import "elements-kit/ui/styles/palette/gray.css";
-import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/neutral/gray.css";
 import "elements-kit/ui/styles/palette/black-alpha.css";
 import "elements-kit/ui/styles/palette/mint.css";
 import "elements-kit/ui/styles/accent/mint.css";
@@ -33,13 +33,13 @@ export class App {
       <div
         class:dark={dark}
         data-accent="mint"
-        data-base-color="gray"
+        data-neutral="gray"
         data-radius="medium"
         style:padding="24px"
         style:display="grid"
         style:gap="24px"
-        style:background="var(--base-color-1)"
-        style:color="var(--base-color-12)"
+        style:background="var(--neutral-1)"
+        style:color="var(--neutral-12)"
         style:font-family="var(--default-font-family, system-ui, sans-serif)"
         style:max-width="560px"
       >
@@ -85,7 +85,7 @@ export class App {
             <a
               class:unset
               href="#"
-              style:color="var(--base-color-12)"
+              style:color="var(--neutral-12)"
               style:display="inline-flex"
               style:align-items="center"
               style:gap="0.25em"
@@ -105,7 +105,7 @@ export class App {
                 class:unset
                 href="#"
                 style:font-size={size}
-                style:color="var(--base-color-12)"
+                style:color="var(--neutral-12)"
                 style:display="inline-flex"
                 style:align-items="center"
                 style:gap="0.25em"
@@ -159,7 +159,7 @@ export class App {
           <h3 style:margin="0 0 12px">Reduced motion</h3>
           <p
             style:font-size="13px"
-            style:color="var(--base-color-11)"
+            style:color="var(--neutral-11)"
             style:margin="0 0 8px"
           >
             With <code>prefers-reduced-motion: reduce</code>, the arrow jumps to
@@ -169,7 +169,7 @@ export class App {
           <a
             class:unset
             href="#"
-            style:color="var(--base-color-12)"
+            style:color="var(--neutral-12)"
             style:display="inline-flex"
             style:align-items="center"
             style:gap="0.25em"

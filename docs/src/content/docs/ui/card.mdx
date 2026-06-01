@@ -24,7 +24,7 @@ import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/shadow.css";
 import "elements-kit/ui/styles/material.css";
 import "elements-kit/ui/styles/palette/gray.css";
-import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/neutral/gray.css";
 
 import "elements-kit/ui/card/card.css";
 ```
@@ -63,9 +63,9 @@ Set `data-radius` on an ancestor to scale corner curvature globally; `--scaling`
 
 ## Variants
 
-- **`surface`** — 1px hairline border (`--base-color-a5`). Default. The everyday card.
-- **`elevated`** — same border plus a tailored drop shadow. Uses dual outer-on-element + inner-on-`::after` shadows (`--card-elevated-box-shadow-outer` / `-inner`) with matching 6-layer counts across base/hover/active so the lift transitions smoothly. Use for primary, hover-able cards.
-- **`borderless`** — no border, no background. Hover fills with `--base-color-a3`. Use inside dense lists or as clickable rows.
+- **`surface`** — 1px hairline border (`--neutral-a5`). Default. The everyday card.
+- **`elevated`** — same border plus a tailored drop shadow. Uses dual outer-on-element + inner-on-`::after` shadows (`--card-elevated-box-shadow-outer` / `-inner`) with matching 6-layer counts across neutral/hover/active so the lift transitions smoothly. Use for primary, hover-able cards.
+- **`borderless`** — no border, no background. Hover fills with `--neutral-a3`. Use inside dense lists or as clickable rows.
 
 ## Inset
 
@@ -136,8 +136,8 @@ When the card itself is an anchor, button, or label, hover and active states app
 
 | State | `surface` | `elevated` | `borderless` |
 | --- | --- | --- | --- |
-| hover | border bumps to `--base-color-a7` | shadow lifts to `--shadow-3` | fills with `--base-color-a3` |
-| active | border at `--base-color-a6` | shadow returns to `--shadow-2` | fills with `--base-color-a4` |
+| hover | border bumps to `--neutral-a7` | shadow lifts to `--shadow-3` | fills with `--neutral-a3` |
+| active | border at `--neutral-a6` | shadow returns to `--shadow-2` | fills with `--neutral-a4` |
 
 Non-interactive cards (a plain `<div>`) skip these states entirely — no need to gate them with media queries.
 

@@ -9,12 +9,12 @@ import "elements-kit/ui/styles/unset.css";
 // import any color scales you want to use for accent theming:
 import "elements-kit/ui/styles/palette/mint.css";
 import "elements-kit/ui/styles/accent/mint.css";
-// pick a neutral palette for --base-color-* (must match data-base-color on root):
+// pick a neutral palette for --neutral-* (must match data-neutral on root):
 import "elements-kit/ui/styles/palette/gray.css";
-import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/neutral/gray.css";
 import "elements-kit/ui/styles/palette/black-alpha.css";
 import "elements-kit/ui/styles/palette/white-alpha.css";
-import "elements-kit/ui/styles/accent/base.css";
+import "elements-kit/ui/styles/accent/neutral.css";
 
 import "elements-kit/ui/card/card.css";
 import "elements-kit/ui/button/button.css";
@@ -31,7 +31,7 @@ function Label({ children }: { children: any }) {
       style:font-weight="600"
       style:letter-spacing="0.04em"
       style:text-transform="uppercase"
-      style:color="var(--base-color-11)"
+      style:color="var(--neutral-11)"
       style:margin="40px 0 12px"
     >
       {children}
@@ -48,7 +48,7 @@ function Heading({ children, id }: { children: any; id?: string }) {
       style:letter-spacing="-0.01em"
       style:margin="48px 0 16px"
       style:padding-bottom="8px"
-      style:border-bottom="1px solid var(--base-color-a6)"
+      style:border-bottom="1px solid var(--neutral-a6)"
     >
       {children}
     </h2>
@@ -65,7 +65,7 @@ function CardBody({ title, body }: { title: string; body: string }) {
       >
         {title}
       </div>
-      <div style:color="var(--base-color-11)" style:font-size="14px">
+      <div style:color="var(--neutral-11)" style:font-size="14px">
         {body}
       </div>
     </>
@@ -91,13 +91,13 @@ export class App {
         class:dark={dark}
         data-surface="page"
         data-accent="mint"
-        data-base-color="gray"
+        data-neutral="gray"
         data-radius="medium"
         style={{
           "--page-padding-left": "24px",
           "--page-padding-right": "24px",
         }}
-        style:color="var(--base-color-12)"
+        style:color="var(--neutral-12)"
         style:font-family="var(--default-font-family, system-ui, sans-serif)"
         style:min-height="100vh"
         style:padding="0 24px 64px"
@@ -107,7 +107,7 @@ export class App {
           style:padding="12px 0"
           style:display="flex"
           style:justify-content="flex-end"
-          style:border-bottom="1px solid var(--base-color-a6)"
+          style:border-bottom="1px solid var(--neutral-a6)"
         >
           <button
             class:unset
@@ -124,15 +124,28 @@ export class App {
         <Heading>Variants</Heading>
 
         <Label>data-variant="surface" (default)</Label>
-        <a class:unset class:x-card href="#" style:display="block" style:color="inherit">
+        <a
+          class:unset
+          class:x-card
+          href="#"
+          style:display="block"
+          style:color="inherit"
+        >
           <CardBody
             title="Surface card"
-            body="1px hairline border using --base-color-a5. Hover bumps to a7."
+            body="1px hairline border using --neutral-a5. Hover bumps to a7."
           />
         </a>
 
         <Label>data-variant="elevated"</Label>
-        <a class:unset class:x-card data-variant="elevated" href="#" style:display="block" style:color="inherit">
+        <a
+          class:unset
+          class:x-card
+          data-variant="elevated"
+          href="#"
+          style:display="block"
+          style:color="inherit"
+        >
           <CardBody
             title="Elevated card"
             body="Dual outer + inner shadow. Hover lifts both layers."
@@ -140,10 +153,17 @@ export class App {
         </a>
 
         <Label>data-variant="borderless"</Label>
-        <a class:unset class:x-card data-variant="borderless" href="#" style:display="block" style:color="inherit">
+        <a
+          class:unset
+          class:x-card
+          data-variant="borderless"
+          href="#"
+          style:display="block"
+          style:color="inherit"
+        >
           <CardBody
             title="Borderless card"
-            body="Transparent until hover, then fills with --base-color-a3."
+            body="Transparent until hover, then fills with --neutral-a3."
           />
         </a>
 
@@ -233,7 +253,7 @@ export class App {
         >
           <CardBody
             title="Hover me"
-            body="Borderless variant: fills with --base-color-a3 on hover, --base-color-a4 on active."
+            body="Borderless variant: fills with --neutral-a3 on hover, --neutral-a4 on active."
           />
         </a>
 

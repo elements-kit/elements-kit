@@ -30,7 +30,7 @@ import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/cursor.css";
 import "elements-kit/ui/styles/unset.css";
 import "elements-kit/ui/styles/palette/gray.css";
-import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/neutral/gray.css";
 import "elements-kit/ui/styles/palette/black-alpha.css";
 import "elements-kit/ui/styles/palette/mint.css";
 import "elements-kit/ui/styles/accent/mint.css";
@@ -79,7 +79,7 @@ import "elements-kit/ui/text-input/text-input.css";
 
 ## Variants
 
-- **`surface`** *(default)* — `--color-surface` background, 1px `--base-color-a7` border, `--focus-8` focus ring.
+- **`surface`** *(default)* — `--color-surface` background, 1px `--neutral-a7` border, `--focus-8` focus ring.
 - **`soft`** — `--accent-a3` background, no border, `--accent-8` focus ring.
 
 ## Wrapper anatomy
@@ -102,7 +102,7 @@ Clicking an affix focuses the input because the affix carries `cursor: text` and
 
 ## States
 
-- **Disabled / read-only** — `var(--base-color-a11)` text, dimmed background. When the input is empty (`:placeholder-shown`), cursor becomes `var(--cursor-disabled)` and propagates to affixes inside the wrapper.
+- **Disabled / read-only** — `var(--neutral-a11)` text, dimmed background. When the input is empty (`:placeholder-shown`), cursor becomes `var(--cursor-disabled)` and propagates to affixes inside the wrapper.
 - **Autofill** — Chrome's yellow autofill background is suppressed via `background-clip: text` while preserving the colored text.
 
 ## Accessibility

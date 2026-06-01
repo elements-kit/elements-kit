@@ -6,7 +6,7 @@ import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/cursor.css";
 import "elements-kit/ui/styles/unset.css";
 import "elements-kit/ui/styles/palette/gray.css";
-import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/neutral/gray.css";
 import "elements-kit/ui/styles/palette/black-alpha.css";
 import "elements-kit/ui/styles/palette/white-alpha.css";
 import "elements-kit/ui/styles/palette/mint.css";
@@ -50,13 +50,13 @@ export class App {
       <div
         class:dark={dark}
         data-accent="mint"
-        data-base-color="gray"
+        data-neutral="gray"
         data-radius="medium"
         style:padding="24px"
         style:display="grid"
         style:gap="24px"
-        style:background="var(--base-color-1)"
-        style:color="var(--base-color-12)"
+        style:background="var(--neutral-1)"
+        style:color="var(--neutral-12)"
         style:font-family="var(--default-font-family, system-ui, sans-serif)"
       >
         <button
@@ -73,7 +73,11 @@ export class App {
           <h3 style:margin="0 0 12px">Sizes</h3>
           <Row>
             {SIZES.map((size) => (
-              <label style:display="inline-flex" style:align-items="center" style:gap="0.5em">
+              <label
+                style:display="inline-flex"
+                style:align-items="center"
+                style:gap="0.5em"
+              >
                 <input
                   type="checkbox"
                   role="switch"
@@ -93,24 +97,75 @@ export class App {
           <div style:display="grid" style:gap="16px">
             {VARIANTS.map((variant) => (
               <div>
-                <code style:font-size="12px" style:color="var(--base-color-11)" style:display="block" style:margin-bottom="8px">
+                <code
+                  style:font-size="12px"
+                  style:color="var(--neutral-11)"
+                  style:display="block"
+                  style:margin-bottom="8px"
+                >
                   data-variant="{variant}"
                 </code>
                 <Row>
-                  <label style:display="inline-flex" style:align-items="center" style:gap="0.5em">
-                    <input type="checkbox" role="switch" class:unset class:x-switch data-variant={variant} />
+                  <label
+                    style:display="inline-flex"
+                    style:align-items="center"
+                    style:gap="0.5em"
+                  >
+                    <input
+                      type="checkbox"
+                      role="switch"
+                      class:unset
+                      class:x-switch
+                      data-variant={variant}
+                    />
                     <span>Off</span>
                   </label>
-                  <label style:display="inline-flex" style:align-items="center" style:gap="0.5em">
-                    <input type="checkbox" role="switch" class:unset class:x-switch data-variant={variant} checked />
+                  <label
+                    style:display="inline-flex"
+                    style:align-items="center"
+                    style:gap="0.5em"
+                  >
+                    <input
+                      type="checkbox"
+                      role="switch"
+                      class:unset
+                      class:x-switch
+                      data-variant={variant}
+                      checked
+                    />
                     <span>On</span>
                   </label>
-                  <label style:display="inline-flex" style:align-items="center" style:gap="0.5em" style:color="var(--base-color-a8)">
-                    <input type="checkbox" role="switch" class:unset class:x-switch data-variant={variant} disabled />
+                  <label
+                    style:display="inline-flex"
+                    style:align-items="center"
+                    style:gap="0.5em"
+                    style:color="var(--neutral-a8)"
+                  >
+                    <input
+                      type="checkbox"
+                      role="switch"
+                      class:unset
+                      class:x-switch
+                      data-variant={variant}
+                      disabled
+                    />
                     <span>Disabled off</span>
                   </label>
-                  <label style:display="inline-flex" style:align-items="center" style:gap="0.5em" style:color="var(--base-color-a8)">
-                    <input type="checkbox" role="switch" class:unset class:x-switch data-variant={variant} checked disabled />
+                  <label
+                    style:display="inline-flex"
+                    style:align-items="center"
+                    style:gap="0.5em"
+                    style:color="var(--neutral-a8)"
+                  >
+                    <input
+                      type="checkbox"
+                      role="switch"
+                      class:unset
+                      class:x-switch
+                      data-variant={variant}
+                      checked
+                      disabled
+                    />
                     <span>Disabled on</span>
                   </label>
                 </Row>
@@ -123,7 +178,11 @@ export class App {
           <h3 style:margin="0 0 12px">High contrast</h3>
           <Row>
             {VARIANTS.map((variant) => (
-              <label style:display="inline-flex" style:align-items="center" style:gap="0.5em">
+              <label
+                style:display="inline-flex"
+                style:align-items="center"
+                style:gap="0.5em"
+              >
                 <input
                   type="checkbox"
                   role="switch"
@@ -143,7 +202,11 @@ export class App {
           <h3 style:margin="0 0 12px">Accent colors</h3>
           <Row>
             {ACCENTS.map((color) => (
-              <label style:display="inline-flex" style:align-items="center" style:gap="0.5em">
+              <label
+                style:display="inline-flex"
+                style:align-items="center"
+                style:gap="0.5em"
+              >
                 <input
                   type="checkbox"
                   role="switch"
@@ -160,7 +223,12 @@ export class App {
 
         <section>
           <h3 style:margin="0 0 12px">Settings list</h3>
-          <div style:display="flex" style:flex-direction="column" style:gap="12px" style:max-width="320px">
+          <div
+            style:display="flex"
+            style:flex-direction="column"
+            style:gap="12px"
+            style:max-width="320px"
+          >
             {[
               ["Email notifications", true],
               ["Push notifications", false],
@@ -173,7 +241,7 @@ export class App {
                 style:align-items="center"
                 style:gap="1rem"
                 style:padding="8px 0"
-                style:border-bottom="1px solid var(--base-color-a4)"
+                style:border-bottom="1px solid var(--neutral-a4)"
               >
                 <span>{label}</span>
                 <input

@@ -1,0 +1,32 @@
+[data-neutral="sage"] {
+  --neutral-1: var(--sage-1);
+  --neutral-2: var(--sage-2);
+  --neutral-3: var(--sage-3);
+  --neutral-4: var(--sage-4);
+  --neutral-5: var(--sage-5);
+  --neutral-6: var(--sage-6);
+  --neutral-7: var(--sage-7);
+  --neutral-8: var(--sage-8);
+  --neutral-9: var(--sage-9);
+  --neutral-10: var(--sage-10);
+  --neutral-11: var(--sage-11);
+  --neutral-12: var(--sage-12);
+
+  --neutral-a1: var(--sage-a1);
+  --neutral-a2: var(--sage-a2);
+  --neutral-a3: var(--sage-a3);
+  --neutral-a4: var(--sage-a4);
+  --neutral-a5: var(--sage-a5);
+  --neutral-a6: var(--sage-a6);
+  --neutral-a7: var(--sage-a7);
+  --neutral-a8: var(--sage-a8);
+  --neutral-a9: var(--sage-a9);
+  --neutral-a10: var(--sage-a10);
+  --neutral-a11: var(--sage-a11);
+  --neutral-a12: var(--sage-a12);
+
+  --neutral-contrast: var(--sage-contrast);
+  --neutral-surface: var(--sage-surface);
+  --neutral-indicator: var(--sage-indicator);
+  --neutral-track: var(--sage-track);
+}

@@ -22,7 +22,7 @@ import "elements-kit/ui/styles/radius.css";
 import "elements-kit/ui/styles/space.css";
 import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/palette/gray.css";
-import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/neutral/gray.css";
 
 import "elements-kit/ui/marketing/marketing.css";
 ```
@@ -120,15 +120,15 @@ Body text token. Inline `<em>` highlights in the brightest neutral.
 
 ```html
 <p class="section-paragraph">
-  Default copy color is <em>--base-color-11</em>.
-  Emphasized inline runs are <em>--base-color-12</em>.
+  Default copy color is <em>--neutral-11</em>.
+  Emphasized inline runs are <em>--neutral-12</em>.
 </p>
 ```
 
 ## Theming
 
 - `--color-background` / `--color-overlay` — semantic surface tokens from [theme.css](/ui/styles). Flip with `.dark` / `.light`.
-- `--base-color-1..12` / `--base-color-a1..12` — neutrals for text + borders.
+- `--neutral-1..12` / `--neutral-a1..12` — neutrals for text + borders.
 - `--font-heading` — heading font family.
 
 The whole marketing layer is wrapped in `@layer marketing`, so any unlayered host CSS wins on collision.

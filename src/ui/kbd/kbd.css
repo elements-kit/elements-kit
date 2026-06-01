@@ -26,8 +26,8 @@
   /* Don't stretch height in Flex/Grid layouts */
   height: fit-content;
 
-  color: var(--base-color-12);
-  background-color: var(--base-color-a3);
+  color: var(--neutral-12);
+  background-color: var(--neutral-a3);
 }
 
 /***************************************************************************************************

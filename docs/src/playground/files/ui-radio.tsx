@@ -6,9 +6,9 @@ import "elements-kit/ui/styles/shadow.css";
 import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/cursor.css";
 import "elements-kit/ui/styles/unset.css";
-// pick a neutral palette for --base-color-* (must match data-base-color on root):
+// pick a neutral palette for --neutral-* (must match data-neutral on root):
 import "elements-kit/ui/styles/palette/gray.css";
-import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/neutral/gray.css";
 // import any color scales you want to use for accent theming:
 import "elements-kit/ui/styles/palette/mint.css";
 import "elements-kit/ui/styles/accent/mint.css";
@@ -34,11 +34,7 @@ const ACCENTS = ["mint", "blue", "iris", "crimson", "amber"] as const;
 
 function SectionHeading({ children }: { children: any }) {
   return (
-    <h3
-      style:margin="0 0 12px"
-      style:font-size="14px"
-      style:font-weight="600"
-    >
+    <h3 style:margin="0 0 12px" style:font-size="14px" style:font-weight="600">
       {children}
     </h3>
   );
@@ -64,12 +60,12 @@ export class App {
         class:dark={dark}
         data-surface="page"
         data-accent="mint"
-        data-base-color="gray"
+        data-neutral="gray"
         data-radius="medium"
         style:padding="24px"
         style:display="grid"
         style:gap="28px"
-        style:color="var(--base-color-12)"
+        style:color="var(--neutral-12)"
         style:font-family="var(--default-font-family, system-ui, sans-serif)"
       >
         <section>
@@ -116,7 +112,7 @@ export class App {
               <div>
                 <code
                   style:font-size="12px"
-                  style:color="var(--base-color-11)"
+                  style:color="var(--neutral-11)"
                   style:display="block"
                   style:margin-bottom="8px"
                 >
@@ -156,7 +152,7 @@ export class App {
                     style:display="inline-flex"
                     style:align-items="center"
                     style:gap="0.5em"
-                    style:color="var(--base-color-a8)"
+                    style:color="var(--neutral-a8)"
                   >
                     <input
                       type="radio"
@@ -281,10 +277,7 @@ export class App {
         <section>
           <SectionHeading>
             Radio cards{" "}
-            <small
-              style:color="var(--base-color-a10)"
-              style:font-weight="400"
-            >
+            <small style:color="var(--neutral-a10)" style:font-weight="400">
               composition with .x-card
             </small>
           </SectionHeading>
@@ -315,10 +308,7 @@ export class App {
                 <div style:font-weight="600" style:margin-bottom="2px">
                   Hobby
                 </div>
-                <div
-                  style:color="var(--base-color-11)"
-                  style:font-size="13px"
-                >
+                <div style:color="var(--neutral-11)" style:font-size="13px">
                   Free forever. Personal projects only.
                 </div>
               </div>
@@ -344,10 +334,7 @@ export class App {
                 <div style:font-weight="600" style:margin-bottom="2px">
                   Pro
                 </div>
-                <div
-                  style:color="var(--base-color-11)"
-                  style:font-size="13px"
-                >
+                <div style:color="var(--neutral-11)" style:font-size="13px">
                   Unlimited projects, priority support.
                 </div>
               </div>
@@ -373,10 +360,7 @@ export class App {
                 <div style:font-weight="600" style:margin-bottom="2px">
                   Enterprise
                 </div>
-                <div
-                  style:color="var(--base-color-11)"
-                  style:font-size="13px"
-                >
+                <div style:color="var(--neutral-11)" style:font-size="13px">
                   SSO, audit logs, dedicated SLA.
                 </div>
               </div>

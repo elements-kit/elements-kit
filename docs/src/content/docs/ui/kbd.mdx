@@ -6,7 +6,7 @@ description: Keyboard key chip — nine sizes.
 import Playground from "@/playground/Playground.astro";
 import KBD from "@/playground/files/ui-kbd.tsx?raw";
 
-A small chip for keyboard keys in inline text — e.g. shortcuts in help, hint text, command palettes. Class + data-attribute API: one `.x-kbd` class plus `data-size`. Flat tinted background (`--base-color-a3`).
+A small chip for keyboard keys in inline text — e.g. shortcuts in help, hint text, command palettes. Class + data-attribute API: one `.x-kbd` class plus `data-size`. Flat tinted background (`--neutral-a3`).
 
 <Playground
   provider={{ files: { "/main.tsx": { code: KBD, active: true } } }}
@@ -21,7 +21,7 @@ import "elements-kit/ui/styles/scaling.css";
 import "elements-kit/ui/styles/radius.css";
 import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/palette/gray.css";
-import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/neutral/gray.css";
 
 import "elements-kit/ui/kbd/kbd.css";
 ```

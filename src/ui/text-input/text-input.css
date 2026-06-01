@@ -53,7 +53,7 @@
     border-radius: calc(var(--text-input-border-radius) - 2px);
   }
   &::-webkit-calendar-picker-indicator:where(:hover) {
-    background-color: var(--base-color-a3);
+    background-color: var(--neutral-a3);
   }
   &::-webkit-calendar-picker-indicator:where(:focus-visible) {
     outline: 2px solid var(--text-input-focus-color);
@@ -67,7 +67,7 @@
   @supports selector(:has(*)) {
     &:where(:autofill, [data-com-onepassword-filled]) {
       background-clip: text;
-      -webkit-text-fill-color: var(--base-color-12);
+      -webkit-text-fill-color: var(--neutral-12);
     }
   }
 }
@@ -99,13 +99,13 @@
     background-color: transparent;
   }
   &::-webkit-scrollbar-thumb {
-    background-color: var(--base-color-a5);
+    background-color: var(--neutral-a5);
     background-clip: padding-box;
     border: 3px solid transparent;
     border-radius: var(--space-3);
   }
   &::-webkit-scrollbar-thumb:where(:hover) {
-    background-color: var(--base-color-a7);
+    background-color: var(--neutral-a7);
   }
 
   &:where(:focus-visible) {
@@ -116,7 +116,7 @@
   @supports selector(:has(*)) {
     &:where(:autofill, [data-com-onepassword-filled]) {
       background-clip: text;
-      -webkit-text-fill-color: var(--base-color-12);
+      -webkit-text-fill-color: var(--neutral-12);
     }
   }
 }
@@ -348,20 +348,20 @@
   --text-input-focus-color: var(--focus-8);
 
   background-color: var(--color-surface);
-  border: var(--text-input-border-width) solid var(--base-color-a7);
-  color: var(--base-color-12);
+  border: var(--text-input-border-width) solid var(--neutral-a7);
+  color: var(--neutral-12);
 
   &:where(input)::placeholder,
   &:where(textarea)::placeholder {
-    color: var(--base-color-a10);
+    color: var(--neutral-a10);
   }
   &:where(:has(> :is(input, textarea)))
     > :where(:is(input, textarea))::placeholder {
-    color: var(--base-color-a10);
+    color: var(--neutral-a10);
   }
 
   & > :where(:not(input, textarea)) {
-    color: var(--base-color-a11);
+    color: var(--neutral-a11);
   }
   & > :where(:not(input, textarea))[data-accent] {
     color: var(--accent-a11);
@@ -405,8 +405,8 @@
 
 .x-text-input:where(:is(input, textarea)):where(:disabled, :read-only) {
   cursor: text;
-  color: var(--base-color-a11);
-  -webkit-text-fill-color: var(--base-color-a11);
+  color: var(--neutral-a11);
+  -webkit-text-fill-color: var(--neutral-a11);
 
   &::placeholder {
     opacity: 0.5;
@@ -417,12 +417,12 @@
 }
 
 .x-text-input:where(:has(> :is(input, textarea):is(:disabled, :read-only))) {
-  background-color: var(--base-color-a2);
+  background-color: var(--neutral-a2);
 
   & > :where(:is(input, textarea)) {
     cursor: text;
-    color: var(--base-color-a11);
-    -webkit-text-fill-color: var(--base-color-a11);
+    color: var(--neutral-a11);
+    -webkit-text-fill-color: var(--neutral-a11);
 
     &::placeholder {
       opacity: 0.5;
@@ -441,5 +441,5 @@
 .x-text-input:where(:not([data-variant="soft"])):where(
     :has(> :is(input, textarea):is(:disabled, :read-only))
   ) {
-  border-color: var(--base-color-a6);
+  border-color: var(--neutral-a6);
 }

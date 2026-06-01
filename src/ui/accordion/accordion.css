@@ -18,7 +18,7 @@
  ***************************************************************************************************/
 
 /* No root color — let summary pick up --accent-11 (accent-aware, falls back to
-   base via accent/base.css when no data-accent is set). */
+   neutral via accent/neutral.css when no data-accent is set). */
 
 .x-accordion::details-content {
   display: grid;
@@ -141,7 +141,7 @@
 
 /* surface (default) + soft share the per-mode summary/body alpha flip recipe.
    Only difference: surface uses the bright panel as outer bg + adds a 1px ring;
-   soft uses a dim base-color tint and drops the ring. Both keep the internal
+   soft uses a dim neutral tint and drops the ring. Both keep the internal
    contrast between summary and body. */
 
 .x-accordion:where(
@@ -153,8 +153,8 @@
   overflow: hidden; /* clips the summary tint + hover wash to rounded corners */
 
   --accordion-summary-bg: transparent;
-  --accordion-summary-hover-bg: var(--base-color-a2);
-  --accordion-body-bg: var(--base-color-a2);
+  --accordion-summary-hover-bg: var(--neutral-a2);
+  --accordion-body-bg: var(--neutral-a2);
 }
 
 :where(.dark, .dark-theme)
@@ -163,8 +163,8 @@
     [data-variant="surface"],
     [data-variant="soft"]
   ) {
-  --accordion-summary-bg: var(--base-color-a2);
-  --accordion-summary-hover-bg: var(--base-color-a3);
+  --accordion-summary-bg: var(--neutral-a2);
+  --accordion-summary-hover-bg: var(--neutral-a3);
   --accordion-body-bg: transparent;
 }
 
@@ -199,7 +199,7 @@
 /* Surface — bright panel + 1px border ring */
 .x-accordion:where(:not([data-variant]), [data-variant="surface"]) {
   background-color: var(--color-material, var(--color-surface));
-  border: 1px solid var(--base-color-a5);
+  border: 1px solid var(--neutral-a5);
 }
 
 /* Soft — accent-tinted block. Solid color steps so the tint is visible against

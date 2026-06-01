@@ -13,7 +13,7 @@
   --color-surface: rgba(255, 255, 255, 0.85);
 }
 :is(.dark, .dark-theme) {
-  --color-background: var(--base-color-1);
+  --color-background: var(--neutral-1);
   --color-overlay: var(--black-a8);
   --color-surface: rgba(0, 0, 0, 0.25);
 }
@@ -96,7 +96,7 @@
 /* * * * * * * * * * * * * * * * * * * */
 
 :root {
-  color: var(--base-color-12);
+  color: var(--neutral-12);
 }
 :where([data-surface="page"]) {
   background-color: var(--color-background);

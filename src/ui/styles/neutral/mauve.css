@@ -1,0 +1,32 @@
+[data-neutral="mauve"] {
+  --neutral-1: var(--mauve-1);
+  --neutral-2: var(--mauve-2);
+  --neutral-3: var(--mauve-3);
+  --neutral-4: var(--mauve-4);
+  --neutral-5: var(--mauve-5);
+  --neutral-6: var(--mauve-6);
+  --neutral-7: var(--mauve-7);
+  --neutral-8: var(--mauve-8);
+  --neutral-9: var(--mauve-9);
+  --neutral-10: var(--mauve-10);
+  --neutral-11: var(--mauve-11);
+  --neutral-12: var(--mauve-12);
+
+  --neutral-a1: var(--mauve-a1);
+  --neutral-a2: var(--mauve-a2);
+  --neutral-a3: var(--mauve-a3);
+  --neutral-a4: var(--mauve-a4);
+  --neutral-a5: var(--mauve-a5);
+  --neutral-a6: var(--mauve-a6);
+  --neutral-a7: var(--mauve-a7);
+  --neutral-a8: var(--mauve-a8);
+  --neutral-a9: var(--mauve-a9);
+  --neutral-a10: var(--mauve-a10);
+  --neutral-a11: var(--mauve-a11);
+  --neutral-a12: var(--mauve-a12);
+
+  --neutral-contrast: var(--mauve-contrast);
+  --neutral-surface: var(--mauve-surface);
+  --neutral-indicator: var(--mauve-indicator);
+  --neutral-track: var(--mauve-track);
+}

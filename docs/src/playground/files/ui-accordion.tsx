@@ -6,7 +6,7 @@ import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/cursor.css";
 import "elements-kit/ui/styles/unset.css";
 import "elements-kit/ui/styles/palette/gray.css";
-import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/neutral/gray.css";
 import "elements-kit/ui/styles/palette/mint.css";
 import "elements-kit/ui/styles/accent/mint.css";
 import "elements-kit/ui/styles/palette/blue.css";
@@ -66,13 +66,13 @@ export class App {
       <div
         class:dark={dark}
         data-accent="mint"
-        data-base-color="gray"
+        data-neutral="gray"
         data-radius="medium"
         style:padding="24px"
         style:display="grid"
         style:gap="32px"
-        style:background="var(--base-color-1)"
-        style:color="var(--base-color-12)"
+        style:background="var(--neutral-1)"
+        style:color="var(--neutral-12)"
         style:font-family="var(--default-font-family, system-ui, sans-serif)"
         style:max-width="640px"
       >
@@ -239,7 +239,7 @@ export class App {
           <SectionHeading>Accent colors</SectionHeading>
           <p
             style:margin="0 0 12px"
-            style:color="var(--base-color-a11)"
+            style:color="var(--neutral-a11)"
             style:font-size="13px"
           >
             <code>data-accent</code> on the accordion (or any ancestor) themes
@@ -278,7 +278,12 @@ export class App {
 
           <div style:height="16px" />
 
-          <details class:x-accordion data-variant="soft" data-accent="mint" open>
+          <details
+            class:x-accordion
+            data-variant="soft"
+            data-accent="mint"
+            open
+          >
             <summary>
               data-accent="mint" — soft
               <Chevron />

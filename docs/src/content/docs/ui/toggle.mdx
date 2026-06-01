@@ -25,7 +25,7 @@ import "elements-kit/ui/styles/cursor.css";
 import "elements-kit/ui/styles/unset.css";
 // neutral palette:
 import "elements-kit/ui/styles/palette/gray.css";
-import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/neutral/gray.css";
 // any accent scales you want:
 import "elements-kit/ui/styles/palette/mint.css";
 import "elements-kit/ui/styles/accent/mint.css";
@@ -77,10 +77,10 @@ The `unset` class on the input strips native chrome ([Styles → Unset native st
 
 ## Variants
 
-The rest state uses base (neutral) tokens; the pressed state uses accent (`--accent-*`) tokens that fall back to base via [accent/base.css](https://github.com/) when no `data-accent` is set. Both variants stack three hue-independent signals — alpha step, ring/weight, and `font-weight: 500 → 600` — so pressed stays clearly distinct from rest even in the all-gray case.
+The rest state uses neutral tokens; the pressed state uses accent (`--accent-*`) tokens that fall back to neutral via [accent/neutral.css](https://github.com/) when no `data-accent` is set. Both variants stack three hue-independent signals — alpha step, ring/weight, and `font-weight: 500 → 600` — so pressed stays clearly distinct from rest even in the all-gray case.
 
-- **`surface`** *(default)* — thin `--base-color-a5` ring + muted `--base-color-a11` text at rest. Pressed: soft `--accent-a5` fill + stronger `--accent-a8` ring + `--accent-12` text. Hover bumps the pressed bg one alpha step deeper (`--accent-a6`).
-- **`soft`** — `--base-color-a3` tinted track at rest. Pressed: `--accent-a5` accent-tinted track + `--accent-12` text.
+- **`surface`** *(default)* — thin `--neutral-a5` ring + muted `--neutral-a11` text at rest. Pressed: soft `--accent-a5` fill + stronger `--accent-a8` ring + `--accent-12` text. Hover bumps the pressed bg one alpha step deeper (`--accent-a6`).
+- **`soft`** — `--neutral-a3` tinted track at rest. Pressed: `--accent-a5` accent-tinted track + `--accent-12` text.
 
 Set `data-accent="iris"` on the toggle or any ancestor to tint the pressed state. Without an accent, the pressed state stays gray (just deeper than rest) — still clearly active.
 

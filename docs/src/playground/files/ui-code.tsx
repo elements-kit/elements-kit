@@ -7,9 +7,9 @@ import "elements-kit/ui/styles/cursor.css";
 import "elements-kit/ui/styles/shadow.css";
 import "elements-kit/ui/styles/unset.css";
 import "elements-kit/ui/styles/palette/gray.css";
-import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/neutral/gray.css";
 import "elements-kit/ui/styles/palette/black-alpha.css";
-import "elements-kit/ui/styles/accent/base.css";
+import "elements-kit/ui/styles/accent/neutral.css";
 import "elements-kit/ui/styles/palette/mint.css";
 import "elements-kit/ui/styles/accent/mint.css";
 import "elements-kit/ui/styles/palette/iris.css";
@@ -32,14 +32,14 @@ export class App {
     return (
       <div
         class:dark={dark}
-        data-base-color="gray"
+        data-neutral="gray"
         data-accent="mint"
         data-radius="medium"
         style:padding="24px"
         style:display="grid"
         style:gap="20px"
-        style:background="var(--base-color-1)"
-        style:color="var(--base-color-12)"
+        style:background="var(--neutral-1)"
+        style:color="var(--neutral-12)"
         style:font-family="var(--default-font-family, system-ui, sans-serif)"
       >
         <button
@@ -59,7 +59,7 @@ export class App {
               <code class:unset class:x-code data-variant={variant}>
                 npm install
               </code>{" "}
-              <small style:color="var(--base-color-11)">({variant})</small>
+              <small style:color="var(--neutral-11)">({variant})</small>
               <br />
             </>
           ))}
@@ -76,15 +76,18 @@ export class App {
               <code class:unset class:x-code data-size={String(size)}>
                 size-{size}
               </code>
-              <small style:color="var(--base-color-11)">font-size-{size}</small>
+              <small style:color="var(--neutral-11)">font-size-{size}</small>
             </div>
           ))}
         </div>
 
         <h3 style:margin="16px 0 0">In a paragraph</h3>
         <p style:line-height="1.6">
-          Run <code class:unset class:x-code>npm run dev</code> to start the dev server.
-          Then visit{" "}
+          Run{" "}
+          <code class:unset class:x-code>
+            npm run dev
+          </code>{" "}
+          to start the dev server. Then visit{" "}
           <code class:unset class:x-code data-accent="iris">
             http://localhost:3000
           </code>{" "}
@@ -106,7 +109,12 @@ export class App {
           <code class:unset class:x-code data-accent="crimson">
             error
           </code>{" "}
-          <code class:unset class:x-code data-variant="solid" data-accent="mint">
+          <code
+            class:unset
+            class:x-code
+            data-variant="solid"
+            data-accent="mint"
+          >
             solid mint
           </code>
         </p>

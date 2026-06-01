@@ -37,9 +37,9 @@
   padding: 0;
   border: 0;
 
-  color: var(--base-color-12);
+  color: var(--neutral-12);
   background-color: var(--color-surface);
-  background-image: linear-gradient(var(--base-color-a3), var(--base-color-a3));
+  background-image: linear-gradient(var(--neutral-a3), var(--neutral-a3));
 
   font-family: var(--default-font-family);
   font-style: normal;
@@ -56,7 +56,7 @@
   /* Light: --color-background (white) lifts above the alpha-overlay track.
    * Dark: --color-background ≤ track surface, so layer another alpha
    * step instead — stacks above the existing overlay without breaking
-   * accent theming (--base-color-* tracks accent, --gray-* doesn't). */
+   * accent theming (--neutral-* tracks accent, --gray-* doesn't). */
   --seg-indicator-bg: var(--color-background);
 
   border-radius: var(--seg-track-radius);
@@ -64,7 +64,7 @@
 
 :is(.dark, .dark-theme) :where(.x-segmented-control:not(.light, .light-theme)),
 :is(.dark, .dark-theme):where(.x-segmented-control:not(.light, .light-theme)) {
-  --seg-indicator-bg: var(--base-color-a3);
+  --seg-indicator-bg: var(--neutral-a3);
 }
 
 /***************************************************************************************************
@@ -82,7 +82,7 @@
   user-select: none;
   cursor: var(--cursor-button);
 
-  color: var(--base-color-a11);
+  color: var(--neutral-a11);
   font-weight: var(--font-weight-regular);
   letter-spacing: var(--tab-inactive-letter-spacing);
 
@@ -120,7 +120,7 @@
  * width each frame and visually stretches mid-transition. The indicator
  * itself + a11y semantics carry the active state. */
 .x-segmented-control > label:where(:has(:checked)) {
-  color: var(--base-color-12);
+  color: var(--neutral-12);
 }
 
 /* Focus ring surfaces on the label (input is visually hidden). */
@@ -133,7 +133,7 @@
 /* Hover wash on inactive segments only. */
 @media (hover: hover) {
   .x-segmented-control > label:where(:not(:has(:checked, :disabled)):hover) {
-    background-color: var(--base-color-a2);
+    background-color: var(--neutral-a2);
   }
 }
 
@@ -150,7 +150,7 @@
   bottom: var(--seg-inset);
   width: 1px;
   margin-inline-start: -0.5px;
-  background-color: var(--base-color-a4);
+  background-color: var(--neutral-a4);
   z-index: -1;
   transition: opacity var(--seg-transition-duration) ease-out;
 }
@@ -176,8 +176,8 @@
   background-color: var(--seg-indicator-bg);
   border-radius: var(--seg-indicator-radius);
   box-shadow:
-    0 0 0 0.5px var(--base-color-a3),
-    0 1px 2px var(--base-color-a4);
+    0 0 0 0.5px var(--neutral-a3),
+    0 1px 2px var(--neutral-a4);
 
   opacity: 0;
   transition: opacity var(--seg-transition-duration) ease-out;
@@ -218,8 +218,8 @@
     background-color: var(--seg-indicator-bg);
     border-radius: var(--seg-indicator-radius);
     box-shadow:
-      0 0 0 0.5px var(--base-color-a3),
-      0 1px 2px var(--base-color-a4);
+      0 0 0 0.5px var(--neutral-a3),
+      0 1px 2px var(--neutral-a4);
 
     transition:
       left var(--seg-transition-duration) cubic-bezier(0.45, 0.05, 0.55, 0.95),
@@ -239,19 +239,19 @@
  ***************************************************************************************************/
 
 .x-segmented-control:where(:disabled, [data-disabled]) {
-  color: var(--base-color-a8);
-  background-image: linear-gradient(var(--base-color-a2), var(--base-color-a2));
+  color: var(--neutral-a8);
+  background-image: linear-gradient(var(--neutral-a2), var(--neutral-a2));
 }
 
 .x-segmented-control:where(:disabled, [data-disabled]) > label,
 .x-segmented-control > label:where(:has(:disabled)) {
   cursor: var(--cursor-disabled);
-  color: var(--base-color-a8);
+  color: var(--neutral-a8);
 }
 
 .x-segmented-control:where(:disabled, [data-disabled]) > label::before,
 .x-segmented-control > label:where(:has(:disabled))::before {
-  background-color: var(--base-color-a3);
+  background-color: var(--neutral-a3);
   box-shadow: none;
 }
 
@@ -260,7 +260,7 @@
   .x-segmented-control:where(
       :has(> label:where(:has(:disabled)):has(:checked))
     )::after {
-    background-color: var(--base-color-a3);
+    background-color: var(--neutral-a3);
     box-shadow: none;
   }
 }
@@ -376,7 +376,7 @@
 
 /* High contrast — boost active text against indicator. */
 .x-segmented-control:where([data-high-contrast]) > label:where(:has(:checked)) {
-  color: var(--base-color-12);
+  color: var(--neutral-12);
 }
 .x-segmented-control:where([data-high-contrast][data-variant="soft"])
   > label:where(:has(:checked)) {

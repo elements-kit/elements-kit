@@ -16,9 +16,7 @@
   --switch-thumb-size: calc(
     var(--switch-height) - var(--switch-thumb-inset) * 2
   );
-  --switch-thumb-translate-x: calc(
-    var(--switch-width) - var(--switch-height)
-  );
+  --switch-thumb-translate-x: calc(var(--switch-width) - var(--switch-height));
 
   width: var(--switch-width);
   height: var(--switch-height);
@@ -46,7 +44,8 @@
     border-radius: calc(
       var(--switch-border-radius) - var(--switch-thumb-inset)
     );
-    transition: transform 140ms cubic-bezier(0.45, 0.05, 0.55, 0.95),
+    transition:
+      transform 140ms cubic-bezier(0.45, 0.05, 0.55, 0.95),
       box-shadow 140ms ease-in-out;
   }
 
@@ -96,8 +95,8 @@
 /* surface (default) */
 
 .x-switch:where(:not([data-variant="soft"])) {
-  background-color: var(--base-color-a3);
-  box-shadow: inset 0 0 0 1px var(--base-color-a5);
+  background-color: var(--neutral-a3);
+  box-shadow: inset 0 0 0 1px var(--neutral-a5);
 
   &:where(:checked) {
     background-color: var(--accent-9);
@@ -123,14 +122,14 @@
   }
 
   &:where([data-disabled], :disabled) {
-    background-color: var(--base-color-a3);
-    box-shadow: inset 0 0 0 1px var(--base-color-a3);
+    background-color: var(--neutral-a3);
+    box-shadow: inset 0 0 0 1px var(--neutral-a3);
     opacity: 0.7;
   }
   &:where([data-disabled], :disabled)::after {
-    background-color: var(--base-color-2);
+    background-color: var(--neutral-2);
     box-shadow:
-      0 0 0 1px var(--base-color-a2),
+      0 0 0 1px var(--neutral-a2),
       0 1px 3px var(--black-a1);
   }
 }
@@ -138,7 +137,7 @@
 /* soft */
 
 .x-switch:where([data-variant="soft"]) {
-  background-color: var(--base-color-a3);
+  background-color: var(--neutral-a3);
 
   &:where(:checked) {
     background-color: var(--accent-a5);

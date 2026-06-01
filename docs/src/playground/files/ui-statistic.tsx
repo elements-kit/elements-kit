@@ -5,7 +5,7 @@ import "elements-kit/ui/styles/space.css";
 import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/unset.css";
 import "elements-kit/ui/styles/palette/gray.css";
-import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/neutral/gray.css";
 import "elements-kit/ui/styles/palette/mint.css";
 import "elements-kit/ui/styles/accent/mint.css";
 import "elements-kit/ui/marketing/marketing.css";
@@ -23,7 +23,7 @@ function Label({ children }: { children: any }) {
       style:font-weight="600"
       style:letter-spacing="0.04em"
       style:text-transform="uppercase"
-      style:color="var(--base-color-11)"
+      style:color="var(--neutral-11)"
       style:margin="40px 0 12px"
     >
       {children}
@@ -38,14 +38,14 @@ export class App {
         class:dark={dark}
         data-surface="page"
         data-accent="mint"
-        data-base-color="gray"
+        data-neutral="gray"
         data-radius="medium"
         style={{
           "--page-padding-left": "24px",
           "--page-padding-right": "24px",
           "--page-max-width": "1024px",
         }}
-        style:color="var(--base-color-12)"
+        style:color="var(--neutral-12)"
         style:font-family="var(--default-font-family, system-ui, sans-serif)"
         style:min-height="100vh"
         style:padding-bottom="64px"
@@ -54,7 +54,7 @@ export class App {
           style:padding="12px 24px"
           style:display="flex"
           style:justify-content="flex-end"
-          style:border-bottom="1px solid var(--base-color-a6)"
+          style:border-bottom="1px solid var(--neutral-a6)"
         >
           <button
             class:unset

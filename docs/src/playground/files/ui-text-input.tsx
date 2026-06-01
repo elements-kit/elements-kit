@@ -6,7 +6,7 @@ import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/cursor.css";
 import "elements-kit/ui/styles/unset.css";
 import "elements-kit/ui/styles/palette/gray.css";
-import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/neutral/gray.css";
 import "elements-kit/ui/styles/palette/black-alpha.css";
 import "elements-kit/ui/styles/palette/mint.css";
 import "elements-kit/ui/styles/accent/mint.css";
@@ -35,13 +35,13 @@ export class App {
       <div
         class:dark={dark}
         data-accent="mint"
-        data-base-color="gray"
+        data-neutral="gray"
         data-radius="medium"
         style:padding="24px"
         style:display="grid"
         style:gap="24px"
-        style:background="var(--base-color-1)"
-        style:color="var(--base-color-12)"
+        style:background="var(--neutral-1)"
+        style:color="var(--neutral-12)"
         style:font-family="var(--default-font-family, system-ui, sans-serif)"
         style:max-width="540px"
       >
@@ -135,28 +135,21 @@ export class App {
             <div
               style:padding="6px 10px"
               style:font-size="12px"
-              style:color="var(--base-color-a11)"
-              style:border-bottom="1px solid var(--base-color-a4)"
+              style:color="var(--neutral-a11)"
+              style:border-bottom="1px solid var(--neutral-a4)"
             >
               Markdown
             </div>
-            <textarea
-              class:unset
-              placeholder="Write something…"
-              rows={4}
-            />
+            <textarea class:unset placeholder="Write something…" rows={4} />
             <div
               style:padding="6px 8px"
-              style:border-top="1px solid var(--base-color-a4)"
+              style:border-top="1px solid var(--neutral-a4)"
               style:display="flex"
               style:align-items="center"
               style:justify-content="space-between"
               style:gap="8px"
             >
-              <span
-                style:font-size="12px"
-                style:color="var(--base-color-a11)"
-              >
+              <span style:font-size="12px" style:color="var(--neutral-a11)">
                 0 / 280
               </span>
               <button
@@ -182,7 +175,11 @@ export class App {
             />
             <div class:x-text-input>
               <span aria-hidden="true">🔍</span>
-              <input class:unset placeholder="Disabled wrapped input" disabled />
+              <input
+                class:unset
+                placeholder="Disabled wrapped input"
+                disabled
+              />
             </div>
             <textarea
               class:unset

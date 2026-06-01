@@ -6,8 +6,8 @@ import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/cursor.css";
 import "elements-kit/ui/styles/unset.css";
 import "elements-kit/ui/styles/palette/gray.css";
-import "elements-kit/ui/styles/base/gray.css";
-import "elements-kit/ui/styles/accent/base.css";
+import "elements-kit/ui/styles/neutral/gray.css";
+import "elements-kit/ui/styles/accent/neutral.css";
 import "elements-kit/ui/styles/palette/mint.css";
 import "elements-kit/ui/styles/accent/mint.css";
 import "elements-kit/ui/styles/palette/blue.css";
@@ -26,7 +26,7 @@ const dark = signal(false);
 
 const SIZES = [1, 2, 3] as const;
 const VARIANTS = ["surface", "soft"] as const;
-const ACCENTS = ["base", "mint", "blue", "iris", "crimson"] as const;
+const ACCENTS = ["neutral", "mint", "blue", "iris", "crimson"] as const;
 
 function SectionHeading({ children }: { children: any }) {
   return (
@@ -55,13 +55,13 @@ export class App {
       <div
         class:dark={dark}
         data-accent="mint"
-        data-base-color="gray"
+        data-neutral="gray"
         data-radius="medium"
         style:padding="24px"
         style:display="grid"
         style:gap="32px"
-        style:background="var(--base-color-1)"
-        style:color="var(--base-color-12)"
+        style:background="var(--neutral-1)"
+        style:color="var(--neutral-12)"
         style:font-family="var(--default-font-family, system-ui, sans-serif)"
         style:max-width="640px"
       >
@@ -138,7 +138,7 @@ export class App {
               <div>
                 <code
                   style:font-size="12px"
-                  style:color="var(--base-color-a10)"
+                  style:color="var(--neutral-a10)"
                   style:display="block"
                   style:margin-bottom="8px"
                 >
@@ -190,7 +190,7 @@ export class App {
         <section>
           <SectionHeading>
             Radio group ·{" "}
-            <small style:color="var(--base-color-a10)" style:font-weight="400">
+            <small style:color="var(--neutral-a10)" style:font-weight="400">
               filter chips
             </small>
           </SectionHeading>

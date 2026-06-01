@@ -102,8 +102,8 @@
  *                                                                                                 *
  * VARIANTS                                                                                        *
  *                                                                                                 *
- * Rest: base (neutral) tokens. Pressed: accent (--accent-*) tokens that auto-fall-back to base     *
- * via accent/base.css when no data-accent is set. Three hue-independent signals (alpha step, ring  *
+ * Rest: neutral tokens. Pressed: accent (--accent-*) tokens that auto-fall-back to neutral        *
+ * via accent/neutral.css when no data-accent is set. Three hue-independent signals (alpha step, ring  *
  * strength, font-weight) make pressed clearly distinct from rest even in the all-gray case.       *
  *                                                                                                 *
  ***************************************************************************************************/
@@ -112,8 +112,8 @@
 
 .x-toggle:where(:not([data-variant]), [data-variant="surface"]) {
   background-color: transparent;
-  box-shadow: inset 0 0 0 1px var(--base-color-a5);
-  color: var(--base-color-a11);
+  box-shadow: inset 0 0 0 1px var(--neutral-a5);
+  color: var(--neutral-a11);
   font-weight: 500;
 }
 
@@ -121,7 +121,7 @@
   .x-toggle:where(:not([data-variant]), [data-variant="surface"]):where(
       :hover
     ) {
-    background-color: var(--base-color-a2);
+    background-color: var(--neutral-a2);
   }
 }
 
@@ -145,14 +145,14 @@
 /* soft — neutral tinted track at rest, accent tinted track on press. */
 
 .x-toggle:where([data-variant="soft"]) {
-  background-color: var(--base-color-a3);
-  color: var(--base-color-a11);
+  background-color: var(--neutral-a3);
+  color: var(--neutral-a11);
   font-weight: 500;
 }
 
 @media (hover: hover) {
   .x-toggle:where([data-variant="soft"]):where(:hover) {
-    background-color: var(--base-color-a4);
+    background-color: var(--neutral-a4);
   }
 }
 

@@ -99,7 +99,7 @@
 
 .x-checkbox:where(:not([data-variant="soft"])) {
   background-color: var(--color-surface);
-  box-shadow: inset 0 0 0 1px var(--base-color-a7);
+  box-shadow: inset 0 0 0 1px var(--neutral-a7);
 
   &:where(:checked, :indeterminate) {
     background-color: var(--accent-9);
@@ -110,14 +110,14 @@
   &:where([data-high-contrast]) {
     &:where(:checked, :indeterminate) {
       background-color: var(--accent-12);
-      color: var(--base-color-1);
+      color: var(--neutral-1);
     }
   }
 
   &:where([data-disabled], :disabled) {
     background-color: transparent;
-    box-shadow: inset 0 0 0 1px var(--base-color-a6);
-    color: var(--base-color-a8);
+    box-shadow: inset 0 0 0 1px var(--neutral-a6);
+    color: var(--neutral-a8);
   }
 }
 
@@ -134,7 +134,7 @@
   }
 
   &:where([data-disabled], :disabled) {
-    background-color: var(--base-color-a3);
-    color: var(--base-color-a8);
+    background-color: var(--neutral-a3);
+    color: var(--neutral-a8);
   }
 }

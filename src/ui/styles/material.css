@@ -3,7 +3,7 @@
   --color-material-translucent: rgba(255, 255, 255, 0.7);
 }
 :is(.dark, .dark-theme) {
-  --color-material-solid: var(--base-color-2);
+  --color-material-solid: var(--neutral-2);
   --color-material-translucent: var(--black-a7);
 }
 

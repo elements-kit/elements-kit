@@ -9,7 +9,7 @@
  * call-to-action panel; statistics surface large display numbers.
  *
  * Backgrounds use theme.css semantic tokens (`--color-background`, `--color-overlay`).
- * Text + borders use `--base-color-N` / `--base-color-aN`. Accent (pillar icon)
+ * Text + borders use `--neutral-N` / `--neutral-aN`. Accent (pillar icon)
  * follows `--accent-9` — set `data-accent="X"` on an ancestor to pick the accent
  * palette. Typography (sizes, line-heights, letter-spacing) pulls from kit's
  * `--font-size-N` / `--line-height-N` / `--letter-spacing-N` and the `--scaling`
@@ -216,10 +216,10 @@
   text-wrap: pretty;
   white-space: pre-line;
   overflow-wrap: break-word;
-  color: var(--base-color-11);
+  color: var(--neutral-11);
 }
 .section-paragraph em {
-  color: var(--base-color-12);
+  color: var(--neutral-12);
   font-style: normal;
 }
 
@@ -325,7 +325,7 @@
   font-weight: 600;
   letter-spacing: var(--letter-spacing-9);
   text-wrap: pretty;
-  color: var(--base-color-11);
+  color: var(--neutral-11);
 }
 .river[data-align="breakout"] > .river-content > [data-trailing] {
   margin-top: 1.5rem;
@@ -389,7 +389,7 @@
 }
 .river-visual[data-border] {
   border-radius: var(--radius-4);
-  border: 1px solid var(--base-color-a6);
+  border: 1px solid var(--neutral-a6);
 }
 
 /* * * * * * * * * * * * * * * * * * * */
@@ -421,12 +421,11 @@
   line-height: var(--default-line-height, 1.5);
   font-weight: var(--font-weight-regular);
   letter-spacing: 0;
-  color: var(--base-color-11);
+  color: var(--neutral-11);
 }
 .pillar > a {
   margin-top: 1rem;
 }
-
 
 /* * * * * * * * * * * * * * * * * * * */
 /*            Testimonial              */
@@ -455,7 +454,7 @@
   font-weight: 600;
   letter-spacing: var(--letter-spacing-9);
   text-wrap: pretty;
-  color: var(--base-color-11);
+  color: var(--neutral-11);
   margin: 0;
 }
 
@@ -466,7 +465,7 @@
 }
 
 .testimonial > blockquote em {
-  color: var(--base-color-12);
+  color: var(--neutral-12);
   font-style: normal;
 }
 
@@ -496,13 +495,13 @@
   font-weight: 600;
   font-style: normal;
   letter-spacing: var(--letter-spacing-9);
-  color: var(--base-color-12);
+  color: var(--neutral-12);
 }
 
 .testimonial > figcaption > [data-title] {
   font-size: var(--font-size-2);
   line-height: var(--line-height-2);
-  color: var(--base-color-11);
+  color: var(--neutral-11);
 }
 
 /* * * * * * * * * * * * * * * * * * * */
@@ -604,7 +603,7 @@
   line-height: var(--line-height-2);
   font-weight: var(--font-weight-medium);
   letter-spacing: var(--letter-spacing-9);
-  color: var(--base-color-11);
+  color: var(--neutral-11);
   margin: 0 0 0.25rem;
 }
 
@@ -614,7 +613,7 @@
   line-height: 1;
   font-weight: 550;
   letter-spacing: -0.04em;
-  color: var(--base-color-12);
+  color: var(--neutral-12);
   margin: 0;
 }
 
@@ -628,7 +627,7 @@
   margin-top: 0.5rem;
   font-size: var(--font-size-3);
   line-height: var(--line-height-3);
-  color: var(--base-color-11);
+  color: var(--neutral-11);
 }
 
 /* Small */
