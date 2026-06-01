@@ -270,7 +270,8 @@
     --text-input-padding: calc(
       var(--space-1) * 1.5 - var(--text-input-border-width)
     );
-    --text-input-border-radius: max(var(--radius-2), var(--radius-pill));
+    --text-input-radius: var(--radius-2);
+    --text-input-border-radius: var(--text-input-radius);
     --text-input-native-icon-size: var(--space-3);
     font-size: var(--font-size-1);
     line-height: var(--line-height-1);
@@ -286,7 +287,8 @@
     --text-input-height: var(--space-6);
     --text-input-min-height: var(--space-9);
     --text-input-padding: calc(var(--space-2) - var(--text-input-border-width));
-    --text-input-border-radius: max(var(--radius-2), var(--radius-pill));
+    --text-input-radius: var(--radius-2);
+    --text-input-border-radius: var(--text-input-radius);
     --text-input-native-icon-size: var(--space-4);
     font-size: var(--font-size-2);
     line-height: var(--line-height-2);
@@ -302,7 +304,8 @@
     --text-input-height: var(--space-7);
     --text-input-min-height: 80px;
     --text-input-padding: calc(var(--space-3) - var(--text-input-border-width));
-    --text-input-border-radius: max(var(--radius-3), var(--radius-pill));
+    --text-input-radius: var(--radius-3);
+    --text-input-border-radius: var(--text-input-radius);
     --text-input-native-icon-size: var(--space-4);
     font-size: var(--font-size-3);
     line-height: var(--line-height-3);
@@ -321,7 +324,8 @@
   --text-input-height: var(--space-6);
   --text-input-min-height: var(--space-9);
   --text-input-padding: calc(var(--space-2) - var(--text-input-border-width));
-  --text-input-border-radius: max(var(--radius-2), var(--radius-pill));
+  --text-input-radius: var(--radius-2);
+  --text-input-border-radius: var(--text-input-radius);
   --text-input-native-icon-size: var(--space-4);
   font-size: var(--font-size-2);
   line-height: var(--line-height-2);
@@ -332,6 +336,14 @@
     padding-left: var(--space-2);
     padding-right: var(--space-2);
   }
+}
+
+/* Pill radius applies to single-line inputs only; textarea keeps the base per-size
+ * radius (a full-pill multi-line box looks wrong). Placed after the size blocks so it
+ * wins the cascade. */
+.x-text-input:where(input),
+.x-text-input:where(:has(> input)) {
+  --text-input-border-radius: max(var(--text-input-radius), var(--radius-pill));
 }
 
 /***************************************************************************************************
