@@ -28,7 +28,7 @@ import "elements-kit/ui/styles/palette/gray.css";
 import "elements-kit/ui/styles/base/gray.css";
 // import any color scales you want to use for accent theming:
 import "elements-kit/ui/styles/palette/mint.css";
-import "elements-kit/ui/styles/colors/mint.css";
+import "elements-kit/ui/styles/accent/mint.css";
 // and the checkbox itself:
 import "elements-kit/ui/checkbox/checkbox.css";
 ```
@@ -52,7 +52,7 @@ The `unset` class ([Styles → Unset native styles](/ui/styles#unset-native-styl
 | --- | --- |
 | `data-variant` | `surface` (default), `soft` |
 | `data-size` | `1`, `2` (default), `3` |
-| `data-color` *(on a parent or the input)* | any imported color scale (`mint`, `blue`, `iris`, …) |
+| `data-accent` *(on a parent or the input)* | any imported color scale (`mint`, `blue`, `iris`, …) |
 | `data-high-contrast` | modifier — boosts contrast against the page background |
 | `disabled` / `data-disabled` | native `:disabled` state, or `data-disabled` on non-input elements |
 
@@ -68,8 +68,8 @@ The `unset` class ([Styles → Unset native styles](/ui/styles#unset-native-styl
 
 ## Variants
 
-- **`surface`** *(default)* — 1px hairline border using `--base-color-a7`. Background fills with `--color-9` and contrast indicator on `:checked` / `:indeterminate`.
-- **`soft`** — tinted background using `--color-a5` at every state. Indicator uses `--color-a11` so the check reads at low emphasis.
+- **`surface`** *(default)* — 1px hairline border using `--base-color-a7`. Background fills with `--accent-9` and contrast indicator on `:checked` / `:indeterminate`.
+- **`soft`** — tinted background using `--accent-a5` at every state. Indicator uses `--accent-a11` so the check reads at low emphasis.
 
 ## States
 
@@ -93,10 +93,10 @@ For multiple options stack labels in a flex column with `gap: var(--space-1)`. T
 
 ## Theming
 
-Set `data-color="<color>"` on the input or any ancestor (e.g. `<body>`) to theme the accent fill. Light/dark flips automatically via the `.dark` class on a parent — see [Light & dark](/ui/styles#light--dark).
+Set `data-accent="<color>"` on the input or any ancestor (e.g. `<body>`) to theme the accent fill. Light/dark flips automatically via the `.dark` class on a parent — see [Light & dark](/ui/styles#light--dark).
 
 ```html
-<body data-color="iris">
+<body data-accent="iris">
   <input type="checkbox" class="unset x-checkbox" checked />
 </body>
 ```

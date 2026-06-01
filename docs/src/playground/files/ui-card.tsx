@@ -8,13 +8,13 @@ import "elements-kit/ui/styles/material.css";
 import "elements-kit/ui/styles/unset.css";
 // import any color scales you want to use for accent theming:
 import "elements-kit/ui/styles/palette/mint.css";
-import "elements-kit/ui/styles/colors/mint.css";
+import "elements-kit/ui/styles/accent/mint.css";
 // pick a neutral palette for --base-color-* (must match data-base-color on root):
 import "elements-kit/ui/styles/palette/gray.css";
 import "elements-kit/ui/styles/base/gray.css";
 import "elements-kit/ui/styles/palette/black-alpha.css";
 import "elements-kit/ui/styles/palette/white-alpha.css";
-import "elements-kit/ui/styles/colors/base.css";
+import "elements-kit/ui/styles/accent/base.css";
 
 import "elements-kit/ui/card/card.css";
 import "elements-kit/ui/button/button.css";
@@ -90,7 +90,7 @@ export class App {
       <div
         class:dark={dark}
         data-surface="page"
-        data-color="mint"
+        data-accent="mint"
         data-base-color="gray"
         data-radius="medium"
         style={{

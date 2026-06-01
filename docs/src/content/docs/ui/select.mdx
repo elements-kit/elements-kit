@@ -28,7 +28,7 @@ import "elements-kit/ui/styles/palette/gray.css";
 import "elements-kit/ui/styles/base/gray.css";
 // any accent scales you want:
 import "elements-kit/ui/styles/palette/mint.css";
-import "elements-kit/ui/styles/colors/mint.css";
+import "elements-kit/ui/styles/accent/mint.css";
 // and the select itself:
 import "elements-kit/ui/select/select.css";
 ```
@@ -49,7 +49,7 @@ Pair `class="x-select"` with `class="unset"` to strip native chrome ([Styles →
 | --- | --- |
 | `data-variant` | `surface` *(default)*, `soft`, `text` |
 | `data-size` | `1`, `2` *(default)*, `3` |
-| `data-color` *(on element or any ancestor)* | any imported color scale — tints `soft` and `text` |
+| `data-accent` *(on element or any ancestor)* | any imported color scale — tints `soft` and `text` |
 | `disabled` *(native)* | greys out + stops clicks |
 
 ## Sizing
@@ -64,9 +64,9 @@ Padding is symmetric (`padding-inline`). The trigger uses `appearance: auto`, so
 
 ## Variants
 
-- **`surface`** *(default)* — `transparent` background, thin `--base-color-a7` inset ring, neutral `--base-color-12` text. Hover deepens the ring to `--base-color-a8`. Surface stays neutral even when an ancestor sets `data-color`.
-- **`soft`** — `--color-a3` accent-tinted track, `--color-12` text. Hover bumps the track to `--color-a4`. Without an accent, `--color-*` falls back to `--base-color-*` and the select stays gray-tinted.
-- **`text`** — transparent, content-box height, negative-margin offset so it sits inline with surrounding body text (same recipe as `x-button[data-variant="text"]`). Hover gives a subtle `--color-a3` wash.
+- **`surface`** *(default)* — `transparent` background, thin `--base-color-a7` inset ring, neutral `--base-color-12` text. Hover deepens the ring to `--base-color-a8`. Surface stays neutral even when an ancestor sets `data-accent`.
+- **`soft`** — `--accent-a3` accent-tinted track, `--accent-12` text. Hover bumps the track to `--accent-a4`. Without an accent, `--accent-*` falls back to `--base-color-*` and the select stays gray-tinted.
+- **`text`** — transparent, content-box height, negative-margin offset so it sits inline with surrounding body text (same recipe as `x-button[data-variant="text"]`). Hover gives a subtle `--accent-a3` wash.
 
 ## States
 

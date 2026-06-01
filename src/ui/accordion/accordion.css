@@ -17,8 +17,8 @@
  *                                                                                                 *
  ***************************************************************************************************/
 
-/* No root color — let summary pick up --color-11 (accent-aware, falls back to
-   base via colors/base.css when no data-color is set). */
+/* No root color — let summary pick up --accent-11 (accent-aware, falls back to
+   base via accent/base.css when no data-accent is set). */
 
 .x-accordion::details-content {
   display: grid;
@@ -81,7 +81,7 @@
   font-size: var(--accordion-font-size);
   font-weight: 500;
   line-height: 1.4;
-  color: var(--color-11);
+  color: var(--accent-11);
 
   user-select: none;
   -webkit-user-select: none;
@@ -204,20 +204,20 @@
 
 /* Soft — accent-tinted block. Solid color steps so the tint is visible against
    any page background (including data-surface="page"'s solid white).
-   - Light: outer at --color-4 (visible tint vs white page) + summary panel-bright.
-   - Dark:  outer at --color-3 (page is already dark, don't over-tint) +
-            summary at --color-4 (one step lifted above outer). */
+   - Light: outer at --accent-4 (visible tint vs white page) + summary panel-bright.
+   - Dark:  outer at --accent-3 (page is already dark, don't over-tint) +
+            summary at --accent-4 (one step lifted above outer). */
 .x-accordion:where([data-variant="soft"]) {
-  background-color: var(--color-a2);
-  --accordion-summary-bg: var(--color-a2);
-  --accordion-summary-hover-bg: var(--color-a3);
+  background-color: var(--accent-a2);
+  --accordion-summary-bg: var(--accent-a2);
+  --accordion-summary-hover-bg: var(--accent-a3);
   --accordion-body-bg: transparent;
 }
 
 :where(.dark, .dark-theme) .x-accordion:where([data-variant="soft"]) {
-  background-color: var(--color-a2);
-  --accordion-summary-bg: var(--color-a2);
-  --accordion-summary-hover-bg: var(--color-a3);
+  background-color: var(--accent-a2);
+  --accordion-summary-bg: var(--accent-a2);
+  --accordion-summary-hover-bg: var(--accent-a3);
 }
 
 /* Adjacent surface siblings collapse top/bottom into a single card. */
@@ -255,7 +255,7 @@
 
 .x-accordion:where([data-variant="borderless"]) > summary {
   padding-inline: 0;
-  color: var(--color-a11);
+  color: var(--accent-a11);
   transition:
     background-color 120ms ease-out,
     color 120ms ease-out;
@@ -263,12 +263,12 @@
 
 @media (hover: hover) {
   .x-accordion:where([data-variant="borderless"]) > summary:where(:hover) {
-    color: var(--color-12);
+    color: var(--accent-12);
   }
 }
 
 .x-accordion:where([data-variant="borderless"][open]) > summary {
-  color: var(--color-12);
+  color: var(--accent-12);
 }
 
 .x-accordion:where([data-variant="borderless"])::details-content {

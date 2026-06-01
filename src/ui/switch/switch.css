@@ -100,12 +100,12 @@
   box-shadow: inset 0 0 0 1px var(--base-color-a5);
 
   &:where(:checked) {
-    background-color: var(--color-9);
-    box-shadow: inset 0 0 0 1px var(--color-a4);
+    background-color: var(--accent-9);
+    box-shadow: inset 0 0 0 1px var(--accent-a4);
   }
 
   &:where([data-high-contrast]:checked) {
-    background-color: var(--color-12);
+    background-color: var(--accent-12);
   }
 
   &::after {
@@ -118,7 +118,7 @@
     box-shadow:
       0 1px 3px var(--black-a2),
       0 2px 4px -1px var(--black-a1),
-      0 0 0 1px var(--color-a4),
+      0 0 0 1px var(--accent-a4),
       -1px 0 1px var(--black-a2);
   }
 
@@ -141,7 +141,7 @@
   background-color: var(--base-color-a3);
 
   &:where(:checked) {
-    background-color: var(--color-a5);
+    background-color: var(--accent-a5);
   }
 
   &::after {
@@ -154,8 +154,8 @@
   &:where(:checked)::after {
     box-shadow:
       0 0 0 1px var(--black-a1),
-      0 1px 3px var(--color-a3),
-      0 2px 4px -1px var(--color-a3);
+      0 1px 3px var(--accent-a3),
+      0 2px 4px -1px var(--accent-a3);
   }
 
   &:where([data-disabled], :disabled) {

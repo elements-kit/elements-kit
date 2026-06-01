@@ -8,13 +8,13 @@ import "elements-kit/ui/styles/unset.css";
 import "elements-kit/ui/styles/palette/gray.css";
 import "elements-kit/ui/styles/base/gray.css";
 import "elements-kit/ui/styles/palette/mint.css";
-import "elements-kit/ui/styles/colors/mint.css";
+import "elements-kit/ui/styles/accent/mint.css";
 import "elements-kit/ui/styles/palette/blue.css";
-import "elements-kit/ui/styles/colors/blue.css";
+import "elements-kit/ui/styles/accent/blue.css";
 import "elements-kit/ui/styles/palette/iris.css";
-import "elements-kit/ui/styles/colors/iris.css";
+import "elements-kit/ui/styles/accent/iris.css";
 import "elements-kit/ui/styles/palette/crimson.css";
-import "elements-kit/ui/styles/colors/crimson.css";
+import "elements-kit/ui/styles/accent/crimson.css";
 
 import "elements-kit/ui/button/button.css";
 import "elements-kit/ui/accordion/accordion.css";
@@ -65,7 +65,7 @@ export class App {
     return (
       <div
         class:dark={dark}
-        data-color="mint"
+        data-accent="mint"
         data-base-color="gray"
         data-radius="medium"
         style:padding="24px"
@@ -242,35 +242,35 @@ export class App {
             style:color="var(--base-color-a11)"
             style:font-size="13px"
           >
-            <code>data-color</code> on the accordion (or any ancestor) themes
+            <code>data-accent</code> on the accordion (or any ancestor) themes
             the text + chevron via <code>currentColor</code>. The card chrome
             stays neutral so the accent reads as content.
           </p>
 
-          <details class:x-accordion data-color="mint" open>
+          <details class:x-accordion data-accent="mint" open>
             <summary>
-              data-color="mint" — surface
+              data-accent="mint" — surface
               <Chevron />
             </summary>
             <p style:margin="0">Mint themes the trigger label + chevron.</p>
           </details>
-          <details class:x-accordion data-color="blue">
+          <details class:x-accordion data-accent="blue">
             <summary>
-              data-color="blue" — surface
+              data-accent="blue" — surface
               <Chevron />
             </summary>
             <p style:margin="0">Blue.</p>
           </details>
-          <details class:x-accordion data-color="iris">
+          <details class:x-accordion data-accent="iris">
             <summary>
-              data-color="iris" — surface
+              data-accent="iris" — surface
               <Chevron />
             </summary>
             <p style:margin="0">Iris.</p>
           </details>
-          <details class:x-accordion data-color="crimson">
+          <details class:x-accordion data-accent="crimson">
             <summary>
-              data-color="crimson" — surface
+              data-accent="crimson" — surface
               <Chevron />
             </summary>
             <p style:margin="0">Crimson.</p>
@@ -278,30 +278,30 @@ export class App {
 
           <div style:height="16px" />
 
-          <details class:x-accordion data-variant="soft" data-color="mint" open>
+          <details class:x-accordion data-variant="soft" data-accent="mint" open>
             <summary>
-              data-color="mint" — soft
+              data-accent="mint" — soft
               <Chevron />
             </summary>
             <p style:margin="0">Mint, soft. Chrome stays neutral.</p>
           </details>
-          <details class:x-accordion data-variant="soft" data-color="blue">
+          <details class:x-accordion data-variant="soft" data-accent="blue">
             <summary>
-              data-color="blue" — soft
+              data-accent="blue" — soft
               <Chevron />
             </summary>
             <p style:margin="0">Blue, soft.</p>
           </details>
-          <details class:x-accordion data-variant="soft" data-color="iris">
+          <details class:x-accordion data-variant="soft" data-accent="iris">
             <summary>
-              data-color="iris" — soft
+              data-accent="iris" — soft
               <Chevron />
             </summary>
             <p style:margin="0">Iris, soft.</p>
           </details>
-          <details class:x-accordion data-variant="soft" data-color="crimson">
+          <details class:x-accordion data-variant="soft" data-accent="crimson">
             <summary>
-              data-color="crimson" — soft
+              data-accent="crimson" — soft
               <Chevron />
             </summary>
             <p style:margin="0">Crimson, soft. Adjacent soft items merge.</p>
@@ -312,10 +312,10 @@ export class App {
           <details
             class:x-accordion
             data-variant="borderless"
-            data-color="crimson"
+            data-accent="crimson"
           >
             <summary>
-              data-color="crimson" — borderless
+              data-accent="crimson" — borderless
               <Chevron />
             </summary>
             <p style:margin="0">

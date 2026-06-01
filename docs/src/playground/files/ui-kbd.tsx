@@ -9,9 +9,9 @@ import "elements-kit/ui/styles/unset.css";
 import "elements-kit/ui/styles/palette/gray.css";
 import "elements-kit/ui/styles/base/gray.css";
 import "elements-kit/ui/styles/palette/black-alpha.css";
-import "elements-kit/ui/styles/colors/base.css";
+import "elements-kit/ui/styles/accent/base.css";
 import "elements-kit/ui/styles/palette/mint.css";
-import "elements-kit/ui/styles/colors/mint.css";
+import "elements-kit/ui/styles/accent/mint.css";
 
 import "elements-kit/ui/kbd/kbd.css";
 import "elements-kit/ui/button/button.css";
@@ -27,7 +27,7 @@ export class App {
     return (
       <div
         class:dark={dark}
-        data-color="mint"
+        data-accent="mint"
         data-base-color="gray"
         data-radius="medium"
         style:padding="24px"

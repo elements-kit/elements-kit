@@ -1,5 +1,5 @@
 .x-link {
-  color: var(--color-a11);
+  color: var(--accent-a11);
 
   &:where(:any-link, button) {
     cursor: var(--cursor-link);
@@ -7,7 +7,7 @@
     text-decoration-style: solid;
     text-decoration-thickness: min(2px, max(1px, 0.05em));
     text-underline-offset: calc(0.025em + 2px);
-    text-decoration-color: var(--color-a5);
+    text-decoration-color: var(--accent-a5);
   }
 
   &:where(:disabled, [aria-disabled="true"]) {

@@ -26,7 +26,7 @@ import "elements-kit/ui/styles/cursor.css";
 import "elements-kit/ui/styles/unset.css";
 // import any color scales you want to use for color theming:
 import "elements-kit/ui/styles/palette/mint.css";
-import "elements-kit/ui/styles/colors/mint.css";
+import "elements-kit/ui/styles/accent/mint.css";
 // import any gray scales you want to use for neutral theming:
 import "elements-kit/ui/styles/palette/slate.css";
 import "elements-kit/ui/styles/base/slate.css";
@@ -43,7 +43,7 @@ See [Styles](/ui/styles) for the full token system, accent/gray scale lists, and
   class="unset x-button"
   data-variant="solid"
   data-size="2"
-  data-color="mint"
+  data-accent="mint"
 >
   Click me
 </button>
@@ -55,7 +55,7 @@ The `unset` class ([Styles → Unset native styles](/ui/styles#unset-native-styl
 | --- | --- |
 | `data-variant` | `solid`, `soft`, `surface`, `outline`, `text`, `borderless` |
 | `data-size` | `1`, `2`, `3`, `4` |
-| `data-color` | any imported color scale (`mint`, `blue`, `iris`, …) |
+| `data-accent` | any imported color scale (`mint`, `blue`, `iris`, …) |
 | `data-icon` | modifier — square shape sized by height. Use for icon-only buttons. |
 | `data-high-contrast` | modifier — boosts contrast against the page background |
 | `data-loading` | modifier — sets `position: relative` for a spinner overlay |
@@ -150,10 +150,10 @@ The size's own radius is `max(--radius-N, --radius-pill)`, so `data-radius="pill
 
 ## Theming
 
-Switch the color on a single button with `data-color="<color>"`, or set it on any ancestor (e.g. `<body>`) to theme the whole subtree.
+Switch the color on a single button with `data-accent="<color>"`, or set it on any ancestor (e.g. `<body>`) to theme the whole subtree.
 
 ```html
-<body data-color="iris" data-radius="large">
+<body data-accent="iris" data-radius="large">
   <button class="unset x-button" data-variant="solid" data-size="3">
     Themed primary
   </button>

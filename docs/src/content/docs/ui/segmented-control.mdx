@@ -28,7 +28,7 @@ import "elements-kit/ui/styles/palette/gray.css";
 import "elements-kit/ui/styles/base/gray.css";
 // import any color scales you want to use for accent theming:
 import "elements-kit/ui/styles/palette/mint.css";
-import "elements-kit/ui/styles/colors/mint.css";
+import "elements-kit/ui/styles/accent/mint.css";
 // and the segmented control itself:
 import "elements-kit/ui/segmented-control/segmented-control.css";
 ```
@@ -68,7 +68,7 @@ Markup contract: the container holds `<label>` direct children, each wrapping on
 | --- | --- |
 | `data-size` | `1`, `2` *(default)*, `3` |
 | `data-variant` | `surface` *(default)*, `soft` |
-| `data-color` *(on a parent or the container)* | any imported color scale (`mint`, `blue`, `iris`, …) |
+| `data-accent` *(on a parent or the container)* | any imported color scale (`mint`, `blue`, `iris`, …) |
 | `data-high-contrast` | modifier — boosts active text against indicator |
 | `data-radius` *(on a parent)* | inherits from the [Styles radius scale](/ui/styles#radius) |
 | `data-disabled` | non-fieldset containers; on a `<fieldset>` use the native `disabled` attribute |
@@ -96,7 +96,7 @@ At sizes ≥ 2 the track meets the [WCAG 2.5.5 target-size minimum](https://www.
 ## Variants
 
 - **`surface`** *(default)* — surface track tinted with `--base-color-a3`, indicator fills with `--color-background` and a 1px hairline + 1px shadow. Inactive text uses `--base-color-a11`; active jumps to `--base-color-12` and `--font-weight-medium`.
-- **`soft`** — accent-tinted track using `--color-a3`. Inactive text uses `--color-a11`; active uses `--color-12`. Pairs well with `data-color`.
+- **`soft`** — accent-tinted track using `--accent-a3`. Inactive text uses `--accent-a11`; active uses `--accent-12`. Pairs well with `data-accent`.
 
 ## States
 
@@ -107,10 +107,10 @@ At sizes ≥ 2 the track meets the [WCAG 2.5.5 target-size minimum](https://www.
 
 ## Theming
 
-Set `data-color="<color>"` on the container or any ancestor (e.g. `<body>`) to theme the accent. Affects the `soft` variant's track and the focus ring. Light/dark flips automatically via the `.dark` class on a parent — see [Light & dark](/ui/styles#light--dark).
+Set `data-accent="<color>"` on the container or any ancestor (e.g. `<body>`) to theme the accent. Affects the `soft` variant's track and the focus ring. Light/dark flips automatically via the `.dark` class on a parent — see [Light & dark](/ui/styles#light--dark).
 
 ```html
-<body data-color="iris">
+<body data-accent="iris">
   <div class="unset x-segmented-control" data-variant="soft" role="radiogroup" aria-label="Tone">
     <label><input type="radio" name="tone" value="quiet" checked /><span>Quiet</span></label>
     <label><input type="radio" name="tone" value="bold" /><span>Bold</span></label>

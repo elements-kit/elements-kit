@@ -9,13 +9,13 @@ import "elements-kit/ui/styles/palette/gray.css";
 import "elements-kit/ui/styles/base/gray.css";
 import "elements-kit/ui/styles/palette/black-alpha.css";
 import "elements-kit/ui/styles/palette/mint.css";
-import "elements-kit/ui/styles/colors/mint.css";
+import "elements-kit/ui/styles/accent/mint.css";
 import "elements-kit/ui/styles/palette/blue.css";
-import "elements-kit/ui/styles/colors/blue.css";
+import "elements-kit/ui/styles/accent/blue.css";
 import "elements-kit/ui/styles/palette/iris.css";
-import "elements-kit/ui/styles/colors/iris.css";
+import "elements-kit/ui/styles/accent/iris.css";
 import "elements-kit/ui/styles/palette/crimson.css";
-import "elements-kit/ui/styles/colors/crimson.css";
+import "elements-kit/ui/styles/accent/crimson.css";
 
 import "elements-kit/ui/text-input/text-input.css";
 import "elements-kit/ui/button/button.css";
@@ -34,7 +34,7 @@ export class App {
     return (
       <div
         class:dark={dark}
-        data-color="mint"
+        data-accent="mint"
         data-base-color="gray"
         data-radius="medium"
         style:padding="24px"
@@ -90,7 +90,7 @@ export class App {
               <input
                 class:unset
                 class:x-text-input
-                data-color={color}
+                data-accent={color}
                 data-variant="soft"
                 placeholder={color}
               />

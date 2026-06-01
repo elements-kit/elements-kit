@@ -191,18 +191,18 @@
 /* soft */
 
 .x-select:where([data-variant="soft"]) {
-  color: var(--color-12);
-  background-color: var(--color-a3);
+  color: var(--accent-12);
+  background-color: var(--accent-a3);
 }
 
 @media (hover: hover) {
   .x-select:where([data-variant="soft"]):where(:hover) {
-    background-color: var(--color-a4);
+    background-color: var(--accent-a4);
   }
 }
 
 .x-select:where([data-variant="soft"]):where(:focus-visible) {
-  outline-color: var(--color-8);
+  outline-color: var(--accent-8);
 }
 
 .x-select:where([data-variant="soft"]):where(:disabled) {
@@ -213,12 +213,12 @@
 /* text */
 
 .x-select:where([data-variant="text"]) {
-  color: var(--color-12);
+  color: var(--accent-12);
 }
 
 @media (hover: hover) {
   .x-select:where([data-variant="text"]):where(:hover) {
-    background-color: var(--color-a3);
+    background-color: var(--accent-a3);
   }
 }
 

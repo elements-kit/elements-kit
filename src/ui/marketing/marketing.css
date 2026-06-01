@@ -10,7 +10,7 @@
  *
  * Backgrounds use theme.css semantic tokens (`--color-background`, `--color-overlay`).
  * Text + borders use `--base-color-N` / `--base-color-aN`. Accent (pillar icon)
- * follows `--color-9` — set `data-color="X"` on an ancestor to pick the accent
+ * follows `--accent-9` — set `data-accent="X"` on an ancestor to pick the accent
  * palette. Typography (sizes, line-heights, letter-spacing) pulls from kit's
  * `--font-size-N` / `--line-height-N` / `--letter-spacing-N` and the `--scaling`
  * factor — so `data-scaling="xs..xl"` resizes text. Radii follow `--radius-N`.
@@ -412,7 +412,7 @@
 }
 .pillar > svg:first-child {
   margin-bottom: 1.5rem;
-  color: var(--color-9);
+  color: var(--accent-9);
   font-size: 2rem;
 }
 .pillar > [data-paragraph] {
@@ -476,7 +476,7 @@
   font-size: calc(96px * var(--scaling, 1));
   font-weight: 700;
   line-height: 1;
-  color: var(--color-9);
+  color: var(--accent-9);
 }
 
 .testimonial > blockquote::after {

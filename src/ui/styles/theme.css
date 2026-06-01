@@ -57,32 +57,32 @@
 /* * * * * * * * * * * * * * * * * * * */
 
 :root,
-[data-color]:where(:not([data-color=""], [data-color="gray"])) {
-  --focus-1: var(--color-1);
-  --focus-2: var(--color-2);
-  --focus-3: var(--color-3);
-  --focus-4: var(--color-4);
-  --focus-5: var(--color-5);
-  --focus-6: var(--color-6);
-  --focus-7: var(--color-7);
-  --focus-8: var(--color-8);
-  --focus-9: var(--color-9);
-  --focus-10: var(--color-10);
-  --focus-11: var(--color-11);
-  --focus-12: var(--color-12);
+[data-accent]:where(:not([data-accent=""], [data-accent="gray"])) {
+  --focus-1: var(--accent-1);
+  --focus-2: var(--accent-2);
+  --focus-3: var(--accent-3);
+  --focus-4: var(--accent-4);
+  --focus-5: var(--accent-5);
+  --focus-6: var(--accent-6);
+  --focus-7: var(--accent-7);
+  --focus-8: var(--accent-8);
+  --focus-9: var(--accent-9);
+  --focus-10: var(--accent-10);
+  --focus-11: var(--accent-11);
+  --focus-12: var(--accent-12);
 
-  --focus-a1: var(--color-a1);
-  --focus-a2: var(--color-a2);
-  --focus-a3: var(--color-a3);
-  --focus-a4: var(--color-a4);
-  --focus-a5: var(--color-a5);
-  --focus-a6: var(--color-a6);
-  --focus-a7: var(--color-a7);
-  --focus-a8: var(--color-a8);
-  --focus-a9: var(--color-a9);
-  --focus-a10: var(--color-a10);
-  --focus-a11: var(--color-a11);
-  --focus-a12: var(--color-a12);
+  --focus-a1: var(--accent-a1);
+  --focus-a2: var(--accent-a2);
+  --focus-a3: var(--accent-a3);
+  --focus-a4: var(--accent-a4);
+  --focus-a5: var(--accent-a5);
+  --focus-a6: var(--accent-a6);
+  --focus-a7: var(--accent-a7);
+  --focus-a8: var(--accent-a8);
+  --focus-a9: var(--accent-a9);
+  --focus-a10: var(--accent-a10);
+  --focus-a11: var(--accent-a11);
+  --focus-a12: var(--accent-a12);
 }
 
 ::selection {

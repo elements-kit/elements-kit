@@ -92,42 +92,42 @@
 .x-code:where(
   :not([data-variant="solid"], [data-variant="outline"], [data-variant="text"])
 ) {
-  background-color: var(--color-a3);
-  color: var(--color-a11);
+  background-color: var(--accent-a3);
+  color: var(--accent-a11);
 
   &:where([data-high-contrast]) {
-    color: var(--color-12);
+    color: var(--accent-12);
   }
 }
 
 /* solid */
 
 .x-code:where([data-variant="solid"]) {
-  background-color: var(--color-9);
+  background-color: var(--accent-9);
   color: var(--accent-contrast);
 
   &::selection {
-    background-color: var(--color-7);
-    color: var(--color-12);
+    background-color: var(--accent-7);
+    color: var(--accent-12);
   }
 
   &:where([data-high-contrast]) {
-    background-color: var(--color-12);
-    color: var(--color-1);
+    background-color: var(--accent-12);
+    color: var(--accent-1);
   }
 }
 
 /* outline */
 
 .x-code:where([data-variant="outline"]) {
-  box-shadow: inset 0 0 0 max(1px, 0.033em) var(--color-a8);
-  color: var(--color-a11);
+  box-shadow: inset 0 0 0 max(1px, 0.033em) var(--accent-a8);
+  color: var(--accent-a11);
 
   &:where([data-high-contrast]) {
     box-shadow:
-      inset 0 0 0 max(1px, 0.033em) var(--color-a7),
+      inset 0 0 0 max(1px, 0.033em) var(--accent-a7),
       inset 0 0 0 max(1px, 0.033em) var(--base-color-a11);
-    color: var(--color-12);
+    color: var(--accent-12);
   }
 }
 
@@ -137,11 +137,11 @@
   --code-variant-font-size-adjust: var(--code-font-size-adjust);
   padding: 0;
 
-  &:where([data-color]) {
-    color: var(--color-a11);
+  &:where([data-accent]) {
+    color: var(--accent-a11);
   }
 
-  &:where([data-color][data-high-contrast]) {
-    color: var(--color-12);
+  &:where([data-accent][data-high-contrast]) {
+    color: var(--accent-12);
   }
 }

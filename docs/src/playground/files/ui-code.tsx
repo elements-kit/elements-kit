@@ -9,13 +9,13 @@ import "elements-kit/ui/styles/unset.css";
 import "elements-kit/ui/styles/palette/gray.css";
 import "elements-kit/ui/styles/base/gray.css";
 import "elements-kit/ui/styles/palette/black-alpha.css";
-import "elements-kit/ui/styles/colors/base.css";
+import "elements-kit/ui/styles/accent/base.css";
 import "elements-kit/ui/styles/palette/mint.css";
-import "elements-kit/ui/styles/colors/mint.css";
+import "elements-kit/ui/styles/accent/mint.css";
 import "elements-kit/ui/styles/palette/iris.css";
-import "elements-kit/ui/styles/colors/iris.css";
+import "elements-kit/ui/styles/accent/iris.css";
 import "elements-kit/ui/styles/palette/crimson.css";
-import "elements-kit/ui/styles/colors/crimson.css";
+import "elements-kit/ui/styles/accent/crimson.css";
 
 import "elements-kit/ui/code/code.css";
 import "elements-kit/ui/button/button.css";
@@ -33,7 +33,7 @@ export class App {
       <div
         class:dark={dark}
         data-base-color="gray"
-        data-color="mint"
+        data-accent="mint"
         data-radius="medium"
         style:padding="24px"
         style:display="grid"
@@ -85,7 +85,7 @@ export class App {
         <p style:line-height="1.6">
           Run <code class:unset class:x-code>npm run dev</code> to start the dev server.
           Then visit{" "}
-          <code class:unset class:x-code data-color="iris">
+          <code class:unset class:x-code data-accent="iris">
             http://localhost:3000
           </code>{" "}
           to see your changes. To deploy, push to{" "}
@@ -97,16 +97,16 @@ export class App {
 
         <h3 style:margin="16px 0 0">Colors</h3>
         <p>
-          <code class:unset class:x-code data-color="mint">
+          <code class:unset class:x-code data-accent="mint">
             success
           </code>{" "}
-          <code class:unset class:x-code data-color="iris">
+          <code class:unset class:x-code data-accent="iris">
             info
           </code>{" "}
-          <code class:unset class:x-code data-color="crimson">
+          <code class:unset class:x-code data-accent="crimson">
             error
           </code>{" "}
-          <code class:unset class:x-code data-variant="solid" data-color="mint">
+          <code class:unset class:x-code data-variant="solid" data-accent="mint">
             solid mint
           </code>
         </p>

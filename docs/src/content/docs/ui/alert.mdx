@@ -6,7 +6,7 @@ description: Inline informational box — three variants, three sizes, color the
 import Playground from "@/playground/Playground.astro";
 import ALERT from "@/playground/files/ui-alert.tsx?raw";
 
-A block-level informational box for inline content — tips, warnings, status. Class + data-attribute API: one `.x-alert` class plus `data-variant`, `data-size`, `data-color`. Two-column grid: icon slot on the left, body on the right.
+A block-level informational box for inline content — tips, warnings, status. Class + data-attribute API: one `.x-alert` class plus `data-variant`, `data-size`, `data-accent`. Two-column grid: icon slot on the left, body on the right.
 
 `.x-alert` is purely visual. It does **not** apply `role="alert"` (the ARIA live-region semantic). Add `role="alert"` or `role="status"` yourself when the content is dynamic and needs to be announced.
 
@@ -26,7 +26,7 @@ import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/palette/gray.css";
 import "elements-kit/ui/styles/base/gray.css";
 import "elements-kit/ui/styles/palette/amber.css";
-import "elements-kit/ui/styles/colors/amber.css";
+import "elements-kit/ui/styles/accent/amber.css";
 
 import "elements-kit/ui/alert/alert.css";
 ```
@@ -34,7 +34,7 @@ import "elements-kit/ui/alert/alert.css";
 ## API
 
 ```html
-<div class="x-alert" data-variant="soft" data-color="amber" data-size="2">
+<div class="x-alert" data-variant="soft" data-accent="amber" data-size="2">
   <svg class="x-alert-icon" aria-hidden="true" viewBox="0 0 16 16" width="16" height="16">
     <path d="..." fill="currentColor" />
   </svg>
@@ -46,8 +46,8 @@ import "elements-kit/ui/alert/alert.css";
 | --- | --- |
 | `data-variant` | `soft` (default), `surface`, `outline` |
 | `data-size` | `1`, `2` (default), `3` |
-| `data-color` | any imported color scale (`amber`, `iris`, `crimson`, …) |
-| `data-high-contrast` | modifier — bumps color to `--color-12` |
+| `data-accent` | any imported color scale (`amber`, `iris`, `crimson`, …) |
+| `data-high-contrast` | modifier — bumps color to `--accent-12` |
 
 `unset` is **not required** on `<div>` / `<aside>`. Add it only if the alert is a `<button>` or `<a>` wrapper.
 
@@ -63,16 +63,16 @@ The icon slot height is `--line-height-2` for sizes 1–2 and `--line-height-3` 
 
 ## Variants
 
-- **`soft`** *(default)* — tinted background using `--color-a3`. The everyday alert.
-- **`surface`** — `--color-a2` background + 1px `--color-a6` border. Sits closer to neutral.
-- **`outline`** — 1px `--color-a7` border, no background. For minimal noise.
+- **`soft`** *(default)* — tinted background using `--accent-a3`. The everyday alert.
+- **`surface`** — `--accent-a2` background + 1px `--accent-a6` border. Sits closer to neutral.
+- **`outline`** — 1px `--accent-a7` border, no background. For minimal noise.
 
 ## Icon slot
 
 Any direct child with `class="x-alert-icon"` lands in the icon column. Other direct children flow into the content column. Wrap multi-line content in a single `<div>` if you want it to share a column.
 
 ```html
-<div class="x-alert" data-variant="soft" data-color="iris">
+<div class="x-alert" data-variant="soft" data-accent="iris">
   <svg class="x-alert-icon" aria-hidden="true">…</svg>
   <div>
     <strong>Heads up.</strong>
@@ -83,7 +83,7 @@ Any direct child with `class="x-alert-icon"` lands in the icon column. Other dir
 
 ## Theming
 
-Set `data-color` to pick the accent. Light/dark flips via `.dark` on a parent — see [Light & dark](/ui/styles#light--dark).
+Set `data-accent` to pick the accent. Light/dark flips via `.dark` on a parent — see [Light & dark](/ui/styles#light--dark).
 
 ## Accessibility
 

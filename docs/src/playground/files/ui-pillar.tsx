@@ -7,7 +7,7 @@ import "elements-kit/ui/styles/unset.css";
 import "elements-kit/ui/styles/palette/gray.css";
 import "elements-kit/ui/styles/base/gray.css";
 import "elements-kit/ui/styles/palette/mint.css";
-import "elements-kit/ui/styles/colors/mint.css";
+import "elements-kit/ui/styles/accent/mint.css";
 import "elements-kit/ui/styles/shadow.css";
 import "elements-kit/ui/styles/material.css";
 import "elements-kit/ui/card/card.css";
@@ -62,7 +62,7 @@ export class App {
       <div
         class:dark={dark}
         data-surface="page"
-        data-color="mint"
+        data-accent="mint"
         data-base-color="gray"
         data-radius="medium"
         style={{
@@ -105,7 +105,7 @@ export class App {
           <div class:x-card class:pillar>
             <SquareIcon />
             <h4 data-heading>Themeable</h4>
-            <p data-paragraph>Colors flow from <code>--color-*</code> and <code>--accent-*</code>. Swap once, applies everywhere.</p>
+            <p data-paragraph>Colors flow from <code>--accent-*</code> tokens. Swap once, applies everywhere.</p>
             <a class:unset class:x-button data-size="2" data-variant="text" href="#">Learn more</a>
           </div>
 

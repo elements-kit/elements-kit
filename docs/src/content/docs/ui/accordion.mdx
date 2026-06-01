@@ -55,7 +55,7 @@ import "elements-kit/ui/accordion/accordion.css";
 | `name` *(native HTML)* | any string — items sharing a name form an exclusive group |
 | `data-variant` | `surface` *(default — bordered card)*, `soft` *(tinted block, no border)*, `borderless` *(no chrome — color-only hover)* |
 | `data-size` | `1`, `2` *(default)*, `3` |
-| `data-color` *(on parent or self)* | any imported color scale |
+| `data-accent` *(on parent or self)* | any imported color scale |
 | `aria-disabled="true"` | greys out and stops clicks; screen readers announce as disabled |
 | `open` *(native HTML)* | initial open state |
 
@@ -121,7 +121,7 @@ Nest a `<details class="x-accordion">` inside another's content. Cascade Just Wo
 
 ## Theming
 
-Set `data-color="<color>"` on the accordion or any ancestor to theme the accent. Light/dark flips automatically via the `.dark` class on a parent — see [Light & dark](/ui/styles#light--dark).
+Set `data-accent="<color>"` on the accordion or any ancestor to theme the accent. Light/dark flips automatically via the `.dark` class on a parent — see [Light & dark](/ui/styles#light--dark).
 
 ## Accessibility
 

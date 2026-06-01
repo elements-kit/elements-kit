@@ -6,7 +6,7 @@ description: Inline code span — four variants, nine sizes, color theming.
 import Playground from "@/playground/Playground.astro";
 import CODE from "@/playground/files/ui-code.tsx?raw";
 
-Inline `<code>` styling for code references in body text. Monospace font, tinted background, scales with the typography scale. Class + data-attribute API: one `.x-code` class plus `data-variant`, `data-size`, `data-color`.
+Inline `<code>` styling for code references in body text. Monospace font, tinted background, scales with the typography scale. Class + data-attribute API: one `.x-code` class plus `data-variant`, `data-size`, `data-accent`.
 
 <Playground
   provider={{ files: { "/main.tsx": { code: CODE, active: true } } }}
@@ -23,7 +23,7 @@ import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/palette/gray.css";
 import "elements-kit/ui/styles/base/gray.css";
 import "elements-kit/ui/styles/palette/mint.css";
-import "elements-kit/ui/styles/colors/mint.css";
+import "elements-kit/ui/styles/accent/mint.css";
 
 import "elements-kit/ui/code/code.css";
 ```
@@ -40,7 +40,7 @@ import "elements-kit/ui/code/code.css";
 | --- | --- |
 | `data-variant` | `soft` (default), `solid`, `outline`, `text` |
 | `data-size` | `1`–`9` (default: inherits parent text size) |
-| `data-color` | any imported color scale |
+| `data-accent` | any imported color scale |
 | `data-high-contrast` | modifier |
 
 `unset` is **not required** on `<code>` — it has no native styling that bleeds through. Add it on `<a>` / `<button>` wrappers.
@@ -51,17 +51,17 @@ import "elements-kit/ui/code/code.css";
 
 ## Variants
 
-- **`soft`** *(default)* — `--color-a3` background, `--color-a11` text.
-- **`solid`** — `--color-9` fill, `--accent-contrast` text. For emphasis (rare for inline code).
-- **`outline`** — 1px `--color-a8` inset border, transparent background.
+- **`soft`** *(default)* — `--accent-a3` background, `--accent-a11` text.
+- **`solid`** — `--accent-9` fill, `--accent-contrast` text. For emphasis (rare for inline code).
+- **`outline`** — 1px `--accent-a8` inset border, transparent background.
 - **`text`** — no background, no padding. Tinted text only — use inside dense content where backgrounds would compete.
 
 ## Theming
 
-Set `data-color` for variant tints. Without `data-color`, the variant falls back to `--color-a*` which reads from the inherited accent (set on a parent via `data-color`).
+Set `data-accent` for variant tints. Without `data-accent`, the variant falls back to `--accent-a*` which reads from the inherited accent (set on a parent via `data-accent`).
 
 ```html
-<div data-color="iris">
+<div data-accent="iris">
   Run <code class="x-code">npm run dev</code> to start.
 </div>
 ```

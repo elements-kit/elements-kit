@@ -5,10 +5,10 @@
   align-items: flex-start;
   justify-content: flex-start;
   text-align: left;
-  color: var(--color-a11);
+  color: var(--accent-a11);
 
   &:where([data-high-contrast]) {
-    color: var(--color-12);
+    color: var(--accent-12);
   }
 }
 
@@ -78,14 +78,14 @@
  ***************************************************************************************************/
 
 .x-alert:where(:not([data-variant="surface"], [data-variant="outline"])) {
-  background-color: var(--color-a3);
+  background-color: var(--accent-a3);
 }
 
 .x-alert:where([data-variant="surface"]) {
-  background-color: var(--color-a2);
-  box-shadow: inset 0 0 0 1px var(--color-a6);
+  background-color: var(--accent-a2);
+  box-shadow: inset 0 0 0 1px var(--accent-a6);
 }
 
 .x-alert:where([data-variant="outline"]) {
-  box-shadow: inset 0 0 0 1px var(--color-a7);
+  box-shadow: inset 0 0 0 1px var(--accent-a7);
 }

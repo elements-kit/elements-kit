@@ -6,7 +6,7 @@ description: Inline status pill — four variants, three sizes, color theming.
 import Playground from "@/playground/Playground.astro";
 import BADGE from "@/playground/files/ui-badge.tsx?raw";
 
-A small inline pill for tags, counts, and status. Class + data-attribute API mirrors the [Button](/ui/button): one `.x-badge` class plus `data-variant`, `data-size`, `data-color`. No focus styles or pointer cursor — badges aren't interactive.
+A small inline pill for tags, counts, and status. Class + data-attribute API mirrors the [Button](/ui/button): one `.x-badge` class plus `data-variant`, `data-size`, `data-accent`. No focus styles or pointer cursor — badges aren't interactive.
 
 <Playground
   provider={{ files: { "/main.tsx": { code: BADGE, active: true } } }}
@@ -24,7 +24,7 @@ import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/palette/gray.css";
 import "elements-kit/ui/styles/base/gray.css";
 import "elements-kit/ui/styles/palette/green.css";
-import "elements-kit/ui/styles/colors/green.css";
+import "elements-kit/ui/styles/accent/green.css";
 
 import "elements-kit/ui/badge/badge.css";
 ```
@@ -38,7 +38,7 @@ import "elements-kit/ui/badge/badge.css";
   class="x-badge"
   data-variant="soft"
   data-size="2"
-  data-color="green"
+  data-accent="green"
 >
   New
 </span>
@@ -48,7 +48,7 @@ import "elements-kit/ui/badge/badge.css";
 | --- | --- |
 | `data-variant` | `solid`, `soft`, `surface`, `outline` |
 | `data-size` | `1`, `2`, `3` |
-| `data-color` | any imported color scale (`green`, `blue`, `iris`, …) |
+| `data-accent` | any imported color scale (`green`, `blue`, `iris`, …) |
 | `data-high-contrast` | modifier — boosts contrast against the page background |
 
 ## Sizing
@@ -85,10 +85,10 @@ Available values: `none`, `small`, `medium`, `large`, `pill`. Each maps to a `--
 
 ## Theming
 
-Switch the color on a single badge with `data-color="<color>"`, or set it on any ancestor (e.g. `<body>`) to theme the whole subtree.
+Switch the color on a single badge with `data-accent="<color>"`, or set it on any ancestor (e.g. `<body>`) to theme the whole subtree.
 
 ```html
-<span class="x-badge" data-variant="soft" data-color="amber">
+<span class="x-badge" data-variant="soft" data-accent="amber">
   Beta
 </span>
 ```

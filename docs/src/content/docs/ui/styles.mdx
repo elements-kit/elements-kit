@@ -29,7 +29,7 @@ import "elements-kit/ui/styles/unset.css";
 // One gray scale (pick one)
 import "elements-kit/ui/styles/base/slate.css";
 // One accent scale (any color)
-import "elements-kit/ui/styles/colors/green.css";
+import "elements-kit/ui/styles/accent/green.css";
 ```
   </TabItem>
   <TabItem label="Pick & choose">
@@ -51,7 +51,7 @@ Switches are `data-*` attributes on a root container — not classes you toggle,
   data-radius="medium"
   data-scaling="md"
   data-material-background="translucent"
-  data-color="iris"
+  data-accent="iris"
   data-base-color="slate"
 >
   ...
@@ -63,7 +63,7 @@ Switches are `data-*` attributes on a root container — not classes you toggle,
 | `data-radius` | `none` · `small` · `medium` · `large` · `pill` |
 | `data-scaling` | `xs` · `sm` · `md` · `lg` · `xl` |
 | `data-material-background` | `solid` · `translucent` |
-| `data-color` | accent name — see [accent list](#customization) |
+| `data-accent` | accent name — see [accent list](#customization) |
 | `data-base-color` | `gray` · `mauve` · `olive` · `sage` · `sand` · `slate` |
 
 ## Light & dark
@@ -104,7 +104,7 @@ Semantic — read these in your component CSS:
 Scales:
 
 - `--base-color-1`..`--base-color-12` plus `--base-color-a1`..`--base-color-a12` — the active gray (set by [`base/<scale>.css`](https://github.com/elements-kit/elements-kit/tree/main/src/ui/styles/base) or `data-base-color`).
-- `--color-1`..`--color-12` plus `--color-a1`..`--color-a12` — the active accent (set by [`colors/<color>.css`](https://github.com/elements-kit/elements-kit/tree/main/src/ui/styles/colors) or `data-color`).
+- `--accent-1`..`--accent-12` plus `--accent-a1`..`--accent-a12` — the active accent (set by [`accent/<color>.css`](https://github.com/elements-kit/elements-kit/tree/main/src/ui/styles/accent) or `data-accent`).
 - `--<color>-1`..`--<color>-12` plus alpha — raw palette scales from [`palette/<color>.css`](https://github.com/elements-kit/elements-kit/tree/main/src/ui/styles/palette), e.g. `--blue-9`.
 - `--black-a1`..`--black-a12` and `--white-a1`..`--white-a12` — alpha-on-color scales from `palette/black-alpha.css` / `palette/white-alpha.css` (auto-imported by `theme.css`).
 
@@ -148,7 +148,7 @@ Override any token at any level. Container-scoped overrides win over `:root`:
 
 ```css
 .brand-card {
-  --color-material-solid: var(--color-2);
+  --color-material-solid: var(--accent-2);
   --radius-3: var(--radius-5);
   background: var(--color-material);
   border-radius: var(--radius-3);
@@ -160,9 +160,9 @@ To swap the active accent, import a different `accent/<color>.css`:
 
 ```ts
 // Replace this …
-import "elements-kit/ui/styles/colors/green.css";
+import "elements-kit/ui/styles/accent/green.css";
 // … with this.
-import "elements-kit/ui/styles/colors/iris.css";
+import "elements-kit/ui/styles/accent/iris.css";
 ```
 
 Available accents: `amber`, `blue`, `bronze`, `brown`, `crimson`, `cyan`, `gold`, `grass`, `gray`, `green`, `indigo`, `iris`, `jade`, `lime`, `mint`, `orange`, `pink`, `plum`, `purple`, `red`, `ruby`, `sky`, `teal`, `tomato`, `violet`, `yellow`. Plus semantic aliases that point at the active gray or a fixed hue: `base`, `success`, `error`, `warning`, `info`.

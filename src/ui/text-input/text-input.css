@@ -363,8 +363,8 @@
   & > :where(:not(input, textarea)) {
     color: var(--base-color-a11);
   }
-  & > :where(:not(input, textarea))[data-accent-color] {
-    color: var(--color-a11);
+  & > :where(:not(input, textarea))[data-accent] {
+    color: var(--accent-a11);
   }
 }
 
@@ -372,28 +372,28 @@
 
 .x-text-input:where([data-variant="soft"]) {
   --text-input-border-width: 0px;
-  --text-input-selection-color: var(--color-a5);
-  --text-input-focus-color: var(--color-8);
+  --text-input-selection-color: var(--accent-a5);
+  --text-input-focus-color: var(--accent-8);
 
-  background-color: var(--color-a3);
-  color: var(--color-12);
+  background-color: var(--accent-a3);
+  color: var(--accent-12);
 
   &:where(input)::placeholder,
   &:where(textarea)::placeholder {
-    color: var(--color-12);
+    color: var(--accent-12);
     opacity: 0.6;
   }
   &:where(:has(> :is(input, textarea)))
     > :where(:is(input, textarea))::placeholder {
-    color: var(--color-12);
+    color: var(--accent-12);
     opacity: 0.6;
   }
 
   & > :where(:not(input, textarea)) {
-    color: var(--color-12);
+    color: var(--accent-12);
   }
-  & > :where(:not(input, textarea))[data-accent-color] {
-    color: var(--color-a11);
+  & > :where(:not(input, textarea))[data-accent] {
+    color: var(--accent-a11);
   }
 }
 

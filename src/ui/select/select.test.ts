@@ -19,16 +19,16 @@ describe("x-select", () => {
     expect(select.options.length).toBe(2);
   });
 
-  it("accepts data-variant, data-size, and data-color", () => {
+  it("accepts data-variant, data-size, and data-accent", () => {
     const select = document.createElement("select");
     select.className = "x-select";
     select.dataset.variant = "soft";
     select.dataset.size = "3";
-    select.dataset.color = "iris";
+    select.dataset.accent = "iris";
 
     expect(select.getAttribute("data-variant")).toBe("soft");
     expect(select.getAttribute("data-size")).toBe("3");
-    expect(select.getAttribute("data-color")).toBe("iris");
+    expect(select.getAttribute("data-accent")).toBe("iris");
   });
 
   it("propagates disabled state and matches :disabled", () => {

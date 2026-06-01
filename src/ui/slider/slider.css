@@ -1,6 +1,6 @@
 .x-slider {
   --slider-thumb-size: calc(var(--slider-track-size) + var(--space-1));
-  --slider-fill-color: var(--color-9);
+  --slider-fill-color: var(--accent-9);
 
   height: var(--slider-thumb-size);
 
@@ -115,7 +115,7 @@
   --slider-track-bg: var(--base-color-a3);
   --slider-track-shadow: inset 0 0 0 1px var(--base-color-a5);
   --slider-thumb-shadow: 0 0 0 1px var(--black-a4);
-  --slider-fill-color: var(--color-9);
+  --slider-fill-color: var(--accent-9);
 }
 
 /* soft — track: gray-a4, range: desaturated color-a8, thumb: layered outline + drop */
@@ -124,7 +124,7 @@
   --slider-track-bg: var(--base-color-a4);
   --slider-thumb-shadow:
     0 0 0 1px var(--black-a3), 0 0 0 1px var(--base-color-a2),
-    0 0 0 1px var(--color-a2), 0 1px 2px var(--base-color-a4),
+    0 0 0 1px var(--accent-a2), 0 1px 2px var(--base-color-a4),
     0 1px 3px -0.5px var(--base-color-a3);
-  --slider-fill-color: var(--color-a8);
+  --slider-fill-color: var(--accent-a8);
 }

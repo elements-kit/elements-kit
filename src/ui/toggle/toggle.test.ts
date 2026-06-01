@@ -59,19 +59,19 @@ describe("x-toggle", () => {
     labelB.remove();
   });
 
-  it("accepts data-variant, data-size, and data-color", () => {
+  it("accepts data-variant, data-size, and data-accent", () => {
     const label = document.createElement("label");
     label.className = "x-toggle";
     label.dataset.variant = "soft";
     label.dataset.size = "3";
-    label.dataset.color = "iris";
+    label.dataset.accent = "iris";
     label.appendChild(
       Object.assign(document.createElement("input"), { type: "checkbox" }),
     );
 
     expect(label.getAttribute("data-variant")).toBe("soft");
     expect(label.getAttribute("data-size")).toBe("3");
-    expect(label.getAttribute("data-color")).toBe("iris");
+    expect(label.getAttribute("data-accent")).toBe("iris");
   });
 
   it("propagates disabled state from the input", () => {

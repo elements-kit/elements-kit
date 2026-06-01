@@ -9,11 +9,11 @@ import "elements-kit/ui/styles/unset.css";
 import "elements-kit/ui/styles/palette/gray.css";
 import "elements-kit/ui/styles/base/gray.css";
 import "elements-kit/ui/styles/palette/mint.css";
-import "elements-kit/ui/styles/colors/mint.css";
+import "elements-kit/ui/styles/accent/mint.css";
 import "elements-kit/ui/styles/palette/iris.css";
-import "elements-kit/ui/styles/colors/iris.css";
+import "elements-kit/ui/styles/accent/iris.css";
 import "elements-kit/ui/styles/palette/crimson.css";
-import "elements-kit/ui/styles/colors/crimson.css";
+import "elements-kit/ui/styles/accent/crimson.css";
 
 import "elements-kit/ui/button/button.css";
 import "elements-kit/ui/segmented-control/segmented-control.css";
@@ -71,7 +71,7 @@ export class App {
       <div
         class:dark={dark}
         data-surface="page"
-        data-color="mint"
+        data-accent="mint"
         data-base-color="gray"
         data-radius="medium"
         style:padding="24px"
@@ -158,7 +158,7 @@ export class App {
         </section>
 
         <section>
-          <SectionHeading caption='data-color="<scale>"'>
+          <SectionHeading caption='data-accent="<scale>"'>
             Accent colors
           </SectionHeading>
           <Stack>
@@ -167,7 +167,7 @@ export class App {
                 class:unset
                 class:x-segmented-control
                 data-variant="soft"
-                data-color={color}
+                data-accent={color}
                 role="radiogroup"
                 aria-label={color}
               >

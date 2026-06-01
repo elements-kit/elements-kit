@@ -10,15 +10,15 @@ import "elements-kit/ui/styles/base/gray.css";
 import "elements-kit/ui/styles/palette/black-alpha.css";
 import "elements-kit/ui/styles/palette/white-alpha.css";
 import "elements-kit/ui/styles/palette/mint.css";
-import "elements-kit/ui/styles/colors/mint.css";
+import "elements-kit/ui/styles/accent/mint.css";
 import "elements-kit/ui/styles/palette/blue.css";
-import "elements-kit/ui/styles/colors/blue.css";
+import "elements-kit/ui/styles/accent/blue.css";
 import "elements-kit/ui/styles/palette/iris.css";
-import "elements-kit/ui/styles/colors/iris.css";
+import "elements-kit/ui/styles/accent/iris.css";
 import "elements-kit/ui/styles/palette/crimson.css";
-import "elements-kit/ui/styles/colors/crimson.css";
+import "elements-kit/ui/styles/accent/crimson.css";
 import "elements-kit/ui/styles/palette/amber.css";
-import "elements-kit/ui/styles/colors/amber.css";
+import "elements-kit/ui/styles/accent/amber.css";
 
 import "elements-kit/ui/link/link.css";
 import "elements-kit/ui/button/button.css";
@@ -35,7 +35,7 @@ export class App {
     return (
       <div
         class:dark={dark}
-        data-color="mint"
+        data-accent="mint"
         data-base-color="gray"
         data-radius="medium"
         style:padding="24px"
@@ -104,7 +104,7 @@ export class App {
           <h3 style:margin="0 0 12px">Accent colors</h3>
           <div style:display="grid" style:gap="8px">
             {ACCENTS.map((color) => (
-              <a class:x-link data-color={color} data-underline="always" href="#">
+              <a class:x-link data-accent={color} data-underline="always" href="#">
                 {color}
               </a>
             ))}

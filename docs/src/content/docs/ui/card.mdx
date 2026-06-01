@@ -45,7 +45,7 @@ import "elements-kit/ui/card/card.css";
 | `data-size` | `1`, `2`, `3` (default), `4`, `5` |
 | `data-radius` *(on a parent)* | `none`, `small`, `medium`, `large`, `pill` |
 | `data-material-background` *(on a parent)* | `solid`, `translucent` |
-| `data-color` *(on a parent)* | any imported color scale — used by the focus ring |
+| `data-accent` *(on a parent)* | any imported color scale — used by the focus ring |
 
 ## Sizing
 
@@ -143,10 +143,10 @@ Non-interactive cards (a plain `<div>`) skip these states entirely — no need t
 
 ## Focus
 
-When a card is focusable, focus shows a 2px outline using `--focus-8`. Set `data-color` on an ancestor to pick the accent color for the focus ring.
+When a card is focusable, focus shows a 2px outline using `--focus-8`. Set `data-accent` on an ancestor to pick the accent color for the focus ring.
 
 ```html
-<div data-color="mint">
+<div data-accent="mint">
   <a href="/post" class="unset x-card">…</a>
 </div>
 ```

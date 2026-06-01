@@ -81,14 +81,14 @@
   box-shadow: inset 0 0 0 1px var(--base-color-a7);
 
   &:where(:checked) {
-    background-color: var(--color-9);
+    background-color: var(--accent-9);
     color: var(--accent-contrast);
     box-shadow: none;
   }
 
   &:where([data-high-contrast]) {
     &:where(:checked) {
-      background-color: var(--color-12);
+      background-color: var(--accent-12);
       color: var(--base-color-1);
     }
   }
@@ -103,12 +103,12 @@
 /* soft */
 
 .x-radio:where([data-variant="soft"]) {
-  background-color: var(--color-a4);
-  color: var(--color-a11);
+  background-color: var(--accent-a4);
+  color: var(--accent-a11);
 
   &:where([data-high-contrast]) {
     &:where(:checked) {
-      color: var(--color-12);
+      color: var(--accent-12);
     }
   }
 

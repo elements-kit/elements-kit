@@ -361,16 +361,16 @@
 
 /* soft — tinted track using the active color scale. */
 .x-segmented-control:where([data-variant="soft"]) {
-  background-image: linear-gradient(var(--color-a3), var(--color-a3));
+  background-image: linear-gradient(var(--accent-a3), var(--accent-a3));
 
   & > label {
-    color: var(--color-a11);
+    color: var(--accent-a11);
   }
   & > label:where(:has(:checked)) {
-    color: var(--color-a12, var(--color-12));
+    color: var(--accent-a12, var(--accent-12));
   }
   & > label + label::after {
-    background-color: var(--color-a4);
+    background-color: var(--accent-a4);
   }
 }
 
@@ -380,5 +380,5 @@
 }
 .x-segmented-control:where([data-high-contrast][data-variant="soft"])
   > label:where(:has(:checked)) {
-  color: var(--color-12);
+  color: var(--accent-12);
 }

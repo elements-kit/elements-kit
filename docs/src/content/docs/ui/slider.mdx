@@ -28,7 +28,7 @@ import "elements-kit/ui/styles/palette/gray.css";
 import "elements-kit/ui/styles/base/gray.css";
 import "elements-kit/ui/styles/palette/black-alpha.css";
 import "elements-kit/ui/styles/palette/mint.css";
-import "elements-kit/ui/styles/colors/mint.css";
+import "elements-kit/ui/styles/accent/mint.css";
 
 import "elements-kit/ui/slider/slider.css";
 ```
@@ -51,7 +51,7 @@ import "elements-kit/ui/slider/slider.css";
 | --- | --- |
 | `data-variant` | `surface` (default), `soft` |
 | `data-size` | `1`, `2` (default), `3` |
-| `data-color` *(on a parent or the input)* | any imported color scale |
+| `data-accent` *(on a parent or the input)* | any imported color scale |
 | `disabled` / `data-disabled` | native or attribute |
 
 ## Sizing
@@ -71,7 +71,7 @@ Thumb shape: `border-radius: max(--radius-1, --radius-thumb)` — sits flush wit
 
 ## Focus
 
-`:focus-visible` adds a 3px `--color-3` ring + 5px `--focus-8` outline around the thumb. The native track outline is suppressed.
+`:focus-visible` adds a 3px `--accent-3` ring + 5px `--focus-8` outline around the thumb. The native track outline is suppressed.
 
 ## Limitations
 

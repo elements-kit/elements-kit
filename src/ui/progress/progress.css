@@ -21,7 +21,7 @@
   }
 
   &::-webkit-progress-value {
-    background-color: var(--color-9);
+    background-color: var(--accent-9);
     border-radius: inherit;
     transition: width 120ms linear;
   }
@@ -29,7 +29,7 @@
   /* Firefox ---------------------------------------------------------------- */
 
   &::-moz-progress-bar {
-    background-color: var(--color-9);
+    background-color: var(--accent-9);
     border-radius: inherit;
     transition: width 120ms linear;
   }
@@ -74,9 +74,9 @@
     box-shadow: none;
   }
   &::-webkit-progress-value {
-    background-color: var(--color-a8);
+    background-color: var(--accent-a8);
   }
   &::-moz-progress-bar {
-    background-color: var(--color-a8);
+    background-color: var(--accent-a8);
   }
 }

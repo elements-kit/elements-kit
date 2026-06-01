@@ -7,15 +7,15 @@ import "elements-kit/ui/styles/cursor.css";
 import "elements-kit/ui/styles/unset.css";
 import "elements-kit/ui/styles/palette/gray.css";
 import "elements-kit/ui/styles/base/gray.css";
-import "elements-kit/ui/styles/colors/base.css";
+import "elements-kit/ui/styles/accent/base.css";
 import "elements-kit/ui/styles/palette/mint.css";
-import "elements-kit/ui/styles/colors/mint.css";
+import "elements-kit/ui/styles/accent/mint.css";
 import "elements-kit/ui/styles/palette/blue.css";
-import "elements-kit/ui/styles/colors/blue.css";
+import "elements-kit/ui/styles/accent/blue.css";
 import "elements-kit/ui/styles/palette/iris.css";
-import "elements-kit/ui/styles/colors/iris.css";
+import "elements-kit/ui/styles/accent/iris.css";
 import "elements-kit/ui/styles/palette/crimson.css";
-import "elements-kit/ui/styles/colors/crimson.css";
+import "elements-kit/ui/styles/accent/crimson.css";
 
 import "elements-kit/ui/button/button.css";
 import "elements-kit/ui/toggle/toggle.css";
@@ -54,7 +54,7 @@ export class App {
     return (
       <div
         class:dark={dark}
-        data-color="mint"
+        data-accent="mint"
         data-base-color="gray"
         data-radius="medium"
         style:padding="24px"
@@ -176,7 +176,7 @@ export class App {
                   <label
                     class:x-toggle
                     data-variant={variant}
-                    data-color={color}
+                    data-accent={color}
                   >
                     <input type="checkbox" class:unset checked />
                     {color} · {variant}
@@ -195,19 +195,19 @@ export class App {
             </small>
           </SectionHeading>
           <Row>
-            <label class:x-toggle data-variant="soft" data-color="iris">
+            <label class:x-toggle data-variant="soft" data-accent="iris">
               <input type="radio" name="filter" class:unset checked />
               All
             </label>
-            <label class:x-toggle data-variant="soft" data-color="iris">
+            <label class:x-toggle data-variant="soft" data-accent="iris">
               <input type="radio" name="filter" class:unset />
               Open
             </label>
-            <label class:x-toggle data-variant="soft" data-color="iris">
+            <label class:x-toggle data-variant="soft" data-accent="iris">
               <input type="radio" name="filter" class:unset />
               In progress
             </label>
-            <label class:x-toggle data-variant="soft" data-color="iris">
+            <label class:x-toggle data-variant="soft" data-accent="iris">
               <input type="radio" name="filter" class:unset />
               Done
             </label>

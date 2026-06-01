@@ -10,15 +10,15 @@ import "elements-kit/ui/styles/base/gray.css";
 import "elements-kit/ui/styles/palette/black-alpha.css";
 import "elements-kit/ui/styles/palette/white-alpha.css";
 import "elements-kit/ui/styles/palette/mint.css";
-import "elements-kit/ui/styles/colors/mint.css";
+import "elements-kit/ui/styles/accent/mint.css";
 import "elements-kit/ui/styles/palette/blue.css";
-import "elements-kit/ui/styles/colors/blue.css";
+import "elements-kit/ui/styles/accent/blue.css";
 import "elements-kit/ui/styles/palette/iris.css";
-import "elements-kit/ui/styles/colors/iris.css";
+import "elements-kit/ui/styles/accent/iris.css";
 import "elements-kit/ui/styles/palette/crimson.css";
-import "elements-kit/ui/styles/colors/crimson.css";
+import "elements-kit/ui/styles/accent/crimson.css";
 import "elements-kit/ui/styles/palette/amber.css";
-import "elements-kit/ui/styles/colors/amber.css";
+import "elements-kit/ui/styles/accent/amber.css";
 
 import "elements-kit/ui/switch/switch.css";
 import "elements-kit/ui/button/button.css";
@@ -49,7 +49,7 @@ export class App {
     return (
       <div
         class:dark={dark}
-        data-color="mint"
+        data-accent="mint"
         data-base-color="gray"
         data-radius="medium"
         style:padding="24px"
@@ -149,7 +149,7 @@ export class App {
                   role="switch"
                   class:unset
                   class:x-switch
-                  data-color={color}
+                  data-accent={color}
                   checked
                 />
                 <span>{color}</span>

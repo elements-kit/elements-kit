@@ -24,7 +24,7 @@ import "elements-kit/ui/styles/palette/gray.css";
 import "elements-kit/ui/styles/base/gray.css";
 import "elements-kit/ui/styles/palette/black-alpha.css";
 import "elements-kit/ui/styles/palette/mint.css";
-import "elements-kit/ui/styles/colors/mint.css";
+import "elements-kit/ui/styles/accent/mint.css";
 
 import "elements-kit/ui/progress/progress.css";
 ```
@@ -45,7 +45,7 @@ import "elements-kit/ui/progress/progress.css";
 | --- | --- |
 | `data-variant` | `surface` (default), `soft` |
 | `data-size` | `1`, `2` (default), `3` |
-| `data-color` *(on a parent or the element)* | any imported color scale |
+| `data-accent` *(on a parent or the element)* | any imported color scale |
 | `value` | number in `[0, max]` — omit for indeterminate |
 | `max` | number, defaults to `1` per HTML spec; commonly set to `100` |
 
@@ -61,8 +61,8 @@ Width fills the parent (`width: 100%`).
 
 ## Variants
 
-- **`surface`** *(default)* — bordered track (`--base-color-a3` + 1px `--base-color-a5` inset), solid `--color-9` fill.
-- **`soft`** — flat `--base-color-a4` track, desaturated `--color-a8` fill. Less visual weight.
+- **`surface`** *(default)* — bordered track (`--base-color-a3` + 1px `--base-color-a5` inset), solid `--accent-9` fill.
+- **`soft`** — flat `--base-color-a4` track, desaturated `--accent-a8` fill. Less visual weight.
 
 ## States
 

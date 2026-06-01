@@ -11,15 +11,15 @@ import "elements-kit/ui/styles/palette/gray.css";
 import "elements-kit/ui/styles/base/gray.css";
 // import any color scales you want to use for accent theming:
 import "elements-kit/ui/styles/palette/mint.css";
-import "elements-kit/ui/styles/colors/mint.css";
+import "elements-kit/ui/styles/accent/mint.css";
 import "elements-kit/ui/styles/palette/blue.css";
-import "elements-kit/ui/styles/colors/blue.css";
+import "elements-kit/ui/styles/accent/blue.css";
 import "elements-kit/ui/styles/palette/iris.css";
-import "elements-kit/ui/styles/colors/iris.css";
+import "elements-kit/ui/styles/accent/iris.css";
 import "elements-kit/ui/styles/palette/crimson.css";
-import "elements-kit/ui/styles/colors/crimson.css";
+import "elements-kit/ui/styles/accent/crimson.css";
 import "elements-kit/ui/styles/palette/amber.css";
-import "elements-kit/ui/styles/colors/amber.css";
+import "elements-kit/ui/styles/accent/amber.css";
 
 import "elements-kit/ui/card/card.css";
 import "elements-kit/ui/radio/radio.css";
@@ -63,7 +63,7 @@ export class App {
       <div
         class:dark={dark}
         data-surface="page"
-        data-color="mint"
+        data-accent="mint"
         data-base-color="gray"
         data-radius="medium"
         style:padding="24px"
@@ -213,7 +213,7 @@ export class App {
                   class:unset
                   class:x-radio
                   name={`accent-${color}`}
-                  data-color={color}
+                  data-accent={color}
                   checked
                 />
                 <span>{color}</span>

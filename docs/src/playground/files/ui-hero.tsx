@@ -7,7 +7,7 @@ import "elements-kit/ui/styles/unset.css";
 import "elements-kit/ui/styles/palette/gray.css";
 import "elements-kit/ui/styles/base/gray.css";
 import "elements-kit/ui/styles/palette/mint.css";
-import "elements-kit/ui/styles/colors/mint.css";
+import "elements-kit/ui/styles/accent/mint.css";
 import "elements-kit/ui/marketing/marketing.css";
 import "elements-kit/ui/button/button.css";
 
@@ -37,7 +37,7 @@ export class App {
       <div
         class:dark={dark}
         data-surface="page"
-        data-color="mint"
+        data-accent="mint"
         data-base-color="gray"
         data-radius="medium"
         style={{
