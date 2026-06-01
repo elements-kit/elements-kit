@@ -28,6 +28,20 @@ const dark = signal(false);
 const SIZES = [1, 2, 3] as const;
 const VARIANTS = ["surface", "soft"] as const;
 const ACCENTS = ["mint", "blue", "iris", "crimson"] as const;
+const TYPES = [
+  "text",
+  "search",
+  "email",
+  "url",
+  "tel",
+  "password",
+  "number",
+  "date",
+  "time",
+  "datetime-local",
+  "month",
+  "week",
+] as const;
 
 export class App {
   render() {
@@ -68,6 +82,7 @@ export class App {
             ))}
           </div>
         </section>
+
 
         <section>
           <h3 style:margin="0 0 12px">Variants</h3>
@@ -119,6 +134,21 @@ export class App {
           </div>
         </section>
 
+        <section>
+          <h3 style:margin="0 0 12px">Input types</h3>
+          <div style:display="grid" style:gap="12px">
+            {TYPES.map((type) => (
+              <input
+                class:unset
+                class:x-text-input
+                type={type}
+                placeholder={type}
+                aria-label={type}
+              />
+            ))}
+          </div>
+        </section>
+        
         <section>
           <h3 style:margin="0 0 12px">Text area — bare</h3>
           <textarea
