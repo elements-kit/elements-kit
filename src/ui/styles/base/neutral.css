@@ -1,0 +1,32 @@
+[data-base-color="neutral"] {
+  --base-color-1: var(--neutral-1);
+  --base-color-2: var(--neutral-2);
+  --base-color-3: var(--neutral-3);
+  --base-color-4: var(--neutral-4);
+  --base-color-5: var(--neutral-5);
+  --base-color-6: var(--neutral-6);
+  --base-color-7: var(--neutral-7);
+  --base-color-8: var(--neutral-8);
+  --base-color-9: var(--neutral-9);
+  --base-color-10: var(--neutral-10);
+  --base-color-11: var(--neutral-11);
+  --base-color-12: var(--neutral-12);
+
+  --base-color-a1: var(--neutral-a1);
+  --base-color-a2: var(--neutral-a2);
+  --base-color-a3: var(--neutral-a3);
+  --base-color-a4: var(--neutral-a4);
+  --base-color-a5: var(--neutral-a5);
+  --base-color-a6: var(--neutral-a6);
+  --base-color-a7: var(--neutral-a7);
+  --base-color-a8: var(--neutral-a8);
+  --base-color-a9: var(--neutral-a9);
+  --base-color-a10: var(--neutral-a10);
+  --base-color-a11: var(--neutral-a11);
+  --base-color-a12: var(--neutral-a12);
+
+  --base-color-surface: var(--neutral-surface);
+  --base-color-indicator: var(--neutral-indicator);
+  --base-color-track: var(--neutral-track);
+  --base-color-contrast: var(--neutral-contrast);
+}

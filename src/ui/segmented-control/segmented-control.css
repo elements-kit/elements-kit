@@ -53,10 +53,6 @@
     calc(var(--seg-track-radius) - var(--seg-inset))
   );
 
-  /* Light: --color-background (white) lifts above the alpha-overlay track.
-   * Dark: --color-background ≤ track surface, so layer another alpha
-   * step instead — stacks above the existing overlay without breaking
-   * accent theming (--base-color-* tracks accent, --gray-* doesn't). */
   --seg-indicator-bg: var(--color-background);
 
   border-radius: var(--seg-track-radius);

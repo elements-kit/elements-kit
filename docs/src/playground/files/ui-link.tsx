@@ -5,8 +5,8 @@ import "elements-kit/ui/styles/space.css";
 import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/cursor.css";
 import "elements-kit/ui/styles/unset.css";
-import "elements-kit/ui/styles/palette/gray.css";
-import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/palette/neutral.css";
+import "elements-kit/ui/styles/base/neutral.css";
 import "elements-kit/ui/styles/palette/black-alpha.css";
 import "elements-kit/ui/styles/palette/white-alpha.css";
 import "elements-kit/ui/styles/palette/mint.css";
@@ -36,7 +36,7 @@ export class App {
       <div
         class:dark={dark}
         data-accent="mint"
-        data-base-color="gray"
+        data-base-color="neutral"
         data-radius="medium"
         style:padding="24px"
         style:display="grid"
@@ -61,7 +61,12 @@ export class App {
           <div style:display="grid" style:gap="10px">
             {UNDERLINES.map((mode) => (
               <div>
-                <code style:font-size="12px" style:color="var(--base-color-11)" style:display="block" style:margin-bottom="4px">
+                <code
+                  style:font-size="12px"
+                  style:color="var(--base-color-11)"
+                  style:display="block"
+                  style:margin-bottom="4px"
+                >
                   data-underline="{mode}"
                 </code>
                 <a class:x-link data-underline={mode} href="#">
@@ -75,16 +80,30 @@ export class App {
         <section>
           <h3 style:margin="0 0 12px">In paragraph</h3>
           <p style:line-height="1.6">
-            Visit the <a class:x-link href="#">documentation</a> or jump straight to{" "}
-            <a class:x-link data-underline="always" href="#">getting started</a>. You can also{" "}
-            <a class:x-link data-underline="none" href="#">browse the API</a>.
+            Visit the{" "}
+            <a class:x-link href="#">
+              documentation
+            </a>{" "}
+            or jump straight to{" "}
+            <a class:x-link data-underline="always" href="#">
+              getting started
+            </a>
+            . You can also{" "}
+            <a class:x-link data-underline="none" href="#">
+              browse the API
+            </a>
+            .
           </p>
         </section>
 
         <section>
           <h3 style:margin="0 0 12px">As a button</h3>
           <p>
-            Prefer <button class:unset class:x-link type="button">a button-styled link</button> when the click triggers an action, not navigation.
+            Prefer{" "}
+            <button class:unset class:x-link type="button">
+              a button-styled link
+            </button>{" "}
+            when the click triggers an action, not navigation.
           </p>
         </section>
 
@@ -104,7 +123,12 @@ export class App {
           <h3 style:margin="0 0 12px">Accent colors</h3>
           <div style:display="grid" style:gap="8px">
             {ACCENTS.map((color) => (
-              <a class:x-link data-accent={color} data-underline="always" href="#">
+              <a
+                class:x-link
+                data-accent={color}
+                data-underline="always"
+                href="#"
+              >
                 {color}
               </a>
             ))}
@@ -113,10 +137,16 @@ export class App {
 
         <section>
           <h3 style:margin="0 0 12px">Focus</h3>
-          <p style:font-size="13px" style:color="var(--base-color-11)" style:margin="0 0 8px">
+          <p
+            style:font-size="13px"
+            style:color="var(--base-color-11)"
+            style:margin="0 0 8px"
+          >
             Tab to focus — outline replaces the underline.
           </p>
-          <a class:x-link href="#">Focus me</a>
+          <a class:x-link href="#">
+            Focus me
+          </a>
         </section>
       </div>
     );

@@ -6,8 +6,8 @@ import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/cursor.css";
 import "elements-kit/ui/styles/shadow.css";
 import "elements-kit/ui/styles/unset.css";
-import "elements-kit/ui/styles/palette/gray.css";
-import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/palette/neutral.css";
+import "elements-kit/ui/styles/base/neutral.css";
 import "elements-kit/ui/styles/palette/black-alpha.css";
 import "elements-kit/ui/styles/accent/base.css";
 import "elements-kit/ui/styles/palette/mint.css";
@@ -28,7 +28,7 @@ export class App {
       <div
         class:dark={dark}
         data-accent="mint"
-        data-base-color="gray"
+        data-base-color="neutral"
         data-radius="medium"
         style:padding="24px"
         style:display="grid"
@@ -50,10 +50,21 @@ export class App {
         <h3 style:margin="0">Sizes</h3>
         <div style:display="flex" style:flex-direction="column" style:gap="8px">
           {SIZES.map((size) => (
-            <div style:display="flex" style:gap="12px" style:align-items="center">
+            <div
+              style:display="flex"
+              style:gap="12px"
+              style:align-items="center"
+            >
               <span style:font-size={`var(--font-size-${size})`}>
-                Press <kbd class:unset class:x-kbd data-size={String(size)}>⌘</kbd>+
-                <kbd class:unset class:x-kbd data-size={String(size)}>K</kbd> to open
+                Press{" "}
+                <kbd class:unset class:x-kbd data-size={String(size)}>
+                  ⌘
+                </kbd>
+                +
+                <kbd class:unset class:x-kbd data-size={String(size)}>
+                  K
+                </kbd>{" "}
+                to open
               </span>
             </div>
           ))}
@@ -61,9 +72,34 @@ export class App {
 
         <h3 style:margin="16px 0 0">Multi-key combos</h3>
         <p style:line-height="2">
-          Save: <kbd class:unset class:x-kbd>⌘</kbd>+<kbd class:unset class:x-kbd>S</kbd>{" "}
-          &nbsp;Quit: <kbd class:unset class:x-kbd>⌘</kbd>+<kbd class:unset class:x-kbd>Q</kbd>{" "}
-          &nbsp;Refresh: <kbd class:unset class:x-kbd>⌘</kbd>+<kbd class:unset class:x-kbd>⇧</kbd>+<kbd class:unset class:x-kbd>R</kbd>
+          Save:{" "}
+          <kbd class:unset class:x-kbd>
+            ⌘
+          </kbd>
+          +
+          <kbd class:unset class:x-kbd>
+            S
+          </kbd>{" "}
+          &nbsp;Quit:{" "}
+          <kbd class:unset class:x-kbd>
+            ⌘
+          </kbd>
+          +
+          <kbd class:unset class:x-kbd>
+            Q
+          </kbd>{" "}
+          &nbsp;Refresh:{" "}
+          <kbd class:unset class:x-kbd>
+            ⌘
+          </kbd>
+          +
+          <kbd class:unset class:x-kbd>
+            ⇧
+          </kbd>
+          +
+          <kbd class:unset class:x-kbd>
+            R
+          </kbd>
         </p>
       </div>
     );

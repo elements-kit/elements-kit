@@ -18,8 +18,8 @@ import "elements-kit/ui/styles/accent/crimson.css";
 import "elements-kit/ui/styles/palette/amber.css";
 import "elements-kit/ui/styles/accent/amber.css";
 // import any gray scales you want to use for neutral theming:
-import "elements-kit/ui/styles/palette/gray.css";
-import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/palette/neutral.css";
+import "elements-kit/ui/styles/base/neutral.css";
 // the badge itself + button (for the dark-mode toggle):
 import "elements-kit/ui/badge/badge.css";
 import "elements-kit/ui/button/button.css";
@@ -40,7 +40,7 @@ export class App {
         class:dark={dark}
         data-surface="page"
         data-accent="mint"
-        data-base-color="gray"
+        data-base-color="neutral"
         data-radius="medium"
         style:padding="24px"
         style:display="grid"

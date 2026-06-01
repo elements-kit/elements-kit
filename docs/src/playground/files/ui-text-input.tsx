@@ -5,8 +5,8 @@ import "elements-kit/ui/styles/space.css";
 import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/cursor.css";
 import "elements-kit/ui/styles/unset.css";
-import "elements-kit/ui/styles/palette/gray.css";
-import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/palette/neutral.css";
+import "elements-kit/ui/styles/base/neutral.css";
 import "elements-kit/ui/styles/palette/black-alpha.css";
 import "elements-kit/ui/styles/palette/mint.css";
 import "elements-kit/ui/styles/accent/mint.css";
@@ -35,7 +35,7 @@ export class App {
       <div
         class:dark={dark}
         data-accent="mint"
-        data-base-color="gray"
+        data-base-color="neutral"
         data-radius="medium"
         style:padding="24px"
         style:display="grid"
@@ -140,11 +140,7 @@ export class App {
             >
               Markdown
             </div>
-            <textarea
-              class:unset
-              placeholder="Write something…"
-              rows={4}
-            />
+            <textarea class:unset placeholder="Write something…" rows={4} />
             <div
               style:padding="6px 8px"
               style:border-top="1px solid var(--base-color-a4)"
@@ -153,10 +149,7 @@ export class App {
               style:justify-content="space-between"
               style:gap="8px"
             >
-              <span
-                style:font-size="12px"
-                style:color="var(--base-color-a11)"
-              >
+              <span style:font-size="12px" style:color="var(--base-color-a11)">
                 0 / 280
               </span>
               <button
@@ -182,7 +175,11 @@ export class App {
             />
             <div class:x-text-input>
               <span aria-hidden="true">🔍</span>
-              <input class:unset placeholder="Disabled wrapped input" disabled />
+              <input
+                class:unset
+                placeholder="Disabled wrapped input"
+                disabled
+              />
             </div>
             <textarea
               class:unset

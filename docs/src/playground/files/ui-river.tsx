@@ -4,8 +4,8 @@ import "elements-kit/ui/styles/radius.css";
 import "elements-kit/ui/styles/space.css";
 import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/unset.css";
-import "elements-kit/ui/styles/palette/gray.css";
-import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/palette/neutral.css";
+import "elements-kit/ui/styles/base/neutral.css";
 import "elements-kit/ui/styles/palette/mint.css";
 import "elements-kit/ui/styles/accent/mint.css";
 import "elements-kit/ui/marketing/marketing.css";
@@ -31,7 +31,12 @@ function Label({ children }: { children: any }) {
   );
 }
 
-function GradientVisual(props: { aspect?: string; width?: string; maxWidth?: string; bordered?: boolean }) {
+function GradientVisual(props: {
+  aspect?: string;
+  width?: string;
+  maxWidth?: string;
+  bordered?: boolean;
+}) {
   return (
     <div
       class:river-visual
@@ -51,7 +56,7 @@ export class App {
         class:dark={dark}
         data-surface="page"
         data-accent="mint"
-        data-base-color="gray"
+        data-base-color="neutral"
         data-radius="medium"
         style={{
           "--page-padding-left": "24px",
@@ -84,9 +89,21 @@ export class App {
           <Label>data-align="start" (default)</Label>
           <div class:river>
             <div class:river-content>
-              <h3 class:section-heading class:section-heading-3>Text on the left, visual on the right</h3>
-              <p class:section-paragraph>Standard river. <em>6/6 split</em> at md+. Stacks below md.</p>
-              <a class:unset class:x-button data-size="2" data-variant="text" href="#">Learn more</a>
+              <h3 class:section-heading class:section-heading-3>
+                Text on the left, visual on the right
+              </h3>
+              <p class:section-paragraph>
+                Standard river. <em>6/6 split</em> at md+. Stacks below md.
+              </p>
+              <a
+                class:unset
+                class:x-button
+                data-size="2"
+                data-variant="text"
+                href="#"
+              >
+                Learn more
+              </a>
             </div>
             <GradientVisual />
           </div>
@@ -94,9 +111,22 @@ export class App {
           <Label>data-align="end"</Label>
           <div class:river data-align="end">
             <div class:river-content>
-              <h3 class:section-heading class:section-heading-3>Text on the right, visual on the left</h3>
-              <p class:section-paragraph>Flipped via grid order. Alternate adjacent rivers between start ↔ end for visual rhythm.</p>
-              <a class:unset class:x-button data-size="2" data-variant="text" href="#">Learn more</a>
+              <h3 class:section-heading class:section-heading-3>
+                Text on the right, visual on the left
+              </h3>
+              <p class:section-paragraph>
+                Flipped via grid order. Alternate adjacent rivers between start
+                ↔ end for visual rhythm.
+              </p>
+              <a
+                class:unset
+                class:x-button
+                data-size="2"
+                data-variant="text"
+                href="#"
+              >
+                Learn more
+              </a>
             </div>
             <GradientVisual />
           </div>
@@ -104,9 +134,21 @@ export class App {
           <Label>data-align="center"</Label>
           <div class:river data-align="center">
             <div class:river-content>
-              <h3 class:section-heading class:section-heading-3>Centered, stacked column</h3>
-              <p class:section-paragraph>Content and visual stack vertically with center justification.</p>
-              <a class:unset class:x-button data-size="2" data-variant="text" href="#">Learn more</a>
+              <h3 class:section-heading class:section-heading-3>
+                Centered, stacked column
+              </h3>
+              <p class:section-paragraph>
+                Content and visual stack vertically with center justification.
+              </p>
+              <a
+                class:unset
+                class:x-button
+                data-size="2"
+                data-variant="text"
+                href="#"
+              >
+                Learn more
+              </a>
             </div>
             <GradientVisual width="100%" maxWidth="640px" />
           </div>
@@ -114,9 +156,21 @@ export class App {
           <Label>data-align="start" data-large-visual="true"</Label>
           <div class:river data-align="start" data-large-visual="true">
             <div class:river-content>
-              <h3 class:section-heading class:section-heading-3>Larger visual, narrower content</h3>
-              <p class:section-paragraph>Split shifts to 5/7. Use when the visual carries the message.</p>
-              <a class:unset class:x-button data-size="2" data-variant="text" href="#">Learn more</a>
+              <h3 class:section-heading class:section-heading-3>
+                Larger visual, narrower content
+              </h3>
+              <p class:section-paragraph>
+                Split shifts to 5/7. Use when the visual carries the message.
+              </p>
+              <a
+                class:unset
+                class:x-button
+                data-size="2"
+                data-variant="text"
+                href="#"
+              >
+                Learn more
+              </a>
             </div>
             <GradientVisual aspect="16/10" />
           </div>
@@ -135,9 +189,19 @@ export class App {
             </h3>
             <div class:river-content>
               <p class:section-paragraph>
-                <em>A large quote-style paragraph</em> breaks out of the normal rhythm — bigger, looser, attention-grabbing.
+                <em>A large quote-style paragraph</em> breaks out of the normal
+                rhythm — bigger, looser, attention-grabbing.
               </p>
-              <a class:unset class:x-button data-size="2" data-variant="text" data-cta="" href="#">Learn more</a>
+              <a
+                class:unset
+                class:x-button
+                data-size="2"
+                data-variant="text"
+                data-cta=""
+                href="#"
+              >
+                Learn more
+              </a>
             </div>
             <GradientVisual aspect="21/9" />
           </div>
@@ -145,8 +209,13 @@ export class App {
           <Label>river-visual with data-border</Label>
           <div class:river>
             <div class:river-content>
-              <h3 class:section-heading class:section-heading-3>Bordered visual</h3>
-              <p class:section-paragraph>1px border + rounded corners + clipping. Use for screenshots and UI shots.</p>
+              <h3 class:section-heading class:section-heading-3>
+                Bordered visual
+              </h3>
+              <p class:section-paragraph>
+                1px border + rounded corners + clipping. Use for screenshots and
+                UI shots.
+              </p>
             </div>
             <GradientVisual bordered />
           </div>

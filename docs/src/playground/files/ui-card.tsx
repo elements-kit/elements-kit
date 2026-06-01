@@ -10,8 +10,8 @@ import "elements-kit/ui/styles/unset.css";
 import "elements-kit/ui/styles/palette/mint.css";
 import "elements-kit/ui/styles/accent/mint.css";
 // pick a neutral palette for --base-color-* (must match data-base-color on root):
-import "elements-kit/ui/styles/palette/gray.css";
-import "elements-kit/ui/styles/base/gray.css";
+import "elements-kit/ui/styles/palette/neutral.css";
+import "elements-kit/ui/styles/base/neutral.css";
 import "elements-kit/ui/styles/palette/black-alpha.css";
 import "elements-kit/ui/styles/palette/white-alpha.css";
 import "elements-kit/ui/styles/accent/base.css";
@@ -91,7 +91,7 @@ export class App {
         class:dark={dark}
         data-surface="page"
         data-accent="mint"
-        data-base-color="gray"
+        data-base-color="neutral"
         data-radius="medium"
         style={{
           "--page-padding-left": "24px",
@@ -124,7 +124,13 @@ export class App {
         <Heading>Variants</Heading>
 
         <Label>data-variant="surface" (default)</Label>
-        <a class:unset class:x-card href="#" style:display="block" style:color="inherit">
+        <a
+          class:unset
+          class:x-card
+          href="#"
+          style:display="block"
+          style:color="inherit"
+        >
           <CardBody
             title="Surface card"
             body="1px hairline border using --base-color-a5. Hover bumps to a7."
@@ -132,7 +138,14 @@ export class App {
         </a>
 
         <Label>data-variant="elevated"</Label>
-        <a class:unset class:x-card data-variant="elevated" href="#" style:display="block" style:color="inherit">
+        <a
+          class:unset
+          class:x-card
+          data-variant="elevated"
+          href="#"
+          style:display="block"
+          style:color="inherit"
+        >
           <CardBody
             title="Elevated card"
             body="Dual outer + inner shadow. Hover lifts both layers."
@@ -140,7 +153,14 @@ export class App {
         </a>
 
         <Label>data-variant="borderless"</Label>
-        <a class:unset class:x-card data-variant="borderless" href="#" style:display="block" style:color="inherit">
+        <a
+          class:unset
+          class:x-card
+          data-variant="borderless"
+          href="#"
+          style:display="block"
+          style:color="inherit"
+        >
           <CardBody
             title="Borderless card"
             body="Transparent until hover, then fills with --base-color-a3."
