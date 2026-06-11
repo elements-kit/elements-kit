@@ -12,6 +12,7 @@ export interface ThemeArgs {
   scaling: "xs" | "sm" | "md" | "lg" | "xl";
   accent: "neutral" | "mint" | "blue" | "crimson" | "iris" | "amber";
   neutral: "gray" | "slate" | "sand" | "mauve";
+  "material-background": "translucent" | "solid";
 }
 
 const category = { table: { category: "Theme" } };
@@ -37,6 +38,11 @@ export const themeArgTypes = {
     options: ["gray", "slate", "sand", "mauve"],
     ...category,
   },
+  "material-background": {
+    control: "select",
+    options: ["translucent", "solid"],
+    ...category,
+  },
 } as const;
 
 export const themeArgs: ThemeArgs = {
@@ -44,6 +50,7 @@ export const themeArgs: ThemeArgs = {
   scaling: "md",
   accent: "mint",
   neutral: "gray",
+  "material-background": "translucent",
 };
 
 export const withThemeArgs: Decorator = (story, context) => {
@@ -53,5 +60,7 @@ export const withThemeArgs: Decorator = (story, context) => {
   html.dataset.scaling = args.scaling ?? themeArgs.scaling;
   html.dataset.accent = args.accent ?? themeArgs.accent;
   html.dataset.neutral = args.neutral ?? themeArgs.neutral;
+  html.dataset.materialBackground =
+    args["material-background"] ?? themeArgs["material-background"];
   return story();
 };
