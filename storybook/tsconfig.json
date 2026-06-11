@@ -20,5 +20,10 @@
       ]
     }
   },
-  "include": ["css.d.ts", ".storybook/**/*.ts", "../src/ui/**/*.stories.ts"]
+  "include": [
+    "css.d.ts",
+    ".storybook/**/*.ts",
+    "../src/ui/**/*.stories.ts",
+    "../src/ui/**/*.stories.tsx"
+  ]
 }
