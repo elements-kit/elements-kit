@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.19.0
+
+### Added
+
+- **`ui/overlay`** — CSS-first anchored floating layer over native `<dialog>` / Popover API. One `.x-overlay` frame wrapping a `.x-card` surface, three orthogonal axes: placement (`data-placement`, position-area vocabulary — `center`, `block-start`/`block-end` sheets, `inline-start`/`inline-end` drawers, corner combos like `block-end inline-end`), modality (how you open it — `showModal()`, `popover`, or `popover="manual"`; no attribute), and anchor (`data-anchor` reserved for future element anchoring; v1 anchors to the viewport). Every placement is expressed in interpolable lengths, so flipping `data-placement` on an open overlay morphs it with a plain CSS transition. Block-edge detents via `data-detent` + `--overlay-detent-*`. Enter/exit animations and top-layer exit are `@supports`-tiered (`@starting-style` / `allow-discrete`, `overlay`, `interpolate-size`) — fully functional without them. Opt-in `data-overlay-deck` page scale-back recipe.
+- **`elements-kit/ui/overlay`** (JS, opt-in) — `createOverlayGestures(overlay, options)`, dispatched by placement: block-edge placements drag between height detents, drawers between width detents (both rubber-band past the largest and drag/flick-to-dismiss past the smallest); center gets an iPad-window corner resize — free-form by default (persists via the JS-owned `--overlay-w/-h`, rubber-band resistance at the bounds), snapping to the width steps when a `detents` option is passed. While attached the factory sets `data-overlay-gestures`, which gates every stylesheet affordance (grabber pills, corner grip) — no drag wiring, no affordance. Text selection is suppressed during drags. `detentchange` CustomEvent, `setDetent()`; cleanup via `onCleanup` scope integration, `dispose()`, or `Symbol.dispose`. First JS module under `src/ui`.
+- **Storybook** — `storybook/` workspace package (`@storybook/html-vite`) with co-located `src/ui/**/*.stories.@(ts|tsx)` (elements-kit JSX in stories). `pnpm storybook` for local dev; `pnpm build:docs` now bundles the static build into the docs deploy under `/storybook/`.
+
 ## 0.9.0
 
 Port upstream [stackblitz/alien-signals](https://github.com/stackblitz/alien-signals) fixes shipped after v3.1.2.

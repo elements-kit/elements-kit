@@ -1,0 +1,914 @@
+/*
+ * Overlay — CSS-only anchored floating layer.
+ *
+ * `.x-overlay` is an invisible frame around a card: it owns positioning,
+ * the top layer, enter/exit animation, detent size, and `::backdrop`.
+ * The visible surface is its required direct child — a plain `.x-card`
+ * (any variant). The frame's own pseudos paint the gesture affordances
+ * (grabber pill, center resize grip), gated behind `data-overlay-gestures`.
+ *
+ * Three orthogonal axes:
+ *
+ *   PLACEMENT — `data-placement`, position-area vocabulary. Where the
+ *   layer sits in the viewport. Words are order-insensitive tokens:
+ *     center (default)              centered modal card
+ *     block-start | block-end       full-width top / bottom sheet
+ *     inline-start | inline-end     full-height side drawer
+ *     block-end inline-end (etc.)   floating corner panel (Apple Maps)
+ *
+ *   MODALITY — how you open it, no attribute:
+ *     dialog.showModal()            modal: focus trap, inert page, backdrop
+ *     popover + popovertarget       non-modal top layer, light dismiss
+ *     popover="manual"              persistent, page stays interactive
+ *
+ *   ANCHOR — `data-anchor` is RESERVED for a future `element` value
+ *   (CSS anchor positioning). v1 anchors to the viewport only.
+ *
+ * Markup contracts:
+ *
+ *   Bottom sheet (modal):
+ *     <dialog class="unset x-overlay" data-placement="block-end" data-detent="medium">
+ *       <div class="x-card" data-variant="elevated">…</div>
+ *     </dialog>
+ *
+ *   Centered card modal (all defaults):
+ *     <dialog class="unset x-overlay">
+ *       <div class="x-card" data-variant="elevated">…</div>
+ *     </dialog>
+ *
+ *   Persistent corner panel, background interactive:
+ *     <dialog class="unset x-overlay" popover="manual" id="panel"
+ *             data-placement="block-end inline-end" data-detent="medium">
+ *       <div class="x-card" data-variant="elevated">…</div>
+ *     </dialog>
+ *     <button popovertarget="panel">Toggle panel</button>
+ *
+ * Switching `data-placement` (or `data-detent`) on an open overlay morphs
+ * it to the new spot with a plain CSS transition — every placement is
+ * expressed in interpolable lengths.
+ *
+ * API:
+ *   data-placement     see vocabulary above (default center)
+ *   data-detent        small | medium | large (default) — heights on
+ *                      block-edge placements, widths on drawers
+ *   data-anchor        reserved, do not use
+ *   data-overlay-gestures  written by `createOverlayGestures` while
+ *                      attached; gates every gesture affordance (set it
+ *                      by hand if you wire your own dragging)
+ *   --overlay-duration   transitions duration (300ms)
+ *   --overlay-easing     transitions easing (iOS-style ease-out)
+ *   --overlay-inset      viewport gap for center + corner placements
+ *   --overlay-max-width  width cap for center / corner placements
+ *   --overlay-detent-small / -medium / -large    detent sizes (per axis)
+ *   --overlay-detent     active detent size (set by data-detent)
+ *   --overlay-w / -h     center size, written by the corner resize gesture
+ *   --overlay-backdrop   modal backdrop color (--color-overlay)
+ *
+ * Tiers:
+ *   Tier 1 (universal) — instant open/close; placement + detent morphs
+ *                        animate where the `translate` property exists
+ *                        (Chrome 104+, Safari/Firefox at the floor).
+ *   Tier 2 (modern)    — `@supports (transition-behavior: allow-discrete)`
+ *                        adds enter/exit transitions via @starting-style.
+ *   Tier 3 (nested)    — `@supports (overlay: auto)` keeps the exit
+ *                        transition inside the top layer.
+ *   `interpolate-size: allow-keywords` (own guard) lets fit-content
+ *   sizes morph too; elsewhere size snaps while position slides.
+ *
+ * Gestures are opt-in JS — see `createOverlayGestures` in
+ * elements-kit/ui/overlay. Block-edge placements drag between height
+ * detents, drawers between width detents (both flick-to-dismiss); center
+ * gets an iPad-window corner resize — free by default (writes the
+ * JS-owned `--overlay-w/-h`, resistance at the bounds), snapping to the
+ * width steps when a `detents` option is passed; shrinking past the
+ * minimum dismisses.
+ */
+
+.x-overlay {
+  color: var(--neutral-12);
+
+  /* The open frame is a single-row grid (see the display guard below);
+   * the 1fr row makes the card track the frame height during morphs —
+   * a percentage height can't resolve against a mid-interpolation
+   * fit-content height and would snap at transition end. Declared here,
+   * outside the open state, so the card stays stretched through the
+   * discrete-display exit transition. */
+  grid-template-rows: minmax(0, 1fr);
+
+  /* Position scheme: every placement is top/left percentages plus a
+   * translate compensation — all interpolable, so placement flips morph.
+   * --overlay-tx/-ty belong to CSS (alignment + enter/exit).
+   * --overlay-dx/-dy belong to JS (gesture drag offset, px). */
+  top: var(--overlay-y);
+  left: var(--overlay-x);
+  translate: calc(var(--overlay-tx) + var(--overlay-dx, 0px))
+    calc(var(--overlay-ty) + var(--overlay-dy, 0px));
+
+  /* center (default placement) */
+  --overlay-x: 50%;
+  --overlay-y: 50%;
+  --overlay-tx: -50%;
+  --overlay-ty: -50%;
+
+  --overlay-duration: 300ms;
+  --overlay-easing: cubic-bezier(0.32, 0.72, 0, 1);
+  --overlay-inset: var(--space-4);
+  --overlay-max-width: 480px;
+  --overlay-detent-small: 25vh;
+  --overlay-detent-medium: 60vh;
+  --overlay-detent-large: calc(100vh - var(--space-9));
+
+  /* Placement / detent morphs — Tier 1. Pre-`translate` browsers ignore
+   * the translate transition and get the static fallback below. */
+  transition:
+    top var(--overlay-duration) var(--overlay-easing),
+    left var(--overlay-duration) var(--overlay-easing),
+    translate var(--overlay-duration) var(--overlay-easing),
+    width var(--overlay-duration) var(--overlay-easing),
+    height var(--overlay-duration) var(--overlay-easing);
+}
+
+.x-overlay:not([open], :popover-open) {
+  pointer-events: none;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * BACKDROP — modal only ([open] via showModal). Popover backdrop stays transparent.               *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-overlay:where([open])::backdrop {
+  background: var(--overlay-backdrop, var(--color-overlay));
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * PLACEMENTS                                                                                      *
+ *                                                                                                 *
+ * `~=` token matching keeps two-word values order-insensitive.                                    *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* center (default) — --overlay-w/-h are JS-owned (corner resize gesture);
+ * scoping them here means a later placement morph ignores the resized
+ * dimensions. data-detent maps to width steps for the snapping resize
+ * (vw-based large so the gesture's probe measures viewport-true). */
+.x-overlay:where(:not([data-placement]), [data-placement="center"]) {
+  --overlay-detent-small: 320px;
+  --overlay-detent-medium: var(--overlay-max-width);
+  --overlay-detent-large: calc(100vw - 2 * var(--overlay-inset));
+  width: var(
+    --overlay-w,
+    min(
+      var(--overlay-detent, var(--overlay-max-width)),
+      calc(100% - 2 * var(--overlay-inset))
+    )
+  );
+  height: var(--overlay-h, fit-content);
+  max-height: calc(100% - 2 * var(--overlay-inset));
+}
+
+/* The fullscreen-card step. */
+.x-overlay:where(
+    :not([data-placement]),
+    [data-placement="center"]
+  ):where([data-detent="large"]) {
+  height: var(--overlay-h, calc(100% - 2 * var(--overlay-inset)));
+}
+
+/* block-start — full-width top sheet */
+.x-overlay:where(
+  [data-placement~="block-start"]:not(
+    [data-placement~="inline-start"],
+    [data-placement~="inline-end"]
+  )
+) {
+  --overlay-y: 0%;
+  --overlay-x: 50%;
+  --overlay-ty: 0%;
+  --overlay-tx: -50%;
+  width: 100%;
+  height: min(var(--overlay-detent), 100%);
+}
+
+/* block-end — full-width bottom sheet */
+.x-overlay:where(
+  [data-placement~="block-end"]:not(
+    [data-placement~="inline-start"],
+    [data-placement~="inline-end"]
+  )
+) {
+  --overlay-y: 100%;
+  --overlay-x: 50%;
+  --overlay-ty: -100%;
+  --overlay-tx: -50%;
+  width: 100%;
+  height: min(var(--overlay-detent), 100%);
+}
+
+/* inline-start / inline-end — full-height side drawers. data-detent maps
+ * to widths here (px / vw, not the base svh heights). */
+.x-overlay:where(
+  [data-placement~="inline-start"]:not(
+    [data-placement~="block-start"],
+    [data-placement~="block-end"]
+  )
+) {
+  --overlay-y: 50%;
+  --overlay-x: 0%;
+  --overlay-ty: -50%;
+  --overlay-tx: 0%;
+  --overlay-detent-small: 280px;
+  --overlay-detent-medium: 480px;
+  --overlay-detent-large: calc(100vw - var(--space-9));
+  width: min(var(--overlay-detent), 100%);
+  height: 100%;
+}
+
+.x-overlay:where(
+  [data-placement~="inline-end"]:not(
+    [data-placement~="block-start"],
+    [data-placement~="block-end"]
+  )
+) {
+  --overlay-y: 50%;
+  --overlay-x: 100%;
+  --overlay-ty: -50%;
+  --overlay-tx: -100%;
+  --overlay-detent-small: 280px;
+  --overlay-detent-medium: 480px;
+  --overlay-detent-large: calc(100vw - var(--space-9));
+  width: min(var(--overlay-detent), 100%);
+  height: 100%;
+}
+
+/* corners — floating panels with a viewport gap */
+.x-overlay:where(
+  [data-placement~="block-start"][data-placement~="inline-start"]
+),
+.x-overlay:where([data-placement~="block-start"][data-placement~="inline-end"]),
+.x-overlay:where([data-placement~="block-end"][data-placement~="inline-start"]),
+.x-overlay:where([data-placement~="block-end"][data-placement~="inline-end"]) {
+  width: min(var(--overlay-max-width), calc(100% - 2 * var(--overlay-inset)));
+  height: min(var(--overlay-detent), calc(100% - 2 * var(--overlay-inset)));
+}
+
+.x-overlay:where(
+  [data-placement~="block-start"][data-placement~="inline-start"]
+) {
+  --overlay-y: var(--overlay-inset);
+  --overlay-x: var(--overlay-inset);
+  --overlay-ty: 0%;
+  --overlay-tx: 0%;
+}
+
+.x-overlay:where(
+  [data-placement~="block-start"][data-placement~="inline-end"]
+) {
+  --overlay-y: var(--overlay-inset);
+  --overlay-x: calc(100% - var(--overlay-inset));
+  --overlay-ty: 0%;
+  --overlay-tx: -100%;
+}
+
+.x-overlay:where(
+  [data-placement~="block-end"][data-placement~="inline-start"]
+) {
+  --overlay-y: calc(100% - var(--overlay-inset));
+  --overlay-x: var(--overlay-inset);
+  --overlay-ty: -100%;
+  --overlay-tx: 0%;
+}
+
+.x-overlay:where([data-placement~="block-end"][data-placement~="inline-end"]) {
+  --overlay-y: calc(100% - var(--overlay-inset));
+  --overlay-x: calc(100% - var(--overlay-inset));
+  --overlay-ty: -100%;
+  --overlay-tx: -100%;
+}
+
+/* RTL — inline words are logical; the physical x/tx pairs swap. */
+.x-overlay:where(
+    [data-placement~="inline-start"]:not(
+      [data-placement~="block-start"],
+      [data-placement~="block-end"]
+    )
+  ):where(:dir(rtl)) {
+  --overlay-x: 100%;
+  --overlay-tx: -100%;
+}
+
+.x-overlay:where(
+    [data-placement~="inline-end"]:not(
+      [data-placement~="block-start"],
+      [data-placement~="block-end"]
+    )
+  ):where(:dir(rtl)) {
+  --overlay-x: 0%;
+  --overlay-tx: 0%;
+}
+
+.x-overlay:where(
+    [data-placement~="inline-start"][data-placement~="block-start"],
+    [data-placement~="inline-start"][data-placement~="block-end"]
+  ):where(:dir(rtl)) {
+  --overlay-x: calc(100% - var(--overlay-inset));
+  --overlay-tx: -100%;
+}
+
+.x-overlay:where(
+    [data-placement~="inline-end"][data-placement~="block-start"],
+    [data-placement~="inline-end"][data-placement~="block-end"]
+  ):where(:dir(rtl)) {
+  --overlay-x: var(--overlay-inset);
+  --overlay-tx: 0%;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * DETENTS — heights on block-edge placements, widths on drawers                                   *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-overlay {
+  --overlay-detent: var(--overlay-detent-large);
+
+  &:where([data-detent="small"]) {
+    --overlay-detent: var(--overlay-detent-small);
+  }
+  &:where([data-detent="medium"]) {
+    --overlay-detent: var(--overlay-detent-medium);
+  }
+  &:where([data-detent="large"]) {
+    --overlay-detent: var(--overlay-detent-large);
+  }
+}
+
+/* Drawers and center cards without an explicit detent keep the classic
+ * medium width (480px / --overlay-max-width). */
+.x-overlay:where(
+    :not([data-placement]),
+    [data-placement="center"],
+    [data-placement~="inline-start"]:not(
+      [data-placement~="block-start"],
+      [data-placement~="block-end"]
+    ),
+    [data-placement~="inline-end"]:not(
+      [data-placement~="block-start"],
+      [data-placement~="block-end"]
+    )
+  ):where(:not([data-detent])) {
+  --overlay-detent: var(--overlay-detent-medium);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * CARD SURFACE + GRABBER                                                                          *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* The frame's 1fr grid row stretches (and shrinks) the card in every
+ * placement — no percentage heights, so the card tracks morphs. */
+.x-overlay > .x-card {
+  overflow-y: auto;
+}
+
+/* Full-edge sheets square the corners on the flush edge. */
+.x-overlay:where(
+    [data-placement~="block-end"]:not(
+      [data-placement~="inline-start"],
+      [data-placement~="inline-end"]
+    )
+  )
+  > .x-card {
+  border-end-start-radius: 0;
+  border-end-end-radius: 0;
+
+  &::before,
+  &::after {
+    border-end-start-radius: 0;
+    border-end-end-radius: 0;
+    bottom: 0;
+  }
+}
+
+.x-overlay:where(
+    [data-placement~="block-start"]:not(
+      [data-placement~="inline-start"],
+      [data-placement~="inline-end"]
+    )
+  )
+  > .x-card {
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+
+  &::before,
+  &::after {
+    border-start-start-radius: 0;
+    border-start-end-radius: 0;
+    top: 0;
+  }
+}
+
+/* Gesture affordances — painted on the frame so the card's pseudos stay
+ * untouched, and gated behind `data-overlay-gestures` (written by
+ * `createOverlayGestures` while attached): no drag wiring, no affordance. */
+
+/* Shared pseudo scaffolding. */
+.x-overlay:where([data-overlay-gestures])::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Horizontal grabber pill — block-edge placements (height drag). Sits at
+ * the draggable edge: top for bottom-anchored, bottom for top-anchored. */
+.x-overlay:where([data-overlay-gestures]):where(
+    [data-placement~="block-start"],
+    [data-placement~="block-end"]
+  )::before {
+  inset-inline: 0;
+  margin-inline: auto;
+  width: var(--space-8);
+  height: var(--space-1);
+  border-radius: max(var(--radius-1), var(--radius-pill));
+  background-color: var(--neutral-a8);
+}
+
+.x-overlay:where([data-overlay-gestures]):where(
+    [data-placement~="block-end"]
+  )::before {
+  top: var(--space-2);
+}
+
+.x-overlay:where([data-overlay-gestures]):where(
+    [data-placement~="block-start"]
+  )::before {
+  bottom: var(--space-2);
+}
+
+/* Vertical pill on the inner edge — drawers (width drag). Logical insets
+ * mirror in RTL for free. */
+.x-overlay:where([data-overlay-gestures]):where(
+    [data-placement~="inline-start"]:not(
+      [data-placement~="block-start"],
+      [data-placement~="block-end"]
+    ),
+    [data-placement~="inline-end"]:not(
+      [data-placement~="block-start"],
+      [data-placement~="block-end"]
+    )
+  )::before {
+  inset-block: 0;
+  margin-block: auto;
+  width: var(--space-1);
+  height: var(--space-8);
+  border-radius: max(var(--radius-1), var(--radius-pill));
+  background-color: var(--neutral-a8);
+}
+
+.x-overlay:where([data-overlay-gestures]):where(
+    [data-placement~="inline-start"]:not(
+      [data-placement~="block-start"],
+      [data-placement~="block-end"]
+    )
+  )::before {
+  inset-inline-end: var(--space-2);
+}
+
+.x-overlay:where([data-overlay-gestures]):where(
+    [data-placement~="inline-end"]:not(
+      [data-placement~="block-start"],
+      [data-placement~="block-end"]
+    )
+  )::before {
+  inset-inline-start: var(--space-2);
+}
+
+/* Corner resize grip — center's only affordance (iPad-window style), at
+ * the bottom inline-end corner the resize gesture engages from. */
+.x-overlay:where([data-overlay-gestures]):where(
+    :not([data-placement]),
+    [data-placement="center"]
+  )::before {
+  inset-inline-end: var(--space-2);
+  bottom: var(--space-2);
+  width: var(--space-3);
+  height: var(--space-3);
+  border-inline-end: 2px solid var(--neutral-a8);
+  border-block-end: 2px solid var(--neutral-a8);
+  border-end-end-radius: var(--radius-3);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * DISPLAY GUARD                                                                                   *
+ *                                                                                                 *
+ * Pre-Popover-API browsers ignore the `popover` attribute and would                               *
+ * render the element inline — keep it hidden instead. Open overlays                               *
+ * (either modality) become a single-row grid: with the base rule's                                *
+ * `minmax(0, 1fr)` row the card stretches and shrinks with the frame,                             *
+ * tracking morphs frame-by-frame. Scoped to the open states so the UA's                           *
+ * `dialog:not([open]) { display: none }` and the Tier-2 discrete                                  *
+ * display exit keep working.                                                                      *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-overlay:where([popover]) {
+  display: none;
+}
+
+.x-overlay:where([open], :popover-open) {
+  display: grid;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * STATIC FALLBACK — browsers without the `translate` property                                     *
+ *                                                                                                 *
+ * Chrome 100–103 (the library floor predates individual transforms).                              *
+ * Classic inset/margin alignment, no morphing. Physical insets; RTL of                            *
+ * inline placements is not mirrored here (static fallback only).                                  *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+@supports not (translate: 0px) {
+  .x-overlay {
+    top: auto;
+    left: auto;
+    inset: 0;
+    margin: auto;
+  }
+
+  .x-overlay:where(
+    [data-placement~="block-start"]:not(
+      [data-placement~="inline-start"],
+      [data-placement~="inline-end"]
+    )
+  ) {
+    inset: 0 0 auto;
+    margin: 0;
+  }
+
+  .x-overlay:where(
+    [data-placement~="block-end"]:not(
+      [data-placement~="inline-start"],
+      [data-placement~="inline-end"]
+    )
+  ) {
+    inset: auto 0 0;
+    margin: 0;
+  }
+
+  .x-overlay:where(
+    [data-placement~="inline-start"]:not(
+      [data-placement~="block-start"],
+      [data-placement~="block-end"]
+    )
+  ) {
+    inset: 0 auto 0 0;
+    margin: 0;
+  }
+
+  .x-overlay:where(
+    [data-placement~="inline-end"]:not(
+      [data-placement~="block-start"],
+      [data-placement~="block-end"]
+    )
+  ) {
+    inset: 0 0 0 auto;
+    margin: 0;
+  }
+
+  .x-overlay:where(
+    [data-placement~="block-start"][data-placement~="inline-start"]
+  ) {
+    inset: var(--overlay-inset) auto auto var(--overlay-inset);
+    margin: 0;
+  }
+  .x-overlay:where(
+    [data-placement~="block-start"][data-placement~="inline-end"]
+  ) {
+    inset: var(--overlay-inset) var(--overlay-inset) auto auto;
+    margin: 0;
+  }
+  .x-overlay:where(
+    [data-placement~="block-end"][data-placement~="inline-start"]
+  ) {
+    inset: auto auto var(--overlay-inset) var(--overlay-inset);
+    margin: 0;
+  }
+  .x-overlay:where(
+    [data-placement~="block-end"][data-placement~="inline-end"]
+  ) {
+    inset: auto var(--overlay-inset) var(--overlay-inset) auto;
+    margin: 0;
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SMALL-VIEWPORT DETENTS                                                                          *
+ *                                                                                                 *
+ * svh tracks the collapsing mobile browser chrome. (A second declaration                          *
+ * in the same rule would be deduped by the build — guard instead.)                                *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+@supports (height: 1svh) {
+  /* Scoped to block-edge placements — a bare .x-overlay rule here would
+   * stomp the drawers' px width detents (this block is later in source). */
+  .x-overlay:where(
+    [data-placement~="block-start"],
+    [data-placement~="block-end"]
+  ) {
+    --overlay-detent-small: 25svh;
+    --overlay-detent-medium: 60svh;
+    --overlay-detent-large: calc(100svh - var(--space-9));
+  }
+}
+
+@supports (width: 1svw) {
+  .x-overlay:where(
+    [data-placement~="inline-start"]:not(
+      [data-placement~="block-start"],
+      [data-placement~="block-end"]
+    ),
+    [data-placement~="inline-end"]:not(
+      [data-placement~="block-start"],
+      [data-placement~="block-end"]
+    )
+  ) {
+    --overlay-detent-large: calc(100svw - var(--space-9));
+  }
+
+  .x-overlay:where(:not([data-placement]), [data-placement="center"]) {
+    --overlay-detent-large: calc(100svw - 2 * var(--overlay-inset));
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SIZE MORPHS                                                                                     *
+ *                                                                                                 *
+ * Lets fit-content (center placement) interpolate against detent heights                          *
+ * when morphing. Without support, size snaps while position slides.                               *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+@supports (interpolate-size: allow-keywords) {
+  .x-overlay {
+    interpolate-size: allow-keywords;
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * ENTER / EXIT — Tier 2 (@starting-style + allow-discrete)                                        *
+ *                                                                                                 *
+ * Closed state = the placement's own alignment pushed off its edge                                *
+ * (center fades/settles instead). The same --overlay-tx/-ty channel                               *
+ * carries alignment and enter/exit, so gestures (which only add                                   *
+ * --overlay-dx/-dy) compose cleanly.                                                              *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+@supports (transition-behavior: allow-discrete) {
+  .x-overlay {
+    transition-property:
+      top, left, translate, width, height, opacity, scale, display;
+    transition-duration: var(--overlay-duration);
+    transition-timing-function: var(--overlay-easing);
+    transition-behavior: allow-discrete;
+  }
+
+  /* center — fade + settle */
+  .x-overlay:where(:not([data-placement]), [data-placement="center"]) {
+    opacity: 0;
+    scale: 0.97;
+
+    &:where([open], :popover-open) {
+      opacity: 1;
+      scale: 1;
+
+      @starting-style {
+        opacity: 0;
+        scale: 0.97;
+      }
+    }
+  }
+
+  /* block-end family — slide below the bottom edge */
+  .x-overlay:where(
+    [data-placement~="block-end"]:not(
+      [data-placement~="inline-start"],
+      [data-placement~="inline-end"]
+    )
+  ) {
+    --overlay-ty: 0%;
+
+    &:where([open], :popover-open) {
+      --overlay-ty: -100%;
+
+      @starting-style {
+        --overlay-ty: 0%;
+      }
+    }
+  }
+
+  .x-overlay:where(
+    [data-placement~="block-end"][data-placement~="inline-start"],
+    [data-placement~="block-end"][data-placement~="inline-end"]
+  ) {
+    --overlay-ty: var(--overlay-inset);
+
+    &:where([open], :popover-open) {
+      --overlay-ty: -100%;
+
+      @starting-style {
+        --overlay-ty: var(--overlay-inset);
+      }
+    }
+  }
+
+  /* block-start family — slide above the top edge */
+  .x-overlay:where(
+    [data-placement~="block-start"]:not(
+      [data-placement~="inline-start"],
+      [data-placement~="inline-end"]
+    )
+  ) {
+    --overlay-ty: -100%;
+
+    &:where([open], :popover-open) {
+      --overlay-ty: 0%;
+
+      @starting-style {
+        --overlay-ty: -100%;
+      }
+    }
+  }
+
+  .x-overlay:where(
+    [data-placement~="block-start"][data-placement~="inline-start"],
+    [data-placement~="block-start"][data-placement~="inline-end"]
+  ) {
+    --overlay-ty: calc(-100% - var(--overlay-inset));
+
+    &:where([open], :popover-open) {
+      --overlay-ty: 0%;
+
+      @starting-style {
+        --overlay-ty: calc(-100% - var(--overlay-inset));
+      }
+    }
+  }
+
+  /* inline drawers — slide past their side edge (mirrored in RTL) */
+  .x-overlay:where(
+    [data-placement~="inline-start"]:not(
+      [data-placement~="block-start"],
+      [data-placement~="block-end"]
+    )
+  ) {
+    --overlay-tx: -100%;
+
+    &:where([open], :popover-open) {
+      --overlay-tx: 0%;
+
+      @starting-style {
+        --overlay-tx: -100%;
+      }
+    }
+
+    &:where(:dir(rtl)) {
+      --overlay-tx: 0%;
+
+      &:where([open], :popover-open) {
+        --overlay-tx: -100%;
+
+        @starting-style {
+          --overlay-tx: 0%;
+        }
+      }
+    }
+  }
+
+  .x-overlay:where(
+    [data-placement~="inline-end"]:not(
+      [data-placement~="block-start"],
+      [data-placement~="block-end"]
+    )
+  ) {
+    --overlay-tx: 0%;
+
+    &:where([open], :popover-open) {
+      --overlay-tx: -100%;
+
+      @starting-style {
+        --overlay-tx: 0%;
+      }
+    }
+
+    &:where(:dir(rtl)) {
+      --overlay-tx: -100%;
+
+      &:where([open], :popover-open) {
+        --overlay-tx: 0%;
+
+        @starting-style {
+          --overlay-tx: -100%;
+        }
+      }
+    }
+  }
+
+  /* backdrop fade — modal only */
+  .x-overlay::backdrop {
+    opacity: 0;
+    transition-property: opacity, display;
+    transition-duration: var(--overlay-duration);
+    transition-timing-function: var(--overlay-easing);
+    transition-behavior: allow-discrete;
+  }
+
+  .x-overlay:where([open])::backdrop {
+    opacity: 1;
+
+    @starting-style {
+      opacity: 0;
+    }
+  }
+
+  /* Tier 3 — keep the exit transition inside the top layer. Browsers
+   * without `overlay` (Firefox) clip the exit; entry is unaffected. */
+  @supports (overlay: auto) {
+    .x-overlay {
+      transition-property:
+        top, left, translate, width, height, opacity, scale, display, overlay;
+    }
+    .x-overlay::backdrop {
+      transition-property: opacity, display, overlay;
+    }
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * DECK EFFECT (opt-in recipe)                                                                     *
+ *                                                                                                 *
+ * Put `data-overlay-deck` on the page wrapper to scale it back iOS-style                          *
+ * while a bottom sheet is open. Degrades to nothing without `:has()`.                             *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+@supports selector(:has(*)) {
+  [data-overlay-deck] {
+    transform-origin: 50% 0;
+    transition-property: scale, translate, border-radius;
+    transition-duration: var(--overlay-duration, 300ms);
+    transition-timing-function: var(
+      --overlay-easing,
+      cubic-bezier(0.32, 0.72, 0, 1)
+    );
+  }
+
+  :root:has(.x-overlay[data-placement~="block-end"][open]) [data-overlay-deck] {
+    scale: 0.96;
+    translate: 0 var(--space-2);
+    border-radius: var(--radius-4);
+    overflow: clip;
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * MOTION                                                                                          *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+@media (prefers-reduced-motion: reduce) {
+  .x-overlay,
+  .x-overlay::backdrop,
+  [data-overlay-deck] {
+    transition: none;
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * FORCED COLORS                                                                                   *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+@media (forced-colors: active) {
+  .x-overlay:where([data-overlay-gestures])::before {
+    background-color: ButtonText;
+  }
+
+  .x-overlay:where([data-overlay-gestures])::after {
+    border-color: ButtonText;
+  }
+}

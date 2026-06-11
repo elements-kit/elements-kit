@@ -1,0 +1,196 @@
+---
+title: Overlay
+description: CSS-first anchored floating layer over native dialog and popover — placements from centered modal to sheets, drawers, and corner panels, with morphing transitions and opt-in gestures.
+---
+
+import Playground from "@/playground/Playground.astro";
+import OVERLAY from "@/playground/files/ui-overlay.tsx?raw";
+
+One frame, three orthogonal axes. `.x-overlay` wraps a [Card](/ui/card) in a native `<dialog>` or [popover](https://developer.mozilla.org/en-US/docs/Web/API/Popover_API) and owns positioning, the top layer, enter/exit animation, detent sizes, and the backdrop — the platform owns focus trapping, Esc, light dismiss, and focus return. Zero JS required; gestures are an opt-in module.
+
+- **Placement** — `data-placement`, where the layer sits in the viewport.
+- **Modality** — how you open it, no attribute needed.
+- **Anchor** — `data-anchor` is *reserved* for future element anchoring (CSS Anchor Positioning); v1 anchors to the viewport only.
+
+{/* Taller than usual — the demo opens overlays. */}
+<Playground
+  provider={{ files: { "/main.tsx": { code: OVERLAY, active: true } } }}
+  preview={{ style: { height: "480px" } }}
+/>
+
+## Install
+
+```ts
+import "elements-kit/ui/styles/theme.css";
+import "elements-kit/ui/styles/scaling.css";
+import "elements-kit/ui/styles/radius.css";
+import "elements-kit/ui/styles/space.css";
+import "elements-kit/ui/styles/typography.css";
+import "elements-kit/ui/styles/cursor.css";
+import "elements-kit/ui/styles/unset.css";
+// pick a neutral palette for --neutral-* (must match data-neutral on root):
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/neutral/gray.css";
+// backdrop color:
+import "elements-kit/ui/styles/palette/black-alpha.css";
+// the surface and the frame:
+import "elements-kit/ui/card/card.css";
+import "elements-kit/ui/overlay/overlay.css";
+```
+
+Optional gestures:
+
+```ts
+import { createOverlayGestures } from "elements-kit/ui/overlay";
+```
+
+## Placement
+
+`data-placement` uses the platform's [`position-area`](https://developer.mozilla.org/en-US/docs/Web/CSS/position-area) vocabulary. Words are order-insensitive, space-separated tokens:
+
+| `data-placement` | Result |
+| --- | --- |
+| `center` *(default)* | centered modal card |
+| `block-start` / `block-end` | full-width top / bottom sheet, height detents |
+| `inline-start` / `inline-end` | full-height side drawer, width detents |
+| `block-end inline-end` *(etc.)* | floating corner panel with a viewport gap |
+
+Every placement is expressed in interpolable lengths — flipping `data-placement` (or `data-detent`) on an *open* overlay morphs it to the new spot with a plain CSS transition. That's the whole Apple-Maps trick: a persistent `popover="manual"` panel that glides between corner, sheet, and drawer while the page stays interactive.
+
+Logical names mirror in RTL: `inline-end` is the right edge in LTR and the left edge in `dir="rtl"`.
+
+## Modality
+
+Modality is *how you open it* — same markup, no attribute:
+
+```html
+<!-- Modal: backdrop, focus trap, inert page -->
+<dialog class="unset x-overlay" id="filters" data-placement="block-end" data-detent="medium">
+  <div class="x-card" data-variant="elevated" data-size="3">…</div>
+</dialog>
+<button onclick="document.getElementById('filters').showModal()">Filters</button>
+
+<!-- Non-modal: top layer, light dismiss, page interactive -->
+<dialog class="unset x-overlay" id="info" popover>
+  <div class="x-card" data-variant="elevated">…</div>
+</dialog>
+<button popovertarget="info">Info</button>
+
+<!-- Persistent: top layer, no light dismiss, page interactive (Apple Maps) -->
+<dialog class="unset x-overlay" id="panel" popover="manual"
+        data-placement="block-end inline-end" data-detent="small">
+  <div class="x-card" data-variant="elevated" data-size="2">…</div>
+</dialog>
+<button popovertarget="panel">Toggle panel</button>
+```
+
+Markup contract: the frame's required direct child is a `.x-card` — that card is the visible surface, any variant and size. The frame paints nothing itself except the gesture affordances, so the card's own pseudo-element surface and ring are untouched.
+
+## API
+
+| Attribute *(on the frame)* | Values |
+| --- | --- |
+| `data-placement` | see [Placement](#placement); default `center` |
+| `data-detent` | `small`, `medium`, `large` — heights on block-edge placements, widths on drawers and center |
+| `data-anchor` | **reserved** for future element anchoring — do not use |
+| `data-overlay-gestures` | written by `createOverlayGestures` while attached; gates the affordances (set it by hand if you wire your own dragging) |
+
+| Custom property | Default | Role |
+| --- | --- | --- |
+| `--overlay-duration` | `300ms` | transition duration |
+| `--overlay-easing` | iOS-style ease-out | transition easing |
+| `--overlay-inset` | `--space-4` | viewport gap for center + corner placements |
+| `--overlay-max-width` | `480px` | width cap for center / corner placements |
+| `--overlay-detent-small/-medium/-large` | heights `25svh` / `60svh` / `100svh − --space-9`; drawer widths `280px` / `480px` / `100svw − --space-9` | detent sizes per axis |
+| `--overlay-w` / `--overlay-h` | — | center size, written by the corner resize gesture (JS-owned) |
+| `--overlay-backdrop` | `--color-overlay` | backdrop color (modal only) |
+
+## Detents & gestures
+
+CSS owns the detent *positions*: `data-detent` picks a size from the `--overlay-detent-*` knobs, and flipping the attribute animates between them. The opt-in JS module adds what CSS can't, dispatched by placement:
+
+- **Sheets** (block-edge, including corner panels) — drag between height detents.
+- **Drawers** — drag between width detents, RTL-aware.
+- **Center** — iPad-window corner resize from the bottom inline-end grip. Free-form by default: the size persists via `--overlay-w/-h` and rubber-bands at the min/max bounds. Pass a `detents` option and the release snaps to the width steps instead. Either way, shrinking far past the minimum dismisses.
+
+```ts
+import { createOverlayGestures } from "elements-kit/ui/overlay";
+
+const overlay = document.querySelector<HTMLDialogElement>("#filters")!;
+const gestures = createOverlayGestures(overlay, {
+  detents: ["small", "medium", "large"], // default; on center: switches resize to snapping
+  dismissible: true,                     // drag/flick past smallest closes
+  velocityThreshold: 0.5,                // px/ms
+});
+
+overlay.addEventListener("detentchange", () => console.log(gestures.detent));
+gestures.setDetent("large"); // programmatic, animated by CSS
+gestures.dispose();          // or rely on an enclosing effectScope
+```
+
+While dragging, the module drives the overlay's size inline with transitions suppressed and text selection disabled; on release it snaps to the nearest detent — biased by flick velocity — by writing `data-detent` back, so CSS owns every resting state. Dragging past the largest detent rubber-bands; dragging or flicking past the smallest closes the overlay (`close()` for dialogs, `hidePopover()` otherwise). Drags never start from interactive elements (buttons, links, inputs), so the card's content keeps working.
+
+While attached, the factory sets `data-overlay-gestures` on the frame — that's what shows the grabber pills and the corner grip. No gestures, no affordance.
+
+Inside an `effect` / `effectScope`, cleanup is automatic via `onCleanup`; standalone, call `dispose()` (also exposed as `Symbol.dispose` for `using`).
+
+## Deck effect
+
+Opt-in recipe: put `data-overlay-deck` on your page wrapper and it scales back iOS-style while a bottom sheet is open — pure CSS via `:has()`, degrades to nothing.
+
+```html
+<body>
+  <div data-overlay-deck><!-- page --></div>
+  <dialog class="unset x-overlay" data-placement="block-end">…</dialog>
+</body>
+```
+
+## How the tiers work
+
+Mirroring the [Segmented Control](/ui/segmented-control)'s approach, every modern feature is fenced behind `@supports`:
+
+- **Tier 1 — universal.** Native `<dialog>` opens/closes instantly; placement and detent *morphs* animate wherever the `translate` property exists (Chrome 104+, Safari/Firefox at the floor). Focus trap, `::backdrop`, Esc — all platform behavior.
+- **Tier 2 — enter/exit.** `@supports (transition-behavior: allow-discrete)` adds enter/exit transitions with [`@starting-style`](https://developer.mozilla.org/en-US/docs/Web/CSS/@starting-style): sheets and drawers slide from their edge, the center card fades and settles, the backdrop fades.
+- **Tier 3 — top-layer exit.** A nested `@supports (overlay: auto)` keeps the *exit* transition inside the top layer. Firefox currently clips the exit; entry is unaffected.
+- **Size morphs.** `@supports (interpolate-size: allow-keywords)` lets the center card's `fit-content` height interpolate during morphs; elsewhere size snaps while position slides.
+- **Popover modality.** The `popover` attribute needs Chrome 114 / Safari 17 / Firefox 125 — above the library floor, so on older browsers a popover overlay stays hidden rather than rendering broken.
+
+## Accessibility
+
+The platform does the heavy lifting — don't re-implement it:
+
+1. **Label the dialog.** `aria-labelledby` pointing at the card's heading (or `aria-label` on the frame).
+2. **`showModal()`, not `show()`.** Modal overlays rely on it for the top layer, focus trap, inert background, and `::backdrop`.
+3. **Focus return is free.** Closing a modal dialog or popover returns focus to the invoker natively.
+4. **Esc is free.** `<dialog>` fires `cancel` then `close`; popovers light-dismiss. Don't intercept Esc.
+5. **Affordances are decorative.** Grabbers and the resize grip are pseudo-elements, invisible to AT. Always provide a visible close button inside the card — gestures are pointer-only.
+6. **Reduced motion.** `prefers-reduced-motion: reduce` removes every transition.
+7. **Forced colors.** Affordances get `ButtonText` fallbacks.
+
+APG pattern: [WAI-ARIA Authoring Practices — Dialog (Modal)](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/).
+
+:::caution[Don't]
+Put the overlay's only close affordance behind a gesture. Gestures are an enhancement; Esc, backdrop click, and a visible button are the baseline.
+:::
+
+:::caution[Don't]
+Use the popover modality for content that must block interaction — that's a job for `showModal()`. Popovers are non-modal by design.
+:::
+
+## When not to use
+
+- **Menus, selects, tooltips** — purpose-built patterns with their own keyboard models; the popover modality is for rich non-modal surfaces, not lists of actions.
+- **Full-page takeovers** — navigate instead; an overlay implies the page underneath stays relevant.
+
+## Browser support
+
+- **Tier 1** — every browser at `elements-kit`'s build targets (Chrome / Firefox 100+, Safari 16+): fully functional dialogs. Placement morphs need the `translate` property (Chrome 104+); Chrome 100–103 gets a static fallback.
+- **Tier 2/3 animations** — Chrome 117+, Safari 17.4+, Firefox 129+ (`allow-discrete` + `@starting-style`); `overlay` in Chrome 117+ / Safari 26+.
+- **Popover modality** — Chrome 114+, Safari 17+, Firefox 125+. Hidden (never broken) below that.
+- **Size morphs** — `interpolate-size` (Chrome 129+); position still glides elsewhere.
+- **Gestures (JS)** — Pointer Events, everywhere at the floor. `:dir()`-aware via `getComputedStyle`.
+
+## See also
+
+- [Card](/ui/card) — the surface the overlay frames
+- [Styles](/ui/styles) — tokens, theming, the `unset` helper
