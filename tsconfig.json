@@ -15,5 +15,14 @@
       "@/*": ["./src/*"]
     }
   },
-  "exclude": ["dist", "docs", "example", "node_modules", "tsdown.config.ts"]
+  "exclude": [
+    "dist",
+    "docs",
+    "example",
+    "storybook",
+    "node_modules",
+    "tsdown.config.ts",
+    "**/*.stories.ts",
+    "**/*.stories.tsx"
+  ]
 }

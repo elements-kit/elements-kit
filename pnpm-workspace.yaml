@@ -3,5 +3,6 @@ packages:
   - "docs"
   - "script"
   - "example"
+  - "storybook"
 allowBuilds:
   esbuild: true

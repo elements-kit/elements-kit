@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "target": "es2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "elements-kit",
+    "paths": {
+      "@/*": ["../src/*"],
+      "@storybook/html-vite": [
+        "./node_modules/@storybook/html-vite/dist/index.d.ts"
+      ],
+      "@storybook/addon-themes": [
+        "./node_modules/@storybook/addon-themes/dist/index.d.ts"
+      ]
+    }
+  },
+  "include": ["css.d.ts", ".storybook/**/*.ts", "../src/ui/**/*.stories.ts"]
+}
