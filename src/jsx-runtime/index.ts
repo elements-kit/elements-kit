@@ -179,10 +179,10 @@ export namespace JSX {
   }
   export type LibraryManagedAttributes<C, P> = ResolveProps<C, P>;
   type RegisteredElements = {
-    [K in keyof CustomElementRegistry]: CustomElementRegistry[K] extends AnyElementCtor
+    [K in keyof CustomElementRegistry]: CustomElementRegistry[K] extends infer C extends AnyElementCtor
       ? WithJsxNamespaces<
-          MaybeReactiveProps<ElementProps<CustomElementRegistry[K]>>,
-          InstanceType<CustomElementRegistry[K]>
+          MaybeReactiveProps<ElementProps<C>>,
+          InstanceType<C>
         >
       : never;
   };
