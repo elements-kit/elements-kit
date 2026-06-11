@@ -111,6 +111,19 @@ describe("children — AllNode path", () => {
     expect(el.childNodes[0]).toBe(t);
     expect(el.childNodes[1]).toBe(span);
   });
+
+  it("Node children with false/null guards skip empty values", () => {
+    const button = document.createElement("button");
+    const el = (
+      <div>
+        {false}
+        {null}
+        {button}
+      </div>
+    ) as HTMLElement;
+    expect(el.childNodes.length).toBe(1);
+    expect(el.firstChild).toBe(button);
+  });
 });
 
 describe("children — Mixed (Node + primitive, no functions)", () => {

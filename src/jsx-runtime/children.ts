@@ -165,6 +165,7 @@ function mountStatic(
   if (kind === StaticKind.AllNode) {
     // No type checks per child — straight `appendChild` + dispose harvest.
     for (const c of list) {
+      if (c == null || c === false || c === true) continue;
       const node = c as Node;
       const dispose = (node as unknown as Partial<Disposable>)[Symbol.dispose];
       if (dispose) (disposers ??= []).push(dispose);
