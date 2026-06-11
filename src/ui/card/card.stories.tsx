@@ -18,7 +18,7 @@ const meta = {
     size: { control: "select", options: ["1", "2", "3", "4", "5"] },
     interactive: {
       control: "boolean",
-      description: "Render as <button> to enable hover/active states",
+      description: "Render as &lt;button&gt; to enable hover/active states",
     },
   },
   args: { variant: "surface", size: "3", interactive: false },
