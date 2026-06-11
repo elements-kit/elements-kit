@@ -77,6 +77,19 @@
   &:where(label) {
     -webkit-tap-highlight-color: transparent;
   }
+  &:where(dialog, [popover]) {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    outline: none;
+    max-width: none;
+    max-height: none;
+    overflow: visible;
+    box-sizing: border-box;
+  }
   &:where(select) {
     font-weight: normal;
     font-style: normal;
