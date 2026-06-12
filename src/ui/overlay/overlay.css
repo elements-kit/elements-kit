@@ -522,17 +522,19 @@
 }
 
 /* Corner resize grip — center only, at the bottom inline-end corner the
- * resize gesture engages from. The iPad-window handle: a quarter arc
- * concentric with the card's corner radius plus short straight tails
- * with round caps, composed from gradient mask layers over a
- * background-color — gradients read custom properties, so the arc
- * tracks the radius scale (`--overlay-grip-radius`, card radius by
- * default) and every layer rasterizes together (no seams). */
+ * resize gesture engages from. The handle hugs the corner: a quarter arc
+ * concentric with the card radius (square when the radius scale
+ * collapses) plus short tails with pill caps. The paint is a border box
+ * with ALL four sides inked — the tip corner squares are solid, no miter
+ * shows — and `border-bottom-right-radius` draws the curve; the mask is
+ * a pure stencil (strips + arc quadrant + cap dots, no radius-dependent
+ * gradient stops), so it is robust at every radius and scale. Physical
+ * sides because the mask is physical; RTL mirrors the whole pseudo. */
 .x-overlay:where([data-overlay-gestures]):where(
     :not([data-placement]),
     [data-placement="center"]
   )::after {
-  /* Arc outer radius: card corner radius − the inset gap below. */
+  /* Outer arc radius: card corner radius − the inset gap below. */
   --_grip-r: max(
     calc(var(--overlay-grip-radius, var(--radius-5)) - var(--space-1)),
     0px
@@ -543,36 +545,36 @@
   pointer-events: none;
   inset-inline-end: var(--space-1);
   bottom: var(--space-1);
-  width: calc(var(--_grip-r) + var(--space-2));
-  height: calc(var(--_grip-r) + var(--space-2));
-  background-color: var(--neutral-a8);
+  width: max(calc(var(--_grip-r) + var(--space-1)), calc(var(--space-1) * 3));
+  height: max(calc(var(--_grip-r) + var(--space-1)), calc(var(--space-1) * 3));
+  border: var(--space-1) solid var(--neutral-a8);
+  border-bottom-right-radius: var(--_grip-r);
   mask:
-    /* quarter arc hugging the corner — hard stops keep the band the
-     * same --space-1 thickness as the tails */
-    radial-gradient(
-        circle at 0 0,
-        transparent calc(var(--_grip-r) - var(--space-1)),
-        #000 calc(var(--_grip-r) - var(--space-1)),
-        #000 var(--_grip-r),
-        transparent var(--_grip-r)
-      )
-      100% 100% / var(--_grip-r) var(--_grip-r) no-repeat,
-    /* straight tails along both edges */
+    /* tails, cut flat at the cap centers */
     linear-gradient(#000, #000) right 0 top calc(var(--space-1) / 2) /
-      var(--space-1) calc(100% - var(--_grip-r) - var(--space-1) / 2)
-      no-repeat,
+      var(--space-1) calc(100% - var(--space-1) / 2) no-repeat,
     linear-gradient(#000, #000) left calc(var(--space-1) / 2) bottom 0 /
-      calc(100% - var(--_grip-r) - var(--space-1) / 2) var(--space-1)
+      calc(100% - var(--space-1) / 2) var(--space-1) no-repeat,
+    /* arc quadrant — the border's own curve shows through */
+    linear-gradient(#000, #000) 100% 100% / var(--_grip-r) var(--_grip-r)
       no-repeat,
-    /* round caps on the tail ends */
-    radial-gradient(circle closest-side, #000 100%, transparent 100%)
+    /* round caps, centered on the flat cuts over solid border ink */
+    radial-gradient(
+        circle closest-side,
+        #000 calc(100% - 0.5px),
+        transparent
+      )
       right 0 top 0 / var(--space-1) var(--space-1) no-repeat,
-    radial-gradient(circle closest-side, #000 100%, transparent 100%)
+    radial-gradient(
+        circle closest-side,
+        #000 calc(100% - 0.5px),
+        transparent
+      )
       left 0 bottom 0 / var(--space-1) var(--space-1) no-repeat;
 }
 
-/* The arc mirrors with the corner in RTL (logical insets already moved
- * it there; the mask image is physical). */
+/* The grip mirrors with the corner in RTL (logical insets already moved
+ * it there; paint and mask are physical). */
 .x-overlay:where([data-overlay-gestures]):where(
     :not([data-placement]),
     [data-placement="center"]
@@ -987,6 +989,6 @@
   }
 
   .x-overlay:where([data-overlay-gestures])::after {
-    background-color: ButtonText;
+    border-color: ButtonText;
   }
 }
