@@ -115,7 +115,7 @@ export class App {
 
         <section>
           <SectionHeading>
-            Center modal — resize from the corner grip
+            Center modal — move from the top grabber, resize from the corner
           </SectionHeading>
           <button
             class="unset x-button"
@@ -135,8 +135,9 @@ export class App {
             <div class="x-card" data-variant="elevated" data-size="3">
               <strong>Confirm</strong>
               <p>
-                The default placement. Drag the bottom-end corner grip to
-                resize, iPad-window style — shrink it far enough to dismiss.
+                The default placement, iPad-window style: drag the top grabber
+                to move it around the viewport (fling it off-screen to
+                dismiss), and the bottom-end corner grip to resize.
               </p>
               <button
                 class="unset x-button"

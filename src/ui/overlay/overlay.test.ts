@@ -223,18 +223,25 @@ describe("createOverlayGestures", () => {
 
   it("does not engage from interactive elements (their click survives)", () => {
     const overlay = createOverlay("block-end");
+    const card = overlay.querySelector(".x-card")!;
     const button = document.createElement("button");
-    overlay.querySelector(".x-card")!.appendChild(button);
+    card.appendChild(button);
+    const label = document.createElement("label");
+    label.className = "x-toggle";
+    label.appendChild(document.createElement("input"));
+    card.appendChild(label);
     const gestures = createOverlayGestures(overlay);
 
-    button.dispatchEvent(
-      new PointerEvent("pointerdown", { clientY: 100, bubbles: true }),
-    );
-    overlay.dispatchEvent(
-      new PointerEvent("pointermove", { clientY: 300, bubbles: true }),
-    );
-    expect(overlay.style.height).toBe("");
-    expect(overlay.style.userSelect).toBe("");
+    for (const el of [button, label]) {
+      el.dispatchEvent(
+        new PointerEvent("pointerdown", { clientY: 100, bubbles: true }),
+      );
+      overlay.dispatchEvent(
+        new PointerEvent("pointermove", { clientY: 300, bubbles: true }),
+      );
+      expect(overlay.style.height).toBe("");
+      expect(overlay.style.userSelect).toBe("");
+    }
 
     gestures.dispose();
     overlay.remove();
@@ -410,8 +417,148 @@ describe("drawer gestures (inline placements)", () => {
   });
 });
 
+describe("center window move (top grabber)", () => {
+  it("moves via --overlay-mx/-my, persists, and accumulates", () => {
+    const overlay = createOverlay("center");
+    mockCenterRect(overlay);
+    const gestures = createOverlayGestures(overlay, { dismissible: false });
+
+    // Top strip (rect.top = 100): engage and track 1:1.
+    drag2D(overlay, { x: 340, y: 110 }, { x: 390, y: 180 });
+    expect(overlay.style.getPropertyValue("--overlay-mx")).toBe("50px");
+    expect(overlay.style.getPropertyValue("--overlay-my")).toBe("70px");
+    expect(overlay.style.userSelect).toBe("none");
+
+    // Release: position persists, scaffolding clears.
+    pointerUp(overlay, { x: 390, y: 180 });
+    expect(overlay.style.getPropertyValue("--overlay-mx")).toBe("50px");
+    expect(overlay.style.getPropertyValue("--overlay-my")).toBe("70px");
+    expect(overlay.style.transition).toBe("");
+    expect(overlay.style.userSelect).toBe("");
+
+    // A second move continues from the persisted offset.
+    drag2D(overlay, { x: 340, y: 110 }, { x: 330, y: 100 });
+    pointerUp(overlay, { x: 330, y: 100 });
+    expect(overlay.style.getPropertyValue("--overlay-mx")).toBe("40px");
+    expect(overlay.style.getPropertyValue("--overlay-my")).toBe("60px");
+
+    gestures.dispose();
+    overlay.remove();
+  });
+
+  it("dragging the window off-screen closes it", () => {
+    const overlay = createOverlay("center");
+    mockCenterRect(overlay);
+    overlay.showModal();
+    const gestures = createOverlayGestures(overlay);
+
+    drag2D(overlay, { x: 340, y: 110 }, { x: -400, y: 110 });
+    // The window followed the pointer off the left edge — rebind the rect
+    // to where it now sits before releasing.
+    overlay.getBoundingClientRect = () =>
+      ({
+        x: -640,
+        y: 100,
+        left: -640,
+        top: 100,
+        right: -160,
+        bottom: 400,
+        width: 480,
+        height: 300,
+        toJSON: () => ({}),
+      }) as DOMRect;
+    pointerUp(overlay, { x: -400, y: 110 });
+    expect(overlay.open).toBe(false);
+
+    gestures.dispose();
+    overlay.remove();
+  });
+
+  it("rubber-bands the move beyond the viewport edge", () => {
+    const overlay = createOverlay("center");
+    mockCenterRect(overlay);
+    const gestures = createOverlayGestures(overlay, { dismissible: false });
+
+    // Base left is 100 → offset floor -100; overshoot is resisted ÷3:
+    // raw -300 → -100 + (-200 / 3) ≈ -166.67.
+    drag2D(overlay, { x: 340, y: 110 }, { x: 40, y: 110 });
+    const mx = parseFloat(overlay.style.getPropertyValue("--overlay-mx"));
+    expect(mx).toBeLessThan(-100);
+    expect(mx).toBeGreaterThan(-300);
+
+    gestures.dispose();
+    overlay.remove();
+  });
+
+  it("does not close off-screen when dismissible is false", () => {
+    const overlay = createOverlay("center");
+    mockCenterRect(overlay);
+    overlay.showModal();
+    const gestures = createOverlayGestures(overlay, { dismissible: false });
+
+    drag2D(overlay, { x: 340, y: 110 }, { x: -400, y: 110 });
+    pointerUp(overlay, { x: -400, y: 110 });
+    expect(overlay.open).toBe(true);
+    // Clamped to the viewport: base left is 100 → offset floor is -100.
+    expect(overlay.style.getPropertyValue("--overlay-mx")).toBe("-100px");
+
+    gestures.dispose();
+    overlay.remove();
+  });
+
+  it("dismissing resets the persisted position and size", () => {
+    const overlay = createOverlay("center");
+    mockCenterRect(overlay);
+    overlay.showModal();
+    const gestures = createOverlayGestures(overlay);
+
+    // Seed a persisted position, then fling it off-screen.
+    drag2D(overlay, { x: 340, y: 110 }, { x: 390, y: 160 });
+    pointerUp(overlay, { x: 390, y: 160 });
+    drag2D(overlay, { x: 340, y: 110 }, { x: -400, y: 110 });
+    overlay.getBoundingClientRect = () =>
+      ({
+        x: -640,
+        y: 100,
+        left: -640,
+        top: 100,
+        right: -160,
+        bottom: 400,
+        width: 480,
+        height: 300,
+        toJSON: () => ({}),
+      }) as DOMRect;
+    pointerUp(overlay, { x: -400, y: 110 });
+
+    expect(overlay.open).toBe(false);
+    expect(overlay.style.getPropertyValue("--overlay-mx")).toBe("");
+    expect(overlay.style.getPropertyValue("--overlay-my")).toBe("");
+    expect(overlay.style.getPropertyValue("--overlay-w")).toBe("");
+    expect(overlay.style.getPropertyValue("--overlay-h")).toBe("");
+
+    gestures.dispose();
+    overlay.remove();
+  });
+
+  it("pointercancel restores the previous offset", () => {
+    const overlay = createOverlay("center");
+    mockCenterRect(overlay);
+    const gestures = createOverlayGestures(overlay, { dismissible: false });
+
+    drag2D(overlay, { x: 340, y: 110 }, { x: 390, y: 160 });
+    pointerUp(overlay, { x: 390, y: 160 }); // persisted 50/50
+    drag2D(overlay, { x: 340, y: 110 }, { x: 600, y: 400 });
+    overlay.dispatchEvent(new PointerEvent("pointercancel", { bubbles: true }));
+    expect(overlay.style.getPropertyValue("--overlay-mx")).toBe("50px");
+    expect(overlay.style.getPropertyValue("--overlay-my")).toBe("50px");
+
+    gestures.dispose();
+    overlay.remove();
+  });
+});
+
 describe("center corner resize", () => {
-  it("engages only at the bottom inline-end corner", () => {
+  it("engages only at the corner grip or the top strip", () => {
     const overlay = createOverlay("center");
     mockCenterRect(overlay);
     const gestures = createOverlayGestures(overlay);
@@ -426,16 +573,20 @@ describe("center corner resize", () => {
       expect(overlay.style.userSelect).toBe("");
     }
 
-    // Corner press resizes — ×2 so the grip tracks the pointer.
+    // Corner press resizes — 1:1, anchored at the top inline-start corner
+    // (the offsets shift by half the growth to pin it).
     drag2D(overlay, { x: 570, y: 390 }, { x: 620, y: 440 });
-    expect(overlay.style.getPropertyValue("--overlay-w")).toBe("580px");
-    expect(overlay.style.getPropertyValue("--overlay-h")).toBe("400px");
+    expect(overlay.style.getPropertyValue("--overlay-w")).toBe("530px");
+    expect(overlay.style.getPropertyValue("--overlay-h")).toBe("350px");
+    expect(overlay.style.getPropertyValue("--overlay-mx")).toBe("25px");
+    expect(overlay.style.getPropertyValue("--overlay-my")).toBe("25px");
     expect(overlay.style.transition).toBe("none");
 
     // Free mode: the size persists after release, scaffolding clears.
     pointerUp(overlay, { x: 620, y: 440 });
-    expect(overlay.style.getPropertyValue("--overlay-w")).toBe("580px");
-    expect(overlay.style.getPropertyValue("--overlay-h")).toBe("400px");
+    expect(overlay.style.getPropertyValue("--overlay-w")).toBe("530px");
+    expect(overlay.style.getPropertyValue("--overlay-h")).toBe("350px");
+    expect(overlay.style.getPropertyValue("--overlay-mx")).toBe("25px");
     expect(overlay.style.transition).toBe("");
     expect(overlay.style.userSelect).toBe("");
 
@@ -448,15 +599,15 @@ describe("center corner resize", () => {
     mockCenterRect(overlay);
     const gestures = createOverlayGestures(overlay);
 
-    // happy-dom viewport is 1024×768; --overlay-inset resolves to the
-    // 16px fallback → max 992×736.
-    drag2D(overlay, { x: 570, y: 390 }, { x: 900, y: 390 });
+    // happy-dom viewport is 1024×768; the anchored left edge sits at 100
+    // → max width 924 (the window can never outgrow the viewport).
+    drag2D(overlay, { x: 570, y: 390 }, { x: 1600, y: 390 });
     const during = parseFloat(overlay.style.getPropertyValue("--overlay-w"));
-    expect(during).toBeGreaterThan(992); // overshoot…
-    expect(during).toBeLessThan(1140); // …but resisted
+    expect(during).toBeGreaterThan(924); // overshoot…
+    expect(during).toBeLessThan(1510); // …but resisted
 
-    pointerUp(overlay, { x: 900, y: 390 });
-    expect(overlay.style.getPropertyValue("--overlay-w")).toBe("992px");
+    pointerUp(overlay, { x: 1600, y: 390 });
+    expect(overlay.style.getPropertyValue("--overlay-w")).toBe("924px");
 
     gestures.dispose();
     overlay.remove();
@@ -498,6 +649,27 @@ describe("center corner resize", () => {
     overlay.remove();
   });
 
+  it("keeps a persisted window position across a resize", () => {
+    const overlay = createOverlay("center");
+    mockCenterRect(overlay);
+    const gestures = createOverlayGestures(overlay, { dismissible: false });
+
+    // Seed a move…
+    drag2D(overlay, { x: 340, y: 110 }, { x: 390, y: 160 });
+    pointerUp(overlay, { x: 390, y: 160 });
+    // …then resize from the corner: the anchored-corner shift composes
+    // onto the persisted position instead of wiping it.
+    drag2D(overlay, { x: 570, y: 390 }, { x: 620, y: 440 });
+    pointerUp(overlay, { x: 620, y: 440 });
+
+    expect(overlay.style.getPropertyValue("--overlay-w")).toBe("530px");
+    expect(overlay.style.getPropertyValue("--overlay-mx")).toBe("75px");
+    expect(overlay.style.getPropertyValue("--overlay-my")).toBe("75px");
+
+    gestures.dispose();
+    overlay.remove();
+  });
+
   it("engages at the mirrored corner in RTL", () => {
     const overlay = createOverlay("center");
     mockCenterRect(overlay);
@@ -505,10 +677,11 @@ describe("center corner resize", () => {
     const gestures = createOverlayGestures(overlay);
 
     // Bottom inline-end corner is physically bottom-left: (100, 400).
-    // Dragging left grows.
+    // Dragging left grows; the anchored corner is top-right.
     drag2D(overlay, { x: 110, y: 390 }, { x: 60, y: 440 });
-    expect(overlay.style.getPropertyValue("--overlay-w")).toBe("580px");
-    expect(overlay.style.getPropertyValue("--overlay-h")).toBe("400px");
+    expect(overlay.style.getPropertyValue("--overlay-w")).toBe("530px");
+    expect(overlay.style.getPropertyValue("--overlay-h")).toBe("350px");
+    expect(overlay.style.getPropertyValue("--overlay-mx")).toBe("-25px");
 
     gestures.dispose();
     overlay.remove();

@@ -8,13 +8,23 @@ import { onCleanup } from "@/signals/index.ts";
  *   between height detents.
  * - Drawers (pure `inline-start` / `inline-end`) drag between width
  *   detents, direction-aware (`:dir(rtl)` flips the sign).
- * - Center (no placement) resizes from its bottom inline-end corner,
- *   iPad-window style. Free-form by default: the size persists via the
- *   JS-owned `--overlay-w`/`--overlay-h` (which only the center placement
- *   reads) and rubber-bands at the min/max bounds. Pass a `detents`
- *   option and the release snaps to the stylesheet's width steps via
- *   `data-detent` instead. Either way, shrinking past the minimum
- *   dismisses.
+ * - Center (no placement) is an iPad-style window with two handles:
+ *   - The top grabber moves it in x/y, constrained to the viewport with
+ *     rubber-band resistance at the edges. The position persists across
+ *     releases via the JS-owned `--overlay-mx`/`--overlay-my` offsets
+ *     (composed into translate only by the center rule, so placement
+ *     morphs ignore them and morphing back restores the spot), and
+ *     flinging the window off-screen — any side — closes it when
+ *     `dismissible` (a slow over-drag springs back instead).
+ *   - The bottom inline-end corner grip resizes, anchored at the
+ *     opposite (top inline-start) corner like a desktop window, so the
+ *     grip tracks the pointer 1:1 and the window never grows past the
+ *     viewport — the bounds rubber-band like everything else. Free-form
+ *     by default: the size persists via the JS-owned
+ *     `--overlay-w`/`--overlay-h` (which only the center placement
+ *     reads). Pass a `detents` option and the release snaps to the
+ *     stylesheet's width steps via `data-detent` instead. Either way,
+ *     shrinking past the minimum dismisses.
  *
  * CSS owns the detent positions (`data-detent` + `--overlay-detent-*`) and
  * the animated transition between them; this factory only adds what CSS
@@ -81,11 +91,13 @@ const BLOCK_EDGE = /(?:^|\s)block-(start|end)(?:\s|$)/;
 const INLINE_EDGE = /(?:^|\s)inline-(start|end)(?:\s|$)/;
 /** Center: square engagement zone at the bottom inline-end corner. */
 const RESIZE_ZONE_PX = 28;
+/** Center: top strip that engages the x/y window move. */
+const MOVE_ZONE_PX = 28;
 /** Center resize: minimum size (free mode). */
 const MIN_RESIZE_W = 240;
 const MIN_RESIZE_H = 160;
 
-type Mode = "block" | "inline" | "resize";
+type Mode = "block" | "inline" | "resize" | "move";
 
 /** Clamp with rubber-band resistance past either bound. */
 function resist(value: number, min: number, max: number): number {
@@ -183,6 +195,12 @@ export function createOverlayGestures(
 
   const dismiss = () => {
     clearDrag();
+    // Reset the center window's persisted position and size — a closed
+    // window reopens fresh. No-ops for the other placements.
+    overlay.style.removeProperty("--overlay-mx");
+    overlay.style.removeProperty("--overlay-my");
+    overlay.style.removeProperty("--overlay-w");
+    overlay.style.removeProperty("--overlay-h");
     if (overlay instanceof HTMLDialogElement && overlay.open) {
       overlay.close();
     } else {
@@ -201,23 +219,44 @@ export function createOverlayGestures(
   let startH = 0;
   let prevW = "";
   let prevH = "";
+  /** Persisted move offsets captured at engage (raw + numeric). */
+  let prevDxRaw = "";
+  let prevDyRaw = "";
+  let prevDx = 0;
+  let prevDy = 0;
+  /** Move offset bounds keeping the window inside the viewport. */
+  let dxMin = 0;
+  let dxMax = 0;
+  let dyMin = 0;
+  let dyMax = 0;
+  /** Resize bounds — the anchored corner pins the max to the viewport. */
+  let maxW = 0;
+  let maxH = 0;
   /** +1 dragging toward the far edge grows the surface, -1 shrinks. */
   let sign = -1;
   /** -1 in RTL — flips inline-axis pointer deltas. */
   let dir = 1;
   let detentsPx: number[] = [];
-  let last = 0;
+  let lastX = 0;
+  let lastY = 0;
   let lastTime = 0;
-  let velocity = 0;
+  let velocityX = 0;
+  let velocityY = 0;
   let dragging = false;
 
   const blockScroll = (event: TouchEvent) => {
     if (dragging) event.preventDefault();
   };
 
-  /** The pointer coordinate along the active drag axis. */
-  const axisCoord = (event: PointerEvent) =>
-    mode === "block" ? event.clientY : event.clientX;
+  /** The release velocity along the active drag axis (px/ms). */
+  const axisVelocity = () => (mode === "block" ? velocityY : velocityX);
+
+  /** Re-apply the move offsets captured at engage (center gestures must
+   * not wipe a persisted window position when their scaffolding clears). */
+  const restoreOffsets = () => {
+    if (prevDxRaw) overlay.style.setProperty("--overlay-mx", prevDxRaw);
+    if (prevDyRaw) overlay.style.setProperty("--overlay-my", prevDyRaw);
+  };
 
   const insetPx = () => {
     const value = parseFloat(
@@ -231,10 +270,13 @@ export function createOverlayGestures(
     // data-anchor is reserved for future element anchoring — don't drag it.
     if (overlay.getAttribute("data-anchor") === "element") return;
     // Leave interactive elements alone — capturing the pointer would
-    // retarget the pointerup to the overlay and swallow their click.
+    // retarget the pointerup to the overlay and swallow their click
+    // (labels activate a wrapped control, e.g. `.x-toggle`).
     const target = event.target as Element | null;
     if (
-      target?.closest("button, a, input, select, textarea, [contenteditable]")
+      target?.closest(
+        "button, a, label, input, select, textarea, [contenteditable]",
+      )
     ) {
       return;
     }
@@ -260,32 +302,61 @@ export function createOverlayGestures(
       startSize = overlay.getBoundingClientRect().width;
       detentsPx = detents.map((d) => resolveDetentPx(overlay, d, "width"));
     } else {
-      // center — engage only from the bottom inline-end corner grip, so
-      // the card's content stays clickable/selectable.
+      // center — engage only from the corner grip (resize) or the top
+      // grabber strip (move), so the card's content stays clickable and
+      // selectable.
       const rect = overlay.getBoundingClientRect();
       const cornerX = dir === 1 ? rect.right : rect.left;
-      if (
-        Math.abs(event.clientX - cornerX) > RESIZE_ZONE_PX ||
-        Math.abs(event.clientY - rect.bottom) > RESIZE_ZONE_PX
-      ) {
-        return;
-      }
-      mode = "resize";
-      startW = rect.width;
-      startH = rect.height;
-      prevW = overlay.style.getPropertyValue("--overlay-w");
-      prevH = overlay.style.getPropertyValue("--overlay-h");
-      if (centerSnapping) {
-        detentsPx = detents.map((d) => resolveDetentPx(overlay, d, "width"));
+      const inCorner =
+        Math.abs(event.clientX - cornerX) <= RESIZE_ZONE_PX &&
+        Math.abs(event.clientY - rect.bottom) <= RESIZE_ZONE_PX;
+      const inTopStrip =
+        event.clientY - rect.top >= 0 &&
+        event.clientY - rect.top <= MOVE_ZONE_PX;
+      if (!inCorner && !inTopStrip) return;
+
+      // Both center gestures capture (and later re-apply) the persisted
+      // window offsets.
+      prevDxRaw = overlay.style.getPropertyValue("--overlay-mx");
+      prevDyRaw = overlay.style.getPropertyValue("--overlay-my");
+      prevDx = parseFloat(prevDxRaw) || 0;
+      prevDy = parseFloat(prevDyRaw) || 0;
+
+      if (inCorner) {
+        mode = "resize";
+        startW = rect.width;
+        startH = rect.height;
+        prevW = overlay.style.getPropertyValue("--overlay-w");
+        prevH = overlay.style.getPropertyValue("--overlay-h");
+        // The top inline-start corner stays anchored, so the room toward
+        // the opposite edges bounds the size — handles never leave the
+        // viewport.
+        maxW = dir === 1 ? window.innerWidth - rect.left : rect.right;
+        maxH = window.innerHeight - rect.top;
+        if (centerSnapping) {
+          detentsPx = detents.map((d) => resolveDetentPx(overlay, d, "width"));
+        }
+      } else {
+        mode = "move";
+        // Offset bounds that keep the whole window inside the viewport —
+        // derived from the window's position with no drag offset applied.
+        const baseLeft = rect.left - prevDx;
+        const baseTop = rect.top - prevDy;
+        dxMin = -baseLeft;
+        dxMax = Math.max(window.innerWidth - rect.width - baseLeft, dxMin);
+        dyMin = -baseTop;
+        dyMax = Math.max(window.innerHeight - rect.height - baseTop, dyMin);
       }
     }
 
     dragging = true;
     startX = event.clientX;
     startY = event.clientY;
-    last = axisCoord(event);
+    lastX = event.clientX;
+    lastY = event.clientY;
     lastTime = event.timeStamp;
-    velocity = 0;
+    velocityX = 0;
+    velocityY = 0;
     overlay.style.userSelect = "none";
     overlay.style.setProperty("-webkit-user-select", "none");
     overlay.setPointerCapture?.(event.pointerId);
@@ -293,32 +364,53 @@ export function createOverlayGestures(
 
   const onPointerMove = (event: PointerEvent) => {
     if (!dragging) return;
-    const coord = axisCoord(event);
     const dt = event.timeStamp - lastTime;
-    if (dt > 0) velocity = (coord - last) / dt;
-    last = coord;
+    if (dt > 0) {
+      velocityX = (event.clientX - lastX) / dt;
+      velocityY = (event.clientY - lastY) / dt;
+    }
+    lastX = event.clientX;
+    lastY = event.clientY;
     lastTime = event.timeStamp;
 
     overlay.style.transition = "none";
 
+    if (mode === "move") {
+      // 1:1 inside the viewport, rubber-band resistance beyond it —
+      // a flick can still dismiss, a slow over-drag springs back.
+      // --overlay-mx/-my are composed into translate only by the center
+      // rule, so a placement morph ignores the window's position.
+      overlay.style.setProperty(
+        "--overlay-mx",
+        `${resist(prevDx + (event.clientX - startX), dxMin, dxMax)}px`,
+      );
+      overlay.style.setProperty(
+        "--overlay-my",
+        `${resist(prevDy + (event.clientY - startY), dyMin, dyMax)}px`,
+      );
+      return;
+    }
+
     if (mode === "resize") {
-      // The frame is center-anchored, so the corner moves at half the rate
-      // a width/height change implies — apply the delta twice to keep the
-      // grip under the pointer. Rubber-band resistance past either bound.
-      const inset = insetPx();
-      const minW = centerSnapping ? (detentsPx[0] ?? MIN_RESIZE_W) : MIN_RESIZE_W;
-      const w = resist(
-        startW + 2 * (event.clientX - startX) * dir,
-        minW,
-        window.innerWidth - 2 * inset,
-      );
-      const h = resist(
-        startH + 2 * (event.clientY - startY),
-        MIN_RESIZE_H,
-        window.innerHeight - 2 * inset,
-      );
+      // 1:1, anchored at the top inline-start corner: the frame is
+      // center-aligned, so shifting the move offsets by half the growth
+      // pins that corner and the grip tracks the pointer. Rubber-band
+      // resistance past either bound.
+      const minW = centerSnapping
+        ? (detentsPx[0] ?? MIN_RESIZE_W)
+        : MIN_RESIZE_W;
+      const w = resist(startW + (event.clientX - startX) * dir, minW, maxW);
+      const h = resist(startH + (event.clientY - startY), MIN_RESIZE_H, maxH);
       overlay.style.setProperty("--overlay-w", `${w}px`);
       overlay.style.setProperty("--overlay-h", `${h}px`);
+      overlay.style.setProperty(
+        "--overlay-mx",
+        `${prevDx + (dir * (w - startW)) / 2}px`,
+      );
+      overlay.style.setProperty(
+        "--overlay-my",
+        `${prevDy + (h - startH) / 2}px`,
+      );
       return;
     }
 
@@ -352,11 +444,45 @@ export function createOverlayGestures(
     dragging = false;
     overlay.releasePointerCapture?.(event.pointerId);
 
+    if (mode === "move") {
+      // Project the window center along the flick; off-screen — any
+      // side — closes, like the sheet. Otherwise the position persists,
+      // clamped inside the viewport (resistance overshoot springs back
+      // via the CSS transition).
+      const rect = overlay.getBoundingClientRect();
+      const centerX =
+        rect.left + rect.width / 2 + velocityX * PROJECTION_MS;
+      const centerY =
+        rect.top + rect.height / 2 + velocityY * PROJECTION_MS;
+      if (
+        dismissible &&
+        (centerX < 0 ||
+          centerX > window.innerWidth ||
+          centerY < 0 ||
+          centerY > window.innerHeight)
+      ) {
+        dismiss();
+        return;
+      }
+      const dx = Math.min(
+        Math.max(prevDx + (event.clientX - startX), dxMin),
+        dxMax,
+      );
+      const dy = Math.min(
+        Math.max(prevDy + (event.clientY - startY), dyMin),
+        dyMax,
+      );
+      clearDrag();
+      overlay.style.setProperty("--overlay-mx", `${dx}px`);
+      overlay.style.setProperty("--overlay-my", `${dy}px`);
+      return;
+    }
+
     if (mode === "resize") {
-      const targetW = startW + 2 * (event.clientX - startX) * dir;
-      const targetH = startH + 2 * (event.clientY - startY);
+      const targetW = startW + (event.clientX - startX) * dir;
+      const targetH = startH + (event.clientY - startY);
       // Positive = shrinking, like the detent axes.
-      const shrinkVelocity = -2 * velocity * dir;
+      const shrinkVelocity = -velocityX * dir;
 
       if (centerSnapping) {
         const index = closestDetent(
@@ -368,18 +494,38 @@ export function createOverlayGestures(
         );
         if (index === -1) {
           dismiss();
-        } else {
-          // CSS owns the resting step.
-          overlay.style.removeProperty("--overlay-w");
-          overlay.style.removeProperty("--overlay-h");
-          rest(detents[index]);
+          return;
+        }
+        // CSS owns the resting step. A persisted position survives,
+        // clamped so the snapped size stays inside the viewport (the
+        // offset-free center is the viewport center).
+        overlay.style.removeProperty("--overlay-w");
+        overlay.style.removeProperty("--overlay-h");
+        rest(detents[index]);
+        if (prevDxRaw || prevDyRaw) {
+          const stepW = detentsPx[index];
+          const stepH =
+            detents[index] === "large"
+              ? window.innerHeight - 2 * insetPx()
+              : startH;
+          const xBound = Math.max((window.innerWidth - stepW) / 2, 0);
+          const yBound = Math.max((window.innerHeight - stepH) / 2, 0);
+          overlay.style.setProperty(
+            "--overlay-mx",
+            `${Math.min(Math.max(prevDx, -xBound), xBound)}px`,
+          );
+          overlay.style.setProperty(
+            "--overlay-my",
+            `${Math.min(Math.max(prevDy, -yBound), yBound)}px`,
+          );
         }
         return;
       }
 
       // Free mode — shrinking well past the minimum (or flicking shut
-      // below it) dismisses; otherwise the clamped size persists and any
-      // resistance overshoot springs back via the CSS transition.
+      // below it) dismisses; otherwise the clamped size persists (with
+      // the half-growth offset shift keeping the corner anchored) and
+      // any resistance overshoot springs back via the CSS transition.
       const projectedW = targetW - shrinkVelocity * PROJECTION_MS;
       if (
         dismissible &&
@@ -389,18 +535,19 @@ export function createOverlayGestures(
         dismiss();
         return;
       }
-      const inset = insetPx();
-      const w = Math.min(
-        Math.max(targetW, MIN_RESIZE_W),
-        window.innerWidth - 2 * inset,
-      );
-      const h = Math.min(
-        Math.max(targetH, MIN_RESIZE_H),
-        window.innerHeight - 2 * inset,
-      );
+      const w = Math.min(Math.max(targetW, MIN_RESIZE_W), maxW);
+      const h = Math.min(Math.max(targetH, MIN_RESIZE_H), maxH);
       clearDrag();
       overlay.style.setProperty("--overlay-w", `${w}px`);
       overlay.style.setProperty("--overlay-h", `${h}px`);
+      overlay.style.setProperty(
+        "--overlay-mx",
+        `${prevDx + (dir * (w - startW)) / 2}px`,
+      );
+      overlay.style.setProperty(
+        "--overlay-my",
+        `${prevDy + (h - startH) / 2}px`,
+      );
       return;
     }
 
@@ -410,7 +557,7 @@ export function createOverlayGestures(
     const index = closestDetent(
       size,
       detentsPx,
-      -sign * velocity,
+      -sign * axisVelocity(),
       dismissible,
       velocityThreshold,
     );
@@ -424,8 +571,12 @@ export function createOverlayGestures(
   const onCancel = () => {
     if (!dragging) return;
     dragging = false;
-    if (mode === "resize") {
+    if (mode === "move") {
       clearDrag();
+      restoreOffsets();
+    } else if (mode === "resize") {
+      clearDrag();
+      restoreOffsets();
       if (prevW) overlay.style.setProperty("--overlay-w", prevW);
       else overlay.style.removeProperty("--overlay-w");
       if (prevH) overlay.style.setProperty("--overlay-h", prevH);

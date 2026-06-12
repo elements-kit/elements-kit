@@ -55,6 +55,9 @@
  *   data-overlay-gestures  written by `createOverlayGestures` while
  *                      attached; gates every gesture affordance (set it
  *                      by hand if you wire your own dragging)
+ *   data-material-background  the card surface defaults to solid inside
+ *                      an overlay; set "translucent" on the frame to get
+ *                      frosted glass over the backdrop
  *   --overlay-duration   transitions duration (300ms)
  *   --overlay-easing     transitions easing (iOS-style ease-out)
  *   --overlay-inset      viewport gap for center + corner placements
@@ -62,6 +65,7 @@
  *   --overlay-detent-small / -medium / -large    detent sizes (per axis)
  *   --overlay-detent     active detent size (set by data-detent)
  *   --overlay-w / -h     center size, written by the corner resize gesture
+ *   --overlay-mx / -my   center position, written by the move gesture
  *   --overlay-backdrop   modal backdrop color (--color-overlay)
  *
  * Tiers:
@@ -78,10 +82,13 @@
  * Gestures are opt-in JS — see `createOverlayGestures` in
  * elements-kit/ui/overlay. Block-edge placements drag between height
  * detents, drawers between width detents (both flick-to-dismiss); center
- * gets an iPad-window corner resize — free by default (writes the
- * JS-owned `--overlay-w/-h`, resistance at the bounds), snapping to the
- * width steps when a `detents` option is passed; shrinking past the
- * minimum dismisses.
+ * is an iPad-style window: the top grabber moves it in x/y within the
+ * viewport (positions persist via the JS-owned `--overlay-dx/-dy`;
+ * flinging it off-screen closes, edges rubber-band), and the bottom
+ * inline-end corner grip resizes — free by
+ * default (writes the JS-owned `--overlay-w/-h`, resistance at the
+ * bounds), snapping to the width steps when a `detents` option is
+ * passed; shrinking past the minimum dismisses.
  */
 
 .x-overlay {
@@ -150,11 +157,17 @@
  *                                                                                                 *
  ***************************************************************************************************/
 
-/* center (default) — --overlay-w/-h are JS-owned (corner resize gesture);
- * scoping them here means a later placement morph ignores the resized
- * dimensions. data-detent maps to width steps for the snapping resize
- * (vw-based large so the gesture's probe measures viewport-true). */
+/* center (default) — --overlay-w/-h (corner resize) and --overlay-mx/-my
+ * (window move) are JS-owned and composed only here, so a placement
+ * morph ignores the window's resized dimensions and moved position —
+ * and morphing back restores them. data-detent maps to width steps for
+ * the snapping resize (vw-based large so the gesture's probe measures
+ * viewport-true). */
 .x-overlay:where(:not([data-placement]), [data-placement="center"]) {
+  translate: calc(
+      var(--overlay-tx) + var(--overlay-dx, 0px) + var(--overlay-mx, 0px)
+    )
+    calc(var(--overlay-ty) + var(--overlay-dy, 0px) + var(--overlay-my, 0px));
   --overlay-detent-small: 320px;
   --overlay-detent-medium: var(--overlay-max-width);
   --overlay-detent-large: calc(100vw - 2 * var(--overlay-inset));
@@ -374,6 +387,15 @@
   overflow-y: auto;
 }
 
+/* Overlay cards default to a solid surface: a translucent material over
+ * the dimmed backdrop reads as the backdrop sitting on top of the card.
+ * Opt back into frosted glass with data-material-background="translucent"
+ * on the frame (zero-specificity guard keeps the attribute in charge). */
+:where(.x-overlay:not([data-material-background])) {
+  --color-material: var(--color-material-solid);
+  --backdrop-filter-material: none;
+}
+
 /* Full-edge sheets square the corners on the flush edge. */
 .x-overlay:where(
     [data-placement~="block-end"]:not(
@@ -423,11 +445,15 @@
   pointer-events: none;
 }
 
-/* Horizontal grabber pill — block-edge placements (height drag). Sits at
- * the draggable edge: top for bottom-anchored, bottom for top-anchored. */
+/* Horizontal grabber pill — block-edge placements (height drag) and
+ * center (x/y window move). Sits at the draggable edge: top for
+ * bottom-anchored and for the center window's title strip, bottom for
+ * top-anchored. */
 .x-overlay:where([data-overlay-gestures]):where(
     [data-placement~="block-start"],
-    [data-placement~="block-end"]
+    [data-placement~="block-end"],
+    :not([data-placement]),
+    [data-placement="center"]
   )::before {
   inset-inline: 0;
   margin-inline: auto;
@@ -438,7 +464,9 @@
 }
 
 .x-overlay:where([data-overlay-gestures]):where(
-    [data-placement~="block-end"]
+    [data-placement~="block-end"],
+    :not([data-placement]),
+    [data-placement="center"]
   )::before {
   top: var(--space-2);
 }
@@ -487,12 +515,16 @@
   inset-inline-start: var(--space-2);
 }
 
-/* Corner resize grip — center's only affordance (iPad-window style), at
- * the bottom inline-end corner the resize gesture engages from. */
+/* Corner resize grip — center only (iPad-window style), at the bottom
+ * inline-end corner the resize gesture engages from. */
 .x-overlay:where([data-overlay-gestures]):where(
     :not([data-placement]),
     [data-placement="center"]
-  )::before {
+  )::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
   inset-inline-end: var(--space-2);
   bottom: var(--space-2);
   width: var(--space-3);

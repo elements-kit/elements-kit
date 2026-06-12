@@ -1,9 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/html-vite";
-import { signal } from "elements-kit/signals";
+import { computed, signal } from "elements-kit/signals";
 import "../card/card.css";
 import "../button/button.css";
+import "../toggle/toggle.css";
 import "./overlay.css";
-import { createOverlayGestures, type OverlayGestures } from "./gestures.ts";
+import { createOverlayGestures } from "./gestures.ts";
 
 const PLACEMENTS = [
   "center",
@@ -51,7 +52,6 @@ const meta = {
   render: (args) => {
     const id = `overlay-story-${uid++}`;
     const overlay = signal<HTMLDialogElement | null>();
-    let gestures: OverlayGestures | undefined;
     return (
       <>
         <button
@@ -61,17 +61,23 @@ const meta = {
           data-size="2"
           popovertarget={args.modal ? undefined : id}
           on:click={() => {
-            const el = overlay();
-            if (!el) return;
-            if (args.modal) el.showModal();
-            gestures?.dispose();
-            if (args.gestures) gestures = createOverlayGestures(el);
+            if (args.modal) overlay()?.showModal();
           }}
         >
           Open overlay
         </button>
         <dialog
-          ref={overlay}
+          ref={(el: HTMLDialogElement) => {
+            overlay(el);
+            if (args.gestures) createOverlayGestures(el);
+            // Auto-open after Storybook mounts the fresh render, so arg
+            // changes apply visibly without hunting for the trigger.
+            queueMicrotask(() => {
+              if (!el.isConnected) return;
+              if (args.modal) el.showModal();
+              else el.showPopover();
+            });
+          }}
           id={id}
           class:unset
           class:x-overlay
@@ -125,17 +131,28 @@ export const CornerPanel: Story = {
  * `data-placement` on the open overlay — every placement is expressed in
  * interpolable lengths, so the switch morphs with a plain CSS transition.
  */
+const GRID: { label: string; placement: string }[] = [
+  { label: "↖", placement: "block-start inline-start" },
+  { label: "↑", placement: "block-start" },
+  { label: "↗", placement: "block-start inline-end" },
+  { label: "←", placement: "inline-start" },
+  { label: "●", placement: "center" },
+  { label: "→", placement: "inline-end" },
+  { label: "↙", placement: "block-end inline-start" },
+  { label: "↓", placement: "block-end" },
+  { label: "↘", placement: "block-end inline-end" },
+];
+
 export const Morph: Story = {
-  render: () => {
+  argTypes: {
+    // Placement is driven by the in-card grid.
+    placement: { control: false },
+  },
+  args: { modal: false },
+  render: (args) => {
     const id = `overlay-story-${uid++}`;
     const overlay = signal<HTMLDialogElement | null>();
-    const spots = [
-      "block-end inline-end",
-      "block-end",
-      "center",
-      "inline-end",
-      "block-start inline-start",
-    ];
+    const placement = signal("block-end inline-end");
     return (
       <>
         <button
@@ -143,38 +160,50 @@ export const Morph: Story = {
           class:x-button
           data-variant="solid"
           data-size="2"
-          popovertarget={id}
+          popovertarget={args.modal ? undefined : id}
+          on:click={() => {
+            if (args.modal) overlay()?.showModal();
+          }}
         >
           Toggle panel
         </button>
         <dialog
           ref={(el: HTMLDialogElement) => {
             overlay(el);
-            createOverlayGestures(el);
+            if (args.gestures) createOverlayGestures(el);
+            queueMicrotask(() => {
+              if (!el.isConnected) return;
+              if (args.modal) el.showModal();
+              else el.showPopover();
+            });
           }}
           id={id}
           class:unset
           class:x-overlay
-          popover="manual"
-          data-placement="block-end inline-end"
-          data-detent="medium"
+          popover={args.modal ? undefined : "manual"}
+          data-placement={placement}
+          data-detent={args.detent}
         >
           <div class:unset class:x-card data-variant="elevated" data-size="3">
             <strong>Morph</strong>
             <p>Persistent panel — flip the placement while it stays open.</p>
-            <div style="display: flex; flex-wrap: wrap; gap: var(--space-2)">
-              {spots.map((spot) => (
-                <button
-                  class:unset
-                  class:x-button
-                  data-variant="soft"
-                  data-size="1"
-                  on:click={() =>
-                    overlay()?.setAttribute("data-placement", spot)
-                  }
-                >
-                  {spot}
-                </button>
+            <div
+              role="radiogroup"
+              aria-label="Placement"
+              style="display: grid; grid-template-columns: repeat(3, max-content); gap: var(--space-1); justify-content: start"
+            >
+              {GRID.map((cell) => (
+                <label class="x-toggle" data-size="2" title={cell.placement}>
+                  <input
+                    type="radio"
+                    class:unset
+                    name={`${id}-placement`}
+                    aria-label={cell.placement}
+                    checked={computed(() => cell.placement === placement())}
+                    on:change={() => placement(cell.placement)}
+                  />
+                  {cell.label}
+                </label>
               ))}
             </div>
           </div>

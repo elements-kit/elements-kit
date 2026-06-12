@@ -94,6 +94,7 @@ Markup contract: the frame's required direct child is a `.x-card` — that card 
 | `data-detent` | `small`, `medium`, `large` — heights on block-edge placements, widths on drawers and center |
 | `data-anchor` | **reserved** for future element anchoring — do not use |
 | `data-overlay-gestures` | written by `createOverlayGestures` while attached; gates the affordances (set it by hand if you wire your own dragging) |
+| `data-material-background` | the card surface defaults to **solid** inside an overlay (translucent over the dimmed backdrop reads as the backdrop covering the card); set `translucent` on the frame for frosted glass |
 
 | Custom property | Default | Role |
 | --- | --- | --- |
@@ -103,6 +104,7 @@ Markup contract: the frame's required direct child is a `.x-card` — that card 
 | `--overlay-max-width` | `480px` | width cap for center / corner placements |
 | `--overlay-detent-small/-medium/-large` | heights `25svh` / `60svh` / `100svh − --space-9`; drawer widths `280px` / `480px` / `100svw − --space-9` | detent sizes per axis |
 | `--overlay-w` / `--overlay-h` | — | center size, written by the corner resize gesture (JS-owned) |
+| `--overlay-mx` / `--overlay-my` | — | center position, written by the move gesture (JS-owned); only the center placement reads them, so morphs ignore the moved spot and morphing back restores it |
 | `--overlay-backdrop` | `--color-overlay` | backdrop color (modal only) |
 
 ## Detents & gestures
@@ -111,7 +113,7 @@ CSS owns the detent *positions*: `data-detent` picks a size from the `--overlay-
 
 - **Sheets** (block-edge, including corner panels) — drag between height detents.
 - **Drawers** — drag between width detents, RTL-aware.
-- **Center** — iPad-window corner resize from the bottom inline-end grip. Free-form by default: the size persists via `--overlay-w/-h` and rubber-bands at the min/max bounds. Pass a `detents` option and the release snaps to the width steps instead. Either way, shrinking far past the minimum dismisses.
+- **Center** — an iPad-style window with two handles. The top grabber **moves** it in x/y, constrained to the viewport with rubber-band resistance at the edges; the position persists, and flinging the window off-screen — any side — closes it (a slow over-drag springs back). The bottom inline-end corner grip **resizes**: free-form by default (the size persists via `--overlay-w/-h` and rubber-bands at the min/max bounds); pass a `detents` option and the release snaps to the width steps instead. Shrinking far past the minimum dismisses.
 
 ```ts
 import { createOverlayGestures } from "elements-kit/ui/overlay";
