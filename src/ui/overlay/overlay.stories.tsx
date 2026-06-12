@@ -194,7 +194,12 @@ export const Morph: Story = {
               style="display: grid; grid-template-columns: repeat(3, max-content); gap: var(--space-1); justify-content: start"
             >
               {GRID.map((cell) => (
-                <label class="x-toggle" data-size="2" title={cell.placement}>
+                <label
+                  class="x-toggle"
+                  data-icon
+                  data-size="2"
+                  title={cell.placement}
+                >
                   <input
                     type="radio"
                     class:unset

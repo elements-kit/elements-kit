@@ -94,7 +94,7 @@ Markup contract: the frame's required direct child is a `.x-card` — that card 
 | `data-detent` | `small`, `medium`, `large` — heights on block-edge placements, widths on drawers and center |
 | `data-anchor` | **reserved** for future element anchoring — do not use |
 | `data-overlay-gestures` | written by `createOverlayGestures` while attached; gates the affordances (set it by hand if you wire your own dragging) |
-| `data-material-background` | the card surface defaults to **solid** inside an overlay (translucent over the dimmed backdrop reads as the backdrop covering the card); set `translucent` on the frame for frosted glass |
+| `data-material-background` | the card surface defaults to **solid** inside an overlay when no material context is declared (translucent over the dimmed backdrop reads as the backdrop covering the card); an explicit `solid`/`translucent` on the frame or any ancestor wins |
 
 | Custom property | Default | Role |
 | --- | --- | --- |

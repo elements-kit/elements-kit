@@ -56,8 +56,9 @@
  *                      attached; gates every gesture affordance (set it
  *                      by hand if you wire your own dragging)
  *   data-material-background  the card surface defaults to solid inside
- *                      an overlay; set "translucent" on the frame to get
- *                      frosted glass over the backdrop
+ *                      an overlay when no material context is declared;
+ *                      an explicit value on the frame or any ancestor
+ *                      wins (e.g. "translucent" for frosted glass)
  *   --overlay-duration   transitions duration (300ms)
  *   --overlay-easing     transitions easing (iOS-style ease-out)
  *   --overlay-inset      viewport gap for center + corner placements
@@ -183,10 +184,9 @@
 }
 
 /* The fullscreen-card step. */
-.x-overlay:where(
-    :not([data-placement]),
-    [data-placement="center"]
-  ):where([data-detent="large"]) {
+.x-overlay:where(:not([data-placement]), [data-placement="center"]):where(
+    [data-detent="large"]
+  ) {
   height: var(--overlay-h, calc(100% - 2 * var(--overlay-inset)));
 }
 
@@ -389,9 +389,15 @@
 
 /* Overlay cards default to a solid surface: a translucent material over
  * the dimmed backdrop reads as the backdrop sitting on top of the card.
- * Opt back into frosted glass with data-material-background="translucent"
- * on the frame (zero-specificity guard keeps the attribute in charge). */
-:where(.x-overlay:not([data-material-background])) {
+ * Any explicit data-material-background context — on the frame or an
+ * ancestor — still wins (the :not guard skips the default entirely, and
+ * zero specificity keeps material.css in charge). */
+:where(
+  .x-overlay:not(
+    [data-material-background],
+    [data-material-background] .x-overlay
+  )
+) {
   --color-material: var(--color-material-solid);
   --backdrop-filter-material: none;
 }
@@ -515,23 +521,63 @@
   inset-inline-start: var(--space-2);
 }
 
-/* Corner resize grip — center only (iPad-window style), at the bottom
- * inline-end corner the resize gesture engages from. */
+/* Corner resize grip — center only, at the bottom inline-end corner the
+ * resize gesture engages from. The iPad-window handle: a quarter arc
+ * concentric with the card's corner radius plus short straight tails
+ * with round caps, composed from gradient mask layers over a
+ * background-color — gradients read custom properties, so the arc
+ * tracks the radius scale (`--overlay-grip-radius`, card radius by
+ * default) and every layer rasterizes together (no seams). */
 .x-overlay:where([data-overlay-gestures]):where(
     :not([data-placement]),
     [data-placement="center"]
   )::after {
+  /* Arc outer radius: card corner radius − the inset gap below. */
+  --_grip-r: max(
+    calc(var(--overlay-grip-radius, var(--radius-5)) - var(--space-1)),
+    0px
+  );
   content: "";
   position: absolute;
   z-index: 1;
   pointer-events: none;
-  inset-inline-end: var(--space-2);
-  bottom: var(--space-2);
-  width: var(--space-3);
-  height: var(--space-3);
-  border-inline-end: 2px solid var(--neutral-a8);
-  border-block-end: 2px solid var(--neutral-a8);
-  border-end-end-radius: var(--radius-3);
+  inset-inline-end: var(--space-1);
+  bottom: var(--space-1);
+  width: calc(var(--_grip-r) + var(--space-2));
+  height: calc(var(--_grip-r) + var(--space-2));
+  background-color: var(--neutral-a8);
+  mask:
+    /* quarter arc hugging the corner — hard stops keep the band the
+     * same --space-1 thickness as the tails */
+    radial-gradient(
+        circle at 0 0,
+        transparent calc(var(--_grip-r) - var(--space-1)),
+        #000 calc(var(--_grip-r) - var(--space-1)),
+        #000 var(--_grip-r),
+        transparent var(--_grip-r)
+      )
+      100% 100% / var(--_grip-r) var(--_grip-r) no-repeat,
+    /* straight tails along both edges */
+    linear-gradient(#000, #000) right 0 top calc(var(--space-1) / 2) /
+      var(--space-1) calc(100% - var(--_grip-r) - var(--space-1) / 2)
+      no-repeat,
+    linear-gradient(#000, #000) left calc(var(--space-1) / 2) bottom 0 /
+      calc(100% - var(--_grip-r) - var(--space-1) / 2) var(--space-1)
+      no-repeat,
+    /* round caps on the tail ends */
+    radial-gradient(circle closest-side, #000 100%, transparent 100%)
+      right 0 top 0 / var(--space-1) var(--space-1) no-repeat,
+    radial-gradient(circle closest-side, #000 100%, transparent 100%)
+      left 0 bottom 0 / var(--space-1) var(--space-1) no-repeat;
+}
+
+/* The arc mirrors with the corner in RTL (logical insets already moved
+ * it there; the mask image is physical). */
+.x-overlay:where([data-overlay-gestures]):where(
+    :not([data-placement]),
+    [data-placement="center"]
+  ):where(:dir(rtl))::after {
+  transform: scaleX(-1);
 }
 
 /***************************************************************************************************
@@ -941,6 +987,6 @@
   }
 
   .x-overlay:where([data-overlay-gestures])::after {
-    border-color: ButtonText;
+    background-color: ButtonText;
   }
 }
