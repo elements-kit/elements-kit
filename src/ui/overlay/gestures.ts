@@ -1,4 +1,5 @@
-import { onCleanup } from "@/signals/index.ts";
+import { effect, onCleanup } from "@/signals/index.ts";
+import { createElementRect } from "@/utilities/element-rect.ts";
 
 /**
  * Opt-in pointer gestures for `.x-overlay`, dispatched by placement:
@@ -107,6 +108,29 @@ function resist(value: number, min: number, max: number): number {
 }
 
 /**
+ * Resolves a custom property holding a length to pixels. Plain `px`
+ * values (written by `constrainOverlay` or by hand) parse directly;
+ * anything else (`svh` / `calc()` / fractions of the constraint) resolves
+ * natively by measuring a hidden probe.
+ */
+function resolveVarPx(
+  overlay: HTMLElement,
+  name: string,
+  axis: "height" | "width",
+): number {
+  const raw = getComputedStyle(overlay).getPropertyValue(name).trim();
+  if (/^-?\d+(\.\d+)?px$/.test(raw)) return parseFloat(raw);
+  const probe = document.createElement("div");
+  probe.style.position = "absolute";
+  probe.style.visibility = "hidden";
+  probe.style[axis] = `var(${name})`;
+  overlay.appendChild(probe);
+  const px = probe.getBoundingClientRect()[axis];
+  probe.remove();
+  return px;
+}
+
+/**
  * Resolves a detent's `--overlay-detent-*` custom property to pixels by
  * measuring a hidden probe, so `svh` / `calc()` values resolve natively.
  */
@@ -123,6 +147,24 @@ export function resolveDetentPx(
   const px = probe.getBoundingClientRect()[axis];
   probe.remove();
   return px;
+}
+
+/**
+ * Resolves the constraint rect every bound derives from — the same four
+ * `--overlay-constraint-*` variables the stylesheet computes against.
+ */
+function resolveConstraint(overlay: HTMLElement): {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+} {
+  return {
+    top: resolveVarPx(overlay, "--overlay-constraint-top", "height"),
+    left: resolveVarPx(overlay, "--overlay-constraint-left", "width"),
+    width: resolveVarPx(overlay, "--overlay-constraint-width", "width"),
+    height: resolveVarPx(overlay, "--overlay-constraint-height", "height"),
+  };
 }
 
 /**
@@ -152,6 +194,64 @@ export function closestDetent(
     }
   }
   return best;
+}
+
+export interface OverlayConstraint {
+  dispose(): void;
+  [Symbol.dispose](): void;
+}
+
+/**
+ * Confines an overlay to a container element by syncing the container's
+ * bounding rect into the `--overlay-constraint-*` variables (observed via
+ * `ResizeObserver` through `createElementRect`). Every placement, detent,
+ * clamp, and gesture bound derives from those variables, so the overlay
+ * pins to the container's edges and re-clamps when it resizes.
+ *
+ * Caveat: `ResizeObserver` fires on size changes — a container that moves
+ * without resizing (e.g. page scroll) does not retrigger the sync.
+ *
+ * Registers its cleanup with the current scope (`onCleanup`) and also
+ * returns it as `dispose` / `Symbol.dispose`; disposing removes the
+ * variables, restoring the viewport constraint.
+ *
+ * @example
+ * ```ts
+ * import { constrainOverlay } from "elements-kit/ui/overlay";
+ *
+ * const panel = document.querySelector("dialog.x-overlay")!;
+ * constrainOverlay(panel, document.querySelector("main")!);
+ * ```
+ */
+export function constrainOverlay(
+  overlay: HTMLElement,
+  container: Element,
+): OverlayConstraint {
+  const rect = createElementRect(container);
+  const stop = effect(() => {
+    overlay.style.setProperty("--overlay-constraint-top", `${rect.top()}px`);
+    overlay.style.setProperty("--overlay-constraint-left", `${rect.left()}px`);
+    overlay.style.setProperty(
+      "--overlay-constraint-width",
+      `${rect.width()}px`,
+    );
+    overlay.style.setProperty(
+      "--overlay-constraint-height",
+      `${rect.height()}px`,
+    );
+  });
+
+  const dispose = () => {
+    stop();
+    rect[Symbol.dispose]();
+    overlay.style.removeProperty("--overlay-constraint-top");
+    overlay.style.removeProperty("--overlay-constraint-left");
+    overlay.style.removeProperty("--overlay-constraint-width");
+    overlay.style.removeProperty("--overlay-constraint-height");
+  };
+  onCleanup(dispose);
+
+  return { dispose, [Symbol.dispose]: dispose };
 }
 
 export function createOverlayGestures(
@@ -229,9 +329,11 @@ export function createOverlayGestures(
   let dxMax = 0;
   let dyMin = 0;
   let dyMax = 0;
-  /** Resize bounds — the anchored corner pins the max to the viewport. */
+  /** Resize bounds — the anchored corner pins the max to the constraint. */
   let maxW = 0;
   let maxH = 0;
+  /** Constraint rect snapshot for the active center gesture. */
+  let constraint = { top: 0, left: 0, width: 0, height: 0 };
   /** +1 dragging toward the far edge grows the surface, -1 shrinks. */
   let sign = -1;
   /** -1 in RTL — flips inline-axis pointer deltas. */
@@ -256,13 +358,6 @@ export function createOverlayGestures(
   const restoreOffsets = () => {
     if (prevDxRaw) overlay.style.setProperty("--overlay-mx", prevDxRaw);
     if (prevDyRaw) overlay.style.setProperty("--overlay-my", prevDyRaw);
-  };
-
-  const insetPx = () => {
-    const value = parseFloat(
-      getComputedStyle(overlay).getPropertyValue("--overlay-inset"),
-    );
-    return Number.isNaN(value) ? 16 : value;
   };
 
   const onPointerDown = (event: PointerEvent) => {
@@ -316,11 +411,12 @@ export function createOverlayGestures(
       if (!inCorner && !inTopStrip) return;
 
       // Both center gestures capture (and later re-apply) the persisted
-      // window offsets.
+      // window offsets, and bound themselves to the constraint rect.
       prevDxRaw = overlay.style.getPropertyValue("--overlay-mx");
       prevDyRaw = overlay.style.getPropertyValue("--overlay-my");
       prevDx = parseFloat(prevDxRaw) || 0;
       prevDy = parseFloat(prevDyRaw) || 0;
+      constraint = resolveConstraint(overlay);
 
       if (inCorner) {
         mode = "resize";
@@ -329,23 +425,32 @@ export function createOverlayGestures(
         prevW = overlay.style.getPropertyValue("--overlay-w");
         prevH = overlay.style.getPropertyValue("--overlay-h");
         // The top inline-start corner stays anchored, so the room toward
-        // the opposite edges bounds the size — handles never leave the
-        // viewport.
-        maxW = dir === 1 ? window.innerWidth - rect.left : rect.right;
-        maxH = window.innerHeight - rect.top;
+        // the opposite constraint edges bounds the size — handles never
+        // leave the constraint.
+        maxW =
+          dir === 1
+            ? constraint.left + constraint.width - rect.left
+            : rect.right - constraint.left;
+        maxH = constraint.top + constraint.height - rect.top;
         if (centerSnapping) {
           detentsPx = detents.map((d) => resolveDetentPx(overlay, d, "width"));
         }
       } else {
         mode = "move";
-        // Offset bounds that keep the whole window inside the viewport —
+        // Offset bounds that keep the whole window inside the constraint —
         // derived from the window's position with no drag offset applied.
         const baseLeft = rect.left - prevDx;
         const baseTop = rect.top - prevDy;
-        dxMin = -baseLeft;
-        dxMax = Math.max(window.innerWidth - rect.width - baseLeft, dxMin);
-        dyMin = -baseTop;
-        dyMax = Math.max(window.innerHeight - rect.height - baseTop, dyMin);
+        dxMin = constraint.left - baseLeft;
+        dxMax = Math.max(
+          constraint.left + constraint.width - rect.width - baseLeft,
+          dxMin,
+        );
+        dyMin = constraint.top - baseTop;
+        dyMax = Math.max(
+          constraint.top + constraint.height - rect.height - baseTop,
+          dyMin,
+        );
       }
     }
 
@@ -446,10 +551,10 @@ export function createOverlayGestures(
     overlay.releasePointerCapture?.(event.pointerId);
 
     if (mode === "move") {
-      // Project the window center along the flick; off-screen — any
-      // side — closes, like the sheet. Otherwise the position persists,
-      // clamped inside the viewport (resistance overshoot springs back
-      // via the CSS transition).
+      // Project the window center along the flick; outside the constraint
+      // — any side — closes, like the sheet. Otherwise the position
+      // persists, clamped inside the constraint (resistance overshoot
+      // springs back via the CSS transition).
       const rect = overlay.getBoundingClientRect();
       const centerX =
         rect.left + rect.width / 2 + velocityX * PROJECTION_MS;
@@ -457,10 +562,10 @@ export function createOverlayGestures(
         rect.top + rect.height / 2 + velocityY * PROJECTION_MS;
       if (
         dismissible &&
-        (centerX < 0 ||
-          centerX > window.innerWidth ||
-          centerY < 0 ||
-          centerY > window.innerHeight)
+        (centerX < constraint.left ||
+          centerX > constraint.left + constraint.width ||
+          centerY < constraint.top ||
+          centerY > constraint.top + constraint.height)
       ) {
         dismiss();
         return;
@@ -498,19 +603,17 @@ export function createOverlayGestures(
           return;
         }
         // CSS owns the resting step. A persisted position survives,
-        // clamped so the snapped size stays inside the viewport (the
-        // offset-free center is the viewport center).
+        // clamped so the snapped size stays inside the constraint (the
+        // offset-free center is the constraint center).
         overlay.style.removeProperty("--overlay-w");
         overlay.style.removeProperty("--overlay-h");
         rest(detents[index]);
         if (prevDxRaw || prevDyRaw) {
           const stepW = detentsPx[index];
           const stepH =
-            detents[index] === "large"
-              ? window.innerHeight - 2 * insetPx()
-              : startH;
-          const xBound = Math.max((window.innerWidth - stepW) / 2, 0);
-          const yBound = Math.max((window.innerHeight - stepH) / 2, 0);
+            detents[index] === "large" ? constraint.height : startH;
+          const xBound = Math.max((constraint.width - stepW) / 2, 0);
+          const yBound = Math.max((constraint.height - stepH) / 2, 0);
           overlay.style.setProperty(
             "--overlay-mx",
             `${Math.min(Math.max(prevDx, -xBound), xBound)}px`,

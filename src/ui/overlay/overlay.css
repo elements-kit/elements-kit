@@ -59,11 +59,16 @@
  *                      an overlay when no material context is declared;
  *                      an explicit value on the frame or any ancestor
  *                      wins (e.g. "translucent" for frosted glass)
+ *   --overlay-constraint-top / -left / -width / -height
+ *                      the constraint rect every placement, detent, and
+ *                      clamp derives from. Defaults to the viewport;
+ *                      write px values (or use `constrainOverlay`) to
+ *                      confine the overlay to any region
  *   --overlay-duration   transitions duration (300ms)
  *   --overlay-easing     transitions easing (iOS-style ease-out)
- *   --overlay-inset      viewport gap for center + corner placements
  *   --overlay-max-width  width cap for center / corner placements
- *   --overlay-detent-small / -medium / -large    detent sizes (per axis)
+ *   --overlay-detent-small / -medium / -large    detent sizes (per axis,
+ *                      fractions of the constraint rect)
  *   --overlay-detent     active detent size (set by data-detent)
  *   --overlay-w / -h     center size, written by the corner resize gesture
  *   --overlay-mx / -my   center position, written by the move gesture
@@ -103,8 +108,25 @@
    * discrete-display exit transition. */
   grid-template-rows: minmax(0, 1fr);
 
-  /* Position scheme: every placement is top/left percentages plus a
-   * translate compensation — all interpolable, so placement flips morph.
+  /* Constraint rect — the region the overlay lives in. Every placement,
+   * detent, and clamp below derives from these four lengths, so the
+   * geometry is one authorable interface: a placement is a degenerate
+   * constraint (edges pinned), detents are fractions of it, the move and
+   * resize bounds ARE it. Defaults to the viewport; write px values (by
+   * hand or via `constrainOverlay`) to confine the overlay to any region. */
+  --overlay-constraint-top: 0px;
+  --overlay-constraint-left: 0px;
+  --overlay-constraint-width: 100vw;
+  --overlay-constraint-height: 100vh;
+  /* Short internal aliases for the formulas below. */
+  --_ct: var(--overlay-constraint-top);
+  --_cl: var(--overlay-constraint-left);
+  --_cw: var(--overlay-constraint-width);
+  --_ch: var(--overlay-constraint-height);
+
+  /* Position scheme: every placement is a rect-relative top/left plus an
+   * element-relative translate compensation — all interpolable lengths,
+   * so placement flips morph.
    * --overlay-tx/-ty belong to CSS (alignment + enter/exit).
    * --overlay-dx/-dy belong to JS (gesture drag offset, px). */
   top: var(--overlay-y);
@@ -113,18 +135,17 @@
     calc(var(--overlay-ty) + var(--overlay-dy, 0px));
 
   /* center (default placement) */
-  --overlay-x: 50%;
-  --overlay-y: 50%;
+  --overlay-x: calc(var(--_cl) + var(--_cw) / 2);
+  --overlay-y: calc(var(--_ct) + var(--_ch) / 2);
   --overlay-tx: -50%;
   --overlay-ty: -50%;
 
   --overlay-duration: 300ms;
   --overlay-easing: cubic-bezier(0.32, 0.72, 0, 1);
-  --overlay-inset: var(--space-4);
   --overlay-max-width: 480px;
-  --overlay-detent-small: 25vh;
-  --overlay-detent-medium: 60vh;
-  --overlay-detent-large: calc(100vh - var(--space-9));
+  --overlay-detent-small: calc(var(--_ch) * 0.25);
+  --overlay-detent-medium: calc(var(--_ch) * 0.6);
+  --overlay-detent-large: calc(var(--_ch) - var(--space-9));
 
   /* Placement / detent morphs — Tier 1. Pre-`translate` browsers ignore
    * the translate transition and get the static fallback below. */
@@ -171,28 +192,36 @@
 .x-overlay:where(:not([data-placement]), [data-placement="center"]) {
   translate: calc(
       var(--overlay-tx) + var(--overlay-dx, 0px) +
-        clamp(calc(50% - 50vw), var(--overlay-mx, 0px), calc(50vw - 50%))
+        clamp(
+          calc(50% - var(--_cw) / 2),
+          var(--overlay-mx, 0px),
+          calc(var(--_cw) / 2 - 50%)
+        )
     )
     calc(
       var(--overlay-ty) + var(--overlay-dy, 0px) +
-        clamp(calc(50% - 50vh), var(--overlay-my, 0px), calc(50vh - 50%))
+        clamp(
+          calc(50% - var(--_ch) / 2),
+          var(--overlay-my, 0px),
+          calc(var(--_ch) / 2 - 50%)
+        )
     );
   --overlay-detent-small: 320px;
   --overlay-detent-medium: var(--overlay-max-width);
-  --overlay-detent-large: calc(100vw - 2 * var(--overlay-inset));
+  --overlay-detent-large: var(--_cw);
   width: min(
     var(--overlay-w, var(--overlay-detent, var(--overlay-max-width))),
-    calc(100% - 2 * var(--overlay-inset))
+    var(--_cw)
   );
   height: var(--overlay-h, fit-content);
-  max-height: calc(100% - 2 * var(--overlay-inset));
+  max-height: var(--_ch);
 }
 
 /* The fullscreen-card step. */
 .x-overlay:where(:not([data-placement]), [data-placement="center"]):where(
     [data-detent="large"]
   ) {
-  height: var(--overlay-h, calc(100% - 2 * var(--overlay-inset)));
+  height: var(--overlay-h, var(--_ch));
 }
 
 /* block-start — full-width top sheet */
@@ -202,12 +231,12 @@
     [data-placement~="inline-end"]
   )
 ) {
-  --overlay-y: 0%;
-  --overlay-x: 50%;
+  --overlay-y: var(--_ct);
+  --overlay-x: calc(var(--_cl) + var(--_cw) / 2);
   --overlay-ty: 0%;
   --overlay-tx: -50%;
-  width: 100%;
-  height: min(var(--overlay-detent), 100%);
+  width: var(--_cw);
+  height: min(var(--overlay-detent), var(--_ch));
 }
 
 /* block-end — full-width bottom sheet */
@@ -217,12 +246,12 @@
     [data-placement~="inline-end"]
   )
 ) {
-  --overlay-y: 100%;
-  --overlay-x: 50%;
+  --overlay-y: calc(var(--_ct) + var(--_ch));
+  --overlay-x: calc(var(--_cl) + var(--_cw) / 2);
   --overlay-ty: -100%;
   --overlay-tx: -50%;
-  width: 100%;
-  height: min(var(--overlay-detent), 100%);
+  width: var(--_cw);
+  height: min(var(--overlay-detent), var(--_ch));
 }
 
 /* inline-start / inline-end — full-height side drawers. data-detent maps
@@ -233,15 +262,15 @@
     [data-placement~="block-end"]
   )
 ) {
-  --overlay-y: 50%;
-  --overlay-x: 0%;
+  --overlay-y: calc(var(--_ct) + var(--_ch) / 2);
+  --overlay-x: var(--_cl);
   --overlay-ty: -50%;
   --overlay-tx: 0%;
   --overlay-detent-small: 280px;
   --overlay-detent-medium: 480px;
-  --overlay-detent-large: calc(100vw - var(--space-9));
-  width: min(var(--overlay-detent), 100%);
-  height: 100%;
+  --overlay-detent-large: calc(var(--_cw) - var(--space-9));
+  width: min(var(--overlay-detent), var(--_cw));
+  height: var(--_ch);
 }
 
 .x-overlay:where(
@@ -250,33 +279,35 @@
     [data-placement~="block-end"]
   )
 ) {
-  --overlay-y: 50%;
-  --overlay-x: 100%;
+  --overlay-y: calc(var(--_ct) + var(--_ch) / 2);
+  --overlay-x: calc(var(--_cl) + var(--_cw));
   --overlay-ty: -50%;
   --overlay-tx: -100%;
   --overlay-detent-small: 280px;
   --overlay-detent-medium: 480px;
-  --overlay-detent-large: calc(100vw - var(--space-9));
-  width: min(var(--overlay-detent), 100%);
-  height: 100%;
+  --overlay-detent-large: calc(var(--_cw) - var(--space-9));
+  width: min(var(--overlay-detent), var(--_cw));
+  height: var(--_ch);
 }
 
-/* corners — floating panels with a viewport gap */
+/* corners — floating panels pinned to the constraint corners. Want a
+ * gap? Shrink the constraint rect — spacing belongs to the constraint
+ * API, not the placement. */
 .x-overlay:where(
   [data-placement~="block-start"][data-placement~="inline-start"]
 ),
 .x-overlay:where([data-placement~="block-start"][data-placement~="inline-end"]),
 .x-overlay:where([data-placement~="block-end"][data-placement~="inline-start"]),
 .x-overlay:where([data-placement~="block-end"][data-placement~="inline-end"]) {
-  width: min(var(--overlay-max-width), calc(100% - 2 * var(--overlay-inset)));
-  height: min(var(--overlay-detent), calc(100% - 2 * var(--overlay-inset)));
+  width: min(var(--overlay-max-width), var(--_cw));
+  height: min(var(--overlay-detent), var(--_ch));
 }
 
 .x-overlay:where(
   [data-placement~="block-start"][data-placement~="inline-start"]
 ) {
-  --overlay-y: var(--overlay-inset);
-  --overlay-x: var(--overlay-inset);
+  --overlay-y: var(--_ct);
+  --overlay-x: var(--_cl);
   --overlay-ty: 0%;
   --overlay-tx: 0%;
 }
@@ -284,8 +315,8 @@
 .x-overlay:where(
   [data-placement~="block-start"][data-placement~="inline-end"]
 ) {
-  --overlay-y: var(--overlay-inset);
-  --overlay-x: calc(100% - var(--overlay-inset));
+  --overlay-y: var(--_ct);
+  --overlay-x: calc(var(--_cl) + var(--_cw));
   --overlay-ty: 0%;
   --overlay-tx: -100%;
 }
@@ -293,15 +324,15 @@
 .x-overlay:where(
   [data-placement~="block-end"][data-placement~="inline-start"]
 ) {
-  --overlay-y: calc(100% - var(--overlay-inset));
-  --overlay-x: var(--overlay-inset);
+  --overlay-y: calc(var(--_ct) + var(--_ch));
+  --overlay-x: var(--_cl);
   --overlay-ty: -100%;
   --overlay-tx: 0%;
 }
 
 .x-overlay:where([data-placement~="block-end"][data-placement~="inline-end"]) {
-  --overlay-y: calc(100% - var(--overlay-inset));
-  --overlay-x: calc(100% - var(--overlay-inset));
+  --overlay-y: calc(var(--_ct) + var(--_ch));
+  --overlay-x: calc(var(--_cl) + var(--_cw));
   --overlay-ty: -100%;
   --overlay-tx: -100%;
 }
@@ -313,7 +344,7 @@
       [data-placement~="block-end"]
     )
   ):where(:dir(rtl)) {
-  --overlay-x: 100%;
+  --overlay-x: calc(var(--_cl) + var(--_cw));
   --overlay-tx: -100%;
 }
 
@@ -323,7 +354,7 @@
       [data-placement~="block-end"]
     )
   ):where(:dir(rtl)) {
-  --overlay-x: 0%;
+  --overlay-x: var(--_cl);
   --overlay-tx: 0%;
 }
 
@@ -331,7 +362,7 @@
     [data-placement~="inline-start"][data-placement~="block-start"],
     [data-placement~="inline-start"][data-placement~="block-end"]
   ):where(:dir(rtl)) {
-  --overlay-x: calc(100% - var(--overlay-inset));
+  --overlay-x: calc(var(--_cl) + var(--_cw));
   --overlay-tx: -100%;
 }
 
@@ -339,7 +370,7 @@
     [data-placement~="inline-end"][data-placement~="block-start"],
     [data-placement~="inline-end"][data-placement~="block-end"]
   ):where(:dir(rtl)) {
-  --overlay-x: var(--overlay-inset);
+  --overlay-x: var(--_cl);
   --overlay-tx: 0%;
 }
 
@@ -673,67 +704,45 @@
   .x-overlay:where(
     [data-placement~="block-start"][data-placement~="inline-start"]
   ) {
-    inset: var(--overlay-inset) auto auto var(--overlay-inset);
+    inset: 0 auto auto 0;
     margin: 0;
   }
   .x-overlay:where(
     [data-placement~="block-start"][data-placement~="inline-end"]
   ) {
-    inset: var(--overlay-inset) var(--overlay-inset) auto auto;
+    inset: 0 0 auto auto;
     margin: 0;
   }
   .x-overlay:where(
     [data-placement~="block-end"][data-placement~="inline-start"]
   ) {
-    inset: auto auto var(--overlay-inset) var(--overlay-inset);
+    inset: auto auto 0 0;
     margin: 0;
   }
   .x-overlay:where(
     [data-placement~="block-end"][data-placement~="inline-end"]
   ) {
-    inset: auto var(--overlay-inset) var(--overlay-inset) auto;
+    inset: auto 0 0 auto;
     margin: 0;
   }
 }
 
 /***************************************************************************************************
  *                                                                                                 *
- * SMALL-VIEWPORT DETENTS                                                                          *
+ * SMALL-VIEWPORT CONSTRAINT DEFAULTS                                                              *
  *                                                                                                 *
- * svh tracks the collapsing mobile browser chrome. (A second declaration                          *
- * in the same rule would be deduped by the build — guard instead.)                                *
+ * sv* units track the collapsing mobile browser chrome. Because every                             *
+ * placement, detent, and clamp derives from the constraint rect, this                             *
+ * one override is the only small-viewport handling needed. (A second                              *
+ * declaration in the same rule would be deduped by the build — guard                              *
+ * instead.)                                                                                       *
  *                                                                                                 *
  ***************************************************************************************************/
 
 @supports (height: 1svh) {
-  /* Scoped to block-edge placements — a bare .x-overlay rule here would
-   * stomp the drawers' px width detents (this block is later in source). */
-  .x-overlay:where(
-    [data-placement~="block-start"],
-    [data-placement~="block-end"]
-  ) {
-    --overlay-detent-small: 25svh;
-    --overlay-detent-medium: 60svh;
-    --overlay-detent-large: calc(100svh - var(--space-9));
-  }
-}
-
-@supports (width: 1svw) {
-  .x-overlay:where(
-    [data-placement~="inline-start"]:not(
-      [data-placement~="block-start"],
-      [data-placement~="block-end"]
-    ),
-    [data-placement~="inline-end"]:not(
-      [data-placement~="block-start"],
-      [data-placement~="block-end"]
-    )
-  ) {
-    --overlay-detent-large: calc(100svw - var(--space-9));
-  }
-
-  .x-overlay:where(:not([data-placement]), [data-placement="center"]) {
-    --overlay-detent-large: calc(100svw - 2 * var(--overlay-inset));
+  .x-overlay {
+    --overlay-constraint-width: 100svw;
+    --overlay-constraint-height: 100svh;
   }
 }
 
@@ -788,13 +797,8 @@
     }
   }
 
-  /* block-end family — slide below the bottom edge */
-  .x-overlay:where(
-    [data-placement~="block-end"]:not(
-      [data-placement~="inline-start"],
-      [data-placement~="inline-end"]
-    )
-  ) {
+  /* block-end family (full edge + corners) — slide below the bottom edge */
+  .x-overlay:where([data-placement~="block-end"]) {
     --overlay-ty: 0%;
 
     &:where([open], :popover-open) {
@@ -806,28 +810,8 @@
     }
   }
 
-  .x-overlay:where(
-    [data-placement~="block-end"][data-placement~="inline-start"],
-    [data-placement~="block-end"][data-placement~="inline-end"]
-  ) {
-    --overlay-ty: var(--overlay-inset);
-
-    &:where([open], :popover-open) {
-      --overlay-ty: -100%;
-
-      @starting-style {
-        --overlay-ty: var(--overlay-inset);
-      }
-    }
-  }
-
-  /* block-start family — slide above the top edge */
-  .x-overlay:where(
-    [data-placement~="block-start"]:not(
-      [data-placement~="inline-start"],
-      [data-placement~="inline-end"]
-    )
-  ) {
+  /* block-start family (full edge + corners) — slide above the top edge */
+  .x-overlay:where([data-placement~="block-start"]) {
     --overlay-ty: -100%;
 
     &:where([open], :popover-open) {
@@ -835,21 +819,6 @@
 
       @starting-style {
         --overlay-ty: -100%;
-      }
-    }
-  }
-
-  .x-overlay:where(
-    [data-placement~="block-start"][data-placement~="inline-start"],
-    [data-placement~="block-start"][data-placement~="inline-end"]
-  ) {
-    --overlay-ty: calc(-100% - var(--overlay-inset));
-
-    &:where([open], :popover-open) {
-      --overlay-ty: 0%;
-
-      @starting-style {
-        --overlay-ty: calc(-100% - var(--overlay-inset));
       }
     }
   }

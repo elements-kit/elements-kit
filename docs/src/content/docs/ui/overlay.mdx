@@ -53,11 +53,34 @@ import { createOverlayGestures } from "elements-kit/ui/overlay";
 | `center` *(default)* | centered modal card |
 | `block-start` / `block-end` | full-width top / bottom sheet, height detents |
 | `inline-start` / `inline-end` | full-height side drawer, width detents |
-| `block-end inline-end` *(etc.)* | floating corner panel with a viewport gap |
+| `block-end inline-end` *(etc.)* | floating corner panel, pinned flush to the constraint corner |
 
 Every placement is expressed in interpolable lengths — flipping `data-placement` (or `data-detent`) on an *open* overlay morphs it to the new spot with a plain CSS transition. That's the whole Apple-Maps trick: a persistent `popover="manual"` panel that glides between corner, sheet, and drawer while the page stays interactive.
 
 Logical names mirror in RTL: `inline-end` is the right edge in LTR and the left edge in `dir="rtl"`.
+
+## Constraint
+
+Every placement, detent, and clamp derives from one **constraint rect** — four custom properties defaulting to the viewport:
+
+```css
+--overlay-constraint-top: 0px;
+--overlay-constraint-left: 0px;
+--overlay-constraint-width: 100vw;   /* 100svw where supported */
+--overlay-constraint-height: 100vh;  /* 100svh where supported */
+```
+
+A placement is a *degenerate constraint* (edges pinned: `block-end` is the rect's bottom edge), detents are fractions of it (`medium` = 60% of the constraint height), and the center window's move/resize bounds *are* it. All of the geometry is computed in the cascade (`calc`/`min`/`clamp` against these variables), so it re-clamps reactively when the viewport — or the rect — changes, with no JS running.
+
+To confine an overlay to a container instead of the viewport, write `px` values into the variables, or use the opt-in helper:
+
+```ts
+import { constrainOverlay } from "elements-kit/ui/overlay";
+
+constrainOverlay(overlay, document.querySelector("main")!);
+```
+
+It observes the container with a `ResizeObserver` (via `createElementRect`) and syncs its rect into the variables — sheets pin to the container's bottom, drawers to its edges, the center window moves and resizes only within it. Disposal (scope `onCleanup`, `dispose()`, or `Symbol.dispose`) removes the variables, restoring the viewport constraint. Caveat: a container that *moves* without resizing (page scroll) doesn't retrigger the sync.
 
 ## Modality
 
@@ -98,9 +121,9 @@ Markup contract: the frame's required direct child is a `.x-card` — that card 
 
 | Custom property | Default | Role |
 | --- | --- | --- |
+| `--overlay-constraint-top/-left/-width/-height` | the viewport | the [constraint rect](#constraint) all geometry derives from |
 | `--overlay-duration` | `300ms` | transition duration |
 | `--overlay-easing` | iOS-style ease-out | transition easing |
-| `--overlay-inset` | `--space-4` | viewport gap for center + corner placements |
 | `--overlay-max-width` | `480px` | width cap for center / corner placements |
 | `--overlay-detent-small/-medium/-large` | heights `25svh` / `60svh` / `100svh − --space-9`; drawer widths `280px` / `480px` / `100svw − --space-9` | detent sizes per axis |
 | `--overlay-w` / `--overlay-h` | — | center size, written by the corner resize gesture (JS-owned) |

@@ -5,7 +5,7 @@ import "../card/card.css";
 import "../button/button.css";
 import "../toggle/toggle.css";
 import "./overlay.css";
-import { createOverlayGestures } from "./gestures.ts";
+import { constrainOverlay, createOverlayGestures } from "./gestures.ts";
 
 const PLACEMENTS = [
   "center",
@@ -188,6 +188,89 @@ export const Morph: Story = {
           <div class:unset class:x-card data-variant="elevated" data-size="3">
             <strong>Morph</strong>
             <p>Persistent panel — flip the placement while it stays open.</p>
+            <div
+              role="radiogroup"
+              aria-label="Placement"
+              style="display: grid; grid-template-columns: repeat(3, max-content); gap: var(--space-1); justify-content: start"
+            >
+              {GRID.map((cell) => (
+                <label
+                  class="x-toggle"
+                  data-icon
+                  data-size="2"
+                  title={cell.placement}
+                >
+                  <input
+                    type="radio"
+                    class:unset
+                    name={`${id}-placement`}
+                    aria-label={cell.placement}
+                    checked={computed(() => cell.placement === placement())}
+                    on:change={() => placement(cell.placement)}
+                  />
+                  {cell.label}
+                </label>
+              ))}
+            </div>
+          </div>
+        </dialog>
+      </>
+    ) as Node;
+  },
+};
+
+/**
+ * `constrainOverlay(panel, container)` syncs the container's rect into the
+ * `--overlay-constraint-*` variables: placements pin to the container's
+ * edges, detents become fractions of it, and the move/resize gestures
+ * clamp inside it — all geometry computed by the stylesheet.
+ */
+export const Constrained: Story = {
+  argTypes: {
+    placement: { control: false },
+    modal: { control: false },
+  },
+  args: { modal: false },
+  render: (args) => {
+    const id = `overlay-story-${uid++}`;
+    const overlay = signal<HTMLDialogElement | null>();
+    const container = signal<HTMLElement | null>();
+    const placement = signal("center");
+    return (
+      <>
+        <div
+          ref={container}
+          style="position: fixed; inset: 96px 48px 48px 48px; border: 2px dashed var(--neutral-a8); border-radius: var(--radius-4)"
+        />
+        <button
+          class:unset
+          class:x-button
+          data-variant="solid"
+          data-size="2"
+          popovertarget={id}
+        >
+          Toggle panel
+        </button>
+        <dialog
+          ref={overlay}
+          id={id}
+          class:unset
+          class:x-overlay
+          popover="manual"
+          data-placement={placement}
+          data-detent={args.detent}
+        >
+          <dom-lifecycle
+            onConnect={(self) => {
+              const el = self.parentElement as HTMLDialogElement;
+              constrainOverlay(el, container()!);
+              if (args.gestures) createOverlayGestures(el);
+              el.showPopover();
+            }}
+          />
+          <div class:unset class:x-card data-variant="elevated" data-size="3">
+            <strong>Constrained</strong>
+            <p>The dashed box is the constraint — not the viewport.</p>
             <div
               role="radiogroup"
               aria-label="Placement"

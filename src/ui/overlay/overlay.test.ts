@@ -1,5 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
-import { closestDetent, createOverlayGestures } from "./gestures.ts";
+import {
+  closestDetent,
+  constrainOverlay,
+  createOverlayGestures,
+} from "./gestures.ts";
 
 function createOverlay(placement?: string): HTMLDialogElement {
   const overlay = document.createElement("dialog");
@@ -63,8 +67,14 @@ function pointerUp(overlay: HTMLElement, at: { x?: number; y?: number }) {
   );
 }
 
-/** Center-overlay rect: 480×300 at (100, 100) → corner at (580, 400). */
+/** Center-overlay rect: 480×300 at (100, 100) → corner at (580, 400).
+ * Also pins the constraint rect to 1024×768 in plain px — happy-dom has
+ * no layout, so the vw/vh defaults would otherwise resolve to 0. */
 function mockCenterRect(overlay: HTMLElement) {
+  overlay.style.setProperty("--overlay-constraint-top", "0px");
+  overlay.style.setProperty("--overlay-constraint-left", "0px");
+  overlay.style.setProperty("--overlay-constraint-width", "1024px");
+  overlay.style.setProperty("--overlay-constraint-height", "768px");
   overlay.getBoundingClientRect = () =>
     ({
       x: 100,
@@ -560,6 +570,31 @@ describe("center window move (top grabber)", () => {
   });
 });
 
+describe("constrainOverlay", () => {
+  it("syncs the container rect into the constraint vars and cleans up", () => {
+    const overlay = createOverlay("center");
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+
+    const constraint = constrainOverlay(overlay, container);
+    for (const side of ["top", "left", "width", "height"]) {
+      expect(
+        overlay.style.getPropertyValue(`--overlay-constraint-${side}`),
+      ).toMatch(/px$/);
+    }
+
+    constraint.dispose();
+    for (const side of ["top", "left", "width", "height"]) {
+      expect(
+        overlay.style.getPropertyValue(`--overlay-constraint-${side}`),
+      ).toBe("");
+    }
+
+    container.remove();
+    overlay.remove();
+  });
+});
+
 describe("center corner resize", () => {
   it("engages only at the corner grip or the top strip", () => {
     const overlay = createOverlay("center");
@@ -668,6 +703,26 @@ describe("center corner resize", () => {
     expect(overlay.style.getPropertyValue("--overlay-w")).toBe("530px");
     expect(overlay.style.getPropertyValue("--overlay-mx")).toBe("75px");
     expect(overlay.style.getPropertyValue("--overlay-my")).toBe("75px");
+
+    gestures.dispose();
+    overlay.remove();
+  });
+
+  it("bounds follow the constraint rect, not the viewport", () => {
+    const overlay = createOverlay("center");
+    mockCenterRect(overlay);
+    overlay.showModal();
+    // Confine to a 700×500 region at (50, 50).
+    overlay.style.setProperty("--overlay-constraint-top", "50px");
+    overlay.style.setProperty("--overlay-constraint-left", "50px");
+    overlay.style.setProperty("--overlay-constraint-width", "700px");
+    overlay.style.setProperty("--overlay-constraint-height", "500px");
+    const gestures = createOverlayGestures(overlay, { dismissible: false });
+
+    // Window base left is 100 → move floor = 50 − 100 = −50.
+    drag2D(overlay, { x: 340, y: 110 }, { x: -400, y: 110 });
+    pointerUp(overlay, { x: -400, y: 110 });
+    expect(overlay.style.getPropertyValue("--overlay-mx")).toBe("-50px");
 
     gestures.dispose();
     overlay.remove();
