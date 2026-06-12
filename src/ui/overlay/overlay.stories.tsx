@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/html-vite";
 import { computed, signal } from "elements-kit/signals";
+import "@/utilities/dom-lifecycle.ts";
 import "../card/card.css";
 import "../button/button.css";
 import "../toggle/toggle.css";
@@ -67,17 +68,7 @@ const meta = {
           Open overlay
         </button>
         <dialog
-          ref={(el: HTMLDialogElement) => {
-            overlay(el);
-            if (args.gestures) createOverlayGestures(el);
-            // Auto-open after Storybook mounts the fresh render, so arg
-            // changes apply visibly without hunting for the trigger.
-            queueMicrotask(() => {
-              if (!el.isConnected) return;
-              if (args.modal) el.showModal();
-              else el.showPopover();
-            });
-          }}
+          ref={overlay}
           id={id}
           class:unset
           class:x-overlay
@@ -85,6 +76,16 @@ const meta = {
           data-placement={args.placement}
           data-detent={args.detent}
         >
+          {/* Auto-open + gestures on mount; the onConnect effectScope
+              disposes the gestures on disconnect (story re-render). */}
+          <dom-lifecycle
+            onConnect={(self) => {
+              const el = self.parentElement as HTMLDialogElement;
+              if (args.gestures) createOverlayGestures(el);
+              if (args.modal) el.showModal();
+              else el.showPopover();
+            }}
+          />
           <div class:unset class:x-card data-variant="elevated" data-size="3">
             <strong>Overlay</strong>
             <p>
@@ -168,15 +169,7 @@ export const Morph: Story = {
           Toggle panel
         </button>
         <dialog
-          ref={(el: HTMLDialogElement) => {
-            overlay(el);
-            if (args.gestures) createOverlayGestures(el);
-            queueMicrotask(() => {
-              if (!el.isConnected) return;
-              if (args.modal) el.showModal();
-              else el.showPopover();
-            });
-          }}
+          ref={overlay}
           id={id}
           class:unset
           class:x-overlay
@@ -184,6 +177,14 @@ export const Morph: Story = {
           data-placement={placement}
           data-detent={args.detent}
         >
+          <dom-lifecycle
+            onConnect={(self) => {
+              const el = self.parentElement as HTMLDialogElement;
+              if (args.gestures) createOverlayGestures(el);
+              if (args.modal) el.showModal();
+              else el.showPopover();
+            }}
+          />
           <div class:unset class:x-card data-variant="elevated" data-size="3">
             <strong>Morph</strong>
             <p>Persistent panel — flip the placement while it stays open.</p>
