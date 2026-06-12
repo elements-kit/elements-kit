@@ -161,23 +161,28 @@
 /* center (default) — --overlay-w/-h (corner resize) and --overlay-mx/-my
  * (window move) are JS-owned and composed only here, so a placement
  * morph ignores the window's resized dimensions and moved position —
- * and morphing back restores them. data-detent maps to width steps for
- * the snapping resize (vw-based large so the gesture's probe measures
- * viewport-true). */
+ * and morphing back restores them. The persisted channels are clamped
+ * declaratively: in a translate component `%` is the element's own size
+ * and `50vw − 50%` is exactly (viewport − size) / 2, so a moved or
+ * resized window re-clamps on viewport resize with no JS. Transient drag
+ * overshoot (rubber band) rides the unclamped --overlay-dx/-dy instead.
+ * data-detent maps to width steps for the snapping resize (vw-based
+ * large so the gesture's probe measures viewport-true). */
 .x-overlay:where(:not([data-placement]), [data-placement="center"]) {
   translate: calc(
-      var(--overlay-tx) + var(--overlay-dx, 0px) + var(--overlay-mx, 0px)
+      var(--overlay-tx) + var(--overlay-dx, 0px) +
+        clamp(calc(50% - 50vw), var(--overlay-mx, 0px), calc(50vw - 50%))
     )
-    calc(var(--overlay-ty) + var(--overlay-dy, 0px) + var(--overlay-my, 0px));
+    calc(
+      var(--overlay-ty) + var(--overlay-dy, 0px) +
+        clamp(calc(50% - 50vh), var(--overlay-my, 0px), calc(50vh - 50%))
+    );
   --overlay-detent-small: 320px;
   --overlay-detent-medium: var(--overlay-max-width);
   --overlay-detent-large: calc(100vw - 2 * var(--overlay-inset));
-  width: var(
-    --overlay-w,
-    min(
-      var(--overlay-detent, var(--overlay-max-width)),
-      calc(100% - 2 * var(--overlay-inset))
-    )
+  width: min(
+    var(--overlay-w, var(--overlay-detent, var(--overlay-max-width))),
+    calc(100% - 2 * var(--overlay-inset))
   );
   height: var(--overlay-h, fit-content);
   max-height: calc(100% - 2 * var(--overlay-inset));

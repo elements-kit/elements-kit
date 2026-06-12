@@ -423,16 +423,19 @@ describe("center window move (top grabber)", () => {
     mockCenterRect(overlay);
     const gestures = createOverlayGestures(overlay, { dismissible: false });
 
-    // Top strip (rect.top = 100): engage and track 1:1.
+    // Top strip (rect.top = 100): engage and track 1:1 — the live delta
+    // rides the transient channel; the persisted position is untouched.
     drag2D(overlay, { x: 340, y: 110 }, { x: 390, y: 180 });
-    expect(overlay.style.getPropertyValue("--overlay-mx")).toBe("50px");
-    expect(overlay.style.getPropertyValue("--overlay-my")).toBe("70px");
+    expect(overlay.style.getPropertyValue("--overlay-dx")).toBe("50px");
+    expect(overlay.style.getPropertyValue("--overlay-dy")).toBe("70px");
+    expect(overlay.style.getPropertyValue("--overlay-mx")).toBe("");
     expect(overlay.style.userSelect).toBe("none");
 
-    // Release: position persists, scaffolding clears.
+    // Release: position persists in mx/my, the transient delta clears.
     pointerUp(overlay, { x: 390, y: 180 });
     expect(overlay.style.getPropertyValue("--overlay-mx")).toBe("50px");
     expect(overlay.style.getPropertyValue("--overlay-my")).toBe("70px");
+    expect(overlay.style.getPropertyValue("--overlay-dx")).toBe("");
     expect(overlay.style.transition).toBe("");
     expect(overlay.style.userSelect).toBe("");
 
@@ -480,11 +483,11 @@ describe("center window move (top grabber)", () => {
     const gestures = createOverlayGestures(overlay, { dismissible: false });
 
     // Base left is 100 → offset floor -100; overshoot is resisted ÷3:
-    // raw -300 → -100 + (-200 / 3) ≈ -166.67.
+    // raw -300 → -100 + (-200 / 3) ≈ -166.67, riding the transient dx.
     drag2D(overlay, { x: 340, y: 110 }, { x: 40, y: 110 });
-    const mx = parseFloat(overlay.style.getPropertyValue("--overlay-mx"));
-    expect(mx).toBeLessThan(-100);
-    expect(mx).toBeGreaterThan(-300);
+    const dx = parseFloat(overlay.style.getPropertyValue("--overlay-dx"));
+    expect(dx).toBeLessThan(-100);
+    expect(dx).toBeGreaterThan(-300);
 
     gestures.dispose();
     overlay.remove();

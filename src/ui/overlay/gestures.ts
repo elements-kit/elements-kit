@@ -376,17 +376,18 @@ export function createOverlayGestures(
     overlay.style.transition = "none";
 
     if (mode === "move") {
-      // 1:1 inside the viewport, rubber-band resistance beyond it —
-      // a flick can still dismiss, a slow over-drag springs back.
-      // --overlay-mx/-my are composed into translate only by the center
-      // rule, so a placement morph ignores the window's position.
+      // 1:1 inside the viewport, rubber-band resistance beyond it — a
+      // flick can still dismiss, a slow over-drag springs back. The drag
+      // delta (including overshoot) rides the transient --overlay-dx/-dy;
+      // the persisted --overlay-mx/-my never leave their CSS clamp, so
+      // the stylesheet stays the authority on resting bounds.
       overlay.style.setProperty(
-        "--overlay-mx",
-        `${resist(prevDx + (event.clientX - startX), dxMin, dxMax)}px`,
+        "--overlay-dx",
+        `${resist(prevDx + (event.clientX - startX), dxMin, dxMax) - prevDx}px`,
       );
       overlay.style.setProperty(
-        "--overlay-my",
-        `${resist(prevDy + (event.clientY - startY), dyMin, dyMax)}px`,
+        "--overlay-dy",
+        `${resist(prevDy + (event.clientY - startY), dyMin, dyMax) - prevDy}px`,
       );
       return;
     }
@@ -572,8 +573,9 @@ export function createOverlayGestures(
     if (!dragging) return;
     dragging = false;
     if (mode === "move") {
+      // The drag delta lived in --overlay-dx/-dy; the persisted position
+      // was never touched.
       clearDrag();
-      restoreOffsets();
     } else if (mode === "resize") {
       clearDrag();
       restoreOffsets();
