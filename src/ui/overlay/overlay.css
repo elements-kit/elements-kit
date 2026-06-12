@@ -539,6 +539,9 @@
     calc(var(--overlay-grip-radius, var(--radius-5)) - var(--space-1)),
     0px
   );
+  /* Cap diameter: stroke-width pills, collapsing to square tips when the
+   * radius scale collapses (square card → square handle). */
+  --_cap: min(var(--space-1), calc(var(--_grip-r) * 9999));
   content: "";
   position: absolute;
   z-index: 1;
@@ -550,11 +553,11 @@
   border: var(--space-1) solid var(--neutral-a8);
   border-bottom-right-radius: var(--_grip-r);
   mask:
-    /* tails, cut flat at the cap centers */
-    linear-gradient(#000, #000) right 0 top calc(var(--space-1) / 2) /
-      var(--space-1) calc(100% - var(--space-1) / 2) no-repeat,
-    linear-gradient(#000, #000) left calc(var(--space-1) / 2) bottom 0 /
-      calc(100% - var(--space-1) / 2) var(--space-1) no-repeat,
+    /* tails, cut flat at the cap centers (full length when capless) */
+    linear-gradient(#000, #000) right 0 top calc(var(--_cap) / 2) /
+      var(--space-1) calc(100% - var(--_cap) / 2) no-repeat,
+    linear-gradient(#000, #000) left calc(var(--_cap) / 2) bottom 0 /
+      calc(100% - var(--_cap) / 2) var(--space-1) no-repeat,
     /* arc quadrant — the border's own curve shows through */
     linear-gradient(#000, #000) 100% 100% / var(--_grip-r) var(--_grip-r)
       no-repeat,
@@ -564,13 +567,13 @@
         #000 calc(100% - 0.5px),
         transparent
       )
-      right 0 top 0 / var(--space-1) var(--space-1) no-repeat,
+      right 0 top 0 / var(--_cap) var(--_cap) no-repeat,
     radial-gradient(
         circle closest-side,
         #000 calc(100% - 0.5px),
         transparent
       )
-      left 0 bottom 0 / var(--space-1) var(--space-1) no-repeat;
+      left 0 bottom 0 / var(--_cap) var(--_cap) no-repeat;
 }
 
 /* The grip mirrors with the corner in RTL (logical insets already moved
