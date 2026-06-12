@@ -1,0 +1,204 @@
+/*
+ * Overlay constraint — the rect an `.x-overlay` is sized, stepped, and
+ * clamped by. Companion to overlay.css (which owns placement alignment,
+ * transitions, and affordances); import it AFTER overlay.css.
+ *
+ * The model: a placement is a degenerate constraint (overlay.css pins
+ * edges of this rect), detents are fractions of it, and the center
+ * window's move/resize bounds ARE it. Everything in this file computes
+ * against the four authorable variables below, so the overlay re-clamps
+ * reactively whenever the rect changes — no JS.
+ *
+ * Defaults to the viewport (small-viewport `sv*` units where supported,
+ * tracking the collapsing mobile browser chrome). Write px values to
+ * confine an overlay to any region — by hand, or synced from a container
+ * element with `constrainOverlay` (elements-kit/ui/overlay/constrain).
+ *
+ * API:
+ *   --overlay-constraint-top / -left / -width / -height   the rect
+ *   --overlay-detent-small / -medium / -large   detent sizes (per axis)
+ *   --overlay-max-width                         center / corner width cap
+ */
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * THE RECT                                                                                        *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-overlay {
+  --overlay-constraint-top: 0px;
+  --overlay-constraint-left: 0px;
+  --overlay-constraint-width: 100vw;
+  --overlay-constraint-height: 100vh;
+}
+
+@supports (height: 1svh) {
+  .x-overlay {
+    --overlay-constraint-width: 100svw;
+    --overlay-constraint-height: 100svh;
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * DETENTS — fractions of the constraint; heights on block-edge                                    *
+ * placements, widths on drawers and center                                                        *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-overlay {
+  --overlay-max-width: 480px;
+  --overlay-detent-small: calc(var(--_ch) * 0.25);
+  --overlay-detent-medium: calc(var(--_ch) * 0.6);
+  --overlay-detent-large: calc(var(--_ch) - var(--space-9));
+}
+
+.x-overlay:where(:not([data-placement]), [data-placement="center"]) {
+  --overlay-detent-small: 320px;
+  --overlay-detent-medium: var(--overlay-max-width);
+  --overlay-detent-large: var(--_cw);
+}
+
+.x-overlay:where(
+    [data-placement~="inline-start"]:not(
+      [data-placement~="block-start"],
+      [data-placement~="block-end"]
+    ),
+    [data-placement~="inline-end"]:not(
+      [data-placement~="block-start"],
+      [data-placement~="block-end"]
+    )
+  ) {
+  --overlay-detent-small: 280px;
+  --overlay-detent-medium: 480px;
+  --overlay-detent-large: calc(var(--_cw) - var(--space-9));
+}
+
+/* data-detent → the active size. */
+.x-overlay {
+  --overlay-detent: var(--overlay-detent-large);
+
+  &:where([data-detent="small"]) {
+    --overlay-detent: var(--overlay-detent-small);
+  }
+  &:where([data-detent="medium"]) {
+    --overlay-detent: var(--overlay-detent-medium);
+  }
+  &:where([data-detent="large"]) {
+    --overlay-detent: var(--overlay-detent-large);
+  }
+}
+
+/* Drawers and center cards without an explicit detent keep the classic
+ * medium width (480px / --overlay-max-width). */
+.x-overlay:where(
+    :not([data-placement]),
+    [data-placement="center"],
+    [data-placement~="inline-start"]:not(
+      [data-placement~="block-start"],
+      [data-placement~="block-end"]
+    ),
+    [data-placement~="inline-end"]:not(
+      [data-placement~="block-start"],
+      [data-placement~="block-end"]
+    )
+  ):where(:not([data-detent])) {
+  --overlay-detent: var(--overlay-detent-medium);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SIZES — every placement bounded by the rect                                                     *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* center — --overlay-w/-h are JS-owned (corner resize) and read only
+ * here, so a placement morph ignores the resized dimensions. */
+.x-overlay:where(:not([data-placement]), [data-placement="center"]) {
+  width: min(
+    var(--overlay-w, var(--overlay-detent, var(--overlay-max-width))),
+    var(--_cw)
+  );
+  height: var(--overlay-h, fit-content);
+  max-height: var(--_ch);
+}
+
+/* The fullscreen-card step. */
+.x-overlay:where(:not([data-placement]), [data-placement="center"]):where(
+    [data-detent="large"]
+  ) {
+  height: var(--overlay-h, var(--_ch));
+}
+
+/* block-edge sheets — full constraint width, detent height */
+.x-overlay:where(
+    [data-placement~="block-start"]:not(
+      [data-placement~="inline-start"],
+      [data-placement~="inline-end"]
+    ),
+    [data-placement~="block-end"]:not(
+      [data-placement~="inline-start"],
+      [data-placement~="inline-end"]
+    )
+  ) {
+  width: var(--_cw);
+  height: min(var(--overlay-detent), var(--_ch));
+}
+
+/* drawers — detent width, full constraint height */
+.x-overlay:where(
+    [data-placement~="inline-start"]:not(
+      [data-placement~="block-start"],
+      [data-placement~="block-end"]
+    ),
+    [data-placement~="inline-end"]:not(
+      [data-placement~="block-start"],
+      [data-placement~="block-end"]
+    )
+  ) {
+  width: min(var(--overlay-detent), var(--_cw));
+  height: var(--_ch);
+}
+
+/* corners — capped panels pinned flush to the constraint corners */
+.x-overlay:where(
+    [data-placement~="block-start"][data-placement~="inline-start"],
+    [data-placement~="block-start"][data-placement~="inline-end"],
+    [data-placement~="block-end"][data-placement~="inline-start"],
+    [data-placement~="block-end"][data-placement~="inline-end"]
+  ) {
+  width: min(var(--overlay-max-width), var(--_cw));
+  height: min(var(--overlay-detent), var(--_ch));
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * CLAMPS — the center window's persisted move/resize channels                                     *
+ *                                                                                                 *
+ * In a translate component `%` is the element's own size, so                                      *
+ * `cw/2 − 50%` is exactly (rect − size) / 2 — the move bound. The                                 *
+ * persisted --overlay-mx/-my never escape it, reactively; transient                               *
+ * drag overshoot (rubber band) rides the unclamped --overlay-dx/-dy                               *
+ * composed by overlay.css.                                                                        *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-overlay:where(:not([data-placement]), [data-placement="center"]) {
+  translate: calc(
+      var(--overlay-tx) + var(--overlay-dx, 0px) +
+        clamp(
+          calc(50% - var(--_cw) / 2),
+          var(--overlay-mx, 0px),
+          calc(var(--_cw) / 2 - 50%)
+        )
+    )
+    calc(
+      var(--overlay-ty) + var(--overlay-dy, 0px) +
+        clamp(
+          calc(50% - var(--_ch) / 2),
+          var(--overlay-my, 0px),
+          calc(var(--_ch) / 2 - 50%)
+        )
+    );
+}

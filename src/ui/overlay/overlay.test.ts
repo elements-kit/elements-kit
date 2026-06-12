@@ -1,9 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
-import {
-  closestDetent,
-  constrainOverlay,
-  createOverlayGestures,
-} from "./gestures.ts";
+import { constrainOverlay } from "./constrain.ts";
+import { closestDetent, createOverlayGestures } from "./gestures.ts";
 
 function createOverlay(placement?: string): HTMLDialogElement {
   const overlay = document.createElement("dialog");

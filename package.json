@@ -94,6 +94,11 @@
       "import": "./dist/ui/overlay/gestures.mjs",
       "types": "./dist/ui/overlay/gestures.d.mts"
     },
+    "./ui/overlay/constrain": {
+      "source": "./src/ui/overlay/constrain.ts",
+      "import": "./dist/ui/overlay/constrain.mjs",
+      "types": "./dist/ui/overlay/constrain.d.mts"
+    },
     "./ui/*": "./dist/ui/*"
   },
   "scripts": {

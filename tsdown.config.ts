@@ -15,6 +15,7 @@ export default defineConfig({
     "src/integrations/*.ts",
     "src/ui/**/*.css",
     "src/ui/overlay/gestures.ts",
+    "src/ui/overlay/constrain.ts",
   ],
   deps: {
     neverBundle: ["react", "react-dom"],

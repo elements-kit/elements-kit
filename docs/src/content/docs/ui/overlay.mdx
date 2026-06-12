@@ -36,6 +36,7 @@ import "elements-kit/ui/styles/palette/black-alpha.css";
 // the surface and the frame:
 import "elements-kit/ui/card/card.css";
 import "elements-kit/ui/overlay/overlay.css";
+import "elements-kit/ui/overlay/constraint.css";
 ```
 
 Optional gestures:
@@ -61,7 +62,7 @@ Logical names mirror in RTL: `inline-end` is the right edge in LTR and the left 
 
 ## Constraint
 
-Every placement, detent, and clamp derives from one **constraint rect** — four custom properties defaulting to the viewport:
+Every placement, detent, and clamp derives from one **constraint rect**. The geometry lives in its own module, `constraint.css` (required, imported after `overlay.css`): it declares the rect, the detent steps as fractions of it, every placement's size bounds, and the center window's move/resize clamps — `overlay.css` keeps only placement alignment:
 
 ```css
 --overlay-constraint-top: 0px;
@@ -75,7 +76,8 @@ A placement is a *degenerate constraint* (edges pinned: `block-end` is the rect'
 To confine an overlay to a container instead of the viewport, write `px` values into the variables, or use the opt-in helper:
 
 ```ts
-import { constrainOverlay } from "elements-kit/ui/overlay";
+import "elements-kit/ui/overlay/constraint.css";
+import { constrainOverlay } from "elements-kit/ui/overlay/constrain";
 
 constrainOverlay(overlay, document.querySelector("main")!);
 ```

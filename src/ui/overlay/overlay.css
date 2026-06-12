@@ -59,20 +59,18 @@
  *                      an overlay when no material context is declared;
  *                      an explicit value on the frame or any ancestor
  *                      wins (e.g. "translucent" for frosted glass)
- *   --overlay-constraint-top / -left / -width / -height
- *                      the constraint rect every placement, detent, and
- *                      clamp derives from. Defaults to the viewport;
- *                      write px values (or use `constrainOverlay`) to
- *                      confine the overlay to any region
  *   --overlay-duration   transitions duration (300ms)
  *   --overlay-easing     transitions easing (iOS-style ease-out)
- *   --overlay-max-width  width cap for center / corner placements
- *   --overlay-detent-small / -medium / -large    detent sizes (per axis,
- *                      fractions of the constraint rect)
- *   --overlay-detent     active detent size (set by data-detent)
  *   --overlay-w / -h     center size, written by the corner resize gesture
  *   --overlay-mx / -my   center position, written by the move gesture
  *   --overlay-backdrop   modal backdrop color (--color-overlay)
+ *
+ * Geometry (sizes, detents, clamps) lives in the companion
+ * constraint.css — REQUIRED, imported after this file. It declares the
+ * constraint rect (`--overlay-constraint-top/-left/-width/-height`,
+ * viewport by default), the `--overlay-detent-*` steps, and
+ * `--overlay-max-width`. This file owns placement alignment,
+ * transitions, modality, and affordances.
  *
  * Tiers:
  *   Tier 1 (universal) — instant open/close; placement + detent morphs
@@ -108,21 +106,16 @@
    * discrete-display exit transition. */
   grid-template-rows: minmax(0, 1fr);
 
-  /* Constraint rect — the region the overlay lives in. Every placement,
-   * detent, and clamp below derives from these four lengths, so the
-   * geometry is one authorable interface: a placement is a degenerate
-   * constraint (edges pinned), detents are fractions of it, the move and
-   * resize bounds ARE it. Defaults to the viewport; write px values (by
-   * hand or via `constrainOverlay`) to confine the overlay to any region. */
-  --overlay-constraint-top: 0px;
-  --overlay-constraint-left: 0px;
-  --overlay-constraint-width: 100vw;
-  --overlay-constraint-height: 100vh;
-  /* Short internal aliases for the formulas below. */
-  --_ct: var(--overlay-constraint-top);
-  --_cl: var(--overlay-constraint-left);
-  --_cw: var(--overlay-constraint-width);
-  --_ch: var(--overlay-constraint-height);
+  /* Constraint rect — the region the overlay lives in. Placements pin
+   * to its edges (a placement is a degenerate constraint); sizes,
+   * detents, and clamps against it live in constraint.css. The
+   * authorable variables are declared there (viewport defaults, sv*
+   * where supported, synced from a container via `constrainOverlay`);
+   * the fallbacks here keep the alignment math resolvable on its own. */
+  --_ct: var(--overlay-constraint-top, 0px);
+  --_cl: var(--overlay-constraint-left, 0px);
+  --_cw: var(--overlay-constraint-width, 100vw);
+  --_ch: var(--overlay-constraint-height, 100vh);
 
   /* Position scheme: every placement is a rect-relative top/left plus an
    * element-relative translate compensation — all interpolable lengths,
@@ -142,10 +135,6 @@
 
   --overlay-duration: 300ms;
   --overlay-easing: cubic-bezier(0.32, 0.72, 0, 1);
-  --overlay-max-width: 480px;
-  --overlay-detent-small: calc(var(--_ch) * 0.25);
-  --overlay-detent-medium: calc(var(--_ch) * 0.6);
-  --overlay-detent-large: calc(var(--_ch) - var(--space-9));
 
   /* Placement / detent morphs — Tier 1. Pre-`translate` browsers ignore
    * the translate transition and get the static fallback below. */
@@ -179,50 +168,8 @@
  *                                                                                                 *
  ***************************************************************************************************/
 
-/* center (default) — --overlay-w/-h (corner resize) and --overlay-mx/-my
- * (window move) are JS-owned and composed only here, so a placement
- * morph ignores the window's resized dimensions and moved position —
- * and morphing back restores them. The persisted channels are clamped
- * declaratively: in a translate component `%` is the element's own size
- * and `50vw − 50%` is exactly (viewport − size) / 2, so a moved or
- * resized window re-clamps on viewport resize with no JS. Transient drag
- * overshoot (rubber band) rides the unclamped --overlay-dx/-dy instead.
- * data-detent maps to width steps for the snapping resize (vw-based
- * large so the gesture's probe measures viewport-true). */
-.x-overlay:where(:not([data-placement]), [data-placement="center"]) {
-  translate: calc(
-      var(--overlay-tx) + var(--overlay-dx, 0px) +
-        clamp(
-          calc(50% - var(--_cw) / 2),
-          var(--overlay-mx, 0px),
-          calc(var(--_cw) / 2 - 50%)
-        )
-    )
-    calc(
-      var(--overlay-ty) + var(--overlay-dy, 0px) +
-        clamp(
-          calc(50% - var(--_ch) / 2),
-          var(--overlay-my, 0px),
-          calc(var(--_ch) / 2 - 50%)
-        )
-    );
-  --overlay-detent-small: 320px;
-  --overlay-detent-medium: var(--overlay-max-width);
-  --overlay-detent-large: var(--_cw);
-  width: min(
-    var(--overlay-w, var(--overlay-detent, var(--overlay-max-width))),
-    var(--_cw)
-  );
-  height: var(--overlay-h, fit-content);
-  max-height: var(--_ch);
-}
-
-/* The fullscreen-card step. */
-.x-overlay:where(:not([data-placement]), [data-placement="center"]):where(
-    [data-detent="large"]
-  ) {
-  height: var(--overlay-h, var(--_ch));
-}
+/* center (default) — alignment lives in the base rule; sizes, detents,
+ * and the persisted move/resize clamps live in constraint.css. */
 
 /* block-start — full-width top sheet */
 .x-overlay:where(
@@ -235,8 +182,6 @@
   --overlay-x: calc(var(--_cl) + var(--_cw) / 2);
   --overlay-ty: 0%;
   --overlay-tx: -50%;
-  width: var(--_cw);
-  height: min(var(--overlay-detent), var(--_ch));
 }
 
 /* block-end — full-width bottom sheet */
@@ -250,12 +195,9 @@
   --overlay-x: calc(var(--_cl) + var(--_cw) / 2);
   --overlay-ty: -100%;
   --overlay-tx: -50%;
-  width: var(--_cw);
-  height: min(var(--overlay-detent), var(--_ch));
 }
 
-/* inline-start / inline-end — full-height side drawers. data-detent maps
- * to widths here (px / vw, not the base svh heights). */
+/* inline-start / inline-end — full-height side drawers */
 .x-overlay:where(
   [data-placement~="inline-start"]:not(
     [data-placement~="block-start"],
@@ -266,11 +208,6 @@
   --overlay-x: var(--_cl);
   --overlay-ty: -50%;
   --overlay-tx: 0%;
-  --overlay-detent-small: 280px;
-  --overlay-detent-medium: 480px;
-  --overlay-detent-large: calc(var(--_cw) - var(--space-9));
-  width: min(var(--overlay-detent), var(--_cw));
-  height: var(--_ch);
 }
 
 .x-overlay:where(
@@ -283,26 +220,11 @@
   --overlay-x: calc(var(--_cl) + var(--_cw));
   --overlay-ty: -50%;
   --overlay-tx: -100%;
-  --overlay-detent-small: 280px;
-  --overlay-detent-medium: 480px;
-  --overlay-detent-large: calc(var(--_cw) - var(--space-9));
-  width: min(var(--overlay-detent), var(--_cw));
-  height: var(--_ch);
 }
 
 /* corners — floating panels pinned to the constraint corners. Want a
  * gap? Shrink the constraint rect — spacing belongs to the constraint
  * API, not the placement. */
-.x-overlay:where(
-  [data-placement~="block-start"][data-placement~="inline-start"]
-),
-.x-overlay:where([data-placement~="block-start"][data-placement~="inline-end"]),
-.x-overlay:where([data-placement~="block-end"][data-placement~="inline-start"]),
-.x-overlay:where([data-placement~="block-end"][data-placement~="inline-end"]) {
-  width: min(var(--overlay-max-width), var(--_cw));
-  height: min(var(--overlay-detent), var(--_ch));
-}
-
 .x-overlay:where(
   [data-placement~="block-start"][data-placement~="inline-start"]
 ) {
@@ -372,43 +294,6 @@
   ):where(:dir(rtl)) {
   --overlay-x: var(--_cl);
   --overlay-tx: 0%;
-}
-
-/***************************************************************************************************
- *                                                                                                 *
- * DETENTS — heights on block-edge placements, widths on drawers                                   *
- *                                                                                                 *
- ***************************************************************************************************/
-
-.x-overlay {
-  --overlay-detent: var(--overlay-detent-large);
-
-  &:where([data-detent="small"]) {
-    --overlay-detent: var(--overlay-detent-small);
-  }
-  &:where([data-detent="medium"]) {
-    --overlay-detent: var(--overlay-detent-medium);
-  }
-  &:where([data-detent="large"]) {
-    --overlay-detent: var(--overlay-detent-large);
-  }
-}
-
-/* Drawers and center cards without an explicit detent keep the classic
- * medium width (480px / --overlay-max-width). */
-.x-overlay:where(
-    :not([data-placement]),
-    [data-placement="center"],
-    [data-placement~="inline-start"]:not(
-      [data-placement~="block-start"],
-      [data-placement~="block-end"]
-    ),
-    [data-placement~="inline-end"]:not(
-      [data-placement~="block-start"],
-      [data-placement~="block-end"]
-    )
-  ):where(:not([data-detent])) {
-  --overlay-detent: var(--overlay-detent-medium);
 }
 
 /***************************************************************************************************
@@ -724,25 +609,6 @@
   ) {
     inset: auto 0 0 auto;
     margin: 0;
-  }
-}
-
-/***************************************************************************************************
- *                                                                                                 *
- * SMALL-VIEWPORT CONSTRAINT DEFAULTS                                                              *
- *                                                                                                 *
- * sv* units track the collapsing mobile browser chrome. Because every                             *
- * placement, detent, and clamp derives from the constraint rect, this                             *
- * one override is the only small-viewport handling needed. (A second                              *
- * declaration in the same rule would be deduped by the build — guard                              *
- * instead.)                                                                                       *
- *                                                                                                 *
- ***************************************************************************************************/
-
-@supports (height: 1svh) {
-  .x-overlay {
-    --overlay-constraint-width: 100svw;
-    --overlay-constraint-height: 100svh;
   }
 }
 

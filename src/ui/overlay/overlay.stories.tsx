@@ -5,7 +5,9 @@ import "../card/card.css";
 import "../button/button.css";
 import "../toggle/toggle.css";
 import "./overlay.css";
-import { constrainOverlay, createOverlayGestures } from "./gestures.ts";
+import { constrainOverlay } from "./constrain.ts";
+import "./constraint.css";
+import { createOverlayGestures } from "./gestures.ts";
 
 const PLACEMENTS = [
   "center",
