@@ -435,6 +435,43 @@ describe("drawer gestures (single inline handle)", () => {
     gestures.dispose();
     dialog.remove();
   });
+
+  // Inline counterpart of the block-sheet anchoring: a floating drawer
+  // pins its handle-less edge by shifting --overlay-x; a docked one
+  // leaves the location to the CSS clamp.
+  it("anchors the opposite edge when floating, not when docked", () => {
+    const setRect = (o: HTMLElement, left: number, w: number) => {
+      o.getBoundingClientRect = () =>
+        ({
+          x: left, y: 100, left, top: 100, right: left + w, bottom: 500,
+          width: w, height: 400, toJSON: () => ({}),
+        }) as DOMRect;
+      o.style.setProperty("--overlay-constraint-top", "0px");
+      o.style.setProperty("--overlay-constraint-left", "0px");
+      o.style.setProperty("--overlay-constraint-width", "1024px");
+      o.style.setProperty("--overlay-constraint-height", "768px");
+    };
+
+    // Floating inline-end drawer (handle inline-end → anchor inline-start):
+    // left edge (200) is far from the constraint left (0).
+    const floating = createOverlay({ resize: "inline-end" });
+    setRect(floating, 200, 300); // center x 350
+    const g1 = createOverlayGestures(floating, { dismissible: false });
+    dragX(floating, 250, 310); // grow width by 60 → size 120
+    // x = centerX0 − cl + signX·(size − startSize)/2 = 350 + (120 − 300)/2
+    expect(floating.style.getPropertyValue("--overlay-x")).toBe("260px");
+    g1.dispose();
+    floating.remove();
+
+    // Docked: left (0) flush with the constraint left.
+    const docked = createOverlay({ resize: "inline-end" });
+    setRect(docked, 0, 300);
+    const g2 = createOverlayGestures(docked, { dismissible: false });
+    dragX(docked, 250, 310);
+    expect(docked.style.getPropertyValue("--overlay-x")).toBe("");
+    g2.dispose();
+    docked.remove();
+  });
 });
 
 describe("window move (data-draggable)", () => {
