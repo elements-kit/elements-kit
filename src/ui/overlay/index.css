@@ -112,14 +112,12 @@
 
 /***************************************************************************************************
  *                                                                                                 *
- * SIZE — explicit channels, detent default, rect cap                                              *
+ * SIZE — explicit channels, rect cap                                                              *
  *                                                                                                 *
  ***************************************************************************************************/
 
 .x-overlay {
-  --overlay-max-width: 480px;
-
-  width: var(--overlay-w, var(--overlay-max-width));
+  width: var(--overlay-w, fit-content);
   max-width: var(--_cw);
   height: var(--overlay-h, fit-content);
   max-height: var(--_ch);
