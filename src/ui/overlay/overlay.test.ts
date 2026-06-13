@@ -519,27 +519,27 @@ describe("window move (data-draggable)", () => {
     overlay.remove();
   });
 
-  it("dismissing reverts the dismissing gesture, keeping prior geometry", () => {
+  it("dismissing reverts to the channels at the gesture's engage", () => {
     const overlay = createOverlay({ draggable: true });
     mockWindowRect(overlay);
+    overlay.style.setProperty("--overlay-x", "11px");
     overlay.style.setProperty("--overlay-w", "333px");
     overlay.showModal();
-    const gestures = createOverlayGestures(overlay);
+    const gestures = createOverlayGestures(overlay); // snapshots x=11 at attach
 
-    // Move (persists a new point), then fling the window off-screen. The
-    // fling is undone, but the persisted move and the author's untouched
-    // width survive (dismiss reverts only the dismissing gesture).
-    drag2D(overlay, { x: 340, y: 110 }, { x: 390, y: 160 });
-    pointerUp(overlay, { x: 390, y: 160 }); // persists (390, 300)
+    // The author re-positions AFTER attach (e.g. a morphing panel writing
+    // the channels). Dismiss must revert to this, not the attach-time
+    // snapshot — so the morph survives a flick-to-dismiss + reopen.
+    overlay.style.setProperty("--overlay-x", "99px");
+
+    // Fling off the constraint → dismiss.
     drag2D(overlay, { x: 340, y: 110 }, { x: -400, y: 110 });
     bindRect(overlay, -640, 100);
     pointerUp(overlay, { x: -400, y: 110 });
 
     expect(overlay.open).toBe(false);
-    expect(overlay.style.getPropertyValue("--overlay-x")).toBe("390px");
-    expect(overlay.style.getPropertyValue("--overlay-y")).toBe("300px");
+    expect(overlay.style.getPropertyValue("--overlay-x")).toBe("99px");
     expect(overlay.style.getPropertyValue("--overlay-w")).toBe("333px");
-    expect(overlay.style.getPropertyValue("--overlay-h")).toBe("");
 
     gestures.dispose();
     overlay.remove();
@@ -595,6 +595,42 @@ describe("block-start sheet + draggable (resize handle owns the top)", () => {
 
     gestures.dispose();
     overlay.remove();
+  });
+
+  // Resizing a sheet that's floating (dragged off the constraint edge)
+  // must pin the handle-less edge by shifting the location point; a sheet
+  // docked flush against that edge leaves the location to the CSS clamp.
+  it("anchors the opposite edge when floating, not when docked", () => {
+    const setRect = (o: HTMLElement, top: number, h: number) => {
+      o.getBoundingClientRect = () =>
+        ({
+          x: 100, y: top, left: 100, top, right: 500, bottom: top + h,
+          width: 400, height: h, toJSON: () => ({}),
+        }) as DOMRect;
+      o.style.setProperty("--overlay-constraint-top", "0px");
+      o.style.setProperty("--overlay-constraint-left", "0px");
+      o.style.setProperty("--overlay-constraint-width", "1024px");
+      o.style.setProperty("--overlay-constraint-height", "768px");
+    };
+
+    // Floating: bottom (500) is far from the constraint bottom (768).
+    const floating = createOverlay({ resize: "block-start" });
+    setRect(floating, 300, 200); // center y 400, bottom 500
+    const g1 = createOverlayGestures(floating, { dismissible: false });
+    drag(floating, 350, 250); // grow upward → size 100; bottom pinned
+    // y = centerY0 − ct + signY·(size − startSize)/2 = 400 + (−1)(100−200)/2
+    expect(floating.style.getPropertyValue("--overlay-y")).toBe("450px");
+    g1.dispose();
+    floating.remove();
+
+    // Docked: bottom (768) is flush with the constraint bottom.
+    const docked = createOverlay({ resize: "block-start" });
+    setRect(docked, 568, 200); // bottom 768 = constraint bottom
+    const g2 = createOverlayGestures(docked, { dismissible: false });
+    drag(docked, 600, 500);
+    expect(docked.style.getPropertyValue("--overlay-y")).toBe("");
+    g2.dispose();
+    docked.remove();
   });
 });
 
