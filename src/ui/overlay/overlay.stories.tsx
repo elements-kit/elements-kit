@@ -6,7 +6,7 @@ import "../button/button.css";
 import "../toggle/toggle.css";
 import "./index.css";
 import "./overlay.css";
-import { constrainOverlay, createOverlayGestures } from "./index.ts";
+import { constrainOverlay, createOverlayGestures, detents } from "./index.ts";
 
 const RESIZES = [
   "none",
@@ -27,7 +27,7 @@ interface Args {
   y: string;
   w: string;
   h: string;
-  detent: "small" | "medium" | "large";
+  snap: boolean;
   modal: boolean;
   gestures: boolean;
 }
@@ -71,19 +71,16 @@ const meta = {
     },
     w: {
       control: "text",
-      description:
-        "--overlay-w — width channel (empty = detent / max-width default)",
+      description: "--overlay-w — width channel (empty = max-width default)",
     },
     h: {
       control: "text",
-      description:
-        "--overlay-h — height channel (empty = detent / fit-content)",
+      description: "--overlay-h — height channel (empty = fit-content)",
     },
-    detent: {
-      control: "select",
-      options: ["small", "medium", "large"],
+    snap: {
+      control: "boolean",
       description:
-        "Size preset along the data-resize axis — heights for block handles, widths for inline handles and corners",
+        "Pass a detents() resize strategy (snap to 25/60/90% of the constraint axis) instead of free resize",
     },
     modal: {
       control: "boolean",
@@ -93,7 +90,7 @@ const meta = {
     gestures: {
       control: "boolean",
       description:
-        "Attach createOverlayGestures — detent drag on edge handles, corner resize on corner-word handles, move when draggable, flick to dismiss",
+        "Attach createOverlayGestures — resize from edge/corner handles, move when draggable, flick to dismiss",
     },
   },
   args: {
@@ -103,7 +100,7 @@ const meta = {
     y: "",
     w: "",
     h: "",
-    detent: "medium",
+    snap: false,
     modal: true,
     gestures: true,
   },
@@ -132,7 +129,6 @@ const meta = {
           popover={args.modal ? undefined : "auto"}
           data-resize={args.resize === "none" ? undefined : args.resize}
           data-draggable={args.draggable ? "" : undefined}
-          data-detent={args.detent}
           style={channelStyle(args)}
         >
           {/* Auto-open + gestures on mount; the onConnect effectScope
@@ -140,7 +136,13 @@ const meta = {
           <dom-lifecycle
             onConnect={(self) => {
               const el = self.parentElement as HTMLDialogElement;
-              if (args.gestures) createOverlayGestures(el);
+              if (args.gestures)
+                createOverlayGestures(
+                  el,
+                  args.snap
+                    ? { resize: detents([0.25, 0.6, 0.9]) }
+                    : undefined,
+                );
               if (args.modal) el.showModal();
               else el.showPopover();
             }}
@@ -188,6 +190,8 @@ export const BottomSheet: Story = {
     draggable: false,
     y: "9999px",
     w: "var(--overlay-constraint-width)",
+    h: "60svh",
+    snap: true,
   },
 };
 
@@ -197,6 +201,8 @@ export const TopSheet: Story = {
     draggable: false,
     y: "-9999px",
     w: "var(--overlay-constraint-width)",
+    h: "60svh",
+    snap: true,
   },
 };
 
@@ -207,17 +213,20 @@ export const Drawer: Story = {
     resize: "inline-start",
     draggable: false,
     x: "9999px",
+    w: "480px",
     h: "var(--overlay-constraint-height)",
+    snap: true,
   },
 };
 
 /** Floating panel docked at the bottom-right corner — saturated x/y,
- * height detents, persistent popover. */
+ * persistent popover. */
 export const CornerPanel: Story = {
   args: {
     resize: "block-start",
     x: "9999px",
     y: "9999px",
+    h: "60svh",
     modal: false,
   },
 };
@@ -346,7 +355,6 @@ export const Morph: Story = {
           class:x-overlay
           popover="manual"
           data-resize={CENTER.resize}
-          data-detent={args.detent}
         >
           <dom-lifecycle
             onConnect={(self) => {
@@ -429,7 +437,6 @@ export const Constrained: Story = {
           popover="manual"
           data-resize={args.resize === "none" ? undefined : args.resize}
           data-draggable={args.draggable ? "" : undefined}
-          data-detent={args.detent}
           style={channelStyle(args)}
         >
           <dom-lifecycle

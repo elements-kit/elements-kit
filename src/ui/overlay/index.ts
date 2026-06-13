@@ -127,12 +127,11 @@ export function constrainOverlay(
  *   resize engaging from a square zone at that corner, anchored at the
  *   opposite corner so the grip tracks the pointer 1:1 and the surface
  *   never grows past the constraint — the bounds rubber-band like
- *   everything else. Free-form by default: the size persists via the
- *   public `--overlay-w`/`--overlay-h` channels and the location point
- *   shifts by half the growth (pinning the anchor). Pass a `detents`
- *   option and the release snaps to the stylesheet's width steps via
- *   `data-detent` instead. Either way, shrinking past the minimum
- *   dismisses.
+ *   everything else. The width follows the `resize` strategy (free by
+ *   default; `detents([…])` snaps); the height is a free clamp. The size
+ *   persists via the public `--overlay-w`/`--overlay-h` channels and the
+ *   location point shifts by half the growth (pinning the anchor).
+ *   Shrinking past the minimum dismisses.
  * - `data-draggable` moves the surface in x/y from the top strip,
  *   constrained to the rect with rubber-band resistance at the edges.
  *   The location persists across releases via the public
@@ -140,63 +139,90 @@ export function constrainOverlay(
  *   flinging the surface off the constraint — any side — closes it
  *   when `dismissible` (a slow over-drag springs back instead).
  *
- * CSS owns the detent positions (`data-detent` + `--overlay-detent-*`) and
- * the animated transition between them; this factory only adds what CSS
- * cannot. The overlay stays fully functional without it. While attached it
- * sets `data-overlay-gestures` on the frame, which gates the stylesheet's
- * affordances (grabber pills, corner grip) — no drag wiring, no affordance.
+ * Resize steps are a JS concern: the `resize` strategy (`freeResize` by
+ * default, or `detents`) decides the rubber-band bounds and the resting
+ * size, which the gesture writes to the size channels — CSS just renders
+ * and animates them. While dragging, the size is driven inline with
+ * transitions suppressed; below the lower bound the surface slides away
+ * via the JS-owned `--overlay-dy` (or `--overlay-dx`) variable, which the
+ * stylesheet composes into its `translate` — JS never touches `translate`
+ * (or `top`/`left`) itself. On release the strategy resolves the resting
+ * size (rubber-band overshoot springs back via the CSS transition) or
+ * dismisses — `close()` for dialogs, `hidePopover()` otherwise.
+ * Dismissing restores the channel values from the gesture's start, so a
+ * closed overlay reopens where it was.
  *
- * While dragging, the overlay's size is driven inline with transitions
- * suppressed; past the smallest detent the surface slides away via the
- * JS-owned `--overlay-dy` (or `--overlay-dx`) variable, which the
- * stylesheet composes into its own `translate` — JS never touches
- * `translate` (or `top`/`left`) itself. On release the gesture snaps to
- * the nearest detent — biased by release velocity — by writing
- * `data-detent` back, so CSS owns every resting state. Dragging past the
- * largest detent rubber-bands; dragging (or flicking) past the smallest
- * closes the overlay when `dismissible` — `close()` for dialogs,
- * `hidePopover()` otherwise. Dismissing restores the channel values the
- * author had set when the gestures attached, so a closed overlay
- * reopens fresh.
+ * The affordances (grabber pills, corner grip, move dot) are pure CSS,
+ * shown whenever `data-resize` / `data-draggable` is set.
  *
  * Registers its cleanup with the current scope (`onCleanup`) and also
  * returns it as `dispose` / `Symbol.dispose`.
  *
  * @example
  * ```ts
- * import { createOverlayGestures } from "elements-kit/ui/overlay";
+ * import { createOverlayGestures, detents } from "elements-kit/ui/overlay";
  *
  * const overlay = document.querySelector("dialog.x-overlay")!;
- * const gestures = createOverlayGestures(overlay);
- * overlay.addEventListener("detentchange", () => console.log(gestures.detent));
+ * const gestures = createOverlayGestures(overlay, {
+ *   resize: detents([0.25, 0.6, 0.9]), // fractions of the constraint axis
+ * });
+ * overlay.addEventListener("resizechange", (e) => console.log(e.detail));
  * ```
  */
 
-export type OverlayDetent = "small" | "medium" | "large";
+/**
+ * The release context a `ResizeStrategy` decides against. The gesture
+ * builds it per drag; `resolve` turns a step value into pixels.
+ */
+export interface ResizeContext {
+  /** Dragged size along the axis (px, before clamping). */
+  size: number;
+  /** Size at the gesture's start (px). */
+  startSize: number;
+  /** Release velocity along the axis (px/ms; positive = shrinking). */
+  velocity: number;
+  /** Resize axis. */
+  axis: "width" | "height";
+  /** Hard room the surface may occupy on the axis (px). */
+  min: number;
+  max: number;
+  /** Whether a drag/flick past the minimum may dismiss. */
+  dismissible: boolean;
+  /** Release velocity (px/ms) past which a sub-minimum release dismisses. */
+  velocityThreshold: number;
+  /** Resolves a step to px — a number is a fraction of the constraint
+   * along the axis; a string is any CSS length. */
+  resolve(value: number | string): number;
+}
+
+/**
+ * Decides where a resize drag rests. The gesture calls `bounds()` for the
+ * live rubber-band and `rest()` on release (returns the resting size, or
+ * `null` to dismiss). Built-ins: `freeResize` (default), `detents`.
+ */
+export interface ResizeStrategy {
+  /** Soft `[lo, hi]` bounds for the live drag — rubber-band past these.
+   * Defaults to the hard room when omitted. */
+  bounds?(ctx: ResizeContext): [number, number];
+  /** Resting size (px) on release, or `null` to dismiss. */
+  rest(ctx: ResizeContext): number | null;
+}
 
 export interface OverlayGestureOptions {
-  /**
-   * Detents the overlay may rest at. Default: all three. On corner-grip
-   * overlays, passing this switches the resize from free-form to
-   * snapping between the steps.
-   */
-  detents?: readonly OverlayDetent[];
-  /** Allow drag/flick past the smallest detent to close. Default `true`. */
+  /** How a resize drag rests. Default: `freeResize()`. */
+  resize?: ResizeStrategy;
+  /** Allow a drag/flick past the minimum to close. Default `true`. */
   dismissible?: boolean;
   /** Release velocity (px/ms, shrinking) that dismisses. Default `0.5`. */
   velocityThreshold?: number;
 }
 
 export interface OverlayGestures {
-  /** Current resting detent. */
-  readonly detent: OverlayDetent;
-  /** Snap to a detent (animated by CSS). Dispatches `detentchange`. */
-  setDetent(detent: OverlayDetent): void;
+  /** Resize to a size (px) along the resize axis — animated by CSS. */
+  resize(size: number): void;
   dispose(): void;
   [Symbol.dispose](): void;
 }
-
-const ALL_DETENTS: readonly OverlayDetent[] = ["small", "medium", "large"];
 /** How far (ms) a release velocity is projected when picking a detent. */
 const PROJECTION_MS = 160;
 /** Rubber-band resistance above the largest detent. */
@@ -248,25 +274,6 @@ function parseResize(resize: string): {
 }
 
 /**
- * Resolves a detent's `--overlay-detent-*` custom property to pixels by
- * measuring a hidden probe, so `svh` / `calc()` values resolve natively.
- */
-export function resolveDetentPx(
-  overlay: HTMLElement,
-  detent: OverlayDetent,
-  axis: "height" | "width" = "height",
-): number {
-  const probe = document.createElement("div");
-  probe.style.position = "absolute";
-  probe.style.visibility = "hidden";
-  probe.style[axis] = `var(--overlay-detent-${detent})`;
-  overlay.appendChild(probe);
-  const px = probe.getBoundingClientRect()[axis];
-  probe.remove();
-  return px;
-}
-
-/**
  * Picks the index of the detent closest to the released size, projected
  * along the release velocity (px/ms, positive = shrinking). Returns `-1`
  * when the gesture should dismiss instead.
@@ -295,11 +302,62 @@ export function closestDetent(
   return best;
 }
 
+/**
+ * Free resize: drag to any size within the room; a flick or shrink past
+ * the minimum dismisses. The default strategy.
+ */
+export function freeResize(opts?: { min?: number }): ResizeStrategy {
+  return {
+    bounds: (ctx) => [opts?.min ?? ctx.min, ctx.max],
+    rest: (ctx) => {
+      const lo = opts?.min ?? ctx.min;
+      const projected = ctx.size - ctx.velocity * PROJECTION_MS;
+      if (
+        ctx.dismissible &&
+        (projected < lo / 2 ||
+          (ctx.size < lo && ctx.velocity > ctx.velocityThreshold))
+      ) {
+        return null;
+      }
+      return clamp(ctx.size, lo, ctx.max);
+    },
+  };
+}
+
+/**
+ * Snap to discrete steps — each a fraction of the constraint along the
+ * axis (number `0–1`) or a CSS length (string). Flick-aware; shrinking
+ * past the smallest step dismisses.
+ */
+export function detents(steps: readonly (number | string)[]): ResizeStrategy {
+  const resolved = (ctx: ResizeContext) =>
+    steps
+      .map((s) => clamp(ctx.resolve(s), ctx.min, ctx.max))
+      .sort((a, b) => a - b);
+  return {
+    bounds: (ctx) => {
+      const s = resolved(ctx);
+      return [s[0] ?? ctx.min, s[s.length - 1] ?? ctx.max];
+    },
+    rest: (ctx) => {
+      const s = resolved(ctx);
+      const i = closestDetent(
+        ctx.size,
+        s,
+        ctx.velocity,
+        ctx.dismissible,
+        ctx.velocityThreshold,
+      );
+      return i === -1 ? null : s[i];
+    },
+  };
+}
+
 export function createOverlayGestures(
   overlay: HTMLElement,
   options?: OverlayGestureOptions,
 ): OverlayGestures {
-  const detents = options?.detents ?? ALL_DETENTS;
+  const strategy = options?.resize ?? freeResize();
   const dismissible = options?.dismissible ?? true;
   const velocityThreshold = options?.velocityThreshold ?? 0.5;
 
@@ -308,11 +366,47 @@ export function createOverlayGestures(
     else overlay.style.removeProperty(name);
   };
 
-  const currentDetent = (): OverlayDetent => {
-    const value = overlay.getAttribute("data-detent") as OverlayDetent | null;
-    return value !== null && detents.includes(value)
-      ? value
-      : detents[detents.length - 1];
+  /** Resolves a step value to px in the overlay's context. */
+  const probeLength = (value: string, axis: "width" | "height"): number => {
+    const probe = document.createElement("div");
+    probe.style.position = "absolute";
+    probe.style.visibility = "hidden";
+    probe.style[axis] = value;
+    overlay.appendChild(probe);
+    const px = probe.getBoundingClientRect()[axis];
+    probe.remove();
+    return px;
+  };
+
+  /** Builds the strategy context for the active resize axis. */
+  const resizeCtx = (size: number, velocity: number): ResizeContext => ({
+    size,
+    startSize,
+    velocity,
+    axis: resizeAxis,
+    min: hardMin,
+    max: hardMax,
+    dismissible,
+    velocityThreshold,
+    resolve: (value) =>
+      typeof value === "number"
+        ? value *
+          (resizeAxis === "width" ? constraint.width : constraint.height)
+        : probeLength(value, resizeAxis),
+  });
+
+  /** Notifies listeners of the rested size along the resize axis. */
+  const emitResize = () => {
+    overlay.dispatchEvent(
+      new CustomEvent("resizechange", {
+        bubbles: true,
+        composed: true,
+        detail: {
+          width: overlay.style.getPropertyValue("--overlay-w") || undefined,
+          height: overlay.style.getPropertyValue("--overlay-h") || undefined,
+        },
+      }),
+    );
   };
 
   const clearDrag = () => {
@@ -323,20 +417,6 @@ export function createOverlayGestures(
     overlay.style.removeProperty("transition");
     overlay.style.removeProperty("user-select");
     overlay.style.removeProperty("-webkit-user-select");
-  };
-
-  const rest = (detent: OverlayDetent) => {
-    clearDrag();
-    if (detent !== currentDetent()) {
-      overlay.setAttribute("data-detent", detent);
-      overlay.dispatchEvent(
-        new CustomEvent("detentchange", {
-          bubbles: true,
-          composed: true,
-          detail: { detent },
-        }),
-      );
-    }
   };
 
   /**
@@ -375,9 +455,6 @@ export function createOverlayGestures(
     }
   };
 
-  // Corner resize: free unless the caller opted into steps.
-  const cornerSnapping = options?.detents != null;
-
   let mode: Mode = "block";
   let startX = 0;
   let startY = 0;
@@ -411,7 +488,13 @@ export function createOverlayGestures(
   let docked = false;
   /** -1 in RTL — flips inline-axis pointer deltas. */
   let dir = 1;
-  let detentsPx: number[] = [];
+  /** The axis the active resize strategy steps along. */
+  let resizeAxis: "width" | "height" = "height";
+  /** Soft rubber-band bounds (px) + hard room for the active resize. */
+  let lo = 0;
+  let hi = 0;
+  let hardMin = 0;
+  let hardMax = 0;
   let lastX = 0;
   let lastY = 0;
   let lastTime = 0;
@@ -491,8 +574,10 @@ export function createOverlayGestures(
 
     if (inCorner) {
       mode = "resize";
+      resizeAxis = "width";
       startW = rect.width;
       startH = rect.height;
+      startSize = rect.width;
       signX = (inline === "end" ? 1 : -1) * dir;
       signY = block === "end" ? 1 : -1;
       // The opposite corner stays anchored, so the room toward the
@@ -505,9 +590,12 @@ export function createOverlayGestures(
         block === "end"
           ? constraint.top + constraint.height - rect.top
           : rect.bottom - constraint.top;
-      if (cornerSnapping) {
-        detentsPx = detents.map((d) => resolveDetentPx(overlay, d, "width"));
-      }
+      // The strategy snaps/bounds the width; the height stays free.
+      hardMin = MIN_RESIZE_W;
+      hardMax = maxW;
+      [lo, hi] = strategy.bounds
+        ? strategy.bounds(resizeCtx(startSize, 0))
+        : [hardMin, hardMax];
     } else if (inMoveZone) {
       mode = "move";
       // Bounds on the box center — exactly the stylesheet's clamp, so
@@ -524,12 +612,17 @@ export function createOverlayGestures(
       );
     } else if (block !== null && inline === null) {
       mode = "block";
+      resizeAxis = "height";
       // The handle side grows toward the pointer: a bottom handle
       // (block-end — top sheet) grows when dragged down.
       sign = block === "end" ? 1 : -1;
       signY = block === "end" ? 1 : -1;
       startSize = rect.height;
-      detentsPx = detents.map((d) => resolveDetentPx(overlay, d));
+      hardMin = 0;
+      hardMax = constraint.height;
+      [lo, hi] = strategy.bounds
+        ? strategy.bounds(resizeCtx(startSize, 0))
+        : [hardMin, hardMax];
       // Anchor the opposite (handle-less) edge — unless it already sits
       // flush against the constraint, where the clamp holds it docked.
       const anchorEdge = block === "start" ? rect.bottom : rect.top;
@@ -538,10 +631,15 @@ export function createOverlayGestures(
       docked = Math.abs(anchorEdge - constraintEdge) < 1;
     } else if (inline !== null && block === null) {
       mode = "inline";
+      resizeAxis = "width";
       sign = (inline === "end" ? 1 : -1) * dir;
       signX = handleRight ? 1 : -1;
       startSize = rect.width;
-      detentsPx = detents.map((d) => resolveDetentPx(overlay, d, "width"));
+      hardMin = 0;
+      hardMax = constraint.width;
+      [lo, hi] = strategy.bounds
+        ? strategy.bounds(resizeCtx(startSize, 0))
+        : [hardMin, hardMax];
       const anchorEdge = handleRight ? rect.left : rect.right;
       const constraintEdge = handleRight
         ? constraint.left
@@ -605,11 +703,9 @@ export function createOverlayGestures(
       // 1:1, anchored at the opposite corner: the frame is
       // center-anchored, so shifting the location point by half the
       // growth pins that corner and the grip tracks the pointer.
-      // Rubber-band resistance past either bound.
-      const minW = cornerSnapping
-        ? (detentsPx[0] ?? MIN_RESIZE_W)
-        : MIN_RESIZE_W;
-      const w = resist(startW + (event.clientX - startX) * signX, minW, maxW);
+      // Rubber-band resistance past either bound (width from the
+      // strategy's bounds; height free).
+      const w = resist(startW + (event.clientX - startX) * signX, lo, hi);
       const h = resist(
         startH + (event.clientY - startY) * signY,
         MIN_RESIZE_H,
@@ -631,24 +727,22 @@ export function createOverlayGestures(
     const delta =
       mode === "inline" ? event.clientX - startX : event.clientY - startY;
     const target = startSize + sign * delta;
-    const largest = detentsPx[detentsPx.length - 1] ?? startSize;
-    const smallest = detentsPx[0] ?? 0;
     const sizeProp = mode === "inline" ? "width" : "height";
     const slideProp = mode === "inline" ? "--overlay-dx" : "--overlay-dy";
 
     let size: number;
-    if (target > largest) {
-      size = largest + (target - largest) / RESISTANCE;
+    if (target > hi) {
+      size = hi + (target - hi) / RESISTANCE;
       overlay.style[sizeProp] = `${size}px`;
       overlay.style.removeProperty(slideProp);
-    } else if (target < smallest) {
-      // Keep content at the smallest size and slide the surface away past
+    } else if (target < lo) {
+      // Keep content at the lower bound and slide the surface away past
       // its edge — composed by the stylesheet's translate calc(). The
       // physical sign works out to -sign on both axes (the RTL flip is
       // already folded into the inline sign).
-      size = smallest;
-      overlay.style[sizeProp] = `${smallest}px`;
-      const slide = smallest - Math.max(target, 0);
+      size = lo;
+      overlay.style[sizeProp] = `${lo}px`;
+      const slide = lo - Math.max(target, 0);
       overlay.style.setProperty(slideProp, `${-sign * slide}px`);
     } else {
       size = target;
@@ -700,55 +794,16 @@ export function createOverlayGestures(
     }
 
     if (mode === "resize") {
+      // The strategy decides the width (free clamp or snapped); the
+      // height stays a free clamp. Positive velocity = shrinking.
       const targetW = startW + (event.clientX - startX) * signX;
       const targetH = startH + (event.clientY - startY) * signY;
-      // Positive = shrinking, like the detent axes.
-      const shrinkVelocity = -velocityX * signX;
-
-      if (cornerSnapping) {
-        const index = closestDetent(
-          targetW,
-          detentsPx,
-          shrinkVelocity,
-          dismissible,
-          velocityThreshold,
-        );
-        if (index === -1) {
-          dismiss();
-          return;
-        }
-        // CSS owns the resting step; the dragged location persists,
-        // clamped so the snapped size stays inside the constraint.
-        overlay.style.removeProperty("--overlay-w");
-        overlay.style.removeProperty("--overlay-h");
-        rest(detents[index]);
-        const stepW = detentsPx[index];
-        const cx = clamp(
-          centerX0 + (signX * (clamp(targetW, stepW, maxW) - startW)) / 2,
-          constraint.left + stepW / 2,
-          Math.max(
-            constraint.left + constraint.width - stepW / 2,
-            constraint.left + stepW / 2,
-          ),
-        );
-        overlay.style.setProperty("--overlay-x", `${cx - constraint.left}px`);
-        return;
-      }
-
-      // Free mode — shrinking well past the minimum (or flicking shut
-      // below it) dismisses; otherwise the clamped size persists (with
-      // the half-growth location shift keeping the corner anchored) and
-      // any resistance overshoot springs back via the CSS transition.
-      const projectedW = targetW - shrinkVelocity * PROJECTION_MS;
-      if (
-        dismissible &&
-        (projectedW < MIN_RESIZE_W / 2 ||
-          (targetW < MIN_RESIZE_W && shrinkVelocity > velocityThreshold))
-      ) {
+      const restW = strategy.rest(resizeCtx(targetW, -velocityX * signX));
+      if (restW === null) {
         dismiss();
         return;
       }
-      const w = clamp(targetW, MIN_RESIZE_W, maxW);
+      const w = restW;
       const h = clamp(targetH, MIN_RESIZE_H, maxH);
       clearDrag();
       overlay.style.setProperty("--overlay-w", `${w}px`);
@@ -761,27 +816,27 @@ export function createOverlayGestures(
         "--overlay-y",
         `${centerY0 - constraint.top + (signY * (h - startH)) / 2}px`,
       );
+      emitResize();
       return;
     }
 
+    // Single-axis detent drag — the strategy snaps (or free-clamps) the
+    // size, or dismisses.
     const delta =
       mode === "inline" ? event.clientX - startX : event.clientY - startY;
-    const size = startSize + sign * delta;
-    const index = closestDetent(
-      size,
-      detentsPx,
-      -sign * axisVelocity(),
-      dismissible,
-      velocityThreshold,
-    );
-    if (index === -1) {
+    const target = startSize + sign * delta;
+    const restSize = strategy.rest(resizeCtx(target, -sign * axisVelocity()));
+    if (restSize === null) {
       dismiss();
-    } else {
-      rest(detents[index]);
-      // Re-anchor for the snapped detent's size (rest cleared the inline
-      // size; the location persists).
-      anchorEdgeLocation(detentsPx[index] ?? startSize);
+      return;
     }
+    clearDrag();
+    overlay.style.setProperty(
+      resizeAxis === "width" ? "--overlay-w" : "--overlay-h",
+      `${restSize}px`,
+    );
+    anchorEdgeLocation(restSize);
+    emitResize();
   };
 
   const onCancel = () => {
@@ -798,9 +853,9 @@ export function createOverlayGestures(
       restoreChannel("--overlay-w", prev.w);
       restoreChannel("--overlay-h", prev.h);
     } else {
-      rest(currentDetent());
-      // A detent resize may have shifted the location to anchor an edge —
-      // put it back.
+      clearDrag();
+      // A detent/free resize may have shifted the location to anchor an
+      // edge — put it back.
       restoreChannel("--overlay-x", prev.x);
       restoreChannel("--overlay-y", prev.y);
     }
@@ -813,8 +868,6 @@ export function createOverlayGestures(
   // Native touch scrolling would cancel the pointer drag — block it while
   // a drag is active. Must be non-passive.
   overlay.addEventListener("touchmove", blockScroll, { passive: false });
-  // Gates the stylesheet's affordances (grabber pills, corner grip).
-  overlay.setAttribute("data-overlay-gestures", "");
 
   const dispose = () => {
     overlay.removeEventListener("pointerdown", onPointerDown);
@@ -822,16 +875,18 @@ export function createOverlayGestures(
     overlay.removeEventListener("pointerup", onPointerEnd);
     overlay.removeEventListener("pointercancel", onCancel);
     overlay.removeEventListener("touchmove", blockScroll);
-    overlay.removeAttribute("data-overlay-gestures");
   };
   onCleanup(dispose);
 
   return {
-    get detent() {
-      return currentDetent();
-    },
-    setDetent(detent) {
-      if (detents.includes(detent)) rest(detent);
+    resize(size) {
+      const { block, inline } = parseResize(
+        overlay.getAttribute("data-resize") ?? "",
+      );
+      const channel =
+        block !== null && inline === null ? "--overlay-h" : "--overlay-w";
+      overlay.style.setProperty(channel, `${size}px`);
+      emitResize();
     },
     dispose,
     [Symbol.dispose]: dispose,

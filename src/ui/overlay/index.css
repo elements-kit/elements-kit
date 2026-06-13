@@ -22,8 +22,10 @@
  *   RESIZE — `data-resize`: the side the resize handle sits on. Edge
  *   words `block-start | block-end | inline-start | inline-end`; a
  *   corner grip is a `start`/`end` pair, block side first (`end-end`,
- *   `start-end`, …). Picks the detent axis here, and the gesture,
- *   affordance, and slide direction in index.ts / overlay.css.
+ *   `start-end`, …). Drives the gesture, affordance, and enter/exit
+ *   slide (index.ts / overlay.css). Resize *steps* are a JS concern —
+ *   the gesture's `resize` strategy writes the rested size to
+ *   `--overlay-w` / `--overlay-h`.
  *
  * Everything computes against the constraint rect
  * (`--overlay-constraint-top/-left/-width/-height`, viewport by
@@ -41,8 +43,7 @@
  *   --overlay-constraint-top / -left / -width / -height   the rect
  *   --overlay-x / -y                  location point (see above)
  *   --overlay-w / -h                  size channels
- *   --overlay-detent-small / -medium / -large   detent sizes (per axis)
- *   --overlay-max-width               default width cap
+ *   --overlay-max-width               default width
  *   --overlay-duration / --overlay-easing       shared motion tokens
  */
 
@@ -118,89 +119,10 @@
 .x-overlay {
   --overlay-max-width: 480px;
 
-  width: min(
-    var(--overlay-w, var(--_detent-w, var(--overlay-max-width))),
-    var(--_cw)
-  );
-  height: var(--overlay-h, var(--_detent-h, fit-content));
+  width: var(--overlay-w, var(--overlay-max-width));
+  max-width: var(--_cw);
+  height: var(--overlay-h, fit-content);
   max-height: var(--_ch);
-}
-
-/***************************************************************************************************
- *                                                                                                 *
- * DETENTS — steps along the resize axis                                                           *
- *                                                                                                 *
- * An edge word picks the axis the detent steps: block edges step the                              *
- * height, inline edges the width. A corner word (a `start`/`end` pair)                            *
- * steps the width like a desktop window. `data-detent` picks the step;                            *
- * the gesture writes it back on release so CSS owns every resting                                 *
- * state. (Only corners begin with a side word, so `^="start-"` /                                  *
- * `^="end-"` select exactly the four corners.)                                                    *
- *                                                                                                 *
- ***************************************************************************************************/
-
-/* Height steps — block edge (sheets). */
-.x-overlay {
-  --overlay-detent-small: calc(var(--_ch) * 0.25);
-  --overlay-detent-medium: calc(var(--_ch) * 0.6);
-  --overlay-detent-large: calc(var(--_ch) - var(--space-9));
-}
-
-/* Width steps — inline edge (drawers). */
-.x-overlay:where([data-resize^="inline-"]) {
-  --overlay-detent-small: 280px;
-  --overlay-detent-medium: 480px;
-  --overlay-detent-large: calc(var(--_cw) - var(--space-9));
-}
-
-/* Width steps — corner grip (windows). */
-.x-overlay:where([data-resize^="start-"], [data-resize^="end-"]) {
-  --overlay-detent-small: 320px;
-  --overlay-detent-medium: var(--overlay-max-width);
-  --overlay-detent-large: var(--_cw);
-}
-
-/* data-detent → the active step. */
-.x-overlay {
-  --overlay-detent: var(--overlay-detent-large);
-
-  &:where([data-detent="small"]) {
-    --overlay-detent: var(--overlay-detent-small);
-  }
-  &:where([data-detent="medium"]) {
-    --overlay-detent: var(--overlay-detent-medium);
-  }
-  &:where([data-detent="large"]) {
-    --overlay-detent: var(--overlay-detent-large);
-  }
-}
-
-/* Width-stepped overlays (inline edges, corner windows) without an
- * explicit detent keep the classic medium width; height-stepped sheets
- * default to large. */
-.x-overlay:where(
-    [data-resize^="inline-"],
-    [data-resize^="start-"],
-    [data-resize^="end-"]
-  ):where(:not([data-detent])) {
-  --overlay-detent: var(--overlay-detent-medium);
-}
-
-/* The active step feeds the size channel along the resize axis. */
-.x-overlay:where([data-resize^="block-"]) {
-  --_detent-h: var(--overlay-detent);
-}
-
-.x-overlay:where([data-resize^="inline-"]) {
-  --_detent-w: var(--overlay-detent);
-}
-
-/* The fullscreen-card step — a corner window at the large detent fills
- * the rect's height too. */
-.x-overlay:where([data-resize^="start-"], [data-resize^="end-"]):where(
-    [data-detent="large"]
-  ) {
-  --_detent-h: var(--_ch);
 }
 
 /***************************************************************************************************

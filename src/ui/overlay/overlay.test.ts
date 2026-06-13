@@ -1,6 +1,12 @@
 import { describe, it, expect, vi } from "vitest";
-import { constrainOverlay } from "./index.ts";
-import { closestDetent, createOverlayGestures } from "./index.ts";
+import {
+  closestDetent,
+  constrainOverlay,
+  createOverlayGestures,
+  detents,
+  freeResize,
+  type ResizeContext,
+} from "./index.ts";
 
 function createOverlay(attrs?: {
   resize?: string;
@@ -117,15 +123,13 @@ describe("x-overlay markup contract", () => {
     overlay.remove();
   });
 
-  it("round-trips the gesture attributes and detent", () => {
+  it("round-trips the gesture attributes", () => {
     const overlay = createOverlay({
       resize: "end-end",
       draggable: true,
     });
     expect(overlay.getAttribute("data-resize")).toBe("end-end");
     expect(overlay.hasAttribute("data-draggable")).toBe(true);
-    overlay.setAttribute("data-detent", "medium");
-    expect(overlay.getAttribute("data-detent")).toBe("medium");
     overlay.remove();
   });
 
@@ -165,43 +169,69 @@ describe("closestDetent", () => {
   });
 });
 
-describe("createOverlayGestures", () => {
-  it("defaults to the largest allowed detent", () => {
-    const overlay = createOverlay({ resize: "block-start" });
-    const gestures = createOverlayGestures(overlay);
-    expect(gestures.detent).toBe("large");
-    gestures.dispose();
-    overlay.remove();
+describe("resize strategies", () => {
+  // A resolve that treats numbers as fractions of a 1000px axis and
+  // strings as px (parseFloat), matching the gesture's real resolver.
+  const ctx = (over: Partial<ResizeContext>): ResizeContext => ({
+    size: 0,
+    startSize: 0,
+    velocity: 0,
+    axis: "height",
+    min: 0,
+    max: 1000,
+    dismissible: true,
+    velocityThreshold: 0.5,
+    resolve: (v) => (typeof v === "number" ? v * 1000 : parseFloat(v)),
+    ...over,
   });
 
-  it("setDetent writes the attribute and dispatches detentchange", () => {
+  it("freeResize clamps to the room and dismisses past the minimum", () => {
+    const s = freeResize({ min: 200 });
+    expect(s.bounds?.(ctx({}))).toEqual([200, 1000]);
+    expect(s.rest(ctx({ size: 600 }))).toBe(600);
+    expect(s.rest(ctx({ size: 1500 }))).toBe(1000);
+    expect(s.rest(ctx({ size: 80 }))).toBeNull();
+    expect(s.rest(ctx({ size: 80, dismissible: false }))).toBe(200);
+  });
+
+  it("detents snaps to the nearest step (velocity-aware) and dismisses", () => {
+    const s = detents([0.2, 0.5, 0.9]); // → 200, 500, 900
+    expect(s.bounds?.(ctx({}))).toEqual([200, 900]);
+    expect(s.rest(ctx({ size: 540 }))).toBe(500);
+    expect(s.rest(ctx({ size: 540, velocity: -1.2 }))).toBe(900);
+    expect(s.rest(ctx({ size: 80 }))).toBeNull();
+  });
+
+  it("detents resolves CSS-length steps too", () => {
+    const s = detents(["300px", "600px"]);
+    expect(s.bounds?.(ctx({}))).toEqual([300, 600]);
+    expect(s.rest(ctx({ size: 650 }))).toBe(600);
+  });
+});
+
+describe("createOverlayGestures", () => {
+  it("resize() writes the axis size channel and fires resizechange", () => {
     const overlay = createOverlay({ resize: "block-start" });
     const gestures = createOverlayGestures(overlay);
     const onChange = vi.fn();
-    overlay.addEventListener("detentchange", onChange);
+    overlay.addEventListener("resizechange", onChange);
 
-    gestures.setDetent("small");
-    expect(overlay.getAttribute("data-detent")).toBe("small");
-    expect(gestures.detent).toBe("small");
+    gestures.resize(400); // block → height channel
+    expect(overlay.style.getPropertyValue("--overlay-h")).toBe("400px");
+    expect(overlay.style.getPropertyValue("--overlay-w")).toBe("");
     expect(onChange).toHaveBeenCalledOnce();
-    expect(onChange.mock.calls[0][0].detail).toEqual({ detent: "small" });
-
-    // Same detent again — no event.
-    gestures.setDetent("small");
-    expect(onChange).toHaveBeenCalledOnce();
+    expect(onChange.mock.calls[0][0].detail).toEqual({ height: "400px" });
 
     gestures.dispose();
     overlay.remove();
   });
 
-  it("ignores detents outside the allowed set", () => {
-    const overlay = createOverlay({ resize: "block-start" });
-    const gestures = createOverlayGestures(overlay, {
-      detents: ["medium", "large"],
-    });
-    gestures.setDetent("small");
-    expect(overlay.hasAttribute("data-detent")).toBe(false);
-    expect(gestures.detent).toBe("large");
+  it("resize() writes the width channel for inline resizes", () => {
+    const overlay = createOverlay({ resize: "inline-start" });
+    const gestures = createOverlayGestures(overlay);
+    gestures.resize(320);
+    expect(overlay.style.getPropertyValue("--overlay-w")).toBe("320px");
+    expect(overlay.style.getPropertyValue("--overlay-h")).toBe("");
     gestures.dispose();
     overlay.remove();
   });
@@ -362,16 +392,6 @@ describe("createOverlayGestures", () => {
     overlay.remove();
   });
 
-  it("gates the affordances via data-overlay-gestures", () => {
-    const overlay = createOverlay({ resize: "block-start" });
-    expect(overlay.hasAttribute("data-overlay-gestures")).toBe(false);
-    const gestures = createOverlayGestures(overlay);
-    expect(overlay.hasAttribute("data-overlay-gestures")).toBe(true);
-    gestures.dispose();
-    expect(overlay.hasAttribute("data-overlay-gestures")).toBe(false);
-    overlay.remove();
-  });
-
   it("suppresses text selection while dragging, restores at rest", () => {
     const overlay = createOverlay({ resize: "block-start" });
     const gestures = createOverlayGestures(overlay);
@@ -425,7 +445,7 @@ describe("drawer gestures (single inline handle)", () => {
     overlay.remove();
   });
 
-  it("snap writes data-detent and dismisses past the smallest", () => {
+  it("dismisses when shrunk past the minimum", () => {
     const dialog = createOverlay({ resize: "inline-start" });
     dialog.showModal();
     const gestures = createOverlayGestures(dialog);
@@ -457,9 +477,9 @@ describe("drawer gestures (single inline handle)", () => {
     const floating = createOverlay({ resize: "inline-end" });
     setRect(floating, 200, 300); // center x 350
     const g1 = createOverlayGestures(floating, { dismissible: false });
-    dragX(floating, 250, 310); // grow width by 60 → size 120
-    // x = centerX0 − cl + signX·(size − startSize)/2 = 350 + (120 − 300)/2
-    expect(floating.style.getPropertyValue("--overlay-x")).toBe("260px");
+    dragX(floating, 250, 310); // grow width by 60 → size 360 (within bounds)
+    // x = centerX0 − cl + signX·(size − startSize)/2 = 350 + (360 − 300)/2
+    expect(floating.style.getPropertyValue("--overlay-x")).toBe("380px");
     g1.dispose();
     floating.remove();
 
@@ -654,9 +674,9 @@ describe("block-start sheet + draggable (resize handle owns the top)", () => {
     const floating = createOverlay({ resize: "block-start" });
     setRect(floating, 300, 200); // center y 400, bottom 500
     const g1 = createOverlayGestures(floating, { dismissible: false });
-    drag(floating, 350, 250); // grow upward → size 100; bottom pinned
-    // y = centerY0 − ct + signY·(size − startSize)/2 = 400 + (−1)(100−200)/2
-    expect(floating.style.getPropertyValue("--overlay-y")).toBe("450px");
+    drag(floating, 350, 250); // grow upward → size 300; bottom pinned
+    // y = centerY0 − ct + signY·(size − startSize)/2 = 400 + (−1)(300−200)/2
+    expect(floating.style.getPropertyValue("--overlay-y")).toBe("350px");
     g1.dispose();
     floating.remove();
 
@@ -754,22 +774,21 @@ describe("corner resize (start/end pair data-resize)", () => {
     overlay.remove();
   });
 
-  it("snaps to detent steps when a detents option is passed", () => {
+  it("snaps to steps with a detents() strategy", () => {
     const overlay = createOverlay(WINDOW);
     mockWindowRect(overlay);
+    // Fractions of the 1024px constraint width → 256 / 512 / 768.
     const gestures = createOverlayGestures(overlay, {
-      detents: ["small", "medium", "large"],
+      resize: detents([0.25, 0.5, 0.75]),
       dismissible: false,
     });
     const onChange = vi.fn();
-    overlay.addEventListener("detentchange", onChange);
+    overlay.addEventListener("resizechange", onChange);
 
-    drag2D(overlay, { x: 570, y: 390 }, { x: 590, y: 400 });
-    pointerUp(overlay, { x: 590, y: 400 });
-    // Probe detents are 0px in happy-dom — nearest is the first step.
-    expect(overlay.getAttribute("data-detent")).toBe("small");
-    expect(overlay.style.getPropertyValue("--overlay-w")).toBe("");
-    expect(overlay.style.getPropertyValue("--overlay-h")).toBe("");
+    // Grow the corner toward the 768 step → snaps there on release.
+    drag2D(overlay, { x: 570, y: 390 }, { x: 970, y: 390 });
+    pointerUp(overlay, { x: 970, y: 390 });
+    expect(overlay.style.getPropertyValue("--overlay-w")).toBe("768px");
     expect(onChange).toHaveBeenCalledOnce();
 
     gestures.dispose();
