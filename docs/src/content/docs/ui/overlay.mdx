@@ -1,16 +1,19 @@
 ---
 title: Overlay
-description: CSS-first anchored floating layer over native dialog and popover — placements from centered modal to sheets, drawers, and corner panels, with morphing transitions and opt-in gestures.
+description: CSS-first floating layer over native dialog and popover — a location point, explicit size channels, and a resize handle compose into sheets, drawers, and windows, with morphing transitions and opt-in gestures.
 ---
 
 import Playground from "@/playground/Playground.astro";
 import OVERLAY from "@/playground/files/ui-overlay.tsx?raw";
 
-One frame, three orthogonal axes. `.x-overlay` wraps a [Card](/ui/card) in a native `<dialog>` or [popover](https://developer.mozilla.org/en-US/docs/Web/API/Popover_API) and owns positioning, the top layer, enter/exit animation, detent sizes, and the backdrop — the platform owns focus trapping, Esc, light dismiss, and focus return. Zero JS required; gestures are an opt-in module.
+One frame, orthogonal primitives. `.x-overlay` wraps a [Card](/ui/card) in a native `<dialog>` or [popover](https://developer.mozilla.org/en-US/docs/Web/API/Popover_API) and owns positioning, the top layer, enter/exit animation, detent sizes, and the backdrop — the platform owns focus trapping, Esc, light dismiss, and focus return. Zero JS required; gestures are an opt-in module.
 
-- **Placement** — `data-placement`, where the layer sits in the viewport.
+- **Location** — `--overlay-x` / `--overlay-y`, a point inside the constraint rect (unset = centered; saturated values dock flush to the edges).
+- **Size** — `--overlay-w` / `--overlay-h`, explicit channels (unset = detent / `--overlay-max-width` × fit-content).
+- **Resize** — `data-resize`, the side the resize handle sits on; a `start`/`end` pair for a corner grip.
+- **Draggable** — `data-draggable`, the x/y move gesture.
 - **Modality** — how you open it, no attribute needed.
-- **Anchor** — `data-anchor` is *reserved* for future element anchoring (CSS Anchor Positioning); v1 anchors to the viewport only.
+- **Anchor** — `data-anchor` is *reserved* for future element anchoring (CSS Anchor Positioning); v1 anchors to the constraint rect only.
 
 {/* Taller than usual — the demo opens overlays. */}
 <Playground
@@ -33,10 +36,10 @@ import "elements-kit/ui/styles/palette/gray.css";
 import "elements-kit/ui/styles/neutral/gray.css";
 // backdrop color:
 import "elements-kit/ui/styles/palette/black-alpha.css";
-// the surface and the frame:
+// the surface and the frame (geometry first, then presentation):
 import "elements-kit/ui/card/card.css";
+import "elements-kit/ui/overlay/index.css";
 import "elements-kit/ui/overlay/overlay.css";
-import "elements-kit/ui/overlay/constraint.css";
 ```
 
 Optional gestures:
@@ -45,24 +48,31 @@ Optional gestures:
 import { createOverlayGestures } from "elements-kit/ui/overlay";
 ```
 
-## Placement
+## Location, resize, draggable
 
-`data-placement` uses the platform's [`position-area`](https://developer.mozilla.org/en-US/docs/Web/CSS/position-area) vocabulary. Words are order-insensitive, space-separated tokens:
+`--overlay-x` / `--overlay-y` are lengths from the constraint rect's top-left corner to the overlay's **center**. Unset, the overlay is centered. The stylesheet clamps the point so the box can never leave the rect — which makes saturated values a vocabulary: `--overlay-y: 9999px` *is* "the bottom edge", reactively, whatever the rect or the box size becomes.
 
-| `data-placement` | Result |
-| --- | --- |
-| `center` *(default)* | centered modal card |
-| `block-start` / `block-end` | full-width top / bottom sheet, height detents |
-| `inline-start` / `inline-end` | full-height side drawer, width detents |
-| `block-end inline-end` *(etc.)* | floating corner panel, pinned flush to the constraint corner |
+`data-resize` names the side the resize handle sits on (the opposite side stays anchored): the four edge words `block-start`, `block-end`, `inline-start`, `inline-end` — or a single corner word, a `start`/`end` pair with the **block side first**: `start-start`, `start-end`, `end-start`, `end-end` (e.g. `end-end` = block-end + inline-end, the bottom-right grip). The handle side picks the detent axis, the gesture, the affordance, and the enter/exit slide. No attribute, no resize.
 
-Every placement is expressed in interpolable lengths — flipping `data-placement` (or `data-detent`) on an *open* overlay morphs it to the new spot with a plain CSS transition. That's the whole Apple-Maps trick: a persistent `popover="manual"` panel that glides between corner, sheet, and drawer while the page stays interactive.
+`data-draggable` (boolean) adds the x/y move gesture from the top strip.
 
-Logical names mirror in RTL: `inline-end` is the right edge in LTR and the left edge in `dir="rtl"`.
+The classic shapes are compositions:
+
+| Recipe | Channels | Attributes |
+| --- | --- | --- |
+| Bottom sheet | `--overlay-y: 9999px; --overlay-w: var(--overlay-constraint-width)` | `data-resize="block-start"` + `data-detent` |
+| Top sheet | `--overlay-y: -9999px; --overlay-w: var(--overlay-constraint-width)` | `data-resize="block-end"` |
+| Right drawer | `--overlay-x: 9999px; --overlay-h: var(--overlay-constraint-height)` | `data-resize="inline-start"` |
+| Centered window | *(defaults)* | `data-resize="end-end"` + `data-draggable` |
+| Corner panel | `--overlay-x: 9999px; --overlay-y: 9999px` | `data-resize="block-start"` |
+
+Everything is expressed in interpolable lengths — changing the location point, the size channels, or `data-detent` on an *open* overlay morphs it with a plain CSS transition. That's the whole Apple-Maps trick: a persistent `popover="manual"` panel that glides between corner, sheet, and centered while the page stays interactive.
+
+`data-resize` words are logical — gestures and affordances mirror in RTL. The location point is **physical**: RTL apps that want mirrored docking mirror `--overlay-x` themselves.
 
 ## Constraint
 
-Every placement, detent, and clamp derives from one **constraint rect**. The geometry lives in its own module, `constraint.css` (required, imported after `overlay.css`): it declares the rect, the detent steps as fractions of it, every placement's size bounds, and the center window's move/resize clamps — `overlay.css` keeps only placement alignment:
+Every location clamp, detent, and size cap derives from one **constraint rect**:
 
 ```css
 --overlay-constraint-top: 0px;
@@ -71,18 +81,17 @@ Every placement, detent, and clamp derives from one **constraint rect**. The geo
 --overlay-constraint-height: 100vh;  /* 100svh where supported */
 ```
 
-A placement is a *degenerate constraint* (edges pinned: `block-end` is the rect's bottom edge), detents are fractions of it (`medium` = 60% of the constraint height), and the center window's move/resize bounds *are* it. All of the geometry is computed in the cascade (`calc`/`min`/`clamp` against these variables), so it re-clamps reactively when the viewport — or the rect — changes, with no JS running.
+The location point clamps inside the rect, detents are fractions of it (`medium` = 60% of the constraint height), and the gesture bounds *are* it. All of the geometry is computed in the cascade (`calc`/`min`/`clamp` against these variables), so it re-clamps reactively when the viewport — or the rect — changes, with no JS running.
 
 To confine an overlay to a container instead of the viewport, write `px` values into the variables, or use the opt-in helper:
 
 ```ts
-import "elements-kit/ui/overlay/constraint.css";
 import { constrainOverlay } from "elements-kit/ui/overlay/constrain";
 
 constrainOverlay(overlay, document.querySelector("main")!);
 ```
 
-It observes the container with a `ResizeObserver` (via `createElementRect`) and syncs its rect into the variables — sheets pin to the container's bottom, drawers to its edges, the center window moves and resizes only within it. Disposal (scope `onCleanup`, `dispose()`, or `Symbol.dispose`) removes the variables, restoring the viewport constraint. Caveat: a container that *moves* without resizing (page scroll) doesn't retrigger the sync.
+It observes the container with a `ResizeObserver` (via `createElementRect`) and syncs its rect into the variables — docked overlays pin to the container's edges, the window moves and resizes only within it. Disposal (scope `onCleanup`, `dispose()`, or `Symbol.dispose`) removes the variables, restoring the viewport constraint. Caveat: a container that *moves* without resizing (page scroll) doesn't retrigger the sync.
 
 ## Modality
 
@@ -90,7 +99,8 @@ Modality is *how you open it* — same markup, no attribute:
 
 ```html
 <!-- Modal: backdrop, focus trap, inert page -->
-<dialog class="unset x-overlay" id="filters" data-placement="block-end" data-detent="medium">
+<dialog class="unset x-overlay" id="filters" data-resize="block-start" data-detent="medium"
+        style="--overlay-y: 9999px; --overlay-w: var(--overlay-constraint-width)">
   <div class="x-card" data-variant="elevated" data-size="3">…</div>
 </dialog>
 <button onclick="document.getElementById('filters').showModal()">Filters</button>
@@ -103,7 +113,8 @@ Modality is *how you open it* — same markup, no attribute:
 
 <!-- Persistent: top layer, no light dismiss, page interactive (Apple Maps) -->
 <dialog class="unset x-overlay" id="panel" popover="manual"
-        data-placement="block-end inline-end" data-detent="small">
+        data-resize="block-start" data-detent="small"
+        style="--overlay-x: 9999px; --overlay-y: 9999px">
   <div class="x-card" data-variant="elevated" data-size="2">…</div>
 </dialog>
 <button popovertarget="panel">Toggle panel</button>
@@ -115,8 +126,9 @@ Markup contract: the frame's required direct child is a `.x-card` — that card 
 
 | Attribute *(on the frame)* | Values |
 | --- | --- |
-| `data-placement` | see [Placement](#placement); default `center` |
-| `data-detent` | `small`, `medium`, `large` — heights on block-edge placements, widths on drawers and center |
+| `data-resize` | handle side: edges `block-start`, `block-end`, `inline-start`, `inline-end`; corners are a `start`/`end` pair, block side first (`start-start`, `start-end`, `end-start`, `end-end`); no default |
+| `data-draggable` | boolean — x/y move gesture from the top strip |
+| `data-detent` | `small`, `medium`, `large` — steps the resize axis: heights for block handles, widths for inline handles and corner grips |
 | `data-anchor` | **reserved** for future element anchoring — do not use |
 | `data-overlay-gestures` | written by `createOverlayGestures` while attached; gates the affordances (set it by hand if you wire your own dragging) |
 | `data-material-background` | the card surface defaults to **solid** inside an overlay when no material context is declared (translucent over the dimmed backdrop reads as the backdrop covering the card); an explicit `solid`/`translucent` on the frame or any ancestor wins |
@@ -124,28 +136,28 @@ Markup contract: the frame's required direct child is a `.x-card` — that card 
 | Custom property | Default | Role |
 | --- | --- | --- |
 | `--overlay-constraint-top/-left/-width/-height` | the viewport | the [constraint rect](#constraint) all geometry derives from |
+| `--overlay-x` / `--overlay-y` | rect center | the location point — rect-relative lengths to the box center, clamped by CSS; the move gesture persists the released spot here |
+| `--overlay-w` / `--overlay-h` | detent / `--overlay-max-width` × fit-content | size channels; the corner resize gesture persists here |
 | `--overlay-duration` | `300ms` | transition duration |
 | `--overlay-easing` | iOS-style ease-out | transition easing |
-| `--overlay-max-width` | `480px` | width cap for center / corner placements |
-| `--overlay-detent-small/-medium/-large` | heights `25svh` / `60svh` / `100svh − --space-9`; drawer widths `280px` / `480px` / `100svw − --space-9` | detent sizes per axis |
-| `--overlay-w` / `--overlay-h` | — | center size, written by the corner resize gesture (JS-owned) |
-| `--overlay-mx` / `--overlay-my` | — | center position, written by the move gesture (JS-owned); only the center placement reads them, so morphs ignore the moved spot and morphing back restores it |
+| `--overlay-max-width` | `480px` | default width cap |
+| `--overlay-detent-small/-medium/-large` | block heights `25svh` / `60svh` / `100svh − --space-9`; inline widths `280px` / `480px` / `100svw − --space-9`; corner widths `320px` / `--overlay-max-width` / `100svw` | detent sizes per resize axis |
 | `--overlay-backdrop` | `--color-overlay` | backdrop color (modal only) |
 
 ## Detents & gestures
 
-CSS owns the detent *positions*: `data-detent` picks a size from the `--overlay-detent-*` knobs, and flipping the attribute animates between them. The opt-in JS module adds what CSS can't, dispatched by placement:
+CSS owns the detent *positions*: `data-detent` picks a size from the `--overlay-detent-*` knobs along the `data-resize` axis, and flipping the attribute animates between them. The opt-in JS module adds what CSS can't, dispatched by the gesture attributes:
 
-- **Sheets** (block-edge, including corner panels) — drag between height detents.
-- **Drawers** — drag between width detents, RTL-aware.
-- **Center** — an iPad-style window with two handles. The top grabber **moves** it in x/y, constrained to the viewport with rubber-band resistance at the edges; the position persists, and flinging the window off-screen — any side — closes it (a slow over-drag springs back). The bottom inline-end corner grip **resizes**: free-form by default (the size persists via `--overlay-w/-h` and rubber-bands at the min/max bounds); pass a `detents` option and the release snaps to the width steps instead. Shrinking far past the minimum dismisses.
+- **Single `data-resize` word** — whole-surface drag between detents along that axis (heights for block handles, widths for inline handles), RTL-aware, flick-to-dismiss past the smallest.
+- **Corner word (`start`/`end` pair)** — desktop-window resize from a square zone at that corner; the opposite corner stays anchored, so the grip tracks the pointer 1:1 and the surface never outgrows the constraint. Free-form by default (the size persists via `--overlay-w/-h`, the location point shifts by half the growth to pin the anchor); pass a `detents` option and the release snaps to the width steps instead. Shrinking far past the minimum dismisses.
+- **`data-draggable`** — **moves** the surface in x/y from the top strip, constrained to the rect with rubber-band resistance at the edges; the released spot persists via `--overlay-x/-y`, and flinging the surface off the constraint — any side — closes it (a slow over-drag springs back).
 
 ```ts
 import { createOverlayGestures } from "elements-kit/ui/overlay";
 
 const overlay = document.querySelector<HTMLDialogElement>("#filters")!;
 const gestures = createOverlayGestures(overlay, {
-  detents: ["small", "medium", "large"], // default; on center: switches resize to snapping
+  detents: ["small", "medium", "large"], // default; on corner grips: switches resize to snapping
   dismissible: true,                     // drag/flick past smallest closes
   velocityThreshold: 0.5,                // px/ms
 });
@@ -155,7 +167,7 @@ gestures.setDetent("large"); // programmatic, animated by CSS
 gestures.dispose();          // or rely on an enclosing effectScope
 ```
 
-While dragging, the module drives the overlay's size inline with transitions suppressed and text selection disabled; on release it snaps to the nearest detent — biased by flick velocity — by writing `data-detent` back, so CSS owns every resting state. Dragging past the largest detent rubber-bands; dragging or flicking past the smallest closes the overlay (`close()` for dialogs, `hidePopover()` otherwise). Drags never start from interactive elements (buttons, links, inputs), so the card's content keeps working.
+While dragging, the module drives the overlay's size inline with transitions suppressed and text selection disabled; on release it snaps to the nearest detent — biased by flick velocity — by writing `data-detent` back, so CSS owns every resting state. Dragging past the largest detent rubber-bands; dragging or flicking past the smallest closes the overlay (`close()` for dialogs, `hidePopover()` otherwise). Dismissing restores the channel values the author had set when the gestures attached, so a closed overlay reopens fresh. Drags never start from interactive elements (buttons, links, inputs), so the card's content keeps working.
 
 While attached, the factory sets `data-overlay-gestures` on the frame — that's what shows the grabber pills and the corner grip. No gestures, no affordance.
 
@@ -163,12 +175,13 @@ Inside an `effect` / `effectScope`, cleanup is automatic via `onCleanup`; standa
 
 ## Deck effect
 
-Opt-in recipe: put `data-overlay-deck` on your page wrapper and it scales back iOS-style while a bottom sheet is open — pure CSS via `:has()`, degrades to nothing.
+Opt-in recipe: put `data-overlay-deck` on your page wrapper and it scales back iOS-style while a bottom sheet (`data-resize="block-start"`) is open — pure CSS via `:has()`, degrades to nothing.
 
 ```html
 <body>
   <div data-overlay-deck><!-- page --></div>
-  <dialog class="unset x-overlay" data-placement="block-end">…</dialog>
+  <dialog class="unset x-overlay" data-resize="block-start"
+          style="--overlay-y: 9999px; --overlay-w: var(--overlay-constraint-width)">…</dialog>
 </body>
 ```
 
@@ -176,10 +189,10 @@ Opt-in recipe: put `data-overlay-deck` on your page wrapper and it scales back i
 
 Mirroring the [Segmented Control](/ui/segmented-control)'s approach, every modern feature is fenced behind `@supports`:
 
-- **Tier 1 — universal.** Native `<dialog>` opens/closes instantly; placement and detent *morphs* animate wherever the `translate` property exists (Chrome 104+, Safari/Firefox at the floor). Focus trap, `::backdrop`, Esc — all platform behavior.
-- **Tier 2 — enter/exit.** `@supports (transition-behavior: allow-discrete)` adds enter/exit transitions with [`@starting-style`](https://developer.mozilla.org/en-US/docs/Web/CSS/@starting-style): sheets and drawers slide from their edge, the center card fades and settles, the backdrop fades.
+- **Tier 1 — universal.** Native `<dialog>` opens/closes instantly; location, size, and detent *morphs* animate wherever the `translate` property exists (Chrome 104+, Safari/Firefox at the floor). Focus trap, `::backdrop`, Esc — all platform behavior.
+- **Tier 2 — enter/exit.** `@supports (transition-behavior: allow-discrete)` adds enter/exit transitions with [`@starting-style`](https://developer.mozilla.org/en-US/docs/Web/CSS/@starting-style): single-handle overlays slide from the edge their handle implies (a `block-start` handle means the sheet rests at the bottom — it slides from below), windows (no handle, or a corner grip) fade and settle, the backdrop fades.
 - **Tier 3 — top-layer exit.** A nested `@supports (overlay: auto)` keeps the *exit* transition inside the top layer. Firefox currently clips the exit; entry is unaffected.
-- **Size morphs.** `@supports (interpolate-size: allow-keywords)` lets the center card's `fit-content` height interpolate during morphs; elsewhere size snaps while position slides.
+- **Size morphs.** `@supports (interpolate-size: allow-keywords)` lets `fit-content` heights interpolate during morphs; elsewhere size snaps while position slides.
 - **Popover modality.** The `popover` attribute needs Chrome 114 / Safari 17 / Firefox 125 — above the library floor, so on older browsers a popover overlay stays hidden rather than rendering broken.
 
 ## Accessibility
@@ -211,7 +224,7 @@ Use the popover modality for content that must block interaction — that's a jo
 
 ## Browser support
 
-- **Tier 1** — every browser at `elements-kit`'s build targets (Chrome / Firefox 100+, Safari 16+): fully functional dialogs. Placement morphs need the `translate` property (Chrome 104+); Chrome 100–103 gets a static fallback.
+- **Tier 1** — every browser at `elements-kit`'s build targets (Chrome / Firefox 100+, Safari 16+): fully functional dialogs. Location morphs need the `translate` property (Chrome 104+); Chrome 100–103 gets a centered static fallback (saturated location points are not honored there).
 - **Tier 2/3 animations** — Chrome 117+, Safari 17.4+, Firefox 129+ (`allow-discrete` + `@starting-style`); `overlay` in Chrome 117+ / Safari 26+.
 - **Popover modality** — Chrome 114+, Safari 17+, Firefox 125+. Hidden (never broken) below that.
 - **Size morphs** — `interpolate-size` (Chrome 129+); position still glides elsewhere.

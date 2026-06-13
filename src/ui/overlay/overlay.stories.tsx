@@ -4,25 +4,29 @@ import "@/utilities/dom-lifecycle.ts";
 import "../card/card.css";
 import "../button/button.css";
 import "../toggle/toggle.css";
+import "./index.css";
 import "./overlay.css";
-import { constrainOverlay } from "./constrain.ts";
-import "./constraint.css";
-import { createOverlayGestures } from "./gestures.ts";
+import { constrainOverlay, createOverlayGestures } from "./index.ts";
 
-const PLACEMENTS = [
-  "center",
+const RESIZES = [
+  "none",
   "block-start",
   "block-end",
   "inline-start",
   "inline-end",
-  "block-start inline-start",
-  "block-start inline-end",
-  "block-end inline-start",
-  "block-end inline-end",
+  "start-start",
+  "start-end",
+  "end-start",
+  "end-end",
 ] as const;
 
 interface Args {
-  placement: (typeof PLACEMENTS)[number];
+  resize: (typeof RESIZES)[number];
+  draggable: boolean;
+  x: string;
+  y: string;
+  w: string;
+  h: string;
   detent: "small" | "medium" | "large";
   modal: boolean;
   gestures: boolean;
@@ -30,15 +34,56 @@ interface Args {
 
 let uid = 0;
 
+/** Inline style string feeding the public geometry channels. */
+function channelStyle(args: Pick<Args, "x" | "y" | "w" | "h">): string {
+  return [
+    args.x && `--overlay-x: ${args.x}`,
+    args.y && `--overlay-y: ${args.y}`,
+    args.w && `--overlay-w: ${args.w}`,
+    args.h && `--overlay-h: ${args.h}`,
+  ]
+    .filter(Boolean)
+    .join("; ");
+}
+
 const meta = {
   title: "UI/Overlay",
   argTypes: {
-    placement: { control: "select", options: [...PLACEMENTS] },
+    resize: {
+      control: "select",
+      options: [...RESIZES],
+      description:
+        "data-resize — the side the resize handle sits on; a start/end pair (block first) for a corner grip",
+    },
+    draggable: {
+      control: "boolean",
+      description: "data-draggable — x/y move gesture from the top strip",
+    },
+    x: {
+      control: "text",
+      description:
+        "--overlay-x — location point from the constraint's left to the overlay center (empty = centered; 9999px docks to the right edge)",
+    },
+    y: {
+      control: "text",
+      description:
+        "--overlay-y — location point from the constraint's top (empty = centered; 9999px docks to the bottom edge)",
+    },
+    w: {
+      control: "text",
+      description:
+        "--overlay-w — width channel (empty = detent / max-width default)",
+    },
+    h: {
+      control: "text",
+      description:
+        "--overlay-h — height channel (empty = detent / fit-content)",
+    },
     detent: {
       control: "select",
       options: ["small", "medium", "large"],
       description:
-        "Size preset — heights on block-edge placements, widths on drawers and center",
+        "Size preset along the data-resize axis — heights for block handles, widths for inline handles and corners",
     },
     modal: {
       control: "boolean",
@@ -48,10 +93,20 @@ const meta = {
     gestures: {
       control: "boolean",
       description:
-        "Attach createOverlayGestures — detent drag on sheets and drawers, corner resize on center, flick to dismiss",
+        "Attach createOverlayGestures — detent drag on edge handles, corner resize on corner-word handles, move when draggable, flick to dismiss",
     },
   },
-  args: { placement: "center", detent: "medium", modal: true, gestures: true },
+  args: {
+    resize: "end-end",
+    draggable: true,
+    x: "",
+    y: "",
+    w: "",
+    h: "",
+    detent: "medium",
+    modal: true,
+    gestures: true,
+  },
   render: (args) => {
     const id = `overlay-story-${uid++}`;
     const overlay = signal<HTMLDialogElement | null>();
@@ -75,8 +130,10 @@ const meta = {
           class:unset
           class:x-overlay
           popover={args.modal ? undefined : "auto"}
-          data-placement={args.placement}
+          data-resize={args.resize === "none" ? undefined : args.resize}
+          data-draggable={args.draggable ? "" : undefined}
           data-detent={args.detent}
+          style={channelStyle(args)}
         >
           {/* Auto-open + gestures on mount; the onConnect effectScope
               disposes the gestures on disconnect (story re-render). */}
@@ -120,42 +177,157 @@ const meta = {
 export default meta;
 type Story = StoryObj<Args>;
 
-export const Center: Story = {};
-export const BottomSheet: Story = { args: { placement: "block-end" } };
-export const TopSheet: Story = { args: { placement: "block-start" } };
-export const Drawer: Story = { args: { placement: "inline-end" } };
-export const CornerPanel: Story = {
-  args: { placement: "block-end inline-end", modal: false },
+/** Centered window: move from the top strip, corner grip resize. */
+export const Window: Story = {};
+
+/** Bottom edge, full constraint width, height detents from the top
+ * handle. */
+export const BottomSheet: Story = {
+  args: {
+    resize: "block-start",
+    draggable: false,
+    y: "9999px",
+    w: "var(--overlay-constraint-width)",
+  },
 };
+
+export const TopSheet: Story = {
+  args: {
+    resize: "block-end",
+    draggable: false,
+    y: "-9999px",
+    w: "var(--overlay-constraint-width)",
+  },
+};
+
+/** Right drawer: docked at the inline end, width drag from the inner
+ * handle. */
+export const Drawer: Story = {
+  args: {
+    resize: "inline-start",
+    draggable: false,
+    x: "9999px",
+    h: "var(--overlay-constraint-height)",
+  },
+};
+
+/** Floating panel docked at the bottom-right corner — saturated x/y,
+ * height detents, persistent popover. */
+export const CornerPanel: Story = {
+  args: {
+    resize: "block-start",
+    x: "9999px",
+    y: "9999px",
+    modal: false,
+  },
+};
+
+const FULL_W = "var(--overlay-constraint-width)";
+const FULL_H = "var(--overlay-constraint-height)";
+
+/**
+ * The in-card 3×3 grid — each arrow is a full recipe (location point +
+ * resize handle + size channels), so clicking one morphs the panel into
+ * a distinct shape:
+ *   edges  → full-width sheets / full-height drawers (handle on the
+ *            non-docked side, so the drag grows from the dock)
+ *   center → a free-resize window
+ *   corners→ docked panels whose corner grip faces inward (the opposite,
+ *            docked corner stays anchored)
+ * Every length is interpolable, so each switch morphs with a plain CSS
+ * transition.
+ */
+interface Cell {
+  label: string;
+  x: string;
+  y: string;
+  resize: string;
+  w: string;
+  h: string;
+}
+
+const GRID: Cell[] = [
+  { label: "↖", x: "-9999px", y: "-9999px", resize: "end-end", w: "", h: "" },
+  { label: "↑", x: "", y: "-9999px", resize: "block-end", w: FULL_W, h: "" },
+  { label: "↗", x: "9999px", y: "-9999px", resize: "end-start", w: "", h: "" },
+  { label: "←", x: "-9999px", y: "", resize: "inline-end", w: "", h: FULL_H },
+  { label: "●", x: "", y: "", resize: "end-end", w: "", h: "" },
+  { label: "→", x: "9999px", y: "", resize: "inline-start", w: "", h: FULL_H },
+  { label: "↙", x: "-9999px", y: "9999px", resize: "start-end", w: "", h: "" },
+  { label: "↓", x: "", y: "9999px", resize: "block-start", w: FULL_W, h: "" },
+  { label: "↘", x: "9999px", y: "9999px", resize: "start-start", w: "", h: "" },
+];
+
+/** The center window — the mount default both morph stories start on. */
+const CENTER = GRID[4];
+
+/**
+ * Applies a grid cell's full recipe to the live overlay element. Writes
+ * are imperative — a reactive `style` attribute would replace the whole
+ * attribute and wipe the constraint vars / gesture-persisted channels.
+ */
+function applyCell(el: HTMLDialogElement | null | undefined, cell: Cell) {
+  if (!el) return;
+  for (const [name, value] of [
+    ["--overlay-x", cell.x],
+    ["--overlay-y", cell.y],
+    ["--overlay-w", cell.w],
+    ["--overlay-h", cell.h],
+  ] as const) {
+    if (value) el.style.setProperty(name, value);
+    else el.style.removeProperty(name);
+  }
+  if (cell.resize) el.setAttribute("data-resize", cell.resize);
+  else el.removeAttribute("data-resize");
+}
+
+/** The grid cell matching an authored shape, or `""` (no arrow lit). */
+function matchCell(shape: {
+  resize: string;
+  x: string;
+  y: string;
+  w: string;
+  h: string;
+}): string {
+  const resize = shape.resize === "none" ? "" : shape.resize;
+  return (
+    GRID.find(
+      (c) =>
+        c.resize === resize &&
+        c.x === shape.x &&
+        c.y === shape.y &&
+        c.w === shape.w &&
+        c.h === shape.h,
+    )?.label ?? ""
+  );
+}
 
 /**
  * `popover="manual"` keeps the panel in the top layer while the page stays
- * fully interactive (Apple Maps style). The buttons inside flip
- * `data-placement` on the open overlay — every placement is expressed in
- * interpolable lengths, so the switch morphs with a plain CSS transition.
+ * fully interactive (Apple Maps style). The buttons inside morph the open
+ * overlay between shapes — sheet, drawer, window, corner panel — by
+ * flipping the location point, the resize handle, and the size channels.
+ * Every length is interpolable, so each switch animates with a plain CSS
+ * transition.
  */
-const GRID: { label: string; placement: string }[] = [
-  { label: "↖", placement: "block-start inline-start" },
-  { label: "↑", placement: "block-start" },
-  { label: "↗", placement: "block-start inline-end" },
-  { label: "←", placement: "inline-start" },
-  { label: "●", placement: "center" },
-  { label: "→", placement: "inline-end" },
-  { label: "↙", placement: "block-end inline-start" },
-  { label: "↓", placement: "block-end" },
-  { label: "↘", placement: "block-end inline-end" },
-];
-
 export const Morph: Story = {
   argTypes: {
-    // Placement is driven by the in-card grid.
-    placement: { control: false },
+    // Location, resize, and size are driven by the in-card grid.
+    resize: { control: false },
+    x: { control: false },
+    y: { control: false },
+    w: { control: false },
+    h: { control: false },
   },
-  args: { modal: false },
+  args: { modal: false, draggable: false },
   render: (args) => {
     const id = `overlay-story-${uid++}`;
     const overlay = signal<HTMLDialogElement | null>();
-    const placement = signal("block-end inline-end");
+    const selected = signal(CENTER.label);
+    const moveTo = (cell: Cell) => {
+      selected(cell.label);
+      applyCell(overlay(), cell);
+    };
     return (
       <>
         <button
@@ -163,10 +335,7 @@ export const Morph: Story = {
           class:x-button
           data-variant="solid"
           data-size="2"
-          popovertarget={args.modal ? undefined : id}
-          on:click={() => {
-            if (args.modal) overlay()?.showModal();
-          }}
+          popovertarget={id}
         >
           Toggle panel
         </button>
@@ -175,40 +344,34 @@ export const Morph: Story = {
           id={id}
           class:unset
           class:x-overlay
-          popover={args.modal ? undefined : "manual"}
-          data-placement={placement}
+          popover="manual"
+          data-resize={CENTER.resize}
           data-detent={args.detent}
         >
           <dom-lifecycle
             onConnect={(self) => {
               const el = self.parentElement as HTMLDialogElement;
               if (args.gestures) createOverlayGestures(el);
-              if (args.modal) el.showModal();
-              else el.showPopover();
+              el.showPopover();
             }}
           />
           <div class:unset class:x-card data-variant="elevated" data-size="3">
             <strong>Morph</strong>
-            <p>Persistent panel — flip the placement while it stays open.</p>
+            <p>Persistent panel — morph it between shapes while it stays open.</p>
             <div
               role="radiogroup"
-              aria-label="Placement"
+              aria-label="Shape"
               style="display: grid; grid-template-columns: repeat(3, max-content); gap: var(--space-1); justify-content: start"
             >
               {GRID.map((cell) => (
-                <label
-                  class="x-toggle"
-                  data-icon
-                  data-size="2"
-                  title={cell.placement}
-                >
+                <label class="x-toggle" data-icon data-size="2" title={cell.resize}>
                   <input
                     type="radio"
                     class:unset
-                    name={`${id}-placement`}
-                    aria-label={cell.placement}
-                    checked={computed(() => cell.placement === placement())}
-                    on:change={() => placement(cell.placement)}
+                    name={`${id}-shape`}
+                    aria-label={cell.label}
+                    checked={computed(() => cell.label === selected())}
+                    on:change={() => moveTo(cell)}
                   />
                   {cell.label}
                 </label>
@@ -223,13 +386,14 @@ export const Morph: Story = {
 
 /**
  * `constrainOverlay(panel, container)` syncs the container's rect into the
- * `--overlay-constraint-*` variables: placements pin to the container's
- * edges, detents become fractions of it, and the move/resize gestures
- * clamp inside it — all geometry computed by the stylesheet.
+ * `--overlay-constraint-*` variables: the location point clamps to the
+ * container's edges, detents become fractions of it, and the move/resize
+ * gestures bound inside it — all geometry computed by the stylesheet.
  */
 export const Constrained: Story = {
   argTypes: {
-    placement: { control: false },
+    // The shape controls author the starting shape; the in-card grid
+    // overrides it live.
     modal: { control: false },
   },
   args: { modal: false },
@@ -237,7 +401,11 @@ export const Constrained: Story = {
     const id = `overlay-story-${uid++}`;
     const overlay = signal<HTMLDialogElement | null>();
     const container = signal<HTMLElement | null>();
-    const placement = signal("center");
+    const selected = signal(matchCell(args));
+    const moveTo = (cell: Cell) => {
+      selected(cell.label);
+      applyCell(overlay(), cell);
+    };
     return (
       <>
         <div
@@ -259,8 +427,10 @@ export const Constrained: Story = {
           class:unset
           class:x-overlay
           popover="manual"
-          data-placement={placement}
+          data-resize={args.resize === "none" ? undefined : args.resize}
+          data-draggable={args.draggable ? "" : undefined}
           data-detent={args.detent}
+          style={channelStyle(args)}
         >
           <dom-lifecycle
             onConnect={(self) => {
@@ -275,23 +445,18 @@ export const Constrained: Story = {
             <p>The dashed box is the constraint — not the viewport.</p>
             <div
               role="radiogroup"
-              aria-label="Placement"
+              aria-label="Shape"
               style="display: grid; grid-template-columns: repeat(3, max-content); gap: var(--space-1); justify-content: start"
             >
               {GRID.map((cell) => (
-                <label
-                  class="x-toggle"
-                  data-icon
-                  data-size="2"
-                  title={cell.placement}
-                >
+                <label class="x-toggle" data-icon data-size="2" title={cell.resize}>
                   <input
                     type="radio"
                     class:unset
-                    name={`${id}-placement`}
-                    aria-label={cell.placement}
-                    checked={computed(() => cell.placement === placement())}
-                    on:change={() => placement(cell.placement)}
+                    name={`${id}-shape`}
+                    aria-label={cell.label}
+                    checked={computed(() => cell.label === selected())}
+                    on:change={() => moveTo(cell)}
                   />
                   {cell.label}
                 </label>

@@ -14,6 +14,7 @@ import "elements-kit/ui/styles/accent/mint.css";
 
 import "elements-kit/ui/button/button.css";
 import "elements-kit/ui/card/card.css";
+import "elements-kit/ui/overlay/index.css";
 import "elements-kit/ui/overlay/overlay.css";
 
 import { signal } from "elements-kit/signals";
@@ -22,7 +23,14 @@ import { createOverlayGestures } from "elements-kit/ui/overlay";
 const dark = signal(false);
 const detent = signal("medium");
 
-const morphSpots = ["block-end inline-end", "block-end", "center", "inline-end"];
+/** Location points for the persistent panel — saturated values dock
+ * flush to the constraint edges. */
+const morphSpots: { label: string; x: string; y: string }[] = [
+  { label: "corner", x: "9999px", y: "9999px" },
+  { label: "bottom", x: "", y: "9999px" },
+  { label: "center", x: "", y: "" },
+  { label: "right", x: "9999px", y: "" },
+];
 
 function SectionHeading({ children }: { children: any }) {
   return (
@@ -50,6 +58,12 @@ export class App {
     this.sheet.showModal();
   }
 
+  moveTo(spot: { x: string; y: string }) {
+    if (spot.x) this.panel.style.setProperty("--overlay-x", spot.x);
+    else this.panel.style.removeProperty("--overlay-x");
+    if (spot.y) this.panel.style.setProperty("--overlay-y", spot.y);
+    else this.panel.style.removeProperty("--overlay-y");
+  }
 
   render() {
     return (
@@ -90,8 +104,9 @@ export class App {
           </button>
           <dialog
             class="unset x-overlay"
-            data-placement="block-end"
+            data-resize="block-start"
             data-detent="medium"
+            style="--overlay-y: 9999px; --overlay-w: var(--overlay-constraint-width)"
             ref={(el: HTMLDialogElement) => (this.sheet = el)}
           >
             <div class="x-card" data-variant="elevated" data-size="3">
@@ -115,7 +130,7 @@ export class App {
 
         <section>
           <SectionHeading>
-            Center modal — move from the top grabber, resize from the corner
+            Centered window — move from the top grabber, resize from the corner
           </SectionHeading>
           <button
             class="unset x-button"
@@ -127,6 +142,8 @@ export class App {
           </button>
           <dialog
             class="unset x-overlay"
+            data-resize="end-end"
+            data-draggable
             ref={(el: HTMLDialogElement) => {
               this.modal = el;
               createOverlayGestures(el); // free corner resize
@@ -135,9 +152,10 @@ export class App {
             <div class="x-card" data-variant="elevated" data-size="3">
               <strong>Confirm</strong>
               <p>
-                The default placement, iPad-window style: drag the top grabber
-                to move it around the viewport (fling it off-screen to
-                dismiss), and the bottom-end corner grip to resize.
+                The default location (centered), iPad-window style: drag the
+                top grabber to move it around the viewport (fling it
+                off-screen to dismiss), and the bottom-end corner grip to
+                resize.
               </p>
               <button
                 class="unset x-button"
@@ -163,7 +181,8 @@ export class App {
           </button>
           <dialog
             class="unset x-overlay"
-            data-placement="inline-end"
+            data-resize="inline-start"
+            style="--overlay-x: 9999px; --overlay-h: var(--overlay-constraint-height)"
             ref={(el: HTMLDialogElement) => {
               this.drawer = el;
               createOverlayGestures(el); // width detents
@@ -189,7 +208,7 @@ export class App {
 
         <section>
           <SectionHeading>
-            Persistent panel — morph placements while open
+            Persistent panel — move the location point while open
           </SectionHeading>
           <button
             class="unset x-button"
@@ -203,8 +222,9 @@ export class App {
             class="unset x-overlay"
             id="overlay-panel"
             popover="manual"
-            data-placement="block-end inline-end"
+            data-resize="block-start"
             data-detent="small"
+            style="--overlay-x: 9999px; --overlay-y: 9999px"
             ref={(el: HTMLDialogElement) => {
               this.panel = el;
               createOverlayGestures(el);
@@ -214,8 +234,8 @@ export class App {
               <strong>Apple Maps style</strong>
               <p style:margin="4px 0 8px">
                 <code>popover="manual"</code> keeps it in the top layer while
-                the page stays interactive. Flip the placement — it morphs
-                with a plain CSS transition.
+                the page stays interactive. Move the location point — it
+                morphs with a plain CSS transition.
               </p>
               <div style:display="flex" style:flex-wrap="wrap" style:gap="8px">
                 {morphSpots.map((spot) => (
@@ -223,11 +243,9 @@ export class App {
                     class="unset x-button"
                     data-variant="soft"
                     data-size="1"
-                    on:click={() =>
-                      this.panel.setAttribute("data-placement", spot)
-                    }
+                    on:click={() => this.moveTo(spot)}
                   >
-                    {spot}
+                    {spot.label}
                   </button>
                 ))}
               </div>
