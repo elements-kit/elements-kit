@@ -51,6 +51,7 @@ Core primitives (signal, computed, effect, onCleanup, trigger, batch, untracked)
     ├── interval.ts
     ├── previous.ts
     ├── retry.ts
+    ├── form-object.ts
     ├── routing.ts
     ├── storage.ts
     ├── throttled.ts
@@ -135,9 +136,10 @@ Page-level singletons. Importing is safe — reading before DOM is available ret
 
 ## Forms / URL
 
-| Module | Export | Returns | Deps |
-|--------|--------|---------|------|
-| **search-params** | `createSearchParam(key)` | `Computed<string \| null>` | `event-listener` |
+| Module            | Export                                              | Returns                                                                                                                                       | Deps             |
+|-------------------|-----------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|------------------|
+| **search-params** | `createSearchParam(key)`                            | `Computed<string \| null>`                                                                                                                    | `event-listener` |
+| **form-object**   | `FormObject`, `defaultTransforms`, field transforms | Nested object ↔ form via dot-notation names. `toObject` / `fromObject` / `clear`; extraction runs a composable `FormFieldTransform` pipeline. | —                |
 
 ---
 
