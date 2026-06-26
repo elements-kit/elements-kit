@@ -78,6 +78,18 @@ describe("resizeHeightSession", () => {
     expect(CONSTRAINT.top + f.y! + f.h! / 2).toBe(534);
   });
 
+  it("caps height at the room to the anchored edge, not the full constraint", () => {
+    const { io, calls } = fakeIO();
+    // rect top 234 in a 768 constraint → 534 of room to the block-end edge.
+    // Dragging far past it must rest at the room, keeping the TOP edge pinned.
+    resizeHeightSession(makeSnapshot(), freeResizer, io, "end").release(
+      pointer({ y: 0 }, { y: 1500 }),
+    );
+    const f = calls.commit.at(-1)!;
+    expect(f.h).toBe(534);
+    expect(CONSTRAINT.top + f.y! - 534 / 2).toBe(234);
+  });
+
   it("pins to lo and slides the surface away below the lower bound", () => {
     const { io, calls } = fakeIO();
     const snapped: Resizer = {

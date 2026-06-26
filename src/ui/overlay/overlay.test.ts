@@ -310,10 +310,12 @@ describe("createOverlayGestures", () => {
   });
 
   it("grows toward the handle's pointer direction", () => {
-    // happy-dom rects are 0 — height starts at 0, so the driven height is
-    // sign * dy clamped at the smallest detent edge; assert direction only.
+    // Needs real room (a 1024×768 constraint with a 480×300 rect at 100,100):
+    // the size caps at the room from the anchored edge, so a zero rect would
+    // leave no room to grow. Assert direction (the driven height grows).
     // A bottom handle (block-end — top sheet) grows when dragged down.
     const down = createOverlay({ resize: "block-end" });
+    mockWindowRect(down);
     const downGestures = createOverlayGestures(down);
     drag(down, 100, 300);
     expect(parseFloat(down.style.height)).toBeGreaterThan(0);
@@ -322,6 +324,7 @@ describe("createOverlayGestures", () => {
 
     // A top handle (block-start — bottom sheet) grows when dragged up.
     const up = createOverlay({ resize: "block-start" });
+    mockWindowRect(up);
     const upGestures = createOverlayGestures(up);
     drag(up, 300, 100);
     expect(parseFloat(up.style.height)).toBeGreaterThan(0);
@@ -407,16 +410,19 @@ describe("createOverlayGestures", () => {
 
 describe("drawer gestures (single inline handle)", () => {
   it("grows away from its handle, direction-aware", () => {
-    // LTR inline-end handle (start-docked drawer): dragging right grows.
+    // Needs real room (the size caps at the room from the anchored edge).
+    // LTR inline-end handle: dragging right grows.
     const startDocked = createOverlay({ resize: "inline-end" });
+    mockWindowRect(startDocked);
     const startGestures = createOverlayGestures(startDocked);
     dragX(startDocked, 100, 300);
     expect(parseFloat(startDocked.style.width)).toBeGreaterThan(0);
     startGestures.dispose();
     startDocked.remove();
 
-    // LTR inline-start handle (end-docked drawer): dragging left grows.
+    // LTR inline-start handle: dragging left grows.
     const endDocked = createOverlay({ resize: "inline-start" });
+    mockWindowRect(endDocked);
     const endGestures = createOverlayGestures(endDocked);
     dragX(endDocked, 300, 100);
     expect(parseFloat(endDocked.style.width)).toBeGreaterThan(0);
@@ -427,6 +433,7 @@ describe("drawer gestures (single inline handle)", () => {
     // physical right — dragging right grows.
     const rtl = createOverlay({ resize: "inline-start" });
     rtl.style.direction = "rtl";
+    mockWindowRect(rtl);
     const rtlGestures = createOverlayGestures(rtl);
     dragX(rtl, 100, 300);
     expect(parseFloat(rtl.style.width)).toBeGreaterThan(0);

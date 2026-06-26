@@ -22,8 +22,6 @@ export function resizeWidthSession(
   side: "start" | "end",
 ): Session {
   const startSize = snap.rect.width;
-  const hardMax = snap.constraint.width;
-  const ax: ResizeAxis = { axis: "width", startSize, min: 0, max: hardMax };
   const { sign, anchorSign, docked } = edgeSetup({
     axis: "inline",
     side,
@@ -31,6 +29,16 @@ export function resizeWidthSession(
     constraint: snap.constraint,
     dir: snap.dir,
   });
+  // Room from the *anchored* edge to the far constraint edge — not the full
+  // constraint width. The anchored edge holds, so the surface can only grow
+  // until the handle reaches the constraint; using the full width lets the
+  // size pass that point, where `max-width` caps the box and the CSS location
+  // clamp saturates and shoves the anchored edge inward. Mirrors `cornerBounds`.
+  const hardMax =
+    anchorSign > 0
+      ? snap.constraint.left + snap.constraint.width - snap.rect.left
+      : snap.rect.right - snap.constraint.left;
+  const ax: ResizeAxis = { axis: "width", startSize, min: 0, max: hardMax };
   const anchorAt = (size: number) =>
     anchor({
       axis: "width",
@@ -46,7 +54,7 @@ export function resizeWidthSession(
     move(p) {
       const target = startSize + sign * (p.current.x - p.start.x);
       const [lo, hi] = resizer.bounds(ax);
-      const { size, slide } = edgeDrag({ target, lo, hi, sign });
+      const { size, slide } = edgeDrag({ target, lo, hi, sign, max: hardMax });
       const a = anchorAt(size);
       io.sync({
         frame: { w: size, ...(a !== null ? { x: a } : {}) },

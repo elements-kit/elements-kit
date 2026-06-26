@@ -222,6 +222,15 @@ describe("edgeDrag", () => {
       slide: null,
     });
   });
+  it("pins the size at the hard max and rubber-slides past it", () => {
+    // soft hi 600, room 620: banded = 600 + 300/3 = 700 > 620, so the size
+    // pins at the room and the resisted overshoot (700-620) rides the slide —
+    // the surface translates past the edge instead of shoving the anchored edge.
+    expect(edgeDrag({ target: 900, lo: 200, hi: 600, sign: -1, max: 620 })).toEqual({
+      size: 620,
+      slide: -1 * (700 - 620),
+    });
+  });
   it("pins to lo and slides the surface away below the lower bound", () => {
     const r = edgeDrag({ target: 120, lo: 200, hi: 600, sign: -1 });
     expect(r.size).toBe(200);

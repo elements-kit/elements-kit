@@ -271,19 +271,35 @@ export function edgeSetup(args: {
 
 /**
  * Edge-drag resolution: from a target size + soft bounds, the rendered
- * size and the slide-away offset (the value to write to `--overlay-dx/-dy`,
- * or `null` to remove it). Past `hi` the size rubber-bands; below `lo` the
- * size pins to `lo` and the surface slides past its edge.
+ * size and the slide offset (the value to write to `--overlay-dx/-dy`, or
+ * `null` to remove it). Both bounds rubber-band, but in different channels:
+ *
+ * - Above `hi` the size grows with resistance, but only up to the hard `max`
+ *   (the room from the anchored edge to the constraint). Past the room the
+ *   box cannot grow — `max-width`/`-height` caps it and the location clamp
+ *   would shove the *anchored* edge inward — so the size pins to `max` and
+ *   the resisted overshoot rides the unclamped slide instead, translating
+ *   the whole surface past the edge (handle-side rubber-band). On release the
+ *   strategy rests at the room and the slide clears, snapping it back in.
+ * - Below `lo` the size pins to `lo` and the surface slides toward its edge
+ *   (the dismiss preview).
+ *
+ * With a soft `hi` below the room (e.g. a `detents` max) the size-band
+ * between `hi` and `max` renders normally before the slide takes over.
  */
 export function edgeDrag(args: {
   target: number;
   lo: number;
   hi: number;
   sign: number;
+  max?: number;
 }): { size: number; slide: number | null } {
-  const { target, lo, hi, sign } = args;
-  if (target > hi)
-    return { size: hi + (target - hi) / RESISTANCE, slide: null };
+  const { target, lo, hi, sign, max = Infinity } = args;
+  if (target > hi) {
+    const banded = hi + (target - hi) / RESISTANCE;
+    if (banded <= max) return { size: banded, slide: null };
+    return { size: max, slide: sign * (banded - max) };
+  }
   if (target < lo) {
     return { size: lo, slide: -sign * (lo - Math.max(target, 0)) };
   }

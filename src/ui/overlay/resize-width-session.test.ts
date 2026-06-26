@@ -58,6 +58,34 @@ describe("resizeWidthSession", () => {
     expect(CONSTRAINT.left + patch.frame!.x! - 540 / 2).toBe(272);
   });
 
+  it("caps width at the room to the anchored edge, not the full constraint", () => {
+    const { io, calls } = fakeIO();
+    // rect left 272 in a 1024 constraint → 752 of room to the inline-end edge.
+    // Dragging far past it must rest at the room, keeping the LEFT edge pinned;
+    // resting at the full 1024 saturates the CSS clamp and shoves the left edge.
+    resizeWidthSession(makeSnapshot(), freeResizer, io, "end").release(
+      pointer({ x: 0 }, { x: 1500 }),
+    );
+    const f = calls.commit.at(-1)!;
+    expect(f.w).toBe(752);
+    expect(CONSTRAINT.left + f.x! - 752 / 2).toBe(272);
+  });
+
+  it("pins the size to the room and rubber-slides past it", () => {
+    const { io, calls } = fakeIO();
+    // room is 752; dragging well past it pins the width at the room (growing
+    // would saturate the CSS clamp and shove the LEFT edge). The frame keeps
+    // the left edge pinned and the resisted overshoot rides --overlay-dx, so
+    // the whole surface translates past the edge (handle-side rubber-band).
+    resizeWidthSession(makeSnapshot(), freeResizer, io, "end").move(
+      pointer({ x: 0 }, { x: 1500 }), // target 1980, well past the 752 room
+    );
+    const patch = calls.sync.at(-1)!;
+    expect(patch.frame!.w).toBe(752);
+    expect(CONSTRAINT.left + patch.frame!.x! - 752 / 2).toBe(272);
+    expect(patch.offset!.dx).toBeCloseTo((1980 - 752) / 3); // resisted overshoot
+  });
+
   it("omits the anchor channel when docked", () => {
     const { io, calls } = fakeIO();
     // rect flush with the constraint's inline-end edge → docked.
