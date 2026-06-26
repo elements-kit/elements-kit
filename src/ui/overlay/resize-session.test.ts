@@ -42,12 +42,16 @@ function pointer(
   return { start, prev: c, current: c, lastTime: 0, velocity: { x: 0, y: 0 } };
 }
 function fakeIO() {
-  const calls = { commit: [] as Partial<Frame>[], dismiss: 0 };
+  const calls = {
+    sync: [] as FramePatch[],
+    commit: [] as Partial<Frame>[],
+    dismiss: 0,
+  };
   const io = {
     engage: () => {
       throw new Error("unused");
     },
-    sync: (_p: FramePatch) => {},
+    sync: (p: FramePatch) => calls.sync.push(p),
     commit: (f: Partial<Frame>) => calls.commit.push(f),
     dismiss: () => {
       calls.dismiss++;
@@ -66,6 +70,25 @@ describe("resizeSession (asymmetric axes)", () => {
     const f = calls.commit.at(-1)! as { w: number; h: number; x: number; y: number };
     expect(f.x - f.w / 2).toBe(272); // left stays put
     expect(f.y - f.h / 2).toBe(234); // top stays put
+  });
+
+  it("pins both axes at the room and rubber-slides the corner past it", () => {
+    const { io, calls } = fakeIO();
+    // rect (272,234) in a 1024×768 constraint → room 752×534 to the end-end
+    // grip. Dragging far past it pins the size at the room (growing would
+    // saturate the CSS clamp and shove the anchored corner) and rides the
+    // resisted overshoot on --overlay-dx/-dy, keeping the top-left pinned.
+    resizeSession(makeSnapshot(), freeResizer, io, "end", "end").move(
+      pointer({ x: 0, y: 0 }, { x: 1500, y: 1500 }),
+    );
+    const patch = calls.sync.at(-1)!;
+    const f = patch.frame as { w: number; h: number; x: number; y: number };
+    expect(f.w).toBe(752);
+    expect(f.h).toBe(534);
+    expect(f.x - f.w / 2).toBe(272); // left still pinned
+    expect(f.y - f.h / 2).toBe(234); // top still pinned
+    expect(patch.offset!.dx).toBeCloseTo((480 + 1500 - 752) / 3);
+    expect(patch.offset!.dy).toBeCloseTo((300 + 1500 - 534) / 3);
   });
 
   it("height is a free clamp, never the strategy", () => {

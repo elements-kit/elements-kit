@@ -7,6 +7,7 @@ import {
   edgeSetup,
   parseResize,
   resist,
+  slidePastRoom,
   updateVelocity,
 } from "./gesture-model.ts";
 
@@ -206,6 +207,16 @@ describe("edgeSetup", () => {
     });
     expect(ltr.sign).toBe(1);
     expect(rtl.sign).toBe(-1);
+  });
+});
+
+describe("slidePastRoom", () => {
+  it("passes through within the room", () => {
+    expect(slidePastRoom(500, 620, 1)).toEqual({ size: 500, slide: null });
+  });
+  it("pins at the room and signs the overshoot onto the slide", () => {
+    expect(slidePastRoom(700, 620, 1)).toEqual({ size: 620, slide: 80 });
+    expect(slidePastRoom(700, 620, -1)).toEqual({ size: 620, slide: -80 });
   });
 });
 

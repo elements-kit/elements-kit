@@ -295,15 +295,28 @@ export function edgeDrag(args: {
   max?: number;
 }): { size: number; slide: number | null } {
   const { target, lo, hi, sign, max = Infinity } = args;
-  if (target > hi) {
-    const banded = hi + (target - hi) / RESISTANCE;
-    if (banded <= max) return { size: banded, slide: null };
-    return { size: max, slide: sign * (banded - max) };
-  }
+  if (target > hi)
+    return slidePastRoom(hi + (target - hi) / RESISTANCE, max, sign);
   if (target < lo) {
     return { size: lo, slide: -sign * (lo - Math.max(target, 0)) };
   }
   return { size: target, slide: null };
+}
+
+/**
+ * Cap a resisted size at the room `max`; route the resisted overshoot beyond
+ * it to the slide channel (translating the surface past the edge instead of
+ * letting the CSS clamp shove the anchored edge). `null` slide within the room.
+ * The handle-side rubber-band shared by the edge ({@link edgeDrag}) and corner
+ * resizes — both can only grow until the handle reaches the constraint.
+ */
+export function slidePastRoom(
+  resisted: number,
+  max: number,
+  sign: number,
+): { size: number; slide: number | null } {
+  if (resisted <= max) return { size: resisted, slide: null };
+  return { size: max, slide: sign * (resisted - max) };
 }
 
 /**

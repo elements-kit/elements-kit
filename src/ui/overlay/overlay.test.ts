@@ -803,14 +803,19 @@ describe("corner resize (start/end pair data-resize)", () => {
     const gestures = createOverlayGestures(overlay);
 
     // The anchored left edge sits at 100 in the 1024-wide constraint →
-    // max width 924 (the window can never outgrow the rect).
+    // max width 924 (the window can never outgrow the rect). Past the room the
+    // size pins at 924 and the resisted overshoot rides --overlay-dx, so the
+    // whole surface translates past the edge instead of shoving the left edge.
     drag2D(overlay, { x: 570, y: 390 }, { x: 1600, y: 390 });
-    const during = parseFloat(overlay.style.width); // live size is inline
-    expect(during).toBeGreaterThan(924); // overshoot…
-    expect(during).toBeLessThan(1510); // …but resisted
+    expect(parseFloat(overlay.style.width)).toBe(924); // pinned at the room
+    const slide = parseFloat(overlay.style.getPropertyValue("--overlay-dx"));
+    const overshoot = 480 + (1600 - 570) - 924; // target width past the room
+    expect(slide).toBeGreaterThan(0); // overshoot…
+    expect(slide).toBeCloseTo(overshoot / 3); // …resisted onto the slide
 
     pointerUp(overlay, { x: 1600, y: 390 });
     expect(overlay.style.getPropertyValue("--overlay-w")).toBe("924px");
+    expect(overlay.style.getPropertyValue("--overlay-dx")).toBe(""); // slide cleared
 
     gestures.dispose();
     overlay.remove();

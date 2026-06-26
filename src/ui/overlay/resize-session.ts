@@ -8,6 +8,7 @@ import {
   resist,
   type Resizer,
   type Session,
+  slidePastRoom,
   type Snapshot,
 } from "./gesture-model.ts";
 import { clamp } from "./resize-strategy.ts";
@@ -106,13 +107,21 @@ export function resizeSession(
   return {
     move(p) {
       const [lo, hi] = resizer.bounds(ax);
-      const w = resist(startW + signX * (p.current.x - p.start.x), lo, hi);
-      const h = resist(
-        startH + signY * (p.current.y - p.start.y),
-        MIN_RESIZE_H,
-        maxH,
+      // Past the room, pin the size and route the resisted overshoot to the
+      // slide channel — growing further would saturate the CSS clamp and shove
+      // the anchored corner inward. Both axes; the lower-bound resist (sub-min
+      // dismissal / free clamp) is left intact.
+      const { size: w, slide: dx } = slidePastRoom(
+        resist(startW + signX * (p.current.x - p.start.x), lo, hi),
+        hardMax,
+        signX,
       );
-      io.sync({ frame: frameFor(w, h) });
+      const { size: h, slide: dy } = slidePastRoom(
+        resist(startH + signY * (p.current.y - p.start.y), MIN_RESIZE_H, maxH),
+        maxH,
+        signY,
+      );
+      io.sync({ frame: frameFor(w, h), offset: { dx, dy } });
     },
     release(p) {
       const w = resizer.rest(ax, {
