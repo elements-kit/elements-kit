@@ -90,9 +90,9 @@
       "types": "./dist/utilities/*.d.mts"
     },
     "./ui/overlay": {
-      "source": "./src/ui/overlay/gestures.ts",
-      "import": "./dist/ui/overlay/gestures.mjs",
-      "types": "./dist/ui/overlay/gestures.d.mts"
+      "source": "./src/ui/overlay/index.ts",
+      "import": "./dist/ui/overlay/index.mjs",
+      "types": "./dist/ui/overlay/index.d.mts"
     },
     "./ui/*": "./dist/ui/*"
   },

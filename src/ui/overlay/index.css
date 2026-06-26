@@ -1,0 +1,214 @@
+/*
+ * Overlay core — the geometry of `.x-overlay`.
+ *
+ * `.x-overlay` is an invisible frame around a card, positioned by three
+ * orthogonal primitives (presentation — backdrop, affordances,
+ * enter/exit — lives in the companion overlay.css, imported AFTER this
+ * file):
+ *
+ *   LOCATION — `--overlay-x` / `--overlay-y`: a point inside the
+ *   constraint rect (lengths from the rect's top-left corner to the
+ *   box CENTER). Unset = the rect's center. The translate clamp below
+ *   keeps the box inside the rect, so saturated values dock flush:
+ *   `--overlay-y: 9999px` is "the bottom edge", reactively, whatever
+ *   the rect or the box size becomes.
+ *
+ *   SIZE — `--overlay-w` / `--overlay-h`: explicit size channels.
+ *   Unset = `--overlay-width` (default width) × fit-content. A full-width
+ *   sheet is `--overlay-w: var(--overlay-constraint-width)` — nothing
+ *   spans edges automatically. Both are capped at the constraint rect.
+ *
+ *   RESIZE — `data-resize`: the side the resize handle sits on. Edge
+ *   words `block-start | block-end | inline-start | inline-end`; a
+ *   corner grip is a `start`/`end` pair, block side first (`end-end`,
+ *   `start-end`, …). Drives the gesture, affordance, and enter/exit
+ *   slide (index.ts / overlay.css). Resize *steps* are a JS concern —
+ *   the gesture's `resize` strategy writes the rested size to
+ *   `--overlay-w` / `--overlay-h`.
+ *
+ * Everything computes against the constraint rect
+ * (`--overlay-constraint-top/-left/-width/-height`, viewport by
+ * default, synced from a container via `constrainOverlay`), so the
+ * overlay re-clamps reactively whenever the rect changes — no JS.
+ *
+ * Channel ownership:
+ *   --overlay-x/-y/-w/-h   author-set, JS-persisted (gestures write the
+ *                          released location / size back here)
+ *   --overlay-dx/-dy       JS-only transient drag delta (unclamped —
+ *                          rubber-band overshoot rides these)
+ *   --_ex/--_ey            CSS-only enter/exit offset (overlay.css)
+ *
+ * API:
+ *   --overlay-constraint-top / -left / -width / -height   the rect
+ *   --overlay-x / -y                  location point (see above)
+ *   --overlay-w / -h                  size channels
+ *   --overlay-width                   default width (when --overlay-w unset)
+ *   --overlay-duration / --overlay-easing       shared motion tokens
+ */
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * THE RECT                                                                                        *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-overlay {
+  --overlay-constraint-top: 0px;
+  --overlay-constraint-left: 0px;
+  --overlay-constraint-width: 100vw;
+  --overlay-constraint-height: 100vh;
+
+  /* Internal aliases — fallbacks keep the math resolvable even if the
+   * authorable declarations above are overridden away. */
+  --_ct: var(--overlay-constraint-top, 0px);
+  --_cl: var(--overlay-constraint-left, 0px);
+  --_cw: var(--overlay-constraint-width, 100vw);
+  --_ch: var(--overlay-constraint-height, 100vh);
+}
+
+@supports (height: 1svh) {
+  .x-overlay {
+    /* Small-viewport units track the collapsing mobile browser chrome. */
+    --overlay-constraint-width: 100svw;
+    --overlay-constraint-height: 100svh;
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * LOCATION — one universal center-anchored scheme                                                 *
+ *                                                                                                 *
+ * The box's top-left pins to the rect origin; the translate moves its                             *
+ * CENTER to the (clamped) location point. In a translate component `%`                            *
+ * is the element's own size, so `50%` / `−50% + cw` are exactly the                               *
+ * half-box bounds — the persisted point can never push the box outside                            *
+ * the rect, and a saturated point rests flush against the edge.                                   *
+ * Transient drag overshoot (rubber band) rides the unclamped                                      *
+ * --overlay-dx/-dy; enter/exit slides ride --_ex/--_ey (overlay.css).                             *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-overlay {
+  top: var(--_ct);
+  left: var(--_cl);
+  translate: calc(
+      -50% + var(--_ex, 0px) + var(--overlay-dx, 0px) +
+        clamp(
+          50%,
+          var(--overlay-x, calc(var(--_cw) / 2)),
+          calc(-50% + var(--_cw))
+        )
+    )
+    calc(
+      -50% + var(--_ey, 0px) + var(--overlay-dy, 0px) +
+        clamp(
+          50%,
+          var(--overlay-y, calc(var(--_ch) / 2)),
+          calc(-50% + var(--_ch))
+        )
+    );
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SIZE — explicit channels, rect cap                                                              *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-overlay {
+  --overlay-width: 480px;
+
+  width: var(--overlay-w, var(--overlay-width));
+  max-width: var(--_cw);
+  height: var(--overlay-h, fit-content);
+  max-height: var(--_ch);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * FRAME                                                                                           *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-overlay {
+  /* The open frame is a single-row grid (see the display guard below);
+   * the 1fr row makes the card track the frame height during morphs —
+   * a percentage height can't resolve against a mid-interpolation
+   * fit-content height and would snap at transition end. Declared here,
+   * outside the open state, so the card stays stretched through the
+   * discrete-display exit transition. */
+  grid-template-rows: minmax(0, 1fr);
+
+  --overlay-duration: 300ms;
+  --overlay-easing: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* Location / size / detent morphs — Tier 1. Pre-`translate` browsers
+   * ignore the translate transition and get the static fallback below.
+   * overlay.css's Tier 2 extends the property list for enter/exit. */
+  transition:
+    top var(--overlay-duration) var(--overlay-easing),
+    left var(--overlay-duration) var(--overlay-easing),
+    translate var(--overlay-duration) var(--overlay-easing),
+    width var(--overlay-duration) var(--overlay-easing),
+    height var(--overlay-duration) var(--overlay-easing);
+}
+
+.x-overlay:not([open], :popover-open) {
+  pointer-events: none;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * DISPLAY GUARD                                                                                   *
+ *                                                                                                 *
+ * Pre-Popover-API browsers ignore the `popover` attribute and would                               *
+ * render the element inline — keep it hidden instead. Open overlays                               *
+ * (either modality) become a single-row grid: with the base rule's                                *
+ * `minmax(0, 1fr)` row the card stretches and shrinks with the frame,                             *
+ * tracking morphs frame-by-frame. Scoped to the open states so the UA's                           *
+ * `dialog:not([open]) { display: none }` and the Tier-2 discrete                                  *
+ * display exit keep working.                                                                      *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-overlay:where([popover]) {
+  display: none;
+}
+
+.x-overlay:where([open], :popover-open) {
+  display: grid;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * STATIC FALLBACK — browsers without the `translate` property                                     *
+ *                                                                                                 *
+ * Chrome 100–103 (the library floor predates individual transforms).                              *
+ * Classic inset/margin centering only — the location point needs the                              *
+ * translate clamp, so saturated x/y are not honored here.                                         *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+@supports not (translate: 0px) {
+  .x-overlay {
+    top: auto;
+    left: auto;
+    inset: 0;
+    margin: auto;
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SIZE MORPHS                                                                                     *
+ *                                                                                                 *
+ * Lets fit-content heights interpolate against detent heights when                                *
+ * morphing. Without support, size snaps while position slides.                                    *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+@supports (interpolate-size: allow-keywords) {
+  .x-overlay {
+    interpolate-size: allow-keywords;
+  }
+}

@@ -1,0 +1,567 @@
+/*
+ * Overlay presentation — backdrop, surface, affordances, enter/exit.
+ *
+ * Companion to index.css (REQUIRED, imported BEFORE this file), which
+ * owns the geometry: the constraint rect, the `--overlay-x`/`-y`
+ * location point, and the `--overlay-w`/`-h` size channels. This file
+ * paints everything around that geometry.
+ *
+ * `.x-overlay` is an invisible frame around a card: the visible surface
+ * is its required direct child — a plain `.x-card` (any variant). The
+ * frame's own pseudos paint the gesture affordances (grabber pills,
+ * corner grip), shown whenever `data-resize` / `data-draggable` is set.
+ *
+ * Three orthogonal primitives:
+ *
+ *   LOCATION — `--overlay-x` / `--overlay-y`, a point in the constraint
+ *   rect (unset = centered; saturated values dock flush to the edges).
+ *
+ *   RESIZE — `data-resize`, the side the resize handle sits on:
+ *     block-start | block-end     horizontal grabber, height drag
+ *     inline-start | inline-end   vertical grabber, width drag
+ *     start-start | start-end |   corner grip, free x/y resize
+ *     end-start | end-end         (block side first, inline second)
+ *   The handle side also picks the enter/exit slide (a handle implies
+ *   the opposite edge is docked); no attribute → fade + settle.
+ *
+ *   DRAGGABLE — `data-draggable` (boolean), the x/y window move from
+ *   the top strip.
+ *
+ *   MODALITY — how you open it, no attribute:
+ *     dialog.showModal()          modal: focus trap, inert page, backdrop
+ *     popover + popovertarget     non-modal top layer, light dismiss
+ *     popover="manual"            persistent, page stays interactive
+ *
+ * Markup contracts:
+ *
+ *   Bottom sheet (modal):
+ *     <dialog class="unset x-overlay" data-resize="block-start"
+ *             style="--overlay-y: 9999px; --overlay-h: 60svh;
+ *                    --overlay-w: var(--overlay-constraint-width)">
+ *       <div class="x-card" data-variant="elevated">…</div>
+ *     </dialog>
+ *
+ *   Centered window (all geometry defaults):
+ *     <dialog class="unset x-overlay" data-resize="end-end" data-draggable>
+ *       <div class="x-card" data-variant="elevated">…</div>
+ *     </dialog>
+ *
+ *   Persistent corner panel, background interactive:
+ *     <dialog class="unset x-overlay" popover="manual" id="panel"
+ *             data-resize="block-start"
+ *             style="--overlay-x: 9999px; --overlay-y: 9999px; --overlay-h: 60svh">
+ *       <div class="x-card" data-variant="elevated">…</div>
+ *     </dialog>
+ *     <button popovertarget="panel">Toggle panel</button>
+ *
+ * Changing the location point or size channels on an open overlay morphs
+ * it with a plain CSS transition — everything is expressed in
+ * interpolable lengths.
+ *
+ * API:
+ *   data-resize        handle side, see vocabulary above (no default);
+ *                      also shows the resize affordance
+ *   data-draggable     boolean — x/y move gesture + move affordance
+ *   data-anchor        reserved, do not use
+ *   data-material-background  the card surface defaults to solid inside
+ *                      an overlay when no material context is declared;
+ *                      an explicit value on the frame or any ancestor
+ *                      wins (e.g. "translucent" for frosted glass)
+ *   --overlay-duration   transitions duration (300ms)
+ *   --overlay-easing     transitions easing (iOS-style ease-out)
+ *   --overlay-backdrop   modal backdrop color (--color-overlay)
+ *
+ * Tiers:
+ *   Tier 1 (universal) — instant open/close; location / size morphs
+ *                        animate where the `translate` property exists
+ *                        (Chrome 104+, the rest at the floor).
+ *   Tier 2 (modern)    — `@supports (transition-behavior: allow-discrete)`
+ *                        adds enter/exit transitions via @starting-style.
+ *   Tier 3 (nested)    — `@supports (overlay: auto)` keeps the exit
+ *                        transition inside the top layer.
+ *
+ * Gestures are opt-in JS — see `createOverlayGestures` in
+ * elements-kit/ui/overlay. Edge handles drag the size along their axis
+ * (flick-to-dismiss); corner grips resize like a desktop window (the
+ * opposite corner stays anchored); `data-draggable` moves the window in
+ * x/y from the top strip (flinging it off the constraint closes). The
+ * resize `resize` strategy (`freeResize` default, or `detents`) decides
+ * the resting size, written to `--overlay-w`/`-h`.
+ */
+
+.x-overlay {
+  color: var(--neutral-12);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * BACKDROP — modal only ([open] via showModal). Popover backdrop stays transparent.               *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-overlay:where([open])::backdrop {
+  background: var(--overlay-backdrop, var(--color-overlay));
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * CARD SURFACE                                                                                    *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* The frame's 1fr grid row (index.css) stretches and shrinks the card —
+ * no percentage heights, so the card tracks morphs. */
+.x-overlay > .x-card {
+  overflow-y: auto;
+  /* The card paints its surface/ring on absolutely-positioned
+   * ::before/::after. Making the card a scroll container would scroll
+   * them away with the content (exposing the backdrop below), so drop the
+   * two things that make the card their containing block — position and
+   * paint containment. The pseudos then resolve against the fixed frame
+   * and stay put; overflow:auto still clips the content to the rounded
+   * card. (Both are required: each establishes an abspos containing
+   * block on its own.) */
+  position: static;
+  contain: none;
+  /* The card is now a touch scroll container, so a touch-drag on it would
+   * be claimed for native panning before a gesture can engage. Restrict to
+   * vertical pan: horizontal gestures (drawer resize, window move-x) are
+   * never stolen, and vertical handle drags are cancelled by the gesture's
+   * non-passive touchmove preventDefault while the body still scrolls.
+   * (Touch only — desktop pointer drags are unaffected.) */
+  touch-action: pan-y;
+}
+
+/* Overlay cards default to a solid surface: a translucent material over
+ * the dimmed backdrop reads as the backdrop sitting on top of the card.
+ * Any explicit data-material-background context — on the frame or an
+ * ancestor — still wins (the :not guard skips the default entirely, and
+ * zero specificity keeps material.css in charge). */
+:where(
+  .x-overlay:not(
+    [data-material-background],
+    [data-material-background] .x-overlay
+  )
+) {
+  --color-material: var(--color-material-solid);
+  --backdrop-filter-material: none;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * GESTURE AFFORDANCES                                                                             *
+ *                                                                                                 *
+ * Painted on the frame so the card's pseudos stay untouched, and shown                            *
+ * whenever the matching `data-resize` / `data-draggable` is set.                                  *
+ * Resizing owns                                                                                   *
+ * `::before` (the edge pills sit ON the `data-resize` handle side; the                            *
+ * corner grip at the corner-word corner — `data-resize` is a single                               *
+ * value, so these never collide), dragging owns `::after`. Splitting the                          *
+ * two pseudos lets a draggable + resizable overlay show both at once.                             *
+ *                                                                                                 *
+ * The drag handle's shape depends on the resize: most overlays get a                              *
+ * small card-radius dot at the top-start corner (clear of the edge                                *
+ * resize pills; for start-start, whose grip owns top-start, the dot                               *
+ * shifts to top-end). The bottom-corner windows (end-*) instead keep a                            *
+ * top-center pill so the default end-end window stays movable.                                    *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* Shared pseudo scaffolding — resize on ::before, drag on ::after. Gated
+ * on the gesture attributes so a plain overlay paints no affordance. */
+.x-overlay:where([data-resize], [data-draggable])::before,
+.x-overlay:where([data-resize], [data-draggable])::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Drag dot — a small square with the card's corner radius at the
+ * top-start corner, for every draggable overlay except the corner
+ * windows that keep the top-center pill (end-*). Clear of the edge
+ * resize pills; logical insets mirror it to top-end in RTL.
+ * (`--overlay-grip-radius` is the same card-radius token the corner grip
+ * uses; the frame can't see the card's own --card-border-radius.) */
+.x-overlay:where(
+    [data-draggable]:not([data-resize^="end-"])
+  )::after {
+  inset-block-start: var(--space-2);
+  inset-inline-start: var(--space-2);
+  width: var(--space-3);
+  height: var(--space-3);
+  border-radius: var(--overlay-grip-radius, var(--radius-5));
+  background-color: var(--neutral-a8);
+}
+
+/* start-start's grip already owns the top-start corner — move its drag
+ * dot to the top-end corner so the two don't overlap. */
+.x-overlay:where(
+    [data-draggable][data-resize="start-start"]
+  )::after {
+  inset-inline-start: auto;
+  inset-inline-end: var(--space-2);
+}
+
+/* Drag pill — corner-resize windows keep a top-center pill so the
+ * default end-end window stays movable. */
+.x-overlay:where(
+    [data-draggable][data-resize^="end-"]
+  )::after {
+  top: var(--space-2);
+  inset-inline: 0;
+  margin-inline: auto;
+  width: var(--space-8);
+  height: var(--space-1);
+  border-radius: max(var(--radius-1), var(--radius-pill));
+  background-color: var(--neutral-a8);
+}
+
+/* Horizontal resize pill — block edge (height drag). */
+.x-overlay:where([data-resize^="block-"])::before {
+  inset-inline: 0;
+  margin-inline: auto;
+  width: var(--space-8);
+  height: var(--space-1);
+  border-radius: max(var(--radius-1), var(--radius-pill));
+  background-color: var(--neutral-a8);
+}
+
+.x-overlay:where([data-resize="block-start"])::before {
+  top: var(--space-2);
+}
+
+.x-overlay:where([data-resize="block-end"])::before {
+  bottom: var(--space-2);
+}
+
+/* Vertical resize pill — inline edge (width drag). Logical insets mirror
+ * in RTL for free. */
+.x-overlay:where([data-resize^="inline-"])::before {
+  inset-block: 0;
+  margin-block: auto;
+  width: var(--space-1);
+  height: var(--space-8);
+  border-radius: max(var(--radius-1), var(--radius-pill));
+  background-color: var(--neutral-a8);
+}
+
+.x-overlay:where([data-resize="inline-start"])::before {
+  inset-inline-start: var(--space-2);
+}
+
+.x-overlay:where([data-resize="inline-end"])::before {
+  inset-inline-end: var(--space-2);
+}
+
+/* Corner resize grip — corner data-resize (a start/end pair), at the
+ * handle corner. The grip hugs the corner: a quarter arc concentric with
+ * the card radius (square when the radius scale collapses) plus short
+ * tails with pill caps. The paint is a border box with ALL four sides
+ * inked — the tip corner squares are solid, no miter shows — and
+ * `border-bottom-right-radius` draws the curve; the mask is a pure
+ * stencil (strips + arc quadrant + cap dots, no radius-dependent
+ * gradient stops), so it is robust at every radius and scale. The base
+ * paint is drawn for the bottom-right; --_gx/--_gy mirror it to the
+ * other corners (and in RTL). */
+.x-overlay:where(
+    [data-resize^="start-"],
+    [data-resize^="end-"]
+  )::before {
+  /* Outer arc radius: card corner radius − the inset gap below. */
+  --_grip-r: max(
+    calc(var(--overlay-grip-radius, var(--radius-5)) - var(--space-1)),
+    0px
+  );
+  /* Cap diameter: stroke-width pills, collapsing to square tips when the
+   * radius scale collapses (square card → square handle). */
+  --_cap: min(var(--space-1), calc(var(--_grip-r) * 9999));
+  --_gx: 1;
+  --_gy: 1;
+  content: "";
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+  width: max(calc(var(--_grip-r) + var(--space-1)), calc(var(--space-1) * 3));
+  height: max(calc(var(--_grip-r) + var(--space-1)), calc(var(--space-1) * 3));
+  border: var(--space-1) solid var(--neutral-a8);
+  border-bottom-right-radius: var(--_grip-r);
+  transform: scale(var(--_gx), var(--_gy));
+  mask:
+    /* tails, cut flat at the cap centers (full length when capless) */
+    linear-gradient(#000, #000) right 0 top calc(var(--_cap) / 2) /
+      var(--space-1) calc(100% - var(--_cap) / 2) no-repeat,
+    linear-gradient(#000, #000) left calc(var(--_cap) / 2) bottom 0 /
+      calc(100% - var(--_cap) / 2) var(--space-1) no-repeat,
+    /* arc quadrant — the border's own curve shows through */
+    linear-gradient(#000, #000) 100% 100% / var(--_grip-r) var(--_grip-r)
+      no-repeat,
+    /* round caps, centered on the flat cuts over solid border ink */
+    radial-gradient(
+        circle closest-side,
+        #000 calc(100% - 0.5px),
+        transparent
+      )
+      right 0 top 0 / var(--_cap) var(--_cap) no-repeat,
+    radial-gradient(
+        circle closest-side,
+        #000 calc(100% - 0.5px),
+        transparent
+      )
+      left 0 bottom 0 / var(--_cap) var(--_cap) no-repeat;
+}
+
+/* Corner position + mirroring. Logical insets place the grip; the paint
+ * and mask are physical, so --_gx flips when the grip lands on a
+ * physical left corner (inline-start in LTR, inline-end in RTL) and
+ * --_gy when it lands on a top corner. The inline side is the second
+ * word (start-END / end-END = inline-end), the block side the first. */
+.x-overlay:where(
+    [data-resize="start-end"],
+    [data-resize="end-end"]
+  )::before {
+  inset-inline-end: var(--space-1);
+}
+
+.x-overlay:where(
+    [data-resize="start-start"],
+    [data-resize="end-start"]
+  )::before {
+  inset-inline-start: var(--space-1);
+  --_gx: -1;
+}
+
+.x-overlay:where([data-resize^="end-"])::before {
+  bottom: var(--space-1);
+}
+
+.x-overlay:where([data-resize^="start-"])::before {
+  top: var(--space-1);
+  --_gy: -1;
+}
+
+.x-overlay:where(
+    [data-resize="start-end"],
+    [data-resize="end-end"]
+  ):where(:dir(rtl))::before {
+  --_gx: -1;
+}
+
+.x-overlay:where(
+    [data-resize="start-start"],
+    [data-resize="end-start"]
+  ):where(:dir(rtl))::before {
+  --_gx: 1;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * ENTER / EXIT — Tier 2 (@starting-style + allow-discrete)                                        *
+ *                                                                                                 *
+ * The handle side implies the docked edge (a block-start handle means                             *
+ * the sheet rests at the bottom), so the closed state slides one box                              *
+ * length toward that edge via the --_ex/--_ey channels index.css                                  *
+ * composes into its translate. Windows (no handle, or a corner grip)                              *
+ * fade + settle instead. Gestures (which only add --overlay-dx/-dy)                               *
+ * compose cleanly.                                                                                *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+@supports (transition-behavior: allow-discrete) {
+  .x-overlay {
+    transition-property:
+      top, left, translate, width, height, opacity, scale, display;
+    transition-duration: var(--overlay-duration);
+    transition-timing-function: var(--overlay-easing);
+    transition-behavior: allow-discrete;
+  }
+
+  /* windows (no handle, or a corner grip) — fade + settle */
+  .x-overlay:where(
+    :not([data-resize]),
+    [data-resize^="start-"],
+    [data-resize^="end-"]
+  ) {
+    opacity: 0;
+    scale: 0.97;
+
+    &:where([open], :popover-open) {
+      opacity: 1;
+      scale: 1;
+
+      @starting-style {
+        opacity: 0;
+        scale: 0.97;
+      }
+    }
+  }
+
+  /* block-start handle (bottom-docked sheet) — slide from below */
+  .x-overlay:where([data-resize="block-start"]) {
+    --_ey: 100%;
+
+    &:where([open], :popover-open) {
+      --_ey: 0%;
+
+      @starting-style {
+        --_ey: 100%;
+      }
+    }
+  }
+
+  /* block-end handle (top-docked sheet) — slide from above */
+  .x-overlay:where([data-resize="block-end"]) {
+    --_ey: -100%;
+
+    &:where([open], :popover-open) {
+      --_ey: 0%;
+
+      @starting-style {
+        --_ey: -100%;
+      }
+    }
+  }
+
+  /* inline-start handle (end-docked drawer) — slide past the inline-end
+   * edge (mirrored in RTL) */
+  .x-overlay:where([data-resize="inline-start"]) {
+    --_ex: 100%;
+
+    &:where([open], :popover-open) {
+      --_ex: 0%;
+
+      @starting-style {
+        --_ex: 100%;
+      }
+    }
+
+    &:where(:dir(rtl)) {
+      --_ex: -100%;
+
+      &:where([open], :popover-open) {
+        --_ex: 0%;
+
+        @starting-style {
+          --_ex: -100%;
+        }
+      }
+    }
+  }
+
+  /* inline-end handle (start-docked drawer) — slide past the
+   * inline-start edge (mirrored in RTL) */
+  .x-overlay:where([data-resize="inline-end"]) {
+    --_ex: -100%;
+
+    &:where([open], :popover-open) {
+      --_ex: 0%;
+
+      @starting-style {
+        --_ex: -100%;
+      }
+    }
+
+    &:where(:dir(rtl)) {
+      --_ex: 100%;
+
+      &:where([open], :popover-open) {
+        --_ex: 0%;
+
+        @starting-style {
+          --_ex: 100%;
+        }
+      }
+    }
+  }
+
+  /* backdrop fade — modal only */
+  .x-overlay::backdrop {
+    opacity: 0;
+    transition-property: opacity, display;
+    transition-duration: var(--overlay-duration);
+    transition-timing-function: var(--overlay-easing);
+    transition-behavior: allow-discrete;
+  }
+
+  .x-overlay:where([open])::backdrop {
+    opacity: 1;
+
+    @starting-style {
+      opacity: 0;
+    }
+  }
+
+  /* Tier 3 — keep the exit transition inside the top layer. Browsers
+   * without `overlay` (Firefox) clip the exit; entry is unaffected. */
+  @supports (overlay: auto) {
+    .x-overlay {
+      transition-property:
+        top, left, translate, width, height, opacity, scale, display, overlay;
+    }
+    .x-overlay::backdrop {
+      transition-property: opacity, display, overlay;
+    }
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * DECK EFFECT (opt-in recipe)                                                                     *
+ *                                                                                                 *
+ * Put `data-overlay-deck` on the page wrapper to scale it back iOS-style                          *
+ * while a bottom sheet (block-start handle) is open. Degrades to nothing                          *
+ * without `:has()`.                                                                               *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+@supports selector(:has(*)) {
+  [data-overlay-deck] {
+    transform-origin: 50% 0;
+    transition-property: scale, translate, border-radius;
+    transition-duration: var(--overlay-duration, 300ms);
+    transition-timing-function: var(
+      --overlay-easing,
+      cubic-bezier(0.32, 0.72, 0, 1)
+    );
+  }
+
+  :root:has(.x-overlay[data-resize="block-start"][open]) [data-overlay-deck] {
+    scale: 0.96;
+    translate: 0 var(--space-2);
+    border-radius: var(--radius-4);
+    overflow: clip;
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * MOTION                                                                                          *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+@media (prefers-reduced-motion: reduce) {
+  .x-overlay,
+  .x-overlay::backdrop,
+  [data-overlay-deck] {
+    transition: none;
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * FORCED COLORS                                                                                   *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+@media (forced-colors: active) {
+  /* ::before carries the resize affordances (pills paint a background,
+   * the corner grip a border); ::after the move pill (background). */
+  .x-overlay:where([data-resize])::before {
+    background-color: ButtonText;
+    border-color: ButtonText;
+  }
+
+  .x-overlay:where([data-draggable])::after {
+    background-color: ButtonText;
+  }
+}

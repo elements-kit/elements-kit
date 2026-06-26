@@ -36,7 +36,7 @@ const meta = {
           Body copy showing the card surface, ring, and padding scale.
         </p>
       </Tag>
-    );
+    ) as Node;
   },
 } satisfies Meta<Args>;
 
