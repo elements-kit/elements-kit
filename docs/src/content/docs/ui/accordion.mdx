@@ -3,15 +3,11 @@ title: Accordion
 description: Headless disclosure built on native <details>. Single-open grouping, animated open/close, zero JavaScript.
 ---
 
-import Playground from "@/playground/Playground.astro";
-import ACCORDION from "@/playground/files/ui-accordion.tsx?raw";
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
 
 A native `<details>` styled via a single class. Animated open *and* close via `::details-content` + the CSS Grid `0fr → 1fr` trick + `transition-behavior: allow-discrete`. Single-open grouping via the native `name` attribute. Two variants, three sizes, color theming. No JavaScript.
 
-<Playground
-  provider={{ files: { "/main.tsx": { code: ACCORDION, active: true } } }}
-  preview={{}}
-/>
+<StorybookEmbed story="ui-accordion--surface" />
 
 ## Install
 

@@ -3,15 +3,11 @@ title: Button
 description: Headless button styled by the optional theme layer — six variants, four sizes.
 ---
 
-import Playground from "@/playground/Playground.astro";
-import BUTTON from "@/playground/files/ui-button.tsx?raw";
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
 
 A native `<button>` element styled via class + data attributes from the optional [styles layer](/ui/styles). Six variants, four sizes, color theming, high-contrast and disabled states — all driven by data attributes on a single `.x-button` class.
 
-<Playground
-  provider={{ files: { "/main.tsx": { code: BUTTON, active: true } } }}
-  preview={{}}
-/>
+<StorybookEmbed story="ui-button--solid" />
 
 ## Install
 

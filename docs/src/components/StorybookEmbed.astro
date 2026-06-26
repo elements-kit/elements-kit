@@ -1,0 +1,23 @@
+---
+interface Props {
+  /** Story id, e.g. `ui-accordion--surface`. */
+  story: string;
+  /** Iframe height in px. */
+  height?: number;
+}
+
+const { story, height = 720 } = Astro.props;
+
+// Dev serves Storybook on its own port; the production `build:docs` step
+// bundles the static build under the docs site's /storybook/ subpath.
+const base = import.meta.env.DEV ? "http://localhost:6006" : "/storybook";
+// `singleStory` drops the sidebar but keeps the toolbar + Controls panel.
+const src = `${base}/?path=/story/${story}&singleStory=true`;
+---
+
+<iframe
+  src={src}
+  title="Storybook"
+  loading="lazy"
+  style={`width: 100%; height: ${height}px; border: 1px solid var(--sl-color-gray-5); border-radius: 0.5rem;`}
+></iframe>
