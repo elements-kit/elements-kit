@@ -5,6 +5,7 @@ import {
   createOverlayGestures,
   detents,
   freeResize,
+  overlay,
   type ResizeContext,
 } from "./index.ts";
 
@@ -691,6 +692,39 @@ describe("block-start sheet + draggable (resize handle owns the top)", () => {
   });
 });
 
+describe("overlay facade", () => {
+  it("wires gestures and forwards resize() (+ resizechange)", () => {
+    const el = createOverlay({ resize: "block-start" });
+    mockWindowRect(el);
+    const onChange = vi.fn();
+    el.addEventListener("resizechange", onChange);
+    const o = overlay(el);
+
+    o.resize(420); // block → height channel
+    expect(el.style.getPropertyValue("--overlay-h")).toBe("420px");
+    expect(onChange.mock.calls.at(-1)?.[0].detail).toEqual({ height: "420px" });
+
+    o.dispose();
+    el.remove();
+  });
+
+  it("syncs a constraint element and tears it down on dispose", () => {
+    const el = createOverlay({ draggable: true });
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+
+    const o = overlay(el, { constrain: container });
+    expect(el.style.getPropertyValue("--overlay-constraint-width")).toMatch(
+      /px$/,
+    );
+
+    o.dispose();
+    expect(el.style.getPropertyValue("--overlay-constraint-width")).toBe("");
+    container.remove();
+    el.remove();
+  });
+});
+
 describe("constrainOverlay", () => {
   it("syncs the container rect into the constraint vars and cleans up", () => {
     const overlay = createOverlay({ draggable: true });
@@ -737,8 +771,9 @@ describe("corner resize (start/end pair data-resize)", () => {
     // Corner press resizes — 1:1, the opposite (top inline-start) corner
     // stays anchored: the location point shifts by half the growth.
     drag2D(overlay, { x: 570, y: 390 }, { x: 620, y: 440 });
-    expect(overlay.style.getPropertyValue("--overlay-w")).toBe("530px");
-    expect(overlay.style.getPropertyValue("--overlay-h")).toBe("350px");
+    // Live size renders inline (instant); position to the channels.
+    expect(overlay.style.width).toBe("530px");
+    expect(overlay.style.height).toBe("350px");
     expect(overlay.style.getPropertyValue("--overlay-x")).toBe("365px");
     expect(overlay.style.getPropertyValue("--overlay-y")).toBe("275px");
     expect(overlay.style.transition).toBe("none");
@@ -763,7 +798,7 @@ describe("corner resize (start/end pair data-resize)", () => {
     // The anchored left edge sits at 100 in the 1024-wide constraint →
     // max width 924 (the window can never outgrow the rect).
     drag2D(overlay, { x: 570, y: 390 }, { x: 1600, y: 390 });
-    const during = parseFloat(overlay.style.getPropertyValue("--overlay-w"));
+    const during = parseFloat(overlay.style.width); // live size is inline
     expect(during).toBeGreaterThan(924); // overshoot…
     expect(during).toBeLessThan(1510); // …but resisted
 
@@ -860,8 +895,8 @@ describe("corner resize (start/end pair data-resize)", () => {
     // The end-end (block-end inline-end) corner is physically
     // bottom-left: (100, 400). Dragging left grows; anchor is top-right.
     drag2D(overlay, { x: 110, y: 390 }, { x: 60, y: 440 });
-    expect(overlay.style.getPropertyValue("--overlay-w")).toBe("530px");
-    expect(overlay.style.getPropertyValue("--overlay-h")).toBe("350px");
+    expect(overlay.style.width).toBe("530px"); // live size inline
+    expect(overlay.style.height).toBe("350px");
     expect(overlay.style.getPropertyValue("--overlay-x")).toBe("315px");
 
     gestures.dispose();

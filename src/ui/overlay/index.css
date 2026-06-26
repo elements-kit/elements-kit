@@ -14,10 +14,9 @@
  *   the rect or the box size becomes.
  *
  *   SIZE — `--overlay-w` / `--overlay-h`: explicit size channels.
- *   Unset = detent step along the resize axis, else
- *   `--overlay-max-width` × fit-content. A full-width sheet is
- *   `--overlay-w: var(--overlay-constraint-width)` — nothing spans
- *   edges automatically.
+ *   Unset = `--overlay-width` (default width) × fit-content. A full-width
+ *   sheet is `--overlay-w: var(--overlay-constraint-width)` — nothing
+ *   spans edges automatically. Both are capped at the constraint rect.
  *
  *   RESIZE — `data-resize`: the side the resize handle sits on. Edge
  *   words `block-start | block-end | inline-start | inline-end`; a
@@ -43,7 +42,7 @@
  *   --overlay-constraint-top / -left / -width / -height   the rect
  *   --overlay-x / -y                  location point (see above)
  *   --overlay-w / -h                  size channels
- *   --overlay-max-width               default width
+ *   --overlay-width                   default width (when --overlay-w unset)
  *   --overlay-duration / --overlay-easing       shared motion tokens
  */
 
@@ -117,7 +116,9 @@
  ***************************************************************************************************/
 
 .x-overlay {
-  width: var(--overlay-w, fit-content);
+  --overlay-width: 480px;
+
+  width: var(--overlay-w, var(--overlay-width));
   max-width: var(--_cw);
   height: var(--overlay-h, fit-content);
   max-height: var(--_ch);

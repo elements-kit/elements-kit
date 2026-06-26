@@ -94,11 +94,6 @@
       "import": "./dist/ui/overlay/index.mjs",
       "types": "./dist/ui/overlay/index.d.mts"
     },
-    "./ui/overlay/constrain": {
-      "source": "./src/ui/overlay/index.ts",
-      "import": "./dist/ui/overlay/index.mjs",
-      "types": "./dist/ui/overlay/index.d.mts"
-    },
     "./ui/*": "./dist/ui/*"
   },
   "scripts": {

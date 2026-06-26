@@ -3,8 +3,8 @@
  *
  * Companion to index.css (REQUIRED, imported BEFORE this file), which
  * owns the geometry: the constraint rect, the `--overlay-x`/`-y`
- * location point, the `--overlay-w`/`-h` size channels, and the
- * detents. This file paints everything around that geometry.
+ * location point, and the `--overlay-w`/`-h` size channels. This file
+ * paints everything around that geometry.
  *
  * `.x-overlay` is an invisible frame around a card: the visible surface
  * is its required direct child — a plain `.x-card` (any variant). The
@@ -72,9 +72,9 @@
  *   --overlay-backdrop   modal backdrop color (--color-overlay)
  *
  * Tiers:
- *   Tier 1 (universal) — instant open/close; location / size / detent
- *                        morphs animate where the `translate` property
- *                        exists (Chrome 104+, the rest at the floor).
+ *   Tier 1 (universal) — instant open/close; location / size morphs
+ *                        animate where the `translate` property exists
+ *                        (Chrome 104+, the rest at the floor).
  *   Tier 2 (modern)    — `@supports (transition-behavior: allow-discrete)`
  *                        adds enter/exit transitions via @starting-style.
  *   Tier 3 (nested)    — `@supports (overlay: auto)` keeps the exit

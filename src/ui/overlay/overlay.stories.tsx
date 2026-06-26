@@ -62,16 +62,16 @@ const meta = {
     x: {
       control: "text",
       description:
-        "--overlay-x — location point from the constraint's left to the overlay center (empty = centered; 9999px docks to the right edge)",
+        "--overlay-x — center's distance from the constraint's left (empty = centered; 9999px docks right)",
     },
     y: {
       control: "text",
       description:
-        "--overlay-y — location point from the constraint's top (empty = centered; 9999px docks to the bottom edge)",
+        "--overlay-y — center's distance from the constraint's top (empty = centered; 9999px docks bottom)",
     },
     w: {
       control: "text",
-      description: "--overlay-w — width channel (empty = max-width default)",
+      description: "--overlay-w — width channel (empty = --overlay-width, 480px)",
     },
     h: {
       control: "text",
@@ -80,7 +80,7 @@ const meta = {
     snap: {
       control: "boolean",
       description:
-        "Pass a detents() resize strategy (snap to 25/60/90% of the constraint axis) instead of free resize",
+        "Pass detents([0.25, 0.6, 0.9]) so the resize snaps to fractions of the constraint axis instead of free resize",
     },
     modal: {
       control: "boolean",
@@ -182,8 +182,8 @@ type Story = StoryObj<Args>;
 /** Centered window: move from the top strip, corner grip resize. */
 export const Window: Story = {};
 
-/** Bottom edge, full constraint width, height detents from the top
- * handle. */
+/** Bottom edge, full constraint width, height drag from the top handle
+ * (snapped). */
 export const BottomSheet: Story = {
   args: {
     resize: "block-start",
@@ -219,11 +219,11 @@ export const Drawer: Story = {
   },
 };
 
-/** Floating panel docked at the bottom-right corner — saturated x/y,
- * persistent popover. */
+/** Floating panel docked at the bottom-right corner — saturated x/y, a
+ * corner grip facing inward (top-left), persistent popover. */
 export const CornerPanel: Story = {
   args: {
-    resize: "block-start",
+    resize: "start-start",
     x: "9999px",
     y: "9999px",
     h: "60svh",
@@ -395,8 +395,8 @@ export const Morph: Story = {
 /**
  * `constrainOverlay(panel, container)` syncs the container's rect into the
  * `--overlay-constraint-*` variables: the location point clamps to the
- * container's edges, detents become fractions of it, and the move/resize
- * gestures bound inside it — all geometry computed by the stylesheet.
+ * container's edges and the move/resize gestures bound inside it — all
+ * geometry computed by the stylesheet.
  */
 export const Constrained: Story = {
   argTypes: {
