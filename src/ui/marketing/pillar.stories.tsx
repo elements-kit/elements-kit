@@ -16,7 +16,7 @@ const CircleIcon = () => (
 );
 
 const meta = {
-  title: "UI/Pillar",
+  title: "Marketing/Pillar",
   argTypes: {
     align: { control: "inline-radio", options: ["start", "center"] },
     card: { control: "boolean" },

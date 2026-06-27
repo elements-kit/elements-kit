@@ -8,7 +8,7 @@ interface Args {
 }
 
 const meta = {
-  title: "UI/Testimonial",
+  title: "Marketing/Testimonial",
   argTypes: {
     variant: {
       control: "select",

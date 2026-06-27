@@ -27,7 +27,7 @@ function GradientVisual(props: {
 }
 
 const meta = {
-  title: "UI/River",
+  title: "Marketing/River",
   argTypes: {
     align: {
       control: "select",

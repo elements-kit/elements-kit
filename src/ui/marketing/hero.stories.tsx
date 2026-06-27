@@ -8,7 +8,7 @@ interface Args {
 }
 
 const meta = {
-  title: "UI/Hero",
+  title: "Marketing/Hero",
   argTypes: {
     align: { control: "inline-radio", options: ["start", "center"] },
   },

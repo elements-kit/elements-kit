@@ -9,7 +9,7 @@ interface Args {
 }
 
 const meta = {
-  title: "UI/CTA Banner",
+  title: "Marketing/CTA Banner",
   argTypes: {
     align: { control: "inline-radio", options: ["center", "start"] },
   },
