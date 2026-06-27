@@ -91,6 +91,11 @@ export const uiSidebar: SidebarItem[] = [
     attrs: { target: "_blank", rel: "noopener" },
   },
   {
+    label: "Figma ↗",
+    link: "https://www.figma.com/community/file/1634497966964502610",
+    attrs: { target: "_blank", rel: "noopener" },
+  },
+  {
     label: "Components",
     items: [
       { label: "Accordion", slug: "ui/accordion", badge: cssBadge },
