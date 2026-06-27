@@ -7,7 +7,7 @@
   "packageManager": "pnpm@10.26.2",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "astro build && pnpm -w run build:storybook && rm -rf dist/storybook && cp -R ../storybook/storybook-static dist/storybook",
     "preview": "astro preview",
     "deploy": "wrangler deploy"
   },

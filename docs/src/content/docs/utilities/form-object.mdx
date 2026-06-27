@@ -1,0 +1,102 @@
+---
+title: Form object
+description: Read and write an HTMLFormElement as a nested plain object via field names.
+---
+
+import Playground from "@/playground/Playground.astro";
+import FORM_OBJECT_FILE from "@/playground/files/form-object.tsx?raw";
+
+`FormObject` turns an `HTMLFormElement` into a structured plain object — and writes one back — using the control `name` to shape the result. It is a static snapshot, like `new FormData()`, with no reactivity or dependencies. Type into the form below and watch the object update.
+
+<Playground
+  provider={{
+    files: {
+      "/main.tsx": {
+        code: FORM_OBJECT_FILE,
+        active: true,
+      },
+    },
+  }}
+  preview={{}}
+/>
+
+## Field names shape the object
+
+The `name` attribute is a path. Dots nest objects, numeric segments build arrays, and a trailing `[]` marks an append array.
+
+```ts
+import { FormObject } from "elements-kit/utilities/form-object";
+
+// <input name="user.name">        → { user: { name } }
+// <input name="user.address.city">→ { user: { address: { city } } }
+// <input name="tags.0">           → { tags: [ "…" ] }   (explicit index)
+// <input name="colors[]">         → { colors: [ "…" ] } (append, one per control)
+const data = new FormObject(form).toObject();
+```
+
+A trailing `[]` always produces an array — a single `colors[]` control gives `["x"]`, and a group with none checked still serializes to `[]`. Use it whenever a field is conceptually a list.
+
+## Reading a form
+
+`toObject()` walks the form's named controls and returns the nested object. It mirrors native form submission: disabled and unchecked controls are dropped, `<select multiple>` yields an array, and `<input type="file">` yields `File` objects. `toJSON()` is an alias, so `JSON.stringify(instance)` works.
+
+```ts
+const form = document.querySelector("form")!;
+const data = new FormObject(form).toObject();
+```
+
+:::note[Bare repeated names: last value wins]
+When several controls share a bare `name` (no `[]`), the **last** value wins — matching form-data-json. So the `<input type="hidden" name="x" value="0">` + `<input type="checkbox" name="x" value="1">` idiom yields `"1"` when checked and `"0"` when unchecked. Reach for `name="x[]"` when you actually want both values in an array.
+:::
+
+## Writing back
+
+`fromObject(data)` assigns values from a nested object onto matching controls — setting `.value`, checking boxes and radios, and selecting options. Missing paths are left untouched. `clear()` resets every named control. Both return `this` for chaining.
+
+```ts
+new FormObject(form).fromObject({
+  user: { name: "Wael" },
+  colors: ["red", "blue"], // checks the matching colors[] boxes
+});
+```
+
+## Transforms
+
+Extraction runs each field through a pipeline of `FormFieldTransform`s. Each transform receives the field (`{ control, name, value, checked? }`) and returns it, a modified copy, or `null` to drop it. The default pipeline skips disabled controls, buttons, and unchecked boxes:
+
+```ts
+import {
+  FormObject,
+  defaultTransforms,
+  uncheckedAs,
+  skipEmpty,
+} from "elements-kit/utilities/form-object";
+
+// Replace the defaults — include unchecked checkboxes as `false`
+new FormObject(form, {
+  transforms: [...defaultTransforms.slice(0, 2), uncheckedAs(false)],
+}).toObject();
+
+// Extend — drop empty fields and trim strings
+new FormObject(form, {
+  transforms: [
+    ...defaultTransforms,
+    skipEmpty,
+    (f) => ({ ...f, value: typeof f.value === "string" ? f.value.trim() : f.value }),
+  ],
+}).toObject();
+```
+
+Built-ins: `skipDisabled`, `skipButtons`, `dropUnchecked` (the defaults), plus `uncheckedAs(value)` and `skipEmpty`. Passing `transforms` **replaces** the defaults — spread `...defaultTransforms` to keep them.
+
+:::caution[An empty pipeline keeps everything]
+`transforms: []` removes all filtering, so disabled controls, buttons, and unchecked checkbox values are all emitted. Inspect `field.checked` in a custom transform when you need the checkbox state.
+:::
+
+Field names that walk an object's prototype (`__proto__`, `prototype`, `constructor`) are ignored, so a malicious `name` cannot pollute `Object.prototype`.
+
+## See also
+
+- [Utilities](/utilities)
+- [Signals](/signals)
+- Source & full behavior table: [src/utilities/form-object.ts](https://github.com/elements-kit/elements-kit/blob/main/src/utilities/form-object.ts)

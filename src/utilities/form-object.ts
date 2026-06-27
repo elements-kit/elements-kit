@@ -104,6 +104,15 @@ function isIndex(segment: string): boolean {
 }
 
 /**
+ * A trailing `[]` marks an auto-append array field (PHP / form-data-json
+ * convention) — `colors[]` appends to the `colors` array, `a.b[]` to `a.b`.
+ * Returns the dot-path without the suffix, or `null` when absent.
+ */
+function arrayFieldPath(name: string): string | null {
+  return name.endsWith("[]") ? name.slice(0, -2) : null;
+}
+
+/**
  * Segments that could walk into an object's prototype. Writing through them
  * enables prototype-pollution; reading them leaks internal objects. Paths
  * containing any of these are ignored entirely.
@@ -248,31 +257,43 @@ export class FormObject {
   }
 
   /**
-   * Place a field into `result`. Mirrors native `FormData`: each surviving
-   * control contributes one entry, so a name with a single value stays scalar
-   * and a name with two or more values becomes an array, in document order.
-   * Disabled and unchecked controls are removed by the transform pipeline
-   * before this runs, so only "submitted" values are counted — e.g. the
-   * hidden + checkbox idiom yields `["0", "1"]` when checked (both submit) and
-   * `"0"` when unchecked (only the hidden submits), exactly as the browser
-   * would serialize it.
+   * Place a field into `result`. Array-ness is explicit, like form-data-json:
+   * a name ending in `[]` appends to an array at that path (so a single
+   * `colors[]` still yields `["x"]` and an empty one stays `[]`), while a bare
+   * name is scalar — if several controls share it, the **last value wins**.
+   * Use explicit indices (`tags.0`, `tags.1`) or `[]` to build arrays.
    */
   #assign(result: FormValues, field: Field): void {
     const { name, value } = field;
-    const existing = getPath(result, name);
+    const arrayPath = arrayFieldPath(name);
 
-    if (existing === undefined) {
-      setPath(result, name, value);
-    } else if (Array.isArray(existing)) {
-      existing.push(value);
-    } else {
-      setPath(result, name, [existing, value]);
+    if (arrayPath !== null) {
+      let arr = getPath(result, arrayPath);
+      if (!Array.isArray(arr)) {
+        arr = [];
+        setPath(result, arrayPath, arr);
+      }
+      (arr as unknown[]).push(value);
+      return;
     }
+
+    setPath(result, name, value); // bare name: last value wins
   }
 
   /** Snapshot the form into a nested object built from dot-notation names. */
   toObject(): FormValues {
     const result: FormValues = {};
+
+    // Pre-declare every `[]` field so a declared-but-empty array still appears
+    // (e.g. an unchecked `colors[]` checkbox group serializes to `[]`).
+    for (const el of this.#form.elements) {
+      const control = el as Partial<NamedControl>;
+      if (!control.name) continue;
+      const path = arrayFieldPath(control.name);
+      if (path !== null && getPath(result, path) === undefined) {
+        setPath(result, path, []);
+      }
+    }
 
     for (const el of this.#form.elements) {
       const control = el as Partial<NamedControl>;
@@ -303,7 +324,9 @@ export class FormObject {
     for (const el of this.#form.elements) {
       if (!this.#isWritable(el)) continue;
       const control = el as NamedControl;
-      const value = getPath(data, control.name);
+      // `[]` controls read from the array at their stripped path, so a checkbox
+      // group round-trips (each control checks for its value in the array).
+      const value = getPath(data, arrayFieldPath(control.name) ?? control.name);
       if (value === undefined) continue;
 
       if (control instanceof HTMLInputElement) {

@@ -43,7 +43,13 @@ export const librarySidebar: SidebarItem[] = [
       { label: "Slots", slug: "custom-elements/slots" },
     ],
   },
-  { label: "Utilities", slug: "utilities" },
+  {
+    label: "Utilities",
+    items: [
+      { label: "Overview", slug: "utilities" },
+      { label: "Form object", slug: "utilities/form-object" },
+    ],
+  },
 ];
 
 export const examplesSidebar: SidebarItem[] = [

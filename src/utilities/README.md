@@ -136,10 +136,10 @@ Page-level singletons. Importing is safe — reading before DOM is available ret
 
 ## Forms / URL
 
-| Module            | Export                                              | Returns                                                                                                                                       | Deps             |
-|-------------------|-----------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|------------------|
-| **search-params** | `createSearchParam(key)`                            | `Computed<string \| null>`                                                                                                                    | `event-listener` |
-| **form-object**   | `FormObject`, `defaultTransforms`, field transforms | Nested object ↔ form via dot-notation names. `toObject` / `fromObject` / `clear`; extraction runs a composable `FormFieldTransform` pipeline. | —                |
+| Module            | Export                                              | Returns                                                                                                                                                         | Deps             |
+|-------------------|-----------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------|
+| **search-params** | `createSearchParam(key)`                            | `Computed<string \| null>`                                                                                                                                      | `event-listener` |
+| **form-object**   | `FormObject`, `defaultTransforms`, field transforms | Nested object ↔ form via dot-notation names (`user.city`, `tags.0`, `colors[]`). `toObject` / `fromObject` / `clear`; composable `FormFieldTransform` pipeline. | —                |
 
 ---
 
