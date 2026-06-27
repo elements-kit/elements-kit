@@ -86,6 +86,11 @@ export const uiSidebar: SidebarItem[] = [
   { label: "Overview", slug: "ui" },
   { label: "Styles", slug: "ui/styles" },
   {
+    label: "Storybook ↗",
+    link: "/storybook/",
+    attrs: { target: "_blank", rel: "noopener" },
+  },
+  {
     label: "Components",
     items: [
       { label: "Accordion", slug: "ui/accordion", badge: cssBadge },
