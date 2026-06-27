@@ -104,13 +104,26 @@ function isIndex(segment: string): boolean {
 }
 
 /**
+ * Segments that could walk into an object's prototype. Writing through them
+ * enables prototype-pollution; reading them leaks internal objects. Paths
+ * containing any of these are ignored entirely.
+ */
+function hasUnsafeKey(keys: string[]): boolean {
+  return keys.some(
+    (k) => k === "__proto__" || k === "prototype" || k === "constructor",
+  );
+}
+
+/**
  * Write `value` into `target` at the dot-notation `path`. Object segments
- * create plain objects; integer segments create/extend arrays.
+ * create plain objects; integer segments create/extend arrays. Paths
+ * containing prototype-polluting segments are ignored.
  *
  * @example setPath(o, "user.tags.0", "a") // { user: { tags: ["a"] } }
  */
 function setPath(target: FormValues, path: string, value: unknown): void {
   const keys = path.split(".");
+  if (hasUnsafeKey(keys)) return;
   let node: Record<string, unknown> | unknown[] = target;
 
   for (let i = 0; i < keys.length; i++) {
@@ -137,8 +150,10 @@ function setPath(target: FormValues, path: string, value: unknown): void {
 
 /** Read the value at the dot-notation `path` from `source`, or `undefined`. */
 function getPath(source: FormValues, path: string): unknown {
+  const keys = path.split(".");
+  if (hasUnsafeKey(keys)) return undefined;
   let node: unknown = source;
-  for (const key of path.split(".")) {
+  for (const key of keys) {
     if (node === null || typeof node !== "object") return undefined;
     node = (node as Record<string, unknown>)[key];
   }
@@ -233,11 +248,19 @@ export class FormObject {
   }
 
   /**
-   * Set `name` to `value`, accumulating repeated names into an array in
-   * document order (multi-checkbox groups, repeated inputs).
+   * Place a field into `result`. Mirrors native `FormData`: each surviving
+   * control contributes one entry, so a name with a single value stays scalar
+   * and a name with two or more values becomes an array, in document order.
+   * Disabled and unchecked controls are removed by the transform pipeline
+   * before this runs, so only "submitted" values are counted — e.g. the
+   * hidden + checkbox idiom yields `["0", "1"]` when checked (both submit) and
+   * `"0"` when unchecked (only the hidden submits), exactly as the browser
+   * would serialize it.
    */
-  #assign(result: FormValues, name: string, value: unknown): void {
+  #assign(result: FormValues, field: Field): void {
+    const { name, value } = field;
     const existing = getPath(result, name);
+
     if (existing === undefined) {
       setPath(result, name, value);
     } else if (Array.isArray(existing)) {
@@ -258,7 +281,7 @@ export class FormObject {
       const field = this.#applyTransforms(extractField(el as NamedControl));
       if (field === null) continue;
 
-      this.#assign(result, field.name, field.value);
+      this.#assign(result, field);
     }
 
     return result;

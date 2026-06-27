@@ -169,6 +169,228 @@ describe("FormObject.toObject", () => {
   });
 });
 
+describe("FormObject same-name controls", () => {
+  it("accumulates repeated text inputs into an array in document order", () => {
+    const form = makeForm(`
+      <input name="x" value="a" />
+      <input name="x" value="b" />
+    `);
+    expect(new FormObject(form).toObject()).toEqual({ x: ["a", "b"] });
+  });
+
+  it("accumulates mixed scalar kinds (text + select) into an array", () => {
+    const form = makeForm(`
+      <input name="y" value="a" />
+      <select name="y"><option value="b" selected>b</option></select>
+    `);
+    expect(new FormObject(form).toObject()).toEqual({ y: ["a", "b"] });
+  });
+
+  it("returns a scalar when only one checkbox of a group survives (native: one entry)", () => {
+    const form = makeForm(`
+      <input type="checkbox" name="c" value="r" checked />
+      <input type="checkbox" name="c" value="g" />
+      <input type="checkbox" name="c" value="b" />
+    `);
+    expect(new FormObject(form).toObject()).toEqual({ c: "r" });
+  });
+
+  it("returns an array when multiple checkboxes survive (native: multiple entries)", () => {
+    const form = makeForm(`
+      <input type="checkbox" name="c" value="r" checked />
+      <input type="checkbox" name="c" value="g" checked />
+    `);
+    expect(new FormObject(form).toObject()).toEqual({ c: ["r", "g"] });
+  });
+
+  it("hidden + checked checkbox yields both values, like native FormData", () => {
+    const form = makeForm(`
+      <input type="hidden" name="agree" value="0" />
+      <input type="checkbox" name="agree" value="1" checked />
+    `);
+    expect(new FormObject(form).toObject()).toEqual({ agree: ["0", "1"] });
+  });
+
+  it("hidden + unchecked checkbox yields only the hidden value", () => {
+    const form = makeForm(`
+      <input type="hidden" name="agree" value="0" />
+      <input type="checkbox" name="agree" value="1" />
+    `);
+    expect(new FormObject(form).toObject()).toEqual({ agree: "0" });
+  });
+
+  it("hidden + checked radio yields both values, like native FormData", () => {
+    const form = makeForm(`
+      <input type="hidden" name="plan" value="none" />
+      <input type="radio" name="plan" value="pro" checked />
+    `);
+    expect(new FormObject(form).toObject()).toEqual({ plan: ["none", "pro"] });
+  });
+
+  it("accumulates a radio and a checkbox of the same name when both are checked", () => {
+    const form = makeForm(`
+      <input type="radio" name="x" value="r" checked />
+      <input type="checkbox" name="x" value="c" checked />
+    `);
+    expect(new FormObject(form).toObject()).toEqual({ x: ["r", "c"] });
+  });
+
+  it("returns a scalar for a radio + checkbox group when only one is checked", () => {
+    const form = makeForm(`
+      <input type="radio" name="x" value="r" checked />
+      <input type="checkbox" name="x" value="c" />
+    `);
+    expect(new FormObject(form).toObject()).toEqual({ x: "r" });
+  });
+
+  it("keeps a pure radio group as a scalar", () => {
+    const form = makeForm(`
+      <input type="radio" name="r" value="a" />
+      <input type="radio" name="r" value="b" checked />
+    `);
+    expect(new FormObject(form).toObject()).toEqual({ r: "b" });
+  });
+});
+
+describe("FormObject disabled controls", () => {
+  it("skips a disabled checked checkbox under the default pipeline", () => {
+    const form = makeForm(
+      `<input type="checkbox" name="a" value="1" checked disabled />`,
+    );
+    expect(new FormObject(form).toObject()).toEqual({});
+  });
+
+  it("includes a disabled checked checkbox when skipDisabled is omitted", () => {
+    const form = makeForm(
+      `<input type="checkbox" name="a" value="1" checked disabled />`,
+    );
+    expect(
+      new FormObject(form, {
+        transforms: [skipButtons, dropUnchecked],
+      }).toObject(),
+    ).toEqual({ a: "1" });
+  });
+
+  it("still drops a disabled UNCHECKED checkbox via dropUnchecked even without skipDisabled", () => {
+    const form = makeForm(
+      `<input type="checkbox" name="a" value="1" disabled />`,
+    );
+    expect(
+      new FormObject(form, {
+        transforms: [skipButtons, dropUnchecked],
+      }).toObject(),
+    ).toEqual({});
+  });
+
+  it("treats a checkbox group as an array even when a disabled member is included", () => {
+    const form = makeForm(`
+      <input type="checkbox" name="g" value="1" checked />
+      <input type="checkbox" name="g" value="2" checked disabled />
+    `);
+    expect(
+      new FormObject(form, {
+        transforms: [skipButtons, dropUnchecked],
+      }).toObject(),
+    ).toEqual({ g: ["1", "2"] });
+  });
+
+  it("collapses to a scalar when the disabled member is skipped (native: one entry)", () => {
+    const form = makeForm(`
+      <input type="checkbox" name="g" value="1" checked />
+      <input type="checkbox" name="g" value="2" checked disabled />
+    `);
+    // Default pipeline drops the disabled checkbox; one survivor → scalar.
+    expect(new FormObject(form).toObject()).toEqual({ g: "1" });
+  });
+
+  it("hidden + checkbox matches native (both when checked, hidden-only when unchecked) without skipDisabled", () => {
+    const checked = makeForm(`
+      <input type="hidden" name="a" value="0" />
+      <input type="checkbox" name="a" value="1" checked />
+    `);
+    const unchecked = makeForm(`
+      <input type="hidden" name="a" value="0" />
+      <input type="checkbox" name="a" value="1" />
+    `);
+    const opts = { transforms: [skipButtons, dropUnchecked] };
+    expect(new FormObject(checked, opts).toObject()).toEqual({ a: ["0", "1"] });
+    expect(new FormObject(unchecked, opts).toObject()).toEqual({ a: "0" });
+  });
+
+  it("a disabled checkbox leaves only the hidden value under the default pipeline", () => {
+    const form = makeForm(`
+      <input type="hidden" name="a" value="0" />
+      <input type="checkbox" name="a" value="1" checked disabled />
+    `);
+    // Default pipeline drops the disabled checkbox — matches native FormData.
+    expect(new FormObject(form).toObject()).toEqual({ a: "0" });
+  });
+
+  it("an included disabled checkbox contributes a second value (array)", () => {
+    const form = makeForm(`
+      <input type="hidden" name="a" value="0" />
+      <input type="checkbox" name="a" value="1" checked disabled />
+    `);
+    expect(
+      new FormObject(form, {
+        transforms: [skipButtons, dropUnchecked],
+      }).toObject(),
+    ).toEqual({ a: ["0", "1"] });
+  });
+
+  it("does not write disabled controls in fromObject", () => {
+    const form = makeForm(`<input name="a" value="orig" disabled />`);
+    new FormObject(form).fromObject({ a: "changed" });
+    expect((form.elements.namedItem("a") as HTMLInputElement).value).toBe(
+      "orig",
+    );
+  });
+});
+
+describe("FormObject path edge cases", () => {
+  it("does not pollute Object.prototype via __proto__ segments", () => {
+    const form = makeForm(`<input name="__proto__.polluted" value="yes" />`);
+    const result = new FormObject(form).toObject();
+    expect(result).toEqual({});
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+  });
+
+  it("ignores constructor / prototype segments", () => {
+    const form = makeForm(`
+      <input name="constructor.prototype.x" value="bad" />
+      <input name="a.prototype.b" value="bad" />
+    `);
+    expect(new FormObject(form).toObject()).toEqual({});
+  });
+
+  it("leaves gaps in sparse array indices as holes", () => {
+    const form = makeForm(`
+      <input name="t.0" value="a" />
+      <input name="t.2" value="c" />
+    `);
+    // Index 1 has no control — the array hole serializes to null via JSON.
+    expect(new FormObject(form).toObject()).toEqual({ t: ["a", undefined, "c"] });
+  });
+
+  it("builds deeply nested arrays of objects", () => {
+    const form = makeForm(`
+      <input name="a.0.b.0.c" value="1" />
+      <input name="a.0.b.1.c" value="2" />
+    `);
+    expect(new FormObject(form).toObject()).toEqual({
+      a: [{ b: [{ c: "1" }, { c: "2" }] }],
+    });
+  });
+
+  it("treats numeric top-level names as object keys, not an array", () => {
+    const form = makeForm(`
+      <input name="0" value="a" />
+      <input name="1" value="b" />
+    `);
+    expect(new FormObject(form).toObject()).toEqual({ "0": "a", "1": "b" });
+  });
+});
+
 describe("FormObject transforms", () => {
   it("skips named buttons by default", () => {
     const form = makeForm(`
