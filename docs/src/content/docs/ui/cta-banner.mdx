@@ -3,15 +3,11 @@ title: CTA Banner
 description: Bordered call-to-action panel — heading, copy, and CTA row.
 ---
 
-import Playground from "@/playground/Playground.astro";
-import CTA_BANNER from "@/playground/files/ui-cta-banner.tsx?raw";
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
 
 A `.cta-banner` is a bordered call-to-action panel. Centered by default; flips to start-aligned with `data-align="start"`. Composes with [`.x-card`](/ui/card) for the surface.
 
-<Playground
-  provider={{ files: { "/main.tsx": { code: CTA_BANNER, active: true } } }}
-  preview={{}}
-/>
+<StorybookEmbed story="ui-cta-banner--default" />
 
 ## Install
 

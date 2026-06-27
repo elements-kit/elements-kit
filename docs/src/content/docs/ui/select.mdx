@@ -3,15 +3,11 @@ title: Select
 description: Headless select — a styled native <select>. We own the trigger chrome; the browser owns the option popup. No JavaScript.
 ---
 
-import Playground from "@/playground/Playground.astro";
-import SELECT from "@/playground/files/ui-select.tsx?raw";
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
 
 A native `<select>` with CSS-only chrome. The trigger (closed state) is styled here — sizes, variants, colors, focus ring, disabled state, and a custom chevron. The option popup stays OS-native, which means full keyboard navigation, native mobile pickers, and screen-reader announcement all work without a line of JS.
 
-<Playground
-  provider={{ files: { "/main.tsx": { code: SELECT, active: true } } }}
-  preview={{}}
-/>
+<StorybookEmbed story="ui-select--surface" />
 
 ## Install
 

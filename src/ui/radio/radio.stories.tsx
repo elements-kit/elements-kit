@@ -1,0 +1,245 @@
+import type { Meta, StoryObj } from "@storybook/html-vite";
+
+import "./radio.css";
+import "../card/card.css";
+
+interface Args {
+  variant: "surface" | "soft";
+  size: "1" | "2" | "3";
+  label: string;
+  checked: boolean;
+  highContrast: boolean;
+  disabled: boolean;
+}
+
+const SIZES = ["1", "2", "3"] as const;
+const VARIANTS = ["surface", "soft"] as const;
+const ACCENTS = ["mint", "blue", "iris", "crimson", "amber"] as const;
+
+const meta = {
+  title: "UI/Radio",
+  argTypes: {
+    variant: { control: "select", options: ["surface", "soft"] },
+    size: { control: "select", options: ["1", "2", "3"] },
+    label: { control: "text" },
+    checked: { control: "boolean" },
+    highContrast: { control: "boolean" },
+    disabled: { control: "boolean" },
+  },
+  args: {
+    variant: "surface",
+    size: "2",
+    label: "Option",
+    checked: true,
+    highContrast: false,
+    disabled: false,
+  },
+  render: (args) =>
+    (
+      <label style="display: inline-flex; align-items: center; gap: 0.5em; width: fit-content">
+        <input
+          type="radio"
+          class:unset
+          class:x-radio
+          name="radio-default"
+          data-variant={args.variant}
+          data-size={args.size}
+          data-high-contrast={args.highContrast ? "" : undefined}
+          checked={args.checked}
+          disabled={args.disabled}
+        />
+        <span>{args.label}</span>
+      </label>
+    ) as Node,
+} satisfies Meta<Args>;
+
+export default meta;
+type Story = StoryObj<Args>;
+
+export const Surface: Story = {};
+export const Soft: Story = { args: { variant: "soft" } };
+
+export const Group: Story = {
+  render: () =>
+    (
+      <div style="display: flex; flex-direction: column; gap: var(--space-1)">
+        {(
+          [
+            ["hobby", "Hobby — free forever", true],
+            ["pro", "Pro — $19/mo", false],
+            ["enterprise", "Enterprise — contact us", false],
+          ] as const
+        ).map(([value, label, on]) => (
+          <label style="display: inline-flex; align-items: center; gap: 0.5em; width: fit-content">
+            <input
+              type="radio"
+              class:unset
+              class:x-radio
+              name="plan"
+              value={value}
+              checked={on}
+            />
+            <span>{label}</span>
+          </label>
+        ))}
+      </div>
+    ) as Node,
+};
+
+export const Card: Story = {
+  render: () =>
+    (
+      <div style="display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr))">
+        {(
+          [
+            ["hobby", "Hobby", "Free forever. Personal projects only.", true],
+            ["pro", "Pro", "Unlimited projects, priority support.", false],
+            ["enterprise", "Enterprise", "SSO, audit logs, dedicated SLA.", false],
+          ] as const
+        ).map(([value, title, body, on]) => (
+          <label
+            class:unset
+            class:x-card
+            data-size="2"
+            style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer"
+          >
+            <input
+              type="radio"
+              class:unset
+              class:x-radio
+              name="plan-card"
+              value={value}
+              style="margin-top: 2px"
+              checked={on}
+            />
+            <div>
+              <div style="font-weight: 600; margin-bottom: 2px">{title}</div>
+              <div style="color: var(--neutral-11); font-size: 13px">{body}</div>
+            </div>
+          </label>
+        ))}
+      </div>
+    ) as Node,
+};
+
+export const Gallery: Story = {
+  render: () =>
+    (
+      <div style="display: grid; gap: 28px; color: var(--neutral-12)">
+        <section>
+          <h3 style="margin: 0 0 12px; font-size: 14px; font-weight: 600">
+            Sizes
+          </h3>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 1rem">
+            {SIZES.map((size, i) => (
+              <label style="display: inline-flex; align-items: center; gap: 0.5em">
+                <input
+                  type="radio"
+                  class:unset
+                  class:x-radio
+                  name="gallery-size"
+                  value={size}
+                  data-size={size}
+                  checked={i === 1}
+                />
+                <span>Size {size}</span>
+              </label>
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <h3 style="margin: 0 0 12px; font-size: 14px; font-weight: 600">
+            Variants
+          </h3>
+          <div style="display: grid; gap: 16px">
+            {VARIANTS.map((variant) => (
+              <div>
+                <code style="font-size: 12px; color: var(--neutral-11); display: block; margin-bottom: 8px">
+                  data-variant="{variant}"
+                </code>
+                <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 1rem">
+                  <label style="display: inline-flex; align-items: center; gap: 0.5em">
+                    <input
+                      type="radio"
+                      class:unset
+                      class:x-radio
+                      name={`variant-${variant}`}
+                      data-variant={variant}
+                    />
+                    <span>Unchecked</span>
+                  </label>
+                  <label style="display: inline-flex; align-items: center; gap: 0.5em">
+                    <input
+                      type="radio"
+                      class:unset
+                      class:x-radio
+                      name={`variant-${variant}`}
+                      data-variant={variant}
+                      checked
+                    />
+                    <span>Checked</span>
+                  </label>
+                  <label style="display: inline-flex; align-items: center; gap: 0.5em; color: var(--neutral-a8)">
+                    <input
+                      type="radio"
+                      class:unset
+                      class:x-radio
+                      name={`variant-${variant}-disabled`}
+                      data-variant={variant}
+                      checked
+                      disabled
+                    />
+                    <span>Disabled</span>
+                  </label>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <h3 style="margin: 0 0 12px; font-size: 14px; font-weight: 600">
+            High contrast
+          </h3>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 1rem">
+            {VARIANTS.map((variant) => (
+              <label style="display: inline-flex; align-items: center; gap: 0.5em">
+                <input
+                  type="radio"
+                  class:unset
+                  class:x-radio
+                  name={`hc-${variant}`}
+                  data-variant={variant}
+                  data-high-contrast=""
+                  checked
+                />
+                <span>{variant}</span>
+              </label>
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <h3 style="margin: 0 0 12px; font-size: 14px; font-weight: 600">
+            Accent colors
+          </h3>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 1rem">
+            {ACCENTS.map((color) => (
+              <label style="display: inline-flex; align-items: center; gap: 0.5em">
+                <input
+                  type="radio"
+                  class:unset
+                  class:x-radio
+                  name={`accent-${color}`}
+                  data-accent={color}
+                  checked
+                />
+                <span>{color}</span>
+              </label>
+            ))}
+          </div>
+        </section>
+      </div>
+    ) as Node,
+};

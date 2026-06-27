@@ -3,15 +3,11 @@ title: Kbd
 description: Keyboard key chip — nine sizes.
 ---
 
-import Playground from "@/playground/Playground.astro";
-import KBD from "@/playground/files/ui-kbd.tsx?raw";
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
 
 A small chip for keyboard keys in inline text — e.g. shortcuts in help, hint text, command palettes. Class + data-attribute API: one `.x-kbd` class plus `data-size`. Flat tinted background (`--neutral-a3`).
 
-<Playground
-  provider={{ files: { "/main.tsx": { code: KBD, active: true } } }}
-  preview={{}}
-/>
+<StorybookEmbed story="ui-kbd--key" />
 
 ## Install
 

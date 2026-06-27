@@ -3,15 +3,11 @@ title: Pillar
 description: Vertical mini-card for a feature, benefit, or stat.
 ---
 
-import Playground from "@/playground/Playground.astro";
-import PILLAR from "@/playground/files/ui-pillar.tsx?raw";
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
 
 A `.pillar` is a vertical mini-card: icon → heading → paragraph → link. Use in 2/3/4-up grids inside a section. Compose with [`.x-card`](/ui/card) for surface treatment.
 
-<Playground
-  provider={{ files: { "/main.tsx": { code: PILLAR, active: true } } }}
-  preview={{}}
-/>
+<StorybookEmbed story="ui-pillar--default" />
 
 ## Install
 

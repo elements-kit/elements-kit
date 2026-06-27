@@ -3,15 +3,11 @@ title: Testimonial
 description: Quote card with oversized opening glyph, citation, and role line.
 ---
 
-import Playground from "@/playground/Playground.astro";
-import TESTIMONIAL from "@/playground/files/ui-testimonial.tsx?raw";
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
 
 A `.testimonial` is a quote card: oversized opening quote glyph → blockquote body → figcaption (cite + title). Composes with [`.x-card`](/ui/card) for the surface — required.
 
-<Playground
-  provider={{ files: { "/main.tsx": { code: TESTIMONIAL, active: true } } }}
-  preview={{}}
-/>
+<StorybookEmbed story="ui-testimonial--default" />
 
 ## Install
 

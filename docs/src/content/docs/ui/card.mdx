@@ -3,15 +3,11 @@ title: Card
 description: Block-level container with surface, border, and optional elevation.
 ---
 
-import Playground from "@/playground/Playground.astro";
-import CARD from "@/playground/files/ui-card.tsx?raw";
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
 
 A block container with a clean surface, hairline border, and an interactive state when the card is rendered as a link or button. Class + data-attribute API: one `.x-card` class plus `data-variant` and `data-size`.
 
-<Playground
-  provider={{ files: { "/main.tsx": { code: CARD, active: true } } }}
-  preview={{}}
-/>
+<StorybookEmbed story="ui-card--surface" />
 
 ## Install
 

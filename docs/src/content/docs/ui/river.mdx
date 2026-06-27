@@ -3,15 +3,11 @@ title: River
 description: Two-column text + visual layout — alternate alignments for rhythm.
 ---
 
-import Playground from "@/playground/Playground.astro";
-import RIVER from "@/playground/files/ui-river.tsx?raw";
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
 
 A `.river` is a text + visual pair side-by-side. Alternate `data-align="start"` and `"end"` between adjacent rivers for visual rhythm. Stacks below md.
 
-<Playground
-  provider={{ files: { "/main.tsx": { code: RIVER, active: true } } }}
-  preview={{}}
-/>
+<StorybookEmbed story="ui-river--default" />
 
 ## Install
 

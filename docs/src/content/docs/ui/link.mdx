@@ -3,15 +3,11 @@ title: Link
 description: Accent-colored anchor with configurable underline behavior and focus ring.
 ---
 
-import Playground from "@/playground/Playground.astro";
-import LINK from "@/playground/files/ui-link.tsx?raw";
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
 
 A native `<a>` styled with the current accent color and a thin underline. Four underline modes (`auto`, `hover`, `always`, `none`) cover most patterns: inline-in-paragraph, hover-only navigation, and quiet links. Also works on `<button>` for action links that don't navigate.
 
-<Playground
-  provider={{ files: { "/main.tsx": { code: LINK, active: true } } }}
-  preview={{}}
-/>
+<StorybookEmbed story="ui-link--inline" />
 
 ## Install
 

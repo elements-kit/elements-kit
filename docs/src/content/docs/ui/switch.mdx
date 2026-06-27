@@ -3,15 +3,11 @@ title: Switch
 description: Headless toggle switch — two variants, three sizes.
 ---
 
-import Playground from "@/playground/Playground.astro";
-import SWITCH from "@/playground/files/ui-switch.tsx?raw";
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
 
 A native `<input type="checkbox" role="switch">` styled as a toggle. CSS-only animation between off/on. Two variants, three sizes, color theming. Use it where the change takes effect immediately — for forms with a Save button, use a [Checkbox](/ui/checkbox) instead.
 
-<Playground
-  provider={{ files: { "/main.tsx": { code: SWITCH, active: true } } }}
-  preview={{}}
-/>
+<StorybookEmbed story="ui-switch--surface" />
 
 ## Install
 

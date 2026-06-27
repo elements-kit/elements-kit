@@ -3,15 +3,11 @@ title: Segmented Control
 description: CSS-only segmented control over native radios — two-tier indicator with crossfade fallback and CSS Anchor Positioning slide upgrade.
 ---
 
-import Playground from "@/playground/Playground.astro";
-import SEG from "@/playground/files/ui-segmented-control.tsx?raw";
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
 
 A grid of native `<input type="radio">` styled via class + data attributes from the optional [styles layer](/ui/styles). No JS, no per-N rules, no segment cap. The indicator is **two-tier**: an opacity crossfade per label as the universal baseline, with a single sliding indicator powered by [CSS Anchor Positioning](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_anchor_positioning) wherever it's supported.
 
-<Playground
-  provider={{ files: { "/main.tsx": { code: SEG, active: true } } }}
-  preview={{}}
-/>
+<StorybookEmbed story="ui-segmented-control--surface" />
 
 ## Install
 

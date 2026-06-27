@@ -3,15 +3,11 @@ title: Code
 description: Inline code span — four variants, nine sizes, color theming.
 ---
 
-import Playground from "@/playground/Playground.astro";
-import CODE from "@/playground/files/ui-code.tsx?raw";
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
 
 Inline `<code>` styling for code references in body text. Monospace font, tinted background, scales with the typography scale. Class + data-attribute API: one `.x-code` class plus `data-variant`, `data-size`, `data-accent`.
 
-<Playground
-  provider={{ files: { "/main.tsx": { code: CODE, active: true } } }}
-  preview={{}}
-/>
+<StorybookEmbed story="ui-code--inline" />
 
 ## Install
 

@@ -3,15 +3,11 @@ title: Progress
 description: Native <progress> styled as a determinate or indeterminate bar — two variants, three sizes.
 ---
 
-import Playground from "@/playground/Playground.astro";
-import PROGRESS from "@/playground/files/ui-progress.tsx?raw";
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
 
 A native `<progress>` element styled as a slim bar. Sizes scale the height, variants switch between bordered surface and soft fills. Omit `value` to show the UA-native indeterminate animation.
 
-<Playground
-  provider={{ files: { "/main.tsx": { code: PROGRESS, active: true } } }}
-  preview={{}}
-/>
+<StorybookEmbed story="ui-progress--surface" />
 
 ## Install
 

@@ -3,17 +3,13 @@ title: Alert
 description: Inline informational box — three variants, three sizes, color theming.
 ---
 
-import Playground from "@/playground/Playground.astro";
-import ALERT from "@/playground/files/ui-alert.tsx?raw";
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
 
 A block-level informational box for inline content — tips, warnings, status. Class + data-attribute API: one `.x-alert` class plus `data-variant`, `data-size`, `data-accent`. Two-column grid: icon slot on the left, body on the right.
 
 `.x-alert` is purely visual. It does **not** apply `role="alert"` (the ARIA live-region semantic). Add `role="alert"` or `role="status"` yourself when the content is dynamic and needs to be announced.
 
-<Playground
-  provider={{ files: { "/main.tsx": { code: ALERT, active: true } } }}
-  preview={{}}
-/>
+<StorybookEmbed story="ui-alert--soft" />
 
 ## Install
 

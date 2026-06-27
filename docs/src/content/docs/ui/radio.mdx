@@ -3,15 +3,11 @@ title: Radio
 description: Headless radio button styled by the optional theme layer — two variants, three sizes.
 ---
 
-import Playground from "@/playground/Playground.astro";
-import RADIO from "@/playground/files/ui-radio.tsx?raw";
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
 
 A native `<input type="radio">` styled via class + data attributes from the optional [styles layer](/ui/styles). Two variants, three sizes, color theming, high-contrast and disabled states. Indicator is a `currentColor` dot drawn via `::after` at `scale(0.4)` — no glyph, no SVG, no JS.
 
-<Playground
-  provider={{ files: { "/main.tsx": { code: RADIO, active: true } } }}
-  preview={{}}
-/>
+<StorybookEmbed story="ui-radio--surface" />
 
 ## Install
 

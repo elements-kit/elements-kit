@@ -3,15 +3,11 @@ title: Section
 description: Page section, container, header, headings, and paragraph — the building blocks of a marketing page.
 ---
 
-import Playground from "@/playground/Playground.astro";
-import SECTION from "@/playground/files/ui-section.tsx?raw";
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
 
 A "section" is composed of five primitives that almost always travel together: `.page-section` (themed background + vertical padding) → `.page-container` (max-width + gutters) → `.section-header` (heading + lede + optional CTA) → `.section-heading-1..4` (typographic scale) and `.section-paragraph` (body text token).
 
-<Playground
-  provider={{ files: { "/main.tsx": { code: SECTION, active: true } } }}
-  preview={{}}
-/>
+<StorybookEmbed story="ui-section--default" />
 
 ## Install
 

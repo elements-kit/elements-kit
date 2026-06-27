@@ -3,15 +3,11 @@ title: Badge
 description: Inline status pill — four variants, three sizes, color theming.
 ---
 
-import Playground from "@/playground/Playground.astro";
-import BADGE from "@/playground/files/ui-badge.tsx?raw";
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
 
 A small inline pill for tags, counts, and status. Class + data-attribute API mirrors the [Button](/ui/button): one `.x-badge` class plus `data-variant`, `data-size`, `data-accent`. No focus styles or pointer cursor — badges aren't interactive.
 
-<Playground
-  provider={{ files: { "/main.tsx": { code: BADGE, active: true } } }}
-  preview={{}}
-/>
+<StorybookEmbed story="ui-badge--solid" />
 
 ## Install
 

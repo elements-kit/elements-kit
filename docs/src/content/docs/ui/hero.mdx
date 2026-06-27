@@ -3,15 +3,11 @@ title: Hero
 description: Top-of-page block — flex column with optional center alignment.
 ---
 
-import Playground from "@/playground/Playground.astro";
-import HERO from "@/playground/files/ui-hero.tsx?raw";
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
 
 The `.hero` primitive is the top block of a marketing page. Flex column, vertically rhythmed via marketing tokens. Skip the wrapping `.page-section` — heros sit at the top of the page, above sections.
 
-<Playground
-  provider={{ files: { "/main.tsx": { code: HERO, active: true } } }}
-  preview={{}}
-/>
+<StorybookEmbed story="ui-hero--default" />
 
 ## Install
 

@@ -3,17 +3,13 @@ title: Arrow
 description: Animated CTA chevron — pure CSS, one class, inherits color and font-size.
 ---
 
-import Playground from "@/playground/Playground.astro";
-import ARROW from "@/playground/files/ui-arrow.tsx?raw";
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
 
 A small CTA arrow drawn entirely in CSS — no SVG, no `mask-image`, no `clip-path`. At rest it shows a chevron `›`; on parent `:hover` or `:focus-visible` the chevron slides 0.25em right and a shaft line wipes in beneath it.
 
 Color follows `currentColor`. Size follows parent `font-size` (always `1em × 1em`). Mirrors automatically inside `dir="rtl"`. Respects `prefers-reduced-motion`.
 
-<Playground
-  provider={{ files: { "/main.tsx": { code: ARROW, active: true } } }}
-  preview={{}}
-/>
+<StorybookEmbed story="ui-arrow--default" />
 
 ## Install
 

@@ -3,8 +3,7 @@ title: Text Input
 description: Headless text input and textarea — one class, three modes, two variants, three sizes.
 ---
 
-import Playground from "@/playground/Playground.astro";
-import TEXT_INPUT from "@/playground/files/ui-text-input.tsx?raw";
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
 
 A native `<input>` or `<textarea>` styled via a **single class**. Same `.x-text-input` covers three usages:
 
@@ -14,10 +13,7 @@ A native `<input>` or `<textarea>` styled via a **single class**. Same `.x-text-
 
 Mode is selected by what the element *is* (`:is(input, textarea)`) and what it *contains* (`:has(> input)` → horizontal row, `:has(> textarea)` → vertical column). No marker class on affixes, no `data-side`. Source order is render order.
 
-<Playground
-  provider={{ files: { "/main.tsx": { code: TEXT_INPUT, active: true } } }}
-  preview={{}}
-/>
+<StorybookEmbed story="ui-text-input--surface" />
 
 ## Install
 

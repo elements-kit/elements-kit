@@ -3,15 +3,11 @@ title: Toggle
 description: Headless toggle button — a <label> styled like a button, wrapping a native checkbox or radio. Binary on/off or exclusive single-select groups, all driven by :has(input:checked). No JavaScript.
 ---
 
-import Playground from "@/playground/Playground.astro";
-import TOGGLE from "@/playground/files/ui-toggle.tsx?raw";
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
 
 A `<label>` styled like a button, wrapping a native `<input type="checkbox">` (binary toggle) or `<input type="radio">` (exclusive group). The label paints the chrome; the input keeps form semantics + keyboard handling + native single-open via the `name` attribute. Pressed state is driven by `:has(input:checked)` — no JavaScript.
 
-<Playground
-  provider={{ files: { "/main.tsx": { code: TOGGLE, active: true } } }}
-  preview={{}}
-/>
+<StorybookEmbed story="ui-toggle--surface" />
 
 ## Install
 
