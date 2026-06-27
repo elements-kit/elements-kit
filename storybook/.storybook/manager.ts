@@ -15,6 +15,35 @@ addons.setConfig({
     brandUrl: "https://github.com/elements-kit/elements-kit",
     brandTarget: "_self",
   }),
+  sidebar: {
+    // Badge sidebar entries tagged `experimental` (e.g. overlay) so their
+    // not-production-ready status reads at a glance.
+    renderLabel: (item) =>
+      item.tags?.includes("experimental")
+        ? createElement(
+            "span",
+            { style: { display: "inline-flex", alignItems: "center", gap: 6 } },
+            item.name,
+            createElement(
+              "span",
+              {
+                style: {
+                  fontSize: 9,
+                  fontWeight: 700,
+                  lineHeight: "14px",
+                  padding: "0 5px",
+                  borderRadius: 4,
+                  background: "#f0b429",
+                  color: "#3b2a00",
+                  textTransform: "uppercase",
+                  letterSpacing: 0.3,
+                },
+              },
+              "Exp",
+            ),
+          )
+        : item.name,
+  },
 });
 
 // Add a "Figma ↗" link to the toolbar — Storybook has no sidebar-link config,

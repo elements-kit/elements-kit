@@ -1,4 +1,4 @@
-import type { Preview } from "@storybook/html-vite";
+import type { Decorator, Preview } from "@storybook/html-vite";
 import { withThemeByClassName } from "@storybook/addon-themes";
 
 // Same global style set the docs playground loads, imported from source so
@@ -36,8 +36,35 @@ import "../../src/ui/styles/neutral/mauve.css";
 import "./preview.css";
 import { themeArgs, themeArgTypes, withThemeArgs } from "./theme-args";
 
+// Prepend a warning banner to any story tagged `experimental` (e.g. overlay),
+// so its "not production ready" status is obvious in the canvas.
+const withExperimentalBanner: Decorator = (story, context) => {
+  const node = story();
+  if (!context.tags?.includes("experimental")) return node;
+
+  const wrapper = document.createElement("div");
+  const banner = document.createElement("div");
+  banner.textContent =
+    "⚠ Experimental — not production ready. API and behavior may change.";
+  banner.style.cssText =
+    "margin: 0 0 12px; padding: 8px 12px; border: 1px solid #f0b429;" +
+    "border-radius: 6px; background: #fff8e1; color: #7a4f01;" +
+    "font: 600 13px/1.4 system-ui, sans-serif;";
+  wrapper.appendChild(banner);
+
+  if (typeof node === "string") {
+    const host = document.createElement("div");
+    host.innerHTML = node;
+    wrapper.appendChild(host);
+  } else {
+    wrapper.appendChild(node as Node);
+  }
+  return wrapper;
+};
+
 const preview: Preview = {
   decorators: [
+    withExperimentalBanner,
     withThemeByClassName({
       themes: { light: "light", dark: "dark" },
       defaultTheme: "light",

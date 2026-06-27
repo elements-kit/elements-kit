@@ -48,7 +48,7 @@ const meta = {
             aria-disabled={args.disabled ? "true" : undefined}
           >
             <summary>{summary}</summary>
-            <p>{body}</p>
+            <p class:unset>{body}</p>
           </details>
         ))}
       </div>

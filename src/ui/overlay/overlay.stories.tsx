@@ -48,6 +48,9 @@ function channelStyle(args: Pick<Args, "x" | "y" | "w" | "h">): string {
 
 const meta = {
   title: "UI/Overlay",
+  // Not production ready — surfaces an "Experimental" sidebar badge + a canvas
+  // banner (see .storybook/manager.ts renderLabel and preview.ts decorator).
+  tags: ["experimental"],
   argTypes: {
     resize: {
       control: "select",
