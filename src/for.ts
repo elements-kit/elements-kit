@@ -91,11 +91,15 @@ export class For<T = unknown> {
   // class-shape resolution.
   constructor(_props?: ForProps<T>) {}
 
-  readonly #each = signal<T[]>([]);
+  readonly #each = signal<T[] | (() => T[])>([]);
   get each(): T[] {
-    return this.#each();
+    // Unwrap plain thunks here: the read happens inside the reconcile
+    // effect, so signals the thunk touches are tracked — `each={() => sig()}`
+    // stays live even though applyProps only unwraps branded reactives.
+    const v = this.#each();
+    return typeof v === "function" ? v() : v;
   }
-  set each(v: T[]) {
+  set each(v: T[] | (() => T[])) {
     if (v === untracked(this.#each)) {
       trigger(this.#each);
       return;
