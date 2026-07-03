@@ -21,16 +21,20 @@ export default function AstroList() {
   ]);
 
   return (
-    <div style="padding:0.75rem 1rem;border:1px solid var(--sl-color-gray-5);border-radius:0.5rem">
-      <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem">
+    <div class="x-card" style="padding:var(--space-3) var(--space-4)">
+      <div style="display:flex;gap:var(--space-2);margin-block-end:var(--space-3)">
         <button
-          style="cursor:pointer"
+          class="unset x-button"
+          data-variant="surface"
+          data-size="1"
           on:click={() => items([...items()].reverse())}
         >
           reverse
         </button>
         <button
-          style="cursor:pointer"
+          class="unset x-button"
+          data-variant="surface"
+          data-size="1"
           on:click={() =>
             items([...items(), { id: nextId, label: `item ${nextId++}` }])
           }
@@ -38,7 +42,9 @@ export default function AstroList() {
           add
         </button>
         <button
-          style="cursor:pointer"
+          class="unset x-button"
+          data-variant="surface"
+          data-size="1"
           on:click={() => items(items().slice(0, -1))}
         >
           remove

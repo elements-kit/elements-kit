@@ -20,7 +20,7 @@ const fetchedAt = async(
 export default function AstroAsync() {
   fetchedAt.run();
   return (
-    <p style="padding:0.75rem 1rem;border:1px solid var(--sl-color-gray-5);border-radius:0.5rem">
+    <p class="x-card" style="margin:0;padding:var(--space-3) var(--space-4)">
       Server value, no client refetch: <strong>{fetchedAt}</strong>
     </p>
   );

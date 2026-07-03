@@ -12,16 +12,24 @@ export default function AstroCard(props: {
 }) {
   const open = signal(true);
   const display = computed(() => (open() ? "block" : "none"));
+  const label = computed(() => (open() ? "collapse" : "expand"));
   return (
-    <section style="border:1px solid var(--sl-color-gray-5);border-radius:0.5rem;overflow:hidden">
-      <header style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 1rem;background:var(--sl-color-gray-6)">
+    <section class="x-card" style="padding:0;overflow:hidden">
+      <header style="display:flex;justify-content:space-between;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-4)">
         {props["slot:header"] as never}
-        <button style="cursor:pointer" on:click={() => open(!open())}>
-          {() => (open() ? "collapse" : "expand")}
+        <button
+          class="unset x-button"
+          data-variant="outline"
+          data-size="1"
+          on:click={() => open(!open())}
+        >
+          {label}
         </button>
       </header>
       <div style:display={display as never}>
-        <div style="padding:0.75rem 1rem">{props.children as never}</div>
+        <div style="padding:var(--space-3) var(--space-4)">
+          {props.children as never}
+        </div>
       </div>
     </section>
   );

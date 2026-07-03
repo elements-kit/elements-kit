@@ -9,6 +9,7 @@ import AstroAsync from "@/components/AstroAsync.tsx";
 import AstroList from "@/components/AstroList.tsx";
 import AstroLazy from "@/components/AstroLazy.tsx";
 import AstroCard from "@/components/AstroCard.tsx";
+import IslandDemo from "@/components/IslandDemo.astro";
 
 elements-kit ships a first-class Astro integration: write `.tsx` components with elements-kit JSX and use them as [Astro islands](https://docs.astro.build/en/concepts/islands/). The server renders them to HTML with `elements-kit/server`; the client adopts that DOM with `elements-kit/hydrate` — handlers attach to the existing nodes, nothing is rebuilt.
 
@@ -28,9 +29,11 @@ The integration registers the renderer pair and points Vite's JSX transform at `
 
 ## Islands
 
-This counter is a live island on this page — server-rendered by the elements-kit renderer, hydrated with `client:load` (this very docs site runs the integration):
+This counter is a live island on this page — server-rendered by the elements-kit renderer, hydrated with `client:load`, receiving `start={5}` through Astro's island props (this very docs site runs the integration):
 
-<AstroCounter client:load />
+<IslandDemo>
+  <AstroCounter start={5} client:load />
+</IslandDemo>
 
 ```tsx
 // src/components/Counter.tsx
@@ -76,13 +79,17 @@ All Astro client directives work (`client:load`, `client:idle`, `client:visible`
 
 `<For>` rows are adopted at hydration and reconciled in place afterwards — reordering moves the existing DOM nodes:
 
-<AstroList client:load />
+<IslandDemo>
+  <AstroList client:load />
+</IslandDemo>
 
 ## Async data — seeded, no refetch
 
 `async` + `.run()` values are fetched during the server render, serialized into the island's `ek-data`, and seeded on the client. The deferred `run()` is discarded — the fetcher never executes in the browser, which is why this timestamp is the **server's**:
 
-<AstroAsync client:load />
+<IslandDemo>
+  <AstroAsync client:load />
+</IslandDemo>
 
 ```tsx
 const fetchedAt = async(() => fetchSomething());
@@ -97,10 +104,12 @@ export default function Demo() {
 
 Islands accept Astro slot content — the integration delivers it as pre-rendered HTML mapped to `children` (default slot) and `slot:<name>` props:
 
-<AstroCard client:load>
-  <Fragment slot="header"><strong>Slotted header</strong></Fragment>
-  <p>This paragraph is Astro slot content living inside an interactive island — collapse it with the button.</p>
-</AstroCard>
+<IslandDemo>
+  <AstroCard client:load>
+    <Fragment slot="header"><strong>Slotted header</strong></Fragment>
+    <p>This paragraph is Astro slot content living inside an interactive island — collapse it with the button.</p>
+  </AstroCard>
+</IslandDemo>
 
 ```astro
 <AstroCard client:load>
@@ -139,7 +148,9 @@ Slots are also how [Astro Server Islands](https://docs.astro.build/en/guides/ser
 
 Code splitting is not a new primitive — it's `async` + a dynamic import. `<Await>` — elements-kit's Suspense equivalent — shows a fallback while the import is pending. On the server the stream awaits the import — the fallback never server-renders; on hydration the server content stays visible until the chunk lands (no fallback flash):
 
-<AstroLazy client:load />
+<IslandDemo>
+  <AstroLazy client:load />
+</IslandDemo>
 
 ```tsx
 import { async } from "elements-kit/utilities/async";

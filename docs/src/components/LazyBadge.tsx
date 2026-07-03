@@ -6,7 +6,9 @@ export default function LazyBadge() {
   const clicks = signal(0);
   return (
     <button
-      style="cursor:pointer;padding:0.25rem 0.75rem"
+      class="unset x-button"
+      data-variant="soft"
+      data-size="2"
       on:click={() => clicks(clicks() + 1)}
     >
       lazy-loaded &amp; interactive — clicked {() => clicks()} times

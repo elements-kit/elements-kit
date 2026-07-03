@@ -1,0 +1,14 @@
+---
+// Shared frame for the live Astro-island demos: pulls in the optional
+// elements-kit/ui styles layer once and spaces the preview off the prose.
+import "elements-kit/ui/styles/theme.css";
+import "elements-kit/ui/styles/scaling.css";
+import "elements-kit/ui/styles/radius.css";
+import "elements-kit/ui/styles/unset.css";
+import "elements-kit/ui/button/button.css";
+import "elements-kit/ui/card/card.css";
+---
+
+<div class="island-demo not-content" style="margin-block: 1.5rem">
+  <slot />
+</div>
