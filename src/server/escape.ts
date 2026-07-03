@@ -11,3 +11,8 @@ export function escapeAttr(value: string): string {
     c === "&" ? "&amp;" : c === '"' ? "&quot;" : "&lt;",
   );
 }
+
+/** Neutralize `</script>` sequences inside an inline JSON script payload. */
+export function escapeScriptJson(json: string): string {
+  return json.replace(/<\//g, "<\\/");
+}

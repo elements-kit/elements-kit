@@ -3,6 +3,8 @@ import { Fragment } from "../jsx-runtime/fragment";
 import { For } from "../for";
 import { isReactive, resolveProps, untracked } from "../signals";
 import { ChildProperties, Properties } from "../jsx-runtime/constants";
+import { ReactivePromise } from "../utilities/promise";
+import { Async } from "../utilities/async";
 import { escapeAttr, escapeHtml } from "./escape";
 
 /**
@@ -14,7 +16,41 @@ export class SNode {
   constructor(public chunks: Chunk[]) {}
 }
 
-export type Chunk = string | SNode;
+/** A pending async insertion point: the stream awaits it in order. */
+export class AsyncChunk {
+  constructor(
+    readonly id: number,
+    readonly instance: PromiseLike<unknown>,
+  ) {}
+}
+
+export type Chunk = string | SNode | AsyncChunk;
+
+export interface AsyncRecord {
+  id: number;
+  value: unknown;
+}
+
+/** Per-render registry of resolved async values (render-order ids). */
+export interface RenderContext {
+  records: AsyncRecord[];
+  counter: number;
+}
+
+let currentContext: RenderContext | null = null;
+
+export function setServerContext(
+  ctx: RenderContext | null,
+): RenderContext | null {
+  const prev = currentContext;
+  currentContext = ctx;
+  return prev;
+}
+
+/** Normalize an arbitrary resolved value into chunks (used by the stream). */
+export function resolveChildChunks(value: unknown): Chunk[] {
+  return child(value);
+}
 
 // Markers mirror the client runtime exactly: Slot's comment pair
 // (src/slot.ts) and For's range/entry comments (src/for.ts). The hydrate
@@ -208,6 +244,9 @@ function childList(raw: unknown): Chunk[] {
 function child(c: unknown): Chunk[] {
   if (c == null || typeof c === "boolean") return [];
   if (c instanceof SNode) return [c];
+  if (c instanceof ReactivePromise || c instanceof Async) {
+    return asyncChild(c as PromiseLike<unknown> & AsyncLike);
+  }
   if (typeof c === "function") {
     // Dynamic child (signal, computed or `() => T`): snapshot once, wrap in
     // Slot-compatible markers so the hydrate walker finds the live region.
@@ -218,6 +257,27 @@ function child(c: unknown): Chunk[] {
   if (typeof c === "number" || typeof c === "bigint") return [String(c)];
   if (Array.isArray(c)) return (c as unknown[]).flat(Infinity).flatMap(child);
   return [escapeHtml(String(c))];
+}
+
+interface AsyncLike {
+  state: "pending" | "fulfilled" | "rejected";
+  value: unknown;
+  reason: unknown;
+}
+
+function asyncChild(p: PromiseLike<unknown> & AsyncLike): Chunk[] {
+  const ctx = currentContext;
+  const id = ctx ? ctx.counter++ : 0;
+  const state = untracked(() => p.state);
+  if (state === "fulfilled") {
+    const value = untracked(() => p.value);
+    ctx?.records.push({ id, value });
+    return [SLOT_OPEN, ...child(value), SLOT_CLOSE];
+  }
+  if (state === "rejected") {
+    throw untracked(() => p.reason);
+  }
+  return [SLOT_OPEN, new AsyncChunk(id, p), SLOT_CLOSE];
 }
 
 // ─ For ────────────────────────────────────────────────────────────────────────
