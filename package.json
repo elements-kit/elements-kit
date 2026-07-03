@@ -69,6 +69,11 @@
       "import": "./dist/render.mjs",
       "types": "./dist/render.d.mts"
     },
+    "./server": {
+      "source": "./src/server/index.ts",
+      "import": "./dist/server/index.mjs",
+      "types": "./dist/server/index.d.mts"
+    },
     "./jsx-runtime": {
       "source": "./src/jsx-runtime/index.ts",
       "import": "./dist/jsx-runtime/index.mjs",
