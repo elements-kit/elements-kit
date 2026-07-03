@@ -8,7 +8,7 @@ interface AwaitableLike {
   state: "pending" | "fulfilled" | "rejected";
 }
 
-/** @internal Metadata stamped on a Suspense region getter (see claim walk). */
+/** @internal Metadata stamped on an Await region getter (see claim walk). */
 export interface AsyncRegionMeta {
   /** ek-data ids the server consumed for this region. */
   ids: number;
@@ -38,7 +38,7 @@ function toAwaitables(value: unknown): (AwaitableLike & PromiseLike<unknown>)[] 
 }
 
 /**
- * Loading boundary for async children.
+ * Loading boundary for async children — elements-kit's `Suspense` equivalent.
  *
  * Direct async children (`promise`/`async` values — including the
  * code-splitting pattern `async(() => import("./chart"))`) are detected
@@ -58,7 +58,7 @@ function toAwaitables(value: unknown): (AwaitableLike & PromiseLike<unknown>)[] 
  * function Panel() {
  *   chart.run(); // server: awaited · hydration: deferred · client: import
  *   return (
- *     <Suspense fallback={() => <em>loading…</em>}>{chart}</Suspense>
+ *     <Await fallback={() => <em>loading…</em>}>{chart}</Await>
  *   );
  * }
  * ```
@@ -68,12 +68,12 @@ function toAwaitables(value: unknown): (AwaitableLike & PromiseLike<unknown>)[] 
  * const chart = async(() => import("./chart").then((m) => m.default));
  * chart.run();
  *
- * <Suspense fallback={() => <em>loading…</em>}>
+ * <Await fallback={() => <em>loading…</em>}>
  *   {promise(chart.then((C) => () => <C data={data} />))}
- * </Suspense>
+ * </Await>
  * ```
  */
-export function Suspense(props: {
+export function Await(props: {
   fallback?: Child | (() => Child);
   when?: unknown;
   children?: Child;

@@ -1,7 +1,7 @@
 /** @jsxRuntime automatic */
 /** @jsxImportSource elements-kit */
 import { describe, it, expect, vi } from "vitest";
-import { Suspense } from "./suspense";
+import { Await } from "./await";
 import { renderToString } from "./server";
 import { hydrate } from "./hydrate";
 import { render } from "./render";
@@ -84,7 +84,7 @@ describe("code-splitting — async + dynamic import", () => {
   });
 });
 
-describe("Suspense", () => {
+describe("Await", () => {
   it("client: shows the fallback while the import is pending, then the content", async () => {
     const d = deferred<typeof Badge>();
     const op = async(() => d.p);
@@ -93,9 +93,9 @@ describe("Suspense", () => {
       op.run();
       return (
         <div>
-          <Suspense fallback={() => (<u>loading…</u>) as never}>
+          <Await fallback={() => (<u>loading…</u>) as never}>
             {op as never}
-          </Suspense>
+          </Await>
         </div>
       ) as Node;
     });
@@ -113,9 +113,9 @@ describe("Suspense", () => {
       op.run();
       return (
         <div>
-          <Suspense fallback={() => (<u>loading…</u>) as never}>
+          <Await fallback={() => (<u>loading…</u>) as never}>
             {op as never}
-          </Suspense>
+          </Await>
         </div>
       );
     });
@@ -130,9 +130,9 @@ describe("Suspense", () => {
       () =>
         (
           <div>
-            <Suspense fallback={() => (<u>l</u>) as never}>
+            <Await fallback={() => (<u>l</u>) as never}>
               <b>static</b>
-            </Suspense>
+            </Await>
           </div>
         ) as Node,
     );
@@ -150,9 +150,9 @@ describe("Suspense", () => {
       () =>
         (
           <div>
-            <Suspense when={gate as never} fallback={() => (<u>w</u>) as never}>
+            <Await when={gate as never} fallback={() => (<u>w</u>) as never}>
               <span>{() => s()}</span>
-            </Suspense>
+            </Await>
           </div>
         ) as Node,
     );
@@ -165,14 +165,14 @@ describe("Suspense", () => {
   });
 });
 
-describe("Suspense — hydration", () => {
+describe("Await — hydration", () => {
   const app = (op: unknown) => () => {
     (op as { run(): void }).run();
     return (
       <div>
-        <Suspense fallback={() => (<u>loading…</u>) as never}>
+        <Await fallback={() => (<u>loading…</u>) as never}>
           {op as never}
-        </Suspense>
+        </Await>
       </div>
     );
   };
@@ -203,7 +203,7 @@ describe("Suspense — hydration", () => {
       (op as { run(): void }).run();
       return (
         <div>
-          <Suspense fallback={null as never}>{op as never}</Suspense>
+          <Await fallback={null as never}>{op as never}</Await>
           <p>{later as never}</p>
         </div>
       );

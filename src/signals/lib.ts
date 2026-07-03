@@ -452,7 +452,7 @@ export const CLAIM: unique symbol = Symbol("elements-kit.claim");
 
 /**
  * @internal Brand stamped on dynamic-region getters that rendered as async
- * insertion points on the server (Suspense boundaries). The value carries
+ * insertion points on the server (Await boundaries). The value carries
  * the number of ek-data ids the server consumed for the region and a
  * pending-probe — the hydrate walk advances its counter and keeps the
  * server content while the region is pending instead of flashing the

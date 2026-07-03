@@ -121,9 +121,9 @@ The region lives between slot markers, so it server-renders, hydrates (server co
 
 **Sanitize untrusted input at the call site.** The string is emitted verbatim on the server and parsed as markup on the client; attribute-based XSS (`onerror=…`, `javascript:` URLs) is your responsibility to strip. Everywhere else strings remain text-only, and the `innerHTML` prop still throws.
 
-## Lazy loading & Suspense
+## Lazy loading & Await
 
-Code splitting composes from primitives you already have — `async(() => import("./chart"))` — and `<Suspense>` from `elements-kit/suspense` adds the loading boundary: the server stream awaits dynamic imports in order (the fallback never server-renders), the client shows the fallback until the chunk lands, and hydration keeps the server content visible. See the [Astro page](/integrations/astro#lazy-loading--suspense) for a live demo.
+Code splitting composes from primitives you already have — `async(() => import("./chart"))` — and `<Await>` from `elements-kit/await` (the Suspense equivalent) adds the loading boundary: the server stream awaits dynamic imports in order (the fallback never server-renders), the client shows the fallback until the chunk lands, and hydration keeps the server content visible. See the [Astro page](/integrations/astro#lazy-loading--await) for a live demo.
 
 ## Astro
 

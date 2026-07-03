@@ -74,8 +74,8 @@ export function renderToStream(app: () => unknown): ReadableStream<Uint8Array> {
             const id = ctx.counter++;
             const value = await node.instance;
             ctx.records.push({ id, value });
-            // Resolved values may be element factories (lazy/Suspense) whose
-            // jsx must dispatch to the server renderer.
+            // Resolved values may be element factories (Await boundaries,
+            // code splitting) whose jsx must dispatch to the server renderer.
             const prevInert = setInertEffects(true);
             setRenderer({
               jsx: serverJsx as (type: never, props: never) => unknown,
@@ -138,9 +138,10 @@ function evaluate(app: () => unknown): unknown {
 }
 
 function serializeRecords(records: AsyncRecord[]): string {
-  // Skip records that can't survive JSON — element factories from
-  // lazy/Suspense, cyclic data. Hydration then falls back to normal client
-  // behavior for those regions (for lazy that's the dynamic import anyway).
+  // Skip records that can't survive JSON — element factories from Await
+  // boundaries and code splitting, cyclic data. Hydration then falls back to normal
+  // client behavior for those regions (for code splitting that's the
+  // dynamic import anyway).
   const parts: string[] = [];
   for (const record of records) {
     if (typeof record.value === "function") continue;

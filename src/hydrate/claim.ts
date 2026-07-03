@@ -16,7 +16,7 @@ import {
   untracked,
 } from "../signals";
 import { ASYNC_REGION } from "../signals/lib";
-import type { AsyncRegionMeta } from "../suspense";
+import type { AsyncRegionMeta } from "../await";
 import { ReactivePromise } from "../utilities/promise";
 import { Async } from "../utilities/async";
 import { isRawHtml, type RawHtmlNode } from "../lib";
@@ -254,7 +254,7 @@ function splitProps(props: Record<string, unknown>): {
 // ─ Dynamic children (slot markers) ────────────────────────────────────────────
 
 function claimDynamic(cur: Cursor, getter: () => unknown, om?: OnMismatch): void {
-  // Suspense boundaries rendered as async insertion points on the server:
+  // Await boundaries rendered as async insertion points on the server:
   // mirror the ids the server consumed, and keep the server content for as
   // long as the region is pending — never flash the fallback over it (even
   // when deferred runs re-enter pending after the walk).

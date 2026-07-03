@@ -1,7 +1,7 @@
 /** @jsxImportSource elements-kit */
 import { signal } from "elements-kit/signals";
 
-/** The dynamically-imported half of the lazy/Suspense demo. */
+/** The dynamically-imported half of the code-splitting demo. */
 export default function LazyBadge() {
   const clicks = signal(0);
   return (

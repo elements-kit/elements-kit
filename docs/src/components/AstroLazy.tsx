@@ -1,6 +1,6 @@
 /** @jsxImportSource elements-kit */
 import { async } from "elements-kit/utilities/async";
-import { Suspense } from "elements-kit/suspense";
+import { Await } from "elements-kit/await";
 
 // Code splitting is the async primitive + a dynamic import — no dedicated
 // lazy() API. The artificial delay keeps the fallback visible on fast
@@ -12,14 +12,14 @@ const badge = async(() =>
     .then((m) => m.default),
 );
 
-/** async + import + Suspense island demo. */
+/** async + import + Await island demo. */
 export default function AstroLazy() {
   badge.run();
   return (
     <div style="padding:0.75rem 1rem;border:1px solid var(--sl-color-gray-5);border-radius:0.5rem">
-      <Suspense fallback={() => (<em>loading the chunk…</em>) as never}>
+      <Await fallback={() => (<em>loading the chunk…</em>) as never}>
         {badge as never}
-      </Suspense>
+      </Await>
     </div>
   );
 }
