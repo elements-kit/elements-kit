@@ -1,6 +1,7 @@
 import { createElement } from "@/jsx-runtime/element";
 import { hydrate } from "@/hydrate";
 import { render } from "@/render";
+import { withSlotProps } from "./astro-slots";
 
 /**
  * Astro client entrypoint: hydrate an elements-kit island.
@@ -15,11 +16,12 @@ export default (element: HTMLElement) =>
   async (
     Component: unknown,
     props: Record<string, unknown>,
-    _slots: Record<string, string>,
+    slots: Record<string, string>,
     { client }: { client: string },
   ): Promise<void> => {
     if (!element.hasAttribute("ssr")) return;
-    const app = () => createElement(Component as never, props as never);
+    const merged = withSlotProps(props, slots);
+    const app = () => createElement(Component as never, merged as never);
 
     const dispose =
       client === "only"

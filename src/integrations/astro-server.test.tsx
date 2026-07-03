@@ -39,10 +39,44 @@ describe("astro-server renderer", () => {
     expect(html).toBe("<p><!--{-->wael<!--}--></p>");
   });
 
-  it("throws a clear error when slots are passed", async () => {
-    const C = () => <p>x</p>;
-    await expect(
-      renderer.renderToStaticMarkup(C, {}, { default: "<b>hi</b>" }),
-    ).rejects.toThrow(/slots/i);
+  it("maps the default slot to children as a wrapped raw-HTML node", async () => {
+    const Card = (props: { children?: unknown }) => (
+      <section>{props.children as never}</section>
+    );
+    const { html } = await renderer.renderToStaticMarkup(
+      Card,
+      {},
+      { default: "<p>body</p>" },
+    );
+    expect(html).toBe(
+      "<section><!--{--><astro-slot><p>body</p></astro-slot><!--}--></section>",
+    );
+  });
+
+  it("maps named slots to slot:<name> props", async () => {
+    const Card = (props: { "slot:header"?: unknown }) => (
+      <header>{props["slot:header"] as never}</header>
+    );
+    const { html } = await renderer.renderToStaticMarkup(
+      Card,
+      {},
+      { header: "<h1>t</h1>" },
+    );
+    expect(html).toBe(
+      '<header><!--{--><astro-slot name="header"><h1>t</h1></astro-slot><!--}--></header>',
+    );
+  });
+
+  it("uses astro-static-slot wrappers for static-context renders", async () => {
+    const Card = (props: { children?: unknown }) => (
+      <section>{props.children as never}</section>
+    );
+    const { html } = await renderer.renderToStaticMarkup(
+      Card,
+      {},
+      { default: "<p>b</p>" },
+      { astroStaticSlot: true },
+    );
+    expect(html).toContain("<astro-static-slot><p>b</p></astro-static-slot>");
   });
 });

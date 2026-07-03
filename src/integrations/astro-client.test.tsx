@@ -69,6 +69,45 @@ describe("astro-client hydrator", () => {
     expect(el.querySelector("p")!.textContent).not.toBe("c");
   });
 
+  it("hydrates islands with slot content, adopting the wrappers", async () => {
+    const clicks = vi.fn();
+    const Card = (props: { children?: unknown }) => (
+      <section>
+        <button on:click={clicks}>go</button>
+        {props.children as never}
+      </section>
+    );
+    const el = document.createElement("astro-island");
+    el.setAttribute("ssr", "");
+    el.innerHTML =
+      "<section><button>go</button><!--{--><astro-slot><p>body</p></astro-slot><!--}--></section>";
+
+    await hydrator(el)(Card, {}, { default: "<p>body</p>" }, {
+      client: "load",
+    });
+
+    // Slot props flow through getter props → dynamic region: content is
+    // re-rendered (not adopted) on hydrate, so assert structure, not identity.
+    expect(el.querySelector("astro-slot p")!.textContent).toBe("body");
+    expect(el.textContent).not.toContain("[object");
+    el.querySelector("button")!.click();
+    expect(clicks).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders slot content fresh for client:only", async () => {
+    const Card = (props: { children?: unknown }) => (
+      <section>{props.children as never}</section>
+    );
+    const el = document.createElement("astro-island");
+    el.setAttribute("ssr", "");
+
+    await hydrator(el)(Card, {}, { default: "<p>solo</p>" }, {
+      client: "only",
+    });
+
+    expect(el.querySelector("astro-slot p")!.textContent).toBe("solo");
+  });
+
   it("is a no-op without the ssr attribute", async () => {
     const clicks = vi.fn();
     const App = () => <button on:click={clicks}>go</button>;

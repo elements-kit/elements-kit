@@ -4,6 +4,7 @@ import { setInertEffects } from "@/signals/lib";
 import { resolveProps } from "@/signals";
 import { renderToString } from "@/server";
 import { serverJsx, SNode } from "@/server/jsx";
+import { withSlotProps } from "./astro-slots";
 
 type RendererFn<T> = (
   Component: unknown,
@@ -54,14 +55,15 @@ const renderToStaticMarkup: RendererFn<{ html: string }> = async (
   Component,
   props,
   slots,
+  metadata,
 ) => {
-  if (slots && Object.keys(slots).length > 0) {
-    throw new Error(
-      "elements-kit Astro islands do not accept slots — the runtime has no raw-HTML sink. Place static content outside the island.",
-    );
-  }
+  const merged = withSlotProps(
+    props,
+    slots,
+    metadata?.astroStaticSlot === true,
+  );
   const html = await renderToString(() =>
-    createElement(Component as never, (props ?? {}) as never),
+    createElement(Component as never, merged as never),
   );
   return { html };
 };
