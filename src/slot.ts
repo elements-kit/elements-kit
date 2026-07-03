@@ -15,6 +15,18 @@ export class Slot {
   #pending: Node | undefined;
 
   /**
+   * Bind a slot to an existing marker pair (server-rendered comments) instead
+   * of creating new ones. Used by the hydrate claim pass: content between the
+   * markers is adopted as the slot's current content.
+   */
+  static claim(start: Comment, end: Comment): Slot {
+    const slot = new Slot();
+    slot.#start = start;
+    slot.#end = end;
+    return slot;
+  }
+
+  /**
    * Render the slot as a DocumentFragment.
    * If not yet mounted, inserts the comment markers and optional default content.
    * If already mounted, extracts and returns the current content WITHOUT disposing

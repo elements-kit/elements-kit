@@ -1,4 +1,4 @@
-import { batch, Computed, computed, signal } from "@/signals";
+import { batch, CLAIM, Computed, computed, SEED, signal, untracked } from "@/signals";
 
 /**
  * A `Promise` subclass that exposes its state as reactive signals.
@@ -80,6 +80,49 @@ export class ReactivePromise<T, E = unknown> extends Promise<T> {
       p.then(resolve).catch(reject);
     });
   }
+
+  /**
+   * @internal Hydration seeding: settle the reactive state from a serialized
+   * server snapshot. The underlying promise is untouched — when it actually
+   * resolves or rejects, its handlers overwrite the seeded state
+   * (stale-while-revalidate). `await` still waits for the real settlement.
+   */
+  [SEED](value: unknown): void {
+    batch(() => {
+      this.#state("fulfilled");
+      this.#value(value as T);
+    });
+  }
+
+  /**
+   * @internal Hydrate claim protocol: seed from the server record while the
+   * underlying promise is still pending. The promise fired at construction —
+   * there is no run to skip here (see `Async[CLAIM]` for that).
+   */
+  [CLAIM](record: { value: unknown } | undefined): void {
+    if (record && untracked(() => this.#state()) === "pending") {
+      this[SEED](record.value);
+    }
+  }
+}
+
+// Registry brand: instanceof fails across duplicate runtime copies, so
+// detection goes through this prototype-stamped symbol.
+const REACTIVE_PROMISE_BRAND = Symbol.for("elements-kit.reactive-promise");
+Object.defineProperty(ReactivePromise.prototype, REACTIVE_PROMISE_BRAND, {
+  value: true,
+});
+
+/** @internal Cross-instance-safe `ReactivePromise` detection. */
+export function isReactivePromiseLike(
+  value: unknown,
+): value is ReactivePromise<unknown, unknown> {
+  if (value instanceof ReactivePromise) return true;
+  return (
+    value != null &&
+    (typeof value === "object" || typeof value === "function") &&
+    (value as Record<symbol, unknown>)[REACTIVE_PROMISE_BRAND] === true
+  );
 }
 
 const PROMISE_KEYS = new Set<PropertyKey>([
@@ -90,6 +133,9 @@ const PROMISE_KEYS = new Set<PropertyKey>([
   "value",
   "reason",
   "result",
+  SEED,
+  CLAIM,
+  REACTIVE_PROMISE_BRAND,
 ]);
 
 /**

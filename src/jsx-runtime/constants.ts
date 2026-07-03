@@ -87,6 +87,61 @@ export const Properties: Set<string> = new Set([
   "defaultValue",
 ]);
 
+/**
+ * Content attributes with boolean semantics: presence means true. Emitters
+ * write them bare when the value is truthy and omit them entirely when falsy
+ * — never `disabled="0"`. Synced from `dom-expressions/src/constants.js`.
+ */
+export const BooleanAttributes: Set<string> = new Set([
+  "allowfullscreen",
+  "async",
+  "alpha",
+  "autofocus",
+  "autoplay",
+  "checked",
+  "controls",
+  "default",
+  "disabled",
+  "formnovalidate",
+  "hidden",
+  "indeterminate",
+  "inert",
+  "ismap",
+  "loop",
+  "multiple",
+  "muted",
+  "nomodule",
+  "novalidate",
+  "open",
+  "playsinline",
+  "readonly",
+  "required",
+  "reversed",
+  "seamless",
+  "selected",
+  "adauctionheaders",
+  "browsingtopics",
+  "credentialless",
+  "defaultchecked",
+  "defaultmuted",
+  "defaultselected",
+  "defer",
+  "disablepictureinpicture",
+  "disableremoteplayback",
+  "preservespitch",
+  "shadowrootclonable",
+  "shadowrootcustomelementregistry",
+  "shadowrootdelegatesfocus",
+  "shadowrootserializable",
+  "sharedstoragewritable",
+]);
+
+/** React-compat property→attribute aliases (dom-expressions `Aliases`). */
+export const AttrAliases: Record<string, string> = {
+  className: "class",
+  htmlFor: "for",
+};
+
 /** Properties whose assignment replaces the element's children. */
 export const ChildProperties: Set<string> = new Set([
   "innerHTML",

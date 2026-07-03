@@ -226,7 +226,7 @@ export function mountChild(el: Element | DocumentFragment, child: Child): void {
   if (dispose) onCleanup(dispose);
 }
 
-function resolveChild(value: Child): Node {
+export function resolveChild(value: Child): Node {
   // Hot order: Node → primitive → function → array. Most JSX expressions
   // resolve to a Node (already-rendered element) or a primitive (text from a
   // signal); reactive thunks and arrays trail.

@@ -67,7 +67,11 @@ Every feature is a separate subpath export — import only what you use.
 | `elements-kit/custom-elements` | `defineElement`, `CustomElementRegistry` |
 | `elements-kit/for` | `For` keyed-list component |
 | `elements-kit/jsx-runtime` | JSX factory + type helpers (`ElementProps`, `Props`, `ComponentProps`, `MaybeReactiveProps`, `ReactiveProps`, `Require`) — configure via `jsxImportSource` |
+| `elements-kit/server` | `renderToStream`, `renderToString` — streaming HTML rendering in any JS runtime (Node, edge/Workers), no DOM required *(experimental)* |
+| `elements-kit/hydrate` | `hydrate(container, () => <App/>)` — adopt server-rendered DOM and make it interactive *(experimental)* |
+| `elements-kit/await` | `Await` — loading boundary (Suspense equivalent); code splitting = `async` + dynamic import *(experimental)* |
 | `elements-kit/integrations/react` | `useSignal`, `useScope` React bridge hooks |
+| `elements-kit/integrations/astro` | `elementsKit()` Astro integration — elements-kit components as server-rendered, hydrated islands *(experimental)* |
 | `elements-kit/utilities/*` | Reactive browser-API utilities — see [src/utilities/README.md](src/utilities/README.md) |
 
 ## Signals
@@ -487,6 +491,16 @@ class XPicker extends HTMLElement {
 }
 // ElementProps<typeof XPicker> now includes `on:commit`
 ```
+
+## Roadmap
+
+Directions under consideration for the SSR/islands layer (nothing here is committed):
+
+- **Declarative Shadow DOM & custom-element SSR** — emit `<template shadowrootmode>` on the server and claim shadow roots at hydration, so elements-kit custom elements server-render inside *any* framework's HTML.
+- **`ErrorBoundary` + `Await` error fallback** — first-class rejection handling; today a rejected awaitable settles into its reason.
+- **Out-of-order streaming + richer `ek-data` serialization** — stream fallbacks immediately and swap content in when ready (today `Await` holds the stream); serialize Dates/Maps/cyclic values instead of JSON-only.
+- **Astro extras** — View Transitions survival, a custom `client:interaction` directive, a live `server:defer` demo.
+- **Hardening toward stable** — real-Astro end-to-end tests in CI (dev + build/preview), an Astro renderer-contract type-pin, SSR↔client parity and escaping property tests, seeding-alignment and stream-robustness suites. The `server` / `hydrate` / `await` / `integrations/astro` entries drop their *experimental* badges when this lands.
 
 ## Learn more
 

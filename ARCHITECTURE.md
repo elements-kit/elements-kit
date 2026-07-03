@@ -6,9 +6,9 @@ How **elements-kit** works. User-facing docs: [README.md](README.md). Contributo
 
 ## 1. Scope
 
-**Is**: framework-agnostic reactive primitives, a zero-overhead JSX-to-DOM runtime, and decorators that enhance native custom elements.
+**Is**: framework-agnostic reactive primitives, a zero-overhead JSX-to-DOM runtime, decorators that enhance native custom elements, and an experimental streaming server renderer + hydration pass (§11).
 
-**Is not**: component framework, VDOM renderer, SSR/hydration, styling solution, router.
+**Is not**: component framework, VDOM renderer, styling solution, router.
 
 ## 2. Public API surface
 
@@ -23,6 +23,10 @@ Each subpath is a stable import entry declared in [package.json](package.json) `
 | `elements-kit/slot` | `Slot` | stable |
 | `elements-kit/jsx-runtime` | `jsx`, `jsxs`, `jsxDEV`, `h`, `Fragment`; types `Child`, `Component`, `PropsTarget`, `ComponentFn`, `ComponentClass`, `ComponentInstance`; `JSX` namespace (`Element`, `ElementType`, `IntrinsicAttributes`, `IntrinsicElements`) | stable (JSX contract) |
 | `elements-kit/integrations/react` | `useSignal`, `useScope` | stable |
+| `elements-kit/server` | `renderToStream`, `renderToString` — streaming HTML rendering, no DOM required (§11) | experimental |
+| `elements-kit/hydrate` | `hydrate` — claim-mode adoption of server-rendered DOM (§11) | experimental |
+| `elements-kit/await` | `Await` — loading boundary (Suspense equivalent) over the §11 async machinery; code splitting = `async` + dynamic import | experimental |
+| `elements-kit/integrations/astro` | `elementsKit()` — Astro integration packaging the §11 renderer pair as an island framework (`astro-server` / `astro-client` entrypoints) | experimental |
 | `elements-kit/utilities/*` | one primary export per module — mix of `createX` factories, verb/imperative functions (`on`, `onClickOutside`, `retry`, `async`, `promise`, `navigate`, `patchHistory`), and pre-instantiated singletons (`online`, `windowFocused`, `activeElement`, `currentLocation`). Async primitives: `async` / `Async` ([src/utilities/async.ts](src/utilities/async.ts)) and `promise` / `ReactivePromise` / `ComputedPromise` ([src/utilities/promise.ts](src/utilities/promise.ts)) | stable per module |
 
 ## 3. Reactive model
@@ -78,7 +82,7 @@ Each subpath is a stable import entry declared in [package.json](package.json) `
 - **Falsy semantics** — `null` / `undefined` / `false` on a standard attribute calls `removeAttribute`; `true` sets an empty string. `class:name={falsy}` removes the class, truthy adds it. `style:prop={falsy}` removes the inline style property. Reactive bindings auto-update on transition.
 - **Event listeners** — attached via `addEventListener`; **not** removed on node removal; cleaned up when the enclosing `effectScope` disposes. Detached subtrees without a scope: call sites own cleanup.
 - **Fragment (`<>...</>`)** — a `DocumentFragment` whose children are appended into the parent on insertion. Accepts the same child shapes as any other JSX container; reactive children maintain live bindings against the parent post-move.
-- **Import safety (Node)** — every `elements-kit/utilities/*` module is import-safe in Node. Browser-API singletons (`windowSize`, `online`, `windowFocused`, `activeElement`, `orientation`, `currentLocation`) return neutral values outside a browser — zeros, empty strings, `null`, or sensible defaults (`online`/`windowFocused` assume `true`; `orientation.type` defaults to `"portrait-primary"`). JSX runtime and custom-element helpers touch the DOM only at call time. Shared `isBrowser` guard: [src/utilities/environment.ts](src/utilities/environment.ts). SSR/hydration not implemented — see §9.
+- **Import safety (Node)** — every `elements-kit/utilities/*` module is import-safe in Node. Browser-API singletons (`windowSize`, `online`, `windowFocused`, `activeElement`, `orientation`, `currentLocation`) return neutral values outside a browser — zeros, empty strings, `null`, or sensible defaults (`online`/`windowFocused` assume `true`; `orientation.type` defaults to `"portrait-primary"`). JSX runtime and custom-element helpers touch the DOM only at call time. Shared `isBrowser` guard: [src/utilities/environment.ts](src/utilities/environment.ts). Server rendering and hydration: §11.
 
 ## 5. Custom-element contract
 
@@ -157,13 +161,15 @@ Full dependency and returns matrix: [src/utilities/README.md](src/utilities/READ
 ## 8. Security
 
 - JSX prop namespaces (`prop:`, `style:`, attributes) write raw values directly. Sanitize untrusted input at the call site.
-- No `innerHTML` sink. Children append as DOM nodes or text — strings become text, never markup.
+- One deliberate raw-HTML sink: `<Fragment html>{MaybeReactive<string>}</Fragment>` — the Astro slot mapping composes it too. Parsing is script-inert — `<script>` never executes — but attribute-based XSS is the caller's to sanitize. Everywhere else strings become text, never markup, and the `innerHTML` prop throws in server rendering and hydration.
 - Handlers attached via `addEventListener`. No `javascript:` URL evaluation, no `eval`/`Function` in the runtime.
 - Signals and stores do not serialize. Consumers persisting state (e.g. `createLocalStorage`) own the serialization boundary.
 
 ## 9. Non-goals
 
-- SSR / hydration. Imports are Node-safe (see §4), but runtime is DOM-only.
+- Compiler-based resumability (Qwik-style closure serialization). Hydration re-executes component code (§11); zero-JS interactivity is out of scope.
+- Declarative Shadow DOM / custom-element server rendering (may follow as a later block on the §11 marker format).
+- Out-of-order (Suspense-style) streaming; §11 streams in document order.
 - Virtual-DOM diffing.
 - Styling primitives (CSS-in-JS, theme system).
 - Application routing — a `url-pattern` matcher exists; composition into a router is out of scope.
@@ -183,3 +189,24 @@ Canonical definitions in §3. Quick references:
 - **Slot** — comment-marker DOM region managed by the `Slot` class.
 - **Live binding** — text or attribute that tracks a signal/computed without re-rendering its surroundings.
 - **Brand symbol** — `Symbol()` stamped on a function so `isSignal` / `isComputed` / `isEffect` / `isEffectScope` narrow by identity, not shape.
+
+## 11. Server rendering & hydration (experimental)
+
+Two subpaths: `elements-kit/server` ([src/server/](src/server/)) and `elements-kit/hydrate` ([src/hydrate/](src/hydrate/)). No compiler — the same runtime JSX drives three renderers, dispatched through a single check in `createElement` ([src/jsx-runtime/renderer.ts](src/jsx-runtime/renderer.ts)): default DOM, server string emission, hydrate claim mode. Server code never reaches client bundles; each subpath tree-shakes independently.
+
+**Server render is a one-shot snapshot.** `renderToStream(() => <App/>)` / `renderToString(() => <App/>)` take a **thunk** (JSX evaluates eagerly — the renderer must install first). Signal/computed reads unwrap once via `untracked`; **effects do not run** (`effect()` is inert during server render); `on:` handlers and `ref` are skipped; `innerHTML` throws. Runs in any JS runtime — Node, edge/Workers — no DOM, no shims.
+
+**Streaming is in-order.** HTML preceding an async insertion point (`promise` / `async` reactive values as children) flushes immediately; the stream awaits the value, emits it, continues. Resolved values serialize into `<script type="application/json" id="ek-data">` (render-order ids) at stream end. Rejections abort the stream — no swallowing.
+
+**Marker contract.** The server emits the client runtime's own comment markers: dynamic children as `<!--{-->…<!--}-->` (Slot pairs, §5d) and lists as `<!--<For>-->` / `<!--[key]-->…<!--[/key]-->` / `<!--</For>-->` (§5c). These markers are how the claim pass locates live-binding boundaries.
+
+**Hydration re-executes, then claims.** `hydrate(container, () => <App/>)` runs the component tree in claim mode: jsx calls produce descriptors (JSX evaluates children-first, so DOM walking is deferred), then a top-down walk adopts existing nodes — static elements/text keep identity, `on:` handlers attach, reactive props re-apply through `applyProps`, dynamic children bind live Slots to the claimed markers, `For` adopts per-key entry ranges (`For.hydrateRange`). Closures are recreated by re-execution — nothing is deserialized. Returns `{ dispose }`; teardown follows §6.
+
+- **Mismatch**: the affected subtree renders fresh and replaces the server node; `options.onMismatch` reports it (no `console.*` in src/).
+- **Async children**: pending `promise`/`async` instances are **seeded** from ek-data (walk-order ids match the server's emit-order ids) — the serialized value shows immediately and the instance's own settlement overwrites it (stale-while-revalidate). Without ek-data, server content stays visible until the client value settles.
+- **Fetch skipping**: `Async.run()` calls during hydrate evaluation are deferred; the claim walk discards them for seeded instances — the fetcher never executes. Unseeded or unclaimed deferred runs execute after the walk. `promise(fetch(...))` cannot skip (the promise fires before the library sees it) and `Async.start()` always executes (reactive re-runs need dependency collection). On the server, `run()` executes directly despite inert effects so the stream can await it.
+- **Determinism constraint**: server and client must execute the same tree. Browser-only branches that change structure before hydration cause mismatches (safe fallback: fresh render of that subtree).
+- **v1 excludes**: custom-element/DSD rendering, class components other than `For`, out-of-order streaming, partial/island hydration.
+- **Astro**: `elements-kit/integrations/astro` packages the renderer pair as an Astro island framework — `astro-server` implements Astro's `check`/`renderToStaticMarkup` over `renderToString` (component-return `SNode` discrimination keeps it safe next to other renderers), `astro-client` maps client directives to `hydrate` (or `render` for `client:only`). Astro slots map to `children` / `slot:<name>` props as thunks composing `<astro-slot>` / `<astro-static-slot>` wrapper elements around `<Fragment html>` regions; Server Islands (`server:defer`) work through the same contract.
+- **Raw HTML regions**: `<Fragment html>{MaybeReactive<string>}</Fragment>` renders between Slot markers on all three renderers — server emits the string verbatim, hydration keeps the server content until the source changes, the client re-renders the region reactively. Script-inert parsing (§8).
+- **Await & code splitting** (`elements-kit/await`): code splitting is `async(() => import(…))` — the stream awaits the import in order, hydration defers `run()` and keeps server content until the chunk lands. `Await` shows its fallback only on the client while direct async children (or `when`) are pending; it stamps the region with ids + a pending-probe so the claim walk keeps server content (no fallback flash) and stays ek-data-aligned past the boundary. One async child per boundary is the supported SSR-hydration shape; props for code-split components use the element-factory recipe (`promise(op.then((C) => () => <C …/>))`).

@@ -69,6 +69,21 @@
       "import": "./dist/render.mjs",
       "types": "./dist/render.d.mts"
     },
+    "./await": {
+      "source": "./src/await.ts",
+      "import": "./dist/await.mjs",
+      "types": "./dist/await.d.mts"
+    },
+    "./server": {
+      "source": "./src/server/index.ts",
+      "import": "./dist/server/index.mjs",
+      "types": "./dist/server/index.d.mts"
+    },
+    "./hydrate": {
+      "source": "./src/hydrate/index.ts",
+      "import": "./dist/hydrate/index.mjs",
+      "types": "./dist/hydrate/index.d.mts"
+    },
     "./jsx-runtime": {
       "source": "./src/jsx-runtime/index.ts",
       "import": "./dist/jsx-runtime/index.mjs",

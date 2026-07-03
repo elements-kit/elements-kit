@@ -16,8 +16,12 @@ export default defineConfig([
       "src/render.ts",
       "src/slot.ts",
       "src/jsx-runtime/index.ts",
+      "src/server/index.ts",
+      "src/hydrate/index.ts",
+      "src/await.ts",
       "src/utilities/*.ts",
       "src/integrations/*.ts",
+      "!src/**/*.test.*",
       "src/ui/overlay/index.ts",
     ],
     deps: {

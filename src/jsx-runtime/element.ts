@@ -14,6 +14,7 @@ import {
   SvgElements,
 } from "./constants";
 import { effectScope, resolveProps, untracked } from "../signals";
+import { getRenderer } from "./renderer";
 import { attachDisposables } from "./dispose";
 import "../polyfill";
 
@@ -21,8 +22,12 @@ import "../polyfill";
 
 export function createElement(
   type: string | Component,
-  { ref, ...props }: JSX.IntrinsicAttributes & Record<string, unknown> = {},
+  allProps: JSX.IntrinsicAttributes & Record<string, unknown> = {},
 ): JSX.Element {
+  const renderer = getRenderer();
+  if (renderer) return renderer.jsx(type, allProps) as JSX.Element;
+
+  const { ref, ...props } = allProps;
   if (typeof type === "function" && !type.prototype?.render) {
     return createFunctionElement(
       type as (

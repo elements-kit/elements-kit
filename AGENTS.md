@@ -14,6 +14,8 @@
 | [src/jsx-runtime/](src/jsx-runtime/) | JSX factory, `createElement`, `For`, slots, fragments |
 | [src/attributes.ts](src/attributes.ts) | `@attributes` decorator |
 | [src/slot.ts](src/slot.ts) | `Slot` class |
+| [src/server/](src/server/) | `renderToStream`, `renderToString` — streaming HTML renderer (no DOM, edge-safe) |
+| [src/hydrate/](src/hydrate/) | `hydrate` — claim-mode adoption of server-rendered DOM |
 | [src/integrations/react.ts](src/integrations/react.ts) | `useSignal`, `useScope` |
 | [src/utilities/](src/utilities/) | Reactive browser-API helpers — [catalog](src/utilities/README.md) |
 | [src/utilities/environment.ts](src/utilities/environment.ts) | `isBrowser` guard |
@@ -42,7 +44,7 @@
 - No VDOM, no diffing.
 - No React wrappers in core — bridge hooks only in `integrations/react`.
 - No runtime deps beyond `dom-expressions`.
-- No SSR, no hydration.
+- SSR/hydration live only in `src/server/` + `src/hydrate/` — the client runtime's sole SSR touchpoint is the renderer-dispatch check in `createElement`. Server code must never land in client bundles.
 - No `console.*` under [src/](src/). Brand symbols (`SIGNAL` / `COMPUTED` / `EFFECT` / `EFFECT_SCOPE`) don't log. Playground, example, tests, JSDoc may log.
 - No `Symbol.dispose` on `Signal` / `Computed`.
 - No cycles in utilities graph.

@@ -4,6 +4,7 @@ import { describe, it, expect, vi } from "vitest";
 import { signal, effect } from "../signals";
 import { createElement, disposeElement } from "./element";
 import { For } from "@/for";
+import { Fragment } from "./fragment";
 
 // ---------------------------------------------------------------------------
 // Fragment — real JSX syntax
@@ -239,5 +240,90 @@ describe("Fragment (<>...</>) — JSX syntax", () => {
     disposeElement(parent);
     s(1);
     expect(spy).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Fragment html — raw HTML region
+// ---------------------------------------------------------------------------
+
+describe("Fragment html — raw HTML region", () => {
+  it("renders a static raw HTML string", () => {
+    const frag = (
+      <Fragment html>{"<b>bold</b> & <i>italic</i>"}</Fragment>
+    ) as unknown as DocumentFragment;
+    const host = document.createElement("div");
+    host.appendChild(frag);
+
+    expect(host.querySelector("b")!.textContent).toBe("bold");
+    expect(host.querySelector("i")!.textContent).toBe("italic");
+  });
+
+  it("wraps the region in slot markers for hydration claims", () => {
+    const frag = (
+      <Fragment html>{"<b>x</b>"}</Fragment>
+    ) as unknown as DocumentFragment;
+    const host = document.createElement("div");
+    host.appendChild(frag);
+
+    const comments = [...host.childNodes].filter(
+      (n) => n.nodeType === Node.COMMENT_NODE,
+    );
+    expect(comments.map((c) => (c as Comment).data)).toEqual(["{", "}"]);
+  });
+
+  it("updates the region when the source signal changes", () => {
+    const html = signal("<b>a</b>");
+    const frag = (
+      <Fragment html>{html}</Fragment>
+    ) as unknown as DocumentFragment;
+    const host = document.createElement("div");
+    host.appendChild(frag);
+    expect(host.querySelector("b")!.textContent).toBe("a");
+
+    html("<i>b</i>");
+    expect(host.querySelector("b")).toBeNull();
+    expect(host.querySelector("i")!.textContent).toBe("b");
+  });
+
+  it("does not execute script tags (script-inert parsing)", () => {
+    (globalThis as Record<string, unknown>).__ekRawProbe = vi.fn();
+    const frag = (
+      <Fragment html>{"<script>globalThis.__ekRawProbe()</script><p>ok</p>"}</Fragment>
+    ) as unknown as DocumentFragment;
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    host.appendChild(frag);
+
+    expect(host.querySelector("p")!.textContent).toBe("ok");
+    expect(
+      (globalThis as Record<string, unknown>).__ekRawProbe,
+    ).not.toHaveBeenCalled();
+    host.remove();
+  });
+
+  it("renders nothing for a null source", () => {
+    const frag = (
+      <Fragment html>{null as unknown as string}</Fragment>
+    ) as unknown as DocumentFragment;
+    const host = document.createElement("div");
+    host.appendChild(frag);
+    expect(host.textContent).toBe("");
+  });
+
+  it("stops updating after dispose", () => {
+    const html = signal("<b>a</b>");
+    const frag = (
+      <Fragment html>{html}</Fragment>
+    ) as unknown as DocumentFragment;
+    const host = document.createElement("div");
+    host.appendChild(frag);
+    const dispose = (frag as unknown as Record<symbol, () => void>)[
+      Symbol.dispose
+    ];
+    dispose();
+
+    html("<i>c</i>");
+    expect(host.querySelector("i")).toBeNull();
   });
 });
