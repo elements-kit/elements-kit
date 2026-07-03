@@ -187,9 +187,17 @@ export function resolve<T>(value: MaybeReactive<T>): T {
  * props.label();   // "n"
  * ```
  */
+const RESOLVED_PROPS = Symbol("elements-kit.resolved-props");
+
 export function resolveProps<P extends object>(raw: {
   [K in keyof P]: MaybeReactive<P[K]>;
 }): ReactiveProps<P> {
+  // Idempotent: forwarding components (e.g. lazy) pass their already-getter
+  // props to createElement again — re-wrapping would turn every read into a
+  // getter-returning-getter.
+  if ((raw as Record<PropertyKey, unknown>)[RESOLVED_PROPS]) {
+    return raw as unknown as ReactiveProps<P>;
+  }
   // Snapshot the key list once. Proxy traps (`ownKeys`,
   // `getOwnPropertyDescriptor`, `has`) reuse it instead of calling
   // `Reflect.ownKeys(raw)` per access.
@@ -208,7 +216,7 @@ export function resolveProps<P extends object>(raw: {
     return getter;
   };
   return new Proxy(raw, {
-    get: (_target, key) => get(key),
+    get: (_target, key) => (key === RESOLVED_PROPS ? true : get(key)),
     has: (_target, key) => ownKeySet.has(key),
     ownKeys: () => ownKeys,
     getOwnPropertyDescriptor: (_target, key) =>

@@ -69,6 +69,11 @@
       "import": "./dist/render.mjs",
       "types": "./dist/render.d.mts"
     },
+    "./suspense": {
+      "source": "./src/suspense.ts",
+      "import": "./dist/suspense.mjs",
+      "types": "./dist/suspense.d.mts"
+    },
     "./server": {
       "source": "./src/server/index.ts",
       "import": "./dist/server/index.mjs",

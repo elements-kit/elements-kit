@@ -18,6 +18,7 @@ export default defineConfig([
       "src/jsx-runtime/index.ts",
       "src/server/index.ts",
       "src/hydrate/index.ts",
+      "src/suspense.ts",
       "src/utilities/*.ts",
       "src/integrations/*.ts",
       "!src/**/*.test.*",

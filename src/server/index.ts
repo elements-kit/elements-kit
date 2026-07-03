@@ -74,7 +74,20 @@ export function renderToStream(app: () => unknown): ReadableStream<Uint8Array> {
             const id = ctx.counter++;
             const value = await node.instance;
             ctx.records.push({ id, value });
-            for (const chunk of resolveChildChunks(value)) await emit(chunk);
+            // Resolved values may be element factories (lazy/Suspense) whose
+            // jsx must dispatch to the server renderer.
+            const prevInert = setInertEffects(true);
+            setRenderer({
+              jsx: serverJsx as (type: never, props: never) => unknown,
+            });
+            let chunks;
+            try {
+              chunks = resolveChildChunks(value);
+            } finally {
+              setRenderer(null);
+              setInertEffects(prevInert);
+            }
+            for (const chunk of chunks) await emit(chunk);
             return;
           }
           buffer += String(node);
@@ -125,11 +138,23 @@ function evaluate(app: () => unknown): unknown {
 }
 
 function serializeRecords(records: AsyncRecord[]): string {
-  const data: Record<string, { value: unknown }> = {};
+  // Skip records that can't survive JSON — element factories from
+  // lazy/Suspense, cyclic data. Hydration then falls back to normal client
+  // behavior for those regions (for lazy that's the dynamic import anyway).
+  const parts: string[] = [];
   for (const record of records) {
-    data[String(record.id)] = { value: record.value };
+    if (typeof record.value === "function") continue;
+    let json: string | undefined;
+    try {
+      json = JSON.stringify({ value: record.value });
+    } catch {
+      continue;
+    }
+    if (json === undefined) continue;
+    parts.push(`"${record.id}":${json}`);
   }
+  if (parts.length === 0) return "";
   return `<script type="application/json" id="ek-data">${escapeScriptJson(
-    JSON.stringify(data),
+    `{${parts.join(",")}}`,
   )}</script>`;
 }

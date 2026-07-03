@@ -450,6 +450,15 @@ export const SEED: unique symbol = Symbol("elements-kit.seed");
  */
 export const CLAIM: unique symbol = Symbol("elements-kit.claim");
 
+/**
+ * @internal Brand stamped on dynamic-region getters that rendered as async
+ * insertion points on the server (Suspense boundaries). The value is the
+ * number of ek-data ids the server consumed for the region — the hydrate
+ * walk advances its counter by it and keeps the server content on the
+ * effect's first run instead of flashing the fallback.
+ */
+export const ASYNC_REGION: unique symbol = Symbol("elements-kit.async-region");
+
 let deferAsyncRuns = false;
 
 /**

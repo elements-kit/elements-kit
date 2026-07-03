@@ -15,6 +15,7 @@ import {
   resolveProps,
   untracked,
 } from "../signals";
+import { ASYNC_REGION } from "../signals/lib";
 import { ReactivePromise } from "../utilities/promise";
 import { Async } from "../utilities/async";
 import { isRawHtml, type RawHtmlNode } from "../lib";
@@ -252,8 +253,27 @@ function splitProps(props: Record<string, unknown>): {
 // ─ Dynamic children (slot markers) ────────────────────────────────────────────
 
 function claimDynamic(cur: Cursor, getter: () => unknown, om?: OnMismatch): void {
+  // Suspense boundaries rendered as async insertion points on the server:
+  // mirror the ids the server consumed and keep the server content on the
+  // tracking first run instead of flashing the fallback.
+  const regionIds = (getter as unknown as Record<symbol, number | undefined>)[
+    ASYNC_REGION
+  ];
+  const claimed =
+    cur.node?.nodeType === Node.COMMENT_NODE &&
+    (cur.node as Comment).data === "{";
+  if (regionIds && hydrationContext) hydrationContext.counter += regionIds;
+
   const slot = claimSlot(cur, om);
-  effect(() => slot.set(resolveChild(getter() as never)));
+  let skipFirst = Boolean(regionIds) && claimed;
+  effect(() => {
+    const value = getter();
+    if (skipFirst) {
+      skipFirst = false;
+      return;
+    }
+    slot.set(resolveChild(value as never));
+  });
   onCleanup(() => slot.clear());
 }
 
