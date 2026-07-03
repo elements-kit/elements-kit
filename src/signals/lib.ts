@@ -435,7 +435,24 @@ export function computed<T>(getter: (previousValue?: T) => T): () => T {
  * stop();            // final cleanup: abort the last fetch
  * ```
  */
+let inertEffects = false;
+
+/**
+ * Toggle inert-effect mode. While inert, `effect()` neither executes its body
+ * nor tracks dependencies — it returns a no-op stop function. Used by the
+ * server renderer: a server render is a one-shot snapshot, effects are
+ * client-only. Returns the previous flag so callers can restore it.
+ */
+export function setInertEffects(value: boolean): boolean {
+  const prev = inertEffects;
+  inertEffects = value;
+  return prev;
+}
+
+const inertStop = (): void => {};
+
 export function effect(fn: () => void): () => void {
+  if (inertEffects) return inertStop;
   const e: EffectNode = {
     fn,
     subs: undefined,
