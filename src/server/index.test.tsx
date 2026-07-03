@@ -17,14 +17,29 @@ describe("renderToString — elements and attributes", () => {
     expect(html).toBe('<div id="x" class="a">hi</div>');
   });
 
-  it("escapes text children", async () => {
+  it("escapes text children (minimal safe set: & and <)", async () => {
     const html = await renderToString(() => <span>{'<b>&"'}</span>);
-    expect(html).toBe('<span>&lt;b&gt;&amp;"</span>');
+    expect(html).toBe('<span>&lt;b>&amp;"</span>');
   });
 
-  it("escapes attribute values", async () => {
+  it("escapes attribute values (minimal safe set: & and \")", async () => {
     const html = await renderToString(() => <div title={'a"b<'} />);
-    expect(html).toBe('<div title="a&quot;b&lt;"></div>');
+    expect(html).toBe('<div title="a&quot;b<"></div>');
+  });
+
+  it("escape handles consecutive and boundary special characters", async () => {
+    expect(await renderToString(() => <span>{"&&<<"}</span>)).toBe(
+      "<span>&amp;&amp;&lt;&lt;</span>",
+    );
+    expect(await renderToString(() => <span>{"<start"}</span>)).toBe(
+      "<span>&lt;start</span>",
+    );
+    expect(await renderToString(() => <span>{"end&"}</span>)).toBe(
+      "<span>end&amp;</span>",
+    );
+    expect(await renderToString(() => <span>{"no specials"}</span>)).toBe(
+      "<span>no specials</span>",
+    );
   });
 
   it("renders void elements without a closing tag", async () => {
@@ -81,6 +96,33 @@ describe("renderToString — elements and attributes", () => {
     expect(await renderToString(() => <div style="color:red" />)).toBe(
       '<div style="color:red"></div>',
     );
+  });
+
+  it("skips null/false style-object entries", async () => {
+    const html = await renderToString(() => (
+      <div
+        style={
+          { color: null, "background-color": "red", opacity: false } as never
+        }
+      />
+    ));
+    expect(html).toBe('<div style="background-color:red"></div>');
+  });
+
+  it("treats truthy non-boolean values on boolean attributes as bare", async () => {
+    expect(await renderToString(() => <input checked={1 as never} />)).toBe(
+      "<input checked>",
+    );
+    expect(await renderToString(() => <input disabled={0 as never} />)).toBe(
+      "<input>",
+    );
+  });
+
+  it("maps React-compat aliases (htmlFor)", async () => {
+    const html = await renderToString(() => (
+      <label {...({ htmlFor: "x" } as object)}>a</label>
+    ));
+    expect(html).toBe('<label for="x">a</label>');
   });
 });
 

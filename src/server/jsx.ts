@@ -2,7 +2,12 @@ import type { Component, ComponentFn } from "../jsx-runtime/types";
 import { Fragment } from "../jsx-runtime/fragment";
 import { For } from "../for";
 import { isReactive, resolveProps, untracked } from "../signals";
-import { ChildProperties, Properties } from "../jsx-runtime/constants";
+import {
+  AttrAliases,
+  BooleanAttributes,
+  ChildProperties,
+  Properties,
+} from "../jsx-runtime/constants";
 import { ReactivePromise } from "../utilities/promise";
 import { Async } from "../utilities/async";
 import { escapeAttr, escapeHtml } from "./escape";
@@ -184,7 +189,7 @@ function element(tag: string, props: Record<string, unknown>): SNode {
       attrs += attr(alias ?? key.toLowerCase(), value);
       continue;
     }
-    attrs += attr(key, value);
+    attrs += attr(AttrAliases[key] ?? key, value);
   }
 
   const classes = [
@@ -211,6 +216,9 @@ function element(tag: string, props: Record<string, unknown>): SNode {
 }
 
 function attr(name: string, value: unknown): string {
+  // Boolean content attributes: presence = true. Truthy of any type emits
+  // bare; falsy omits — never `disabled="0"`.
+  if (BooleanAttributes.has(name)) return value ? ` ${name}` : "";
   if (value == null || value === false) return "";
   if (value === true || value === "") return ` ${name}`;
   return ` ${name}="${escapeAttr(String(value))}"`;
