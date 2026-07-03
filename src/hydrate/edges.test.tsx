@@ -160,6 +160,22 @@ describe("hydrate edges — For", () => {
   });
 });
 
+describe("hydrate edges — raw Node children", () => {
+  it("inserts a pre-built DOM node via fallback instead of stringifying it", async () => {
+    const onMismatch = vi.fn();
+    const container = document.createElement("div");
+    container.innerHTML = "<div><span>old</span></div>";
+    const fresh = document.createElement("span");
+    fresh.textContent = "new";
+
+    hydrate(container, () => <div>{fresh}</div>, { onMismatch });
+
+    const span = container.querySelector("span")!;
+    expect(span).toBe(fresh);
+    expect(container.textContent).not.toContain("[object");
+  });
+});
+
 describe("hydrate edges — isolation", () => {
   it("hydrates two containers independently", async () => {
     const s1 = signal("a");

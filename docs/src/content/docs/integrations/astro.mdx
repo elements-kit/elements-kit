@@ -1,9 +1,95 @@
 ---
 title: Astro
-description: Use elements-kit custom elements in Astro with typed DOM queries.
+description: Render elements-kit components as Astro islands — server-rendered, hydrated on the client — or use custom elements directly.
 ---
 
-A custom element built with elements-kit is just `class extends HTMLElement` registered via `customElements.define`. Astro renders HTML natively and custom elements work without any configuration — no `isCustomElement` option, no schema allowlist. The main integration point is registering your elements client-side and getting typed DOM references in TypeScript.
+import { Aside } from "@astrojs/starlight/components";
+import AstroCounter from "@/components/AstroCounter.tsx";
+
+elements-kit ships a first-class Astro integration: write `.tsx` components with elements-kit JSX and use them as [Astro islands](https://docs.astro.build/en/concepts/islands/). The server renders them to HTML with `elements-kit/server`; the client adopts that DOM with `elements-kit/hydrate` — handlers attach to the existing nodes, nothing is rebuilt.
+
+## Setup
+
+```js
+// astro.config.mjs
+import { defineConfig } from "astro/config";
+import elementsKit from "elements-kit/integrations/astro";
+
+export default defineConfig({
+  integrations: [elementsKit()],
+});
+```
+
+The integration registers the renderer pair and points Vite's JSX transform at `elements-kit`, so island components need no per-file pragma.
+
+## Islands
+
+This counter is a live island on this page — server-rendered by the elements-kit renderer, hydrated with `client:load` (this very docs site runs the integration):
+
+<AstroCounter client:load />
+
+```tsx
+// src/components/Counter.tsx
+import { computed, signal } from "elements-kit/signals";
+
+export default function Counter(props: { start?: () => number }) {
+  const count = signal(props.start?.() ?? 0);
+  const double = computed(() => count() * 2);
+
+  return (
+    <div>
+      <button on:click={() => count(count() + 1)}>
+        count is {() => count()}
+      </button>
+      <span>doubled: {double}</span>
+    </div>
+  );
+}
+```
+
+```astro
+---
+import Counter from "../components/Counter.tsx";
+---
+
+<Counter start={5} client:load />
+```
+
+All Astro client directives work (`client:load`, `client:idle`, `client:visible`, `client:media`). For client-rendered-only islands, name the renderer:
+
+```astro
+<Widget client:only="elements-kit" />
+```
+
+### How hydration behaves
+
+- The server render is a snapshot — signals read once, [effects don't run](/server-rendering#snapshot-semantics). Effects and `on:` handlers come alive at hydration.
+- Server-rendered DOM is **adopted, not rebuilt** — node identity is preserved, no flicker.
+- `async`/`promise` values render on the server, serialize, and [seed the client instance](/server-rendering#async-data) — with `async` + `.run()`, the client fetch is skipped entirely.
+- Props must serialize (Astro's island contract) and the component must render the same tree on server and client.
+
+<Aside type="caution" title="Slots are not supported">
+  elements-kit islands don't accept Astro slot content — the runtime has no
+  raw-HTML sink by design (`innerHTML` throws). Place static content outside
+  the island.
+</Aside>
+
+### Coexisting with other frameworks
+
+Multiple renderers can live in one project. Scope the other framework's JSX transform so it doesn't claim elements-kit files — e.g. with React:
+
+```js
+integrations: [
+  elementsKit(),
+  react({ include: ["**/src/react/**"] }),
+],
+```
+
+---
+
+## Custom elements without the integration
+
+A custom element built with elements-kit is just `class extends HTMLElement` registered via `customElements.define`. Astro renders HTML natively and custom elements work without any configuration — no integration required. The main integration point is registering your elements client-side and getting typed DOM references in TypeScript.
 
 ```ts
 // shared element — built once, used anywhere
@@ -17,7 +103,7 @@ export class XCounter extends HTMLElement {
 defineElement("x-counter", XCounter);
 ```
 
-## Register elements client-side
+### Register elements client-side
 
 Because elements-kit touches the DOM, the module that calls `defineElement` must run in the browser. Import it from a `<script>` tag or a `client:*` island — not from the Astro component frontmatter:
 
@@ -36,7 +122,7 @@ Because elements-kit touches the DOM, the module that calls `defineElement` must
 
 The [environment guard](/utilities/environment) (`isBrowser`) is only needed for module-level reads of `window` / `document` outside of event handlers or lifecycle callbacks.
 
-## Source the prop shape from the class
+### Source the prop shape from the class
 
 Two helpers exported from `elements-kit/jsx-runtime`:
 
@@ -45,7 +131,7 @@ Two helpers exported from `elements-kit/jsx-runtime`:
 | `InstanceProps<I>` | Public instance fields only (drops the `HTMLElement` surface) | Annotating setters, wrapper props, or helper functions |
 | `ElementProps<C>` | Full elements-kit JSX surface — attrs, fields, events from `static events`, slots from `[SLOTS]`, children | When you need the full declared surface |
 
-## Typed `document.querySelector` and `createElement`
+### Typed `document.querySelector` and `createElement`
 
 Add `HTMLElementTagNameMap` augmentations to `src/env.d.ts` (Astro's ambient type file) so `document.querySelector` is typed across the whole project:
 
@@ -68,7 +154,7 @@ Then anywhere in client-side scripts:
 const el = document.querySelector("x-counter"); // XCounter | null
 ```
 
-## Islands (React, Solid, Vue)
+### Islands (React, Solid, Vue)
 
 If you're using framework islands (`client:load`, `client:visible`, etc.) and want typed props when you render a custom element inside a React, Solid, or Vue component, add the JSX `IntrinsicElements` augmentation for that framework alongside the class definition and import it from the island component file:
 
@@ -80,6 +166,7 @@ If you're using framework islands (`client:load`, `client:visible`, etc.) and wa
 
 ## See also
 
+- [Server Rendering](/server-rendering)
 - [Custom Elements overview](/custom-elements)
 - [React integration](/integrations/react)
 - [Solid integration](/integrations/solid)

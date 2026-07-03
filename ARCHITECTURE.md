@@ -25,6 +25,7 @@ Each subpath is a stable import entry declared in [package.json](package.json) `
 | `elements-kit/integrations/react` | `useSignal`, `useScope` | stable |
 | `elements-kit/server` | `renderToStream`, `renderToString` — streaming HTML rendering, no DOM required (§11) | experimental |
 | `elements-kit/hydrate` | `hydrate` — claim-mode adoption of server-rendered DOM (§11) | experimental |
+| `elements-kit/integrations/astro` | `elementsKit()` — Astro integration packaging the §11 renderer pair as an island framework (`astro-server` / `astro-client` entrypoints) | experimental |
 | `elements-kit/utilities/*` | one primary export per module — mix of `createX` factories, verb/imperative functions (`on`, `onClickOutside`, `retry`, `async`, `promise`, `navigate`, `patchHistory`), and pre-instantiated singletons (`online`, `windowFocused`, `activeElement`, `currentLocation`). Async primitives: `async` / `Async` ([src/utilities/async.ts](src/utilities/async.ts)) and `promise` / `ReactivePromise` / `ComputedPromise` ([src/utilities/promise.ts](src/utilities/promise.ts)) | stable per module |
 
 ## 3. Reactive model
@@ -205,3 +206,4 @@ Two subpaths: `elements-kit/server` ([src/server/](src/server/)) and `elements-k
 - **Fetch skipping**: `Async.run()` calls during hydrate evaluation are deferred; the claim walk discards them for seeded instances — the fetcher never executes. Unseeded or unclaimed deferred runs execute after the walk. `promise(fetch(...))` cannot skip (the promise fires before the library sees it) and `Async.start()` always executes (reactive re-runs need dependency collection). On the server, `run()` executes directly despite inert effects so the stream can await it.
 - **Determinism constraint**: server and client must execute the same tree. Browser-only branches that change structure before hydration cause mismatches (safe fallback: fresh render of that subtree).
 - **v1 excludes**: custom-element/DSD rendering, class components other than `For`, out-of-order streaming, partial/island hydration.
+- **Astro**: `elements-kit/integrations/astro` packages the renderer pair as an Astro island framework — `astro-server` implements Astro's `check`/`renderToStaticMarkup` over `renderToString` (component-return `SNode` discrimination keeps it safe next to other renderers), `astro-client` maps client directives to `hydrate` (or `render` for `client:only`). Astro slots are rejected — no raw-HTML sink.

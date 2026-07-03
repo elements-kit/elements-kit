@@ -3,6 +3,7 @@ import starlight from "@astrojs/starlight";
 import cloudflare from "@astrojs/cloudflare";
 import react from "@astrojs/react";
 import sitemap from "@astrojs/sitemap";
+import elementsKit from "elements-kit/integrations/astro";
 import starlightLlmsTxt from "starlight-llms-txt";
 import {
   pluginMagicMove,
@@ -43,12 +44,19 @@ export default defineConfig({
   },
   integrations: [
     magicMoveIntegration(),
-    react(),
+    elementsKit(),
+    // Scope the React babel transform to the playground (its only consumer)
+    // so every other .tsx falls through to esbuild with the elements-kit
+    // jsx import source set by elementsKit().
+    react({ include: ["**/src/playground/**"] }),
     sitemap(),
     starlight({
       title: "ElementsKit",
       description: siteDescription,
-      plugins: [starlightLlmsTxt()],
+      // rawContent: the llms-txt container has no framework renderers, so
+      // rendering MDX that embeds islands (e.g. the Astro-integration demo)
+      // fails — raw Markdown is emitted instead.
+      plugins: [starlightLlmsTxt({ rawContent: true })],
       favicon: "/favicon.svg",
       components: {
         SiteTitle: "./src/components/SiteTitle.astro",

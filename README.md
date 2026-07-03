@@ -70,6 +70,7 @@ Every feature is a separate subpath export — import only what you use.
 | `elements-kit/server` | `renderToStream`, `renderToString` — streaming HTML rendering in any JS runtime (Node, edge/Workers), no DOM required *(experimental)* |
 | `elements-kit/hydrate` | `hydrate(container, () => <App/>)` — adopt server-rendered DOM and make it interactive *(experimental)* |
 | `elements-kit/integrations/react` | `useSignal`, `useScope` React bridge hooks |
+| `elements-kit/integrations/astro` | `elementsKit()` Astro integration — elements-kit components as server-rendered, hydrated islands *(experimental)* |
 | `elements-kit/utilities/*` | Reactive browser-API utilities — see [src/utilities/README.md](src/utilities/README.md) |
 
 ## Signals

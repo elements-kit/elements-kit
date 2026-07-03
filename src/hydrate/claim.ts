@@ -149,6 +149,11 @@ function walkChild(cur: Cursor, c: unknown, om?: OnMismatch): void {
   if (typeof c === "function") {
     return claimDynamic(cur, c as () => unknown, om);
   }
+  if (c instanceof Node) {
+    // A pre-built DOM node can't be matched against server HTML — treat it
+    // as a mismatch and splice the node itself in.
+    return fallback(cur, om, c.nodeName, () => c);
+  }
   claimText(cur, String(c), om);
 }
 

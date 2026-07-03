@@ -61,7 +61,12 @@ export default function elementsKit(): ElementsKitAstroIntegration {
         updateConfig({
           vite: {
             esbuild: { jsx: "automatic", jsxImportSource: "elements-kit" },
-            optimizeDeps: { include: ["elements-kit/jsx-runtime"] },
+            // Pre-bundling would give the client entrypoint its own copy of
+            // the runtime — the claim renderer flips in one copy while
+            // components read the other, breaking hydration. Serve all
+            // elements-kit subpaths unbundled so every import shares one
+            // module instance.
+            optimizeDeps: { exclude: ["elements-kit"] },
             resolve: { dedupe: ["elements-kit"] },
           },
         });
