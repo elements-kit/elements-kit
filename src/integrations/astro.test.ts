@@ -29,14 +29,22 @@ describe("elementsKit() Astro integration factory", () => {
     const config = updateConfig.mock.calls[0]![0] as {
       vite: {
         esbuild: { jsx: string; jsxImportSource: string };
-        optimizeDeps: { exclude: string[] };
+        optimizeDeps: { include: string[] };
         resolve: { dedupe: string[] };
       };
     };
     expect(config.vite.esbuild.jsx).toBe("automatic");
     expect(config.vite.esbuild.jsxImportSource).toBe("elements-kit");
-    // One runtime instance in dev: pre-bundling must not fork elements-kit.
-    expect(config.vite.optimizeDeps.exclude).toContain("elements-kit");
+    // One runtime instance in dev: every subpath (including deep utility
+    // imports via the glob) joins the same optimizer graph as the
+    // force-prebundled client entrypoint.
+    expect(config.vite.optimizeDeps.include).toContain("elements-kit/signals");
+    expect(config.vite.optimizeDeps.include).toContain(
+      "elements-kit/integrations/astro-client",
+    );
+    expect(config.vite.optimizeDeps.include).toContain(
+      "elements-kit/utilities/*",
+    );
     expect(config.vite.resolve.dedupe).toContain("elements-kit");
   });
 });

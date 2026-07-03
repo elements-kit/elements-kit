@@ -61,12 +61,32 @@ export default function elementsKit(): ElementsKitAstroIntegration {
         updateConfig({
           vite: {
             esbuild: { jsx: "automatic", jsxImportSource: "elements-kit" },
-            // Pre-bundling would give the client entrypoint its own copy of
-            // the runtime — the claim renderer flips in one copy while
-            // components read the other, breaking hydration. Serve all
-            // elements-kit subpaths unbundled so every import shares one
-            // module instance.
-            optimizeDeps: { exclude: ["elements-kit"] },
+            // One runtime instance is non-negotiable: the reactive graph
+            // cannot link across duplicate module copies (dead bindings).
+            // Astro force-includes the renderer client entrypoint in
+            // optimizeDeps (its include wins over exclude), so the only
+            // single-graph strategy is to include every subpath too — the
+            // optimizer then splits the runtime into chunks shared by the
+            // entrypoint and all component imports. The glob covers deep
+            // utility imports, which the scanner never auto-optimizes for
+            // linked (workspace) packages.
+            optimizeDeps: {
+              include: [
+                "elements-kit",
+                "elements-kit/jsx-runtime",
+                "elements-kit/jsx-dev-runtime",
+                "elements-kit/signals",
+                "elements-kit/for",
+                "elements-kit/slot",
+                "elements-kit/render",
+                "elements-kit/hydrate",
+                "elements-kit/await",
+                "elements-kit/custom-elements",
+                "elements-kit/attributes",
+                "elements-kit/integrations/astro-client",
+                "elements-kit/utilities/*",
+              ],
+            },
             resolve: { dedupe: ["elements-kit"] },
           },
         });
