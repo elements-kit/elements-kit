@@ -5,6 +5,8 @@
 import { describe, it, expect } from "vitest";
 import { renderToString } from "./index";
 import { signal } from "../signals";
+import { Fragment } from "../jsx-runtime/fragment";
+import { rawHtml } from "../lib";
 
 describe("SSR conformance — attributes", () => {
   it("skips undefined and null attributes entirely", async () => {
@@ -121,5 +123,38 @@ describe("SSR conformance — children", () => {
     ).toBe("<span><!--{--><!--{-->4<!--}--><!--}--></span>");
     // A getter returning a getter nests slot markers — each level is a
     // live-binding boundary for the claim pass.
+  });
+});
+
+describe("SSR conformance — raw HTML", () => {
+  it("emits Fragment html unescaped inside slot markers", async () => {
+    const html = await renderToString(() => (
+      <div>
+        <Fragment html>{"<b>bold</b> & more"}</Fragment>
+      </div>
+    ));
+    expect(html).toBe("<div><!--{--><b>bold</b> & more<!--}--></div>");
+  });
+
+  it("unwraps a reactive Fragment html source once", async () => {
+    const src = signal("<i>x</i>");
+    const html = await renderToString(() => (
+      <div>
+        <Fragment html>{src}</Fragment>
+      </div>
+    ));
+    expect(html).toBe("<div><!--{--><i>x</i><!--}--></div>");
+  });
+
+  it("splices rawHtml children, with and without wrapper tags", async () => {
+    const html = await renderToString(() => (
+      <div>
+        {rawHtml("<b>a</b>") as never}
+        {rawHtml("<i>b</i>", "astro-slot", "header") as never}
+      </div>
+    ));
+    expect(html).toBe(
+      '<div><b>a</b><astro-slot name="header"><i>b</i></astro-slot></div>',
+    );
   });
 });

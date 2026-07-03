@@ -1,8 +1,19 @@
-import { MaybeReactive, resolve } from "@/signals";
+import { effect, MaybeReactive, onCleanup } from "@/signals";
 import { mountChild } from "./children";
 import type { Child } from "./types";
-import { Props } from ".";
+import type { Props } from ".";
 import { Slot } from "@/slot";
+
+/**
+ * Parse an HTML string script-inertly: markup renders, `<script>` tags are
+ * created but never execute (template parsing sets the "already started"
+ * flag). Sanitizing the input is the caller's responsibility.
+ */
+export function parseHtml(html: string): DocumentFragment {
+  const template = document.createElement("template");
+  template.innerHTML = html;
+  return template.content;
+}
 
 /**
  * Used by the JSX transform for `<>...</>` fragments.
@@ -12,31 +23,41 @@ import { Slot } from "@/slot";
  * JSX container. `mountChild` also wires each child's cleanup via its own
  * `effectScope`, which links to the enclosing `effectScope` created by
  * `createElement(Fragment, ...)` for disposal propagation.
+ *
+ * **Raw HTML mode** — `<Fragment html>{markup}</Fragment>`: the child is a
+ * `MaybeReactive<string>` rendered as markup inside a Slot region (comment
+ * markers), so the server renderer and the hydration claim pass share the
+ * region boundary. Reactive sources re-render the region on change. This is
+ * the library's only raw-HTML sink: the string is NOT escaped — sanitize
+ * untrusted input at the call site. `<script>` tags never execute.
  */
 export function Fragment(
   props:
-    | Props<{
-        children: Child;
-      }>
-    | {
-        html: true;
-        children: MaybeReactive<string>;
-      },
+    | Props<{ children: Child }>
+    | { html: true; children: MaybeReactive<string> },
 ): DocumentFragment {
   const fragment = document.createDocumentFragment();
-  const slot = new Slot();
-  fragment.append(slot.render());
 
-  if ("html" in props) {
-    const raw = resolve(props.children);
-    if (raw != null)
-      fragment.appendChild(
-        document.createRange().createContextualFragment(raw),
-      );
+  if ("html" in props && props.html) {
+    const slot = new Slot();
+    fragment.appendChild(slot.render());
+    const source = props.children as unknown;
+    if (typeof source === "function") {
+      // Signal, computed, or resolveProps getter — a live region either way;
+      // a static thunk simply tracks nothing and runs once.
+      effect(() => {
+        const value = (source as () => unknown)();
+        slot.set(parseHtml(value == null ? "" : String(value)));
+      });
+      onCleanup(() => slot.clear());
+    } else if (source != null) {
+      slot.set(parseHtml(String(source)));
+    }
     return fragment;
   }
 
-  const raw = resolve(props.children);
+  const children = (props as { children?: unknown }).children;
+  const raw = typeof children === "function" ? (children as () => Child)() : children;
   if (raw == null) return fragment;
 
   const nodes = Array.isArray(raw) ? (raw as unknown[]).flat(Infinity) : [raw];

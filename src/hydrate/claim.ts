@@ -17,6 +17,8 @@ import {
 } from "../signals";
 import { ReactivePromise } from "../utilities/promise";
 import { Async } from "../utilities/async";
+import { isRawHtml, type RawHtmlNode } from "../lib";
+import { parseHtml } from "../jsx-runtime/fragment";
 
 export interface MismatchInfo {
   expected: string;
@@ -60,6 +62,7 @@ interface FragVNode {
   [VNODE]: true;
   kind: "frag";
   children: unknown;
+  html?: boolean;
 }
 interface ForVNode {
   [VNODE]: true;
@@ -78,7 +81,12 @@ export const claimRenderer: Renderer = {
       return { [VNODE]: true, kind: "el", tag: type, props } as ElVNode;
     }
     if (type === (Fragment as unknown)) {
-      return { [VNODE]: true, kind: "frag", children: props.children } as FragVNode;
+      return {
+        [VNODE]: true,
+        kind: "frag",
+        children: props.children,
+        html: (props as { html?: boolean }).html === true,
+      } as FragVNode;
     }
     if (type === (For as unknown)) {
       return { [VNODE]: true, kind: "for", props } as ForVNode;
@@ -139,10 +147,14 @@ function walkList(cur: Cursor, raw: unknown, om?: OnMismatch): void {
 function walkChild(cur: Cursor, c: unknown, om?: OnMismatch): void {
   if (c == null || typeof c === "boolean") return;
   if (isVNode(c)) {
-    if (c.kind === "frag") return walkList(cur, c.children, om);
+    if (c.kind === "frag") {
+      if (c.html) return claimRawRegion(cur, c.children, om);
+      return walkList(cur, c.children, om);
+    }
     if (c.kind === "for") return claimFor(cur, c, om);
     return claimElement(cur, c, om);
   }
+  if (isRawHtml(c)) return claimRawNode(cur, c, om);
   if (c instanceof ReactivePromise || c instanceof Async) {
     return claimAsync(cur, c as AsyncLike, om);
   }
@@ -312,6 +324,55 @@ function claimMarkerRange(
     node = node.nextSibling;
   }
   return null;
+}
+
+// ─ Raw HTML ───────────────────────────────────────────────────────────────────
+
+/** `<Fragment html>` region: adopt the server markup between the markers. */
+function claimRawRegion(cur: Cursor, source: unknown, om?: OnMismatch): void {
+  const claimed =
+    cur.node?.nodeType === Node.COMMENT_NODE &&
+    (cur.node as Comment).data === "{";
+  const slot = claimSlot(cur, om);
+  if (typeof source !== "function") {
+    // Claimed static region: server content is already correct. Fresh-built
+    // (mismatch) region: fill it.
+    if (!claimed && source != null) slot.set(parseHtml(String(source)));
+    return;
+  }
+  // Reactive: keep the server content on the tracking first run, re-render
+  // the region on subsequent changes. A fresh-built region has no server
+  // content to keep, so it renders immediately.
+  let first = claimed;
+  effect(() => {
+    const value = (source as () => unknown)();
+    if (first) {
+      first = false;
+      return;
+    }
+    slot.set(parseHtml(value == null ? "" : String(value)));
+  });
+  onCleanup(() => slot.clear());
+}
+
+/** Bare `rawHtml()` child: adopt the wrapper element (tag/name) if present. */
+function claimRawNode(cur: Cursor, c: RawHtmlNode, om?: OnMismatch): void {
+  if (c.tag) {
+    const node = cur.node;
+    const matches =
+      node !== null &&
+      node.nodeType === Node.ELEMENT_NODE &&
+      (node as Element).localName.toLowerCase() === c.tag.toLowerCase() &&
+      (!c.name || (node as Element).getAttribute("name") === c.name);
+    if (matches) {
+      // Foreign pre-rendered content — adopt the wrapper, skip inside.
+      cur.node = node.nextSibling;
+      return;
+    }
+  }
+  fallback(cur, om, c.tag ? `<${c.tag}>` : "raw-html", () =>
+    resolveChild(c as never),
+  );
 }
 
 // ─ For ────────────────────────────────────────────────────────────────────────

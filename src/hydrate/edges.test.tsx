@@ -6,6 +6,8 @@ import { renderToString } from "../server";
 import { hydrate } from "./index";
 import { signal } from "../signals";
 import { For } from "../for";
+import { Fragment } from "../jsx-runtime/fragment";
+import { rawHtml } from "../lib";
 
 async function serve(app: () => unknown): Promise<HTMLElement> {
   const container = document.createElement("div");
@@ -198,5 +200,71 @@ describe("hydrate edges — isolation", () => {
     s2("z");
     expect(c1.textContent).toBe("c");
     expect(c2.textContent).toBe("");
+  });
+});
+
+describe("hydrate edges — raw HTML regions", () => {
+  it("keeps server content for a static Fragment html", async () => {
+    const app = () => (
+      <div>
+        <Fragment html>{"<b>bold</b>"}</Fragment>
+      </div>
+    );
+    const container = await serve(app);
+    const before = container.querySelector("b");
+
+    const onMismatch = vi.fn();
+    hydrate(container, app, { onMismatch });
+
+    expect(onMismatch).not.toHaveBeenCalled();
+    expect(container.querySelector("b")).toBe(before);
+  });
+
+  it("keeps server content on first run, re-renders on change (reactive html)", async () => {
+    const src = signal("<b>bold</b>");
+    const app = () => (
+      <div>
+        <Fragment html>{src}</Fragment>
+      </div>
+    );
+    const container = await serve(app);
+    const before = container.querySelector("b");
+
+    hydrate(container, app);
+    expect(container.querySelector("b")).toBe(before); // first run: adopted
+
+    src("<i>italic</i>");
+    expect(container.querySelector("b")).toBeNull();
+    expect(container.querySelector("i")!.textContent).toBe("italic");
+  });
+
+  it("adopts rawHtml wrapper elements by tag and name", async () => {
+    const app = () => (
+      <div>{rawHtml("<b>slotted</b>", "astro-slot", "header") as never}</div>
+    );
+    const container = await serve(app);
+    const before = container.querySelector("astro-slot");
+
+    const onMismatch = vi.fn();
+    hydrate(container, app, { onMismatch });
+
+    expect(onMismatch).not.toHaveBeenCalled();
+    expect(container.querySelector("astro-slot")).toBe(before);
+    expect(container.querySelector("b")!.textContent).toBe("slotted");
+  });
+
+  it("falls back to a fresh build when the wrapper is missing", async () => {
+    const container = document.createElement("div");
+    container.innerHTML = "<div></div>";
+
+    const onMismatch = vi.fn();
+    hydrate(
+      container,
+      () => <div>{rawHtml("<b>x</b>", "astro-slot") as never}</div>,
+      { onMismatch },
+    );
+
+    expect(onMismatch).toHaveBeenCalled();
+    expect(container.querySelector("astro-slot b")!.textContent).toBe("x");
   });
 });

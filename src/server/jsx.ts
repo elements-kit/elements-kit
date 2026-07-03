@@ -8,6 +8,7 @@ import {
   ChildProperties,
   Properties,
 } from "../jsx-runtime/constants";
+import { isRawHtml, RAW_HTML } from "../lib";
 import { ReactivePromise } from "../utilities/promise";
 import { Async } from "../utilities/async";
 import { escapeAttr, escapeHtml } from "./escape";
@@ -80,6 +81,20 @@ export function serverJsx(
 ): SNode {
   if (typeof type === "string") return element(type, props);
   if (type === (Fragment as unknown)) {
+    if ((props as { html?: boolean }).html) {
+      // Raw-HTML region: emitted unescaped between Slot markers (the claim
+      // walk adopts the region). Sanitization is the caller's duty.
+      const source = props.children as unknown;
+      const value =
+        typeof source === "function"
+          ? untracked(source as () => unknown)
+          : source;
+      return new SNode([
+        SLOT_OPEN,
+        value == null ? "" : String(value),
+        SLOT_CLOSE,
+      ]);
+    }
     return new SNode(childList(props.children));
   }
   if (type === (For as unknown)) return forElement(props);
@@ -233,6 +248,12 @@ function childList(raw: unknown): Chunk[] {
 function child(c: unknown): Chunk[] {
   if (c == null || typeof c === "boolean") return [];
   if (c instanceof SNode) return [c];
+  if (isRawHtml(c)) {
+    const raw = c[RAW_HTML];
+    if (!c.tag) return [raw];
+    const nameAttr = c.name ? ` name="${escapeAttr(c.name)}"` : "";
+    return [`<${c.tag}${nameAttr}>`, raw, `</${c.tag}>`];
+  }
   if (c instanceof ReactivePromise || c instanceof Async) {
     return asyncChild(c as PromiseLike<unknown>);
   }

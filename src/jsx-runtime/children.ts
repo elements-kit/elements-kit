@@ -1,7 +1,7 @@
 import { effect, onCleanup } from "../signals";
 import { PropsTarget, Child, Disposer } from "./types";
 import { SLOTS, Slot } from "../slot";
-import { PrimitiveNodeType, resolveNode } from "../lib";
+import { isRawHtml, PrimitiveNodeType, RAW_HTML, resolveNode } from "../lib";
 
 // ─ Typed SLOTS accessor ──────────────────────────────────────────────────────
 
@@ -231,6 +231,17 @@ export function resolveChild(value: Child): Node {
   // resolve to a Node (already-rendered element) or a primitive (text from a
   // signal); reactive thunks and arrays trail.
   if (value instanceof Node) return value;
+  if (isRawHtml(value)) {
+    // Script-inert raw HTML (see Fragment html). Wrapper tag/name are used by
+    // the Astro integration's slot mapping.
+    const template = document.createElement("template");
+    template.innerHTML = value[RAW_HTML];
+    if (!value.tag) return template.content;
+    const el = document.createElement(value.tag);
+    if (value.name) el.setAttribute("name", value.name);
+    el.appendChild(template.content);
+    return el;
+  }
   if (typeof value === "string" || typeof value === "number")
     return document.createTextNode(String(value));
   if (value == null || typeof value === "boolean")
