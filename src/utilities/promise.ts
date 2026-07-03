@@ -1,4 +1,4 @@
-import { batch, Computed, computed, SEED, signal } from "@/signals";
+import { batch, CLAIM, Computed, computed, SEED, signal, untracked } from "@/signals";
 
 /**
  * A `Promise` subclass that exposes its state as reactive signals.
@@ -93,6 +93,17 @@ export class ReactivePromise<T, E = unknown> extends Promise<T> {
       this.#value(value as T);
     });
   }
+
+  /**
+   * @internal Hydrate claim protocol: seed from the server record while the
+   * underlying promise is still pending. The promise fired at construction —
+   * there is no run to skip here (see `Async[CLAIM]` for that).
+   */
+  [CLAIM](record: { value: unknown } | undefined): void {
+    if (record && untracked(() => this.#state()) === "pending") {
+      this[SEED](record.value);
+    }
+  }
 }
 
 const PROMISE_KEYS = new Set<PropertyKey>([
@@ -104,6 +115,7 @@ const PROMISE_KEYS = new Set<PropertyKey>([
   "reason",
   "result",
   SEED,
+  CLAIM,
 ]);
 
 /**

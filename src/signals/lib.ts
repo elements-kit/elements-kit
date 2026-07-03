@@ -443,7 +443,37 @@ export function computed<T>(getter: (previousValue?: T) => T): () => T {
  */
 export const SEED: unique symbol = Symbol("elements-kit.seed");
 
+/**
+ * @internal Method key for the hydrate claim protocol: the claim walk hands
+ * each async wrapper its ek-data record (or undefined). The wrapper decides —
+ * seed and discard any deferred run, or execute the deferred run now.
+ */
+export const CLAIM: unique symbol = Symbol("elements-kit.claim");
+
+let deferAsyncRuns = false;
+
+/**
+ * @internal While true (hydrate evaluation phase), `Async.run()` records
+ * intent instead of executing — the claim walk or the post-walk flush decides
+ * whether the fetcher actually runs. Returns the previous flag.
+ */
+export function setDeferAsyncRuns(value: boolean): boolean {
+  const prev = deferAsyncRuns;
+  deferAsyncRuns = value;
+  return prev;
+}
+
+/** @internal */
+export function shouldDeferAsyncRuns(): boolean {
+  return deferAsyncRuns;
+}
+
 let inertEffects = false;
+
+/** @internal True during server rendering (see {@link setInertEffects}). */
+export function effectsInert(): boolean {
+  return inertEffects;
+}
 
 /**
  * Toggle inert-effect mode. While inert, `effect()` neither executes its body

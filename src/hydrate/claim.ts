@@ -7,12 +7,12 @@ import { applyProps } from "../jsx-runtime/properties";
 import { resolveChild } from "../jsx-runtime/children";
 import { Slot } from "../slot";
 import {
+  CLAIM,
   effect,
   effectScope,
   isReactive,
   onCleanup,
   resolveProps,
-  SEED,
   untracked,
 } from "../signals";
 import { ReactivePromise } from "../utilities/promise";
@@ -249,15 +249,17 @@ function claimAsync(cur: Cursor, p: AsyncLike, om?: OnMismatch): void {
   const ctx = hydrationContext;
   if (ctx) {
     // Ids follow walk (document) order — same order the server assigned at
-    // emit time. Seed pending instances from the serialized snapshot; the
-    // instance's own settlement later overwrites it (stale-while-revalidate).
+    // emit time. The instance decides what its record means: seed pending
+    // state (stale-while-revalidate) and discard any deferred run, or, with
+    // no record, execute the deferred run now.
     const record = ctx.data?.[String(ctx.counter++)];
-    if (record && untracked(() => p.state) === "pending") {
-      const seed = (
-        p as unknown as Record<PropertyKey, ((v: unknown) => void) | undefined>
-      )[SEED];
-      seed?.(record.value);
-    }
+    const claim = (
+      p as unknown as Record<
+        PropertyKey,
+        ((r: { value: unknown } | undefined) => void) | undefined
+      >
+    )[CLAIM];
+    claim?.(record);
   }
   const slot = claimSlot(cur, om);
   effect(() => {

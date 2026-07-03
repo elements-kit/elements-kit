@@ -1,5 +1,27 @@
-import { effect, MaybeReactive, resolve, SEED, signal, untracked } from "@/signals";
+import {
+  CLAIM,
+  effect,
+  MaybeReactive,
+  resolve,
+  SEED,
+  signal,
+  untracked,
+} from "@/signals";
+import { effectsInert, shouldDeferAsyncRuns } from "@/signals/lib";
 import { ComputedPromise, promise } from "./promise";
+
+// Runs requested while hydration is evaluating the component tree. The claim
+// walk resolves each entry — seeded instances discard theirs, unseeded ones
+// execute — and `flushDeferredAsyncRuns` executes whatever the walk never
+// reached.
+const deferredRuns = new Map<object, () => void>();
+
+/** @internal Hydrate cleanup: execute deferred runs no claim resolved. */
+export function flushDeferredAsyncRuns(): void {
+  const runs = [...deferredRuns.values()];
+  deferredRuns.clear();
+  for (const run of runs) run();
+}
 
 /** Shape of the async function driven by {@link Async} / {@link async}. */
 export type Fn<TInput, TOutput> = (input: TInput) => Promise<TOutput>;
@@ -96,6 +118,21 @@ export class Async<TInput = undefined, TOutput = unknown> {
     seed?.(value);
   }
 
+  /**
+   * @internal Hydrate claim protocol. A server record seeds the state and
+   * discards any deferred run — the fetcher never executes. No record means
+   * the deferred run executes now.
+   */
+  [CLAIM](record: { value: unknown } | undefined): void {
+    const pendingRun = deferredRuns.get(this);
+    deferredRuns.delete(this);
+    if (record) {
+      if (untracked(() => this.state) === "pending") this[SEED](record.value);
+      return;
+    }
+    pendingRun?.();
+  }
+
   constructor(fn: MaybeReactive<Fn<TInput, TOutput>>) {
     this.#fn(resolve(fn));
   }
@@ -114,6 +151,19 @@ export class Async<TInput = undefined, TOutput = unknown> {
    * and register cleanup effects.
    */
   run(...args: TInput extends undefined ? [] : [input: TInput]): this {
+    if (shouldDeferAsyncRuns()) {
+      // Hydration is evaluating the tree: record intent instead of fetching.
+      // If the claim walk finds a serialized server value for this instance,
+      // the fetch never fires (see [CLAIM]).
+      deferredRuns.set(this, () => this.run(...args));
+      return this;
+    }
+    if (effectsInert()) {
+      // Server render: effects are inert, but a one-shot load must still
+      // execute so the stream can await and serialize its value.
+      void untracked(() => this.#execute(...args));
+      return this;
+    }
     this.stop();
     this.#cleanup = effect(() => {
       // untrack parameters and fn resolution to avoid intermediate states
@@ -163,6 +213,7 @@ const ASYNC_KEYS = new Set<PropertyKey>([
   "fn",
   "raw",
   SEED,
+  CLAIM,
   Symbol.dispose,
 ]);
 

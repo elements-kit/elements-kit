@@ -16,6 +16,7 @@ export {
   EFFECT,
   EFFECT_SCOPE,
   SEED,
+  CLAIM,
 } from "./lib";
 import { isSignal, isComputed, signal } from "./lib";
 import "../polyfill";

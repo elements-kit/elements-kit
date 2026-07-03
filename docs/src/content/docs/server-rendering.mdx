@@ -62,6 +62,21 @@ const App = () => (
 
 Resolved values are also serialized into a `<script type="application/json" id="ek-data">` tag at the end of the stream. On the client, `hydrate` seeds pending `promise`/`async` values from this data — the server value displays immediately, and the real client-side settlement overwrites it when it arrives (stale-while-revalidate). Rejected values abort the stream — errors propagate, never swallowed.
 
+**Prefer `async` + `.run()` for server-rendered data.** `run()` calls made while hydration evaluates the tree are deferred; when the value was seeded from ek-data, the fetcher is never invoked — no duplicate request:
+
+```tsx
+import { async } from "elements-kit/utilities/async";
+
+const user = async(() => fetch("/api/user").then((r) => r.json()));
+
+const App = () => {
+  user.run(); // server: awaited + serialized · hydration: skipped when seeded
+  return <p>{user}</p>;
+};
+```
+
+`promise(fetch(...))` cannot skip the request — the fetch fires before the library ever sees it — and `.start()` always executes, because reactive re-runs need the first execution to collect dependencies.
+
 ## Hydrating on the client
 
 ```tsx

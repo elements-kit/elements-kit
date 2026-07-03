@@ -111,4 +111,19 @@ describe("renderToStream / async insertion points", () => {
     const html = await renderToString(() => <div>{op}</div>);
     expect(html).toContain("<div><!--{-->v<!--}--></div>");
   });
+
+  it(
+    "executes Async.run() inside component bodies despite inert effects",
+    async () => {
+      const op = async(() => Promise.resolve("v"));
+      const App = () => {
+        op.run();
+        return <div>{op as unknown as Element}</div>;
+      };
+      const html = await renderToString(() => <App />);
+      expect(html).toContain("<div><!--{-->v<!--}--></div>");
+      expect(html).toContain('"0":{"value":"v"}');
+    },
+    2000,
+  );
 });

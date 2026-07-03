@@ -1,4 +1,6 @@
 import { effectScope, untracked } from "../signals";
+import { setDeferAsyncRuns } from "../signals/lib";
+import { flushDeferredAsyncRuns } from "../utilities/async";
 import { setRenderer } from "../jsx-runtime/renderer";
 import {
   claimChildren,
@@ -53,17 +55,23 @@ export function hydrate(
   untracked(() => {
     dispose = effectScope(() => {
       setRenderer(claimRenderer);
+      const prevDefer = setDeferAsyncRuns(true);
       let root: unknown;
       try {
         root = app();
       } finally {
         setRenderer(null);
+        setDeferAsyncRuns(prevDefer);
       }
       const prevCtx = setHydrationContext({ counter: 0, data });
       try {
         claimChildren(container, root, options.onMismatch);
       } finally {
         setHydrationContext(prevCtx);
+        // Deferred runs the walk never claimed (instances not rendered as
+        // children) still execute — inside this scope, so their effects
+        // dispose with the hydration result.
+        flushDeferredAsyncRuns();
       }
     });
   });
