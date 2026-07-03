@@ -130,10 +130,14 @@ const queued: (EffectNode | undefined)[] = [];
 // Symbols for type-guard checking on bound handles
 // ---------------------------------------------------------------------------
 
-export const SIGNAL = Symbol("signal");
-export const COMPUTED = Symbol("computed");
-export const EFFECT = Symbol("effect");
-export const EFFECT_SCOPE = Symbol("effectScope");
+// Registry symbols (`Symbol.for`): brand checks must work across duplicate
+// module instances — bundlers and dev pre-bundling can load more than one
+// copy of the runtime (e.g. a pre-bundled Astro client entrypoint next to
+// source-served subpath imports).
+export const SIGNAL = Symbol.for("elements-kit.signal");
+export const COMPUTED = Symbol.for("elements-kit.computed");
+export const EFFECT = Symbol.for("elements-kit.effect");
+export const EFFECT_SCOPE = Symbol.for("elements-kit.effectScope");
 
 // ---------------------------------------------------------------------------
 // Reactive system wiring
@@ -441,14 +445,14 @@ export function computed<T>(getter: (previousValue?: T) => T): () => T {
  * `utilities/promise`, `utilities/async` and `hydrate` can share it without
  * a utility-to-utility dependency.
  */
-export const SEED: unique symbol = Symbol("elements-kit.seed");
+export const SEED = Symbol.for("elements-kit.seed");
 
 /**
  * @internal Method key for the hydrate claim protocol: the claim walk hands
  * each async wrapper its ek-data record (or undefined). The wrapper decides —
  * seed and discard any deferred run, or execute the deferred run now.
  */
-export const CLAIM: unique symbol = Symbol("elements-kit.claim");
+export const CLAIM = Symbol.for("elements-kit.claim");
 
 /**
  * @internal Brand stamped on dynamic-region getters that rendered as async
@@ -458,9 +462,19 @@ export const CLAIM: unique symbol = Symbol("elements-kit.claim");
  * server content while the region is pending instead of flashing the
  * fallback.
  */
-export const ASYNC_REGION: unique symbol = Symbol("elements-kit.async-region");
+export const ASYNC_REGION = Symbol.for("elements-kit.async-region");
 
-let deferAsyncRuns = false;
+// Mode flags live on globalThis so every runtime copy sees the same value —
+// a pre-bundled copy toggling server/hydration modes must affect components
+// importing another copy.
+interface SharedModeState {
+  deferAsyncRuns: boolean;
+  inertEffects: boolean;
+}
+const MODE_STATE = Symbol.for("elements-kit.mode-state");
+const modeState: SharedModeState = ((
+  globalThis as Record<symbol, SharedModeState | undefined>
+)[MODE_STATE] ??= { deferAsyncRuns: false, inertEffects: false });
 
 /**
  * @internal While true (hydrate evaluation phase), `Async.run()` records
@@ -468,21 +482,19 @@ let deferAsyncRuns = false;
  * whether the fetcher actually runs. Returns the previous flag.
  */
 export function setDeferAsyncRuns(value: boolean): boolean {
-  const prev = deferAsyncRuns;
-  deferAsyncRuns = value;
+  const prev = modeState.deferAsyncRuns;
+  modeState.deferAsyncRuns = value;
   return prev;
 }
 
 /** @internal */
 export function shouldDeferAsyncRuns(): boolean {
-  return deferAsyncRuns;
+  return modeState.deferAsyncRuns;
 }
-
-let inertEffects = false;
 
 /** @internal True during server rendering (see {@link setInertEffects}). */
 export function effectsInert(): boolean {
-  return inertEffects;
+  return modeState.inertEffects;
 }
 
 /**
@@ -492,15 +504,15 @@ export function effectsInert(): boolean {
  * client-only. Returns the previous flag so callers can restore it.
  */
 export function setInertEffects(value: boolean): boolean {
-  const prev = inertEffects;
-  inertEffects = value;
+  const prev = modeState.inertEffects;
+  modeState.inertEffects = value;
   return prev;
 }
 
 const inertStop = (): void => {};
 
 export function effect(fn: () => void): () => void {
-  if (inertEffects) return inertStop;
+  if (modeState.inertEffects) return inertStop;
   const e: EffectNode = {
     fn,
     subs: undefined,

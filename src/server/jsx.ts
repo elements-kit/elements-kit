@@ -1,6 +1,6 @@
 import type { Component, ComponentFn } from "../jsx-runtime/types";
-import { Fragment } from "../jsx-runtime/fragment";
-import { For } from "../for";
+import { Fragment, isFragmentComponent } from "../jsx-runtime/fragment";
+import { isForComponent } from "../for";
 import { isReactive, resolveProps, untracked } from "../signals";
 import {
   AttrAliases,
@@ -8,8 +8,8 @@ import {
   ChildProperties,
   Properties,
 } from "../jsx-runtime/constants";
-import { ReactivePromise } from "../utilities/promise";
-import { Async } from "../utilities/async";
+import { isReactivePromiseLike } from "../utilities/promise";
+import { isAsyncLike } from "../utilities/async";
 import { escapeAttr, escapeHtml } from "./escape";
 
 /**
@@ -79,7 +79,7 @@ export function serverJsx(
   props: Record<string, unknown>,
 ): SNode {
   if (typeof type === "string") return element(type, props);
-  if (type === (Fragment as unknown)) {
+  if (isFragmentComponent(type)) {
     if ((props as { html?: boolean }).html) {
       // Raw-HTML region: emitted unescaped between Slot markers (the claim
       // walk adopts the region). Sanitization is the caller's duty.
@@ -96,7 +96,7 @@ export function serverJsx(
     }
     return new SNode(childList(props.children));
   }
-  if (type === (For as unknown)) return forElement(props);
+  if (isForComponent(type)) return forElement(props);
   if (typeof type === "function" && !type.prototype?.render) {
     const toGetterProps = resolveProps as unknown as (
       raw: object,
@@ -247,8 +247,8 @@ function childList(raw: unknown): Chunk[] {
 function child(c: unknown): Chunk[] {
   if (c == null || typeof c === "boolean") return [];
   if (c instanceof SNode) return [c];
-  if (c instanceof ReactivePromise || c instanceof Async) {
-    return asyncChild(c as PromiseLike<unknown>);
+  if (isReactivePromiseLike(c) || isAsyncLike(c)) {
+    return asyncChild(c as unknown as PromiseLike<unknown>);
   }
   if (typeof c === "function") {
     // Dynamic child (signal, computed or `() => T`): snapshot once, wrap in

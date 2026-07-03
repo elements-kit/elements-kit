@@ -187,7 +187,7 @@ export function resolve<T>(value: MaybeReactive<T>): T {
  * props.label();   // "n"
  * ```
  */
-const RESOLVED_PROPS = Symbol("elements-kit.resolved-props");
+const RESOLVED_PROPS = Symbol.for("elements-kit.resolved-props");
 
 export function resolveProps<P extends object>(raw: {
   [K in keyof P]: MaybeReactive<P[K]>;

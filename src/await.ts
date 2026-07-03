@@ -1,8 +1,8 @@
 import type { Child } from "@/jsx-runtime/types";
 import { isReactive } from "@/signals";
 import { ASYNC_REGION, effectsInert } from "@/signals/lib";
-import { promise, ReactivePromise } from "@/utilities/promise";
-import { Async } from "@/utilities/async";
+import { isReactivePromiseLike, promise } from "@/utilities/promise";
+import { isAsyncLike } from "@/utilities/async";
 
 interface AwaitableLike {
   state: "pending" | "fulfilled" | "rejected";
@@ -28,8 +28,8 @@ function toAwaitables(value: unknown): (AwaitableLike & PromiseLike<unknown>)[] 
   const list = Array.isArray(value) ? (value as unknown[]).flat(Infinity) : [value];
   const out: (AwaitableLike & PromiseLike<unknown>)[] = [];
   for (const item of list) {
-    if (item instanceof ReactivePromise || item instanceof Async) {
-      out.push(item as AwaitableLike & PromiseLike<unknown>);
+    if (isReactivePromiseLike(item) || isAsyncLike(item)) {
+      out.push(item as unknown as AwaitableLike & PromiseLike<unknown>);
     } else if (isThenable(item)) {
       out.push(promise(item as Promise<unknown>));
     }

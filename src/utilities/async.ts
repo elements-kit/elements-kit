@@ -198,6 +198,20 @@ export class Async<TInput = undefined, TOutput = unknown> {
   }
 }
 
+// Registry brand: instanceof fails across duplicate runtime copies.
+const ASYNC_BRAND = Symbol.for("elements-kit.async");
+Object.defineProperty(Async.prototype, ASYNC_BRAND, { value: true });
+
+/** @internal Cross-instance-safe `Async` detection. */
+export function isAsyncLike(value: unknown): value is Async<never, unknown> {
+  if (value instanceof Async) return true;
+  return (
+    value != null &&
+    (typeof value === "object" || typeof value === "function") &&
+    (value as Record<symbol, unknown>)[ASYNC_BRAND] === true
+  );
+}
+
 const ASYNC_KEYS = new Set<PropertyKey>([
   "then",
   "catch",
@@ -214,6 +228,7 @@ const ASYNC_KEYS = new Set<PropertyKey>([
   "raw",
   SEED,
   CLAIM,
+  ASYNC_BRAND,
   Symbol.dispose,
 ]);
 

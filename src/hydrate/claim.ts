@@ -1,6 +1,6 @@
 import type { Component } from "../jsx-runtime/types";
-import { Fragment } from "../jsx-runtime/fragment";
-import { For, type Entry } from "../for";
+import { Fragment, isFragmentComponent } from "../jsx-runtime/fragment";
+import { For, isForComponent, type Entry } from "../for";
 import { createElement } from "../jsx-runtime/element";
 import { setRenderer, type Renderer } from "../jsx-runtime/renderer";
 import { applyProps } from "../jsx-runtime/properties";
@@ -17,8 +17,8 @@ import {
 } from "../signals";
 import { ASYNC_REGION } from "../signals/lib";
 import type { AsyncRegionMeta } from "../await";
-import { ReactivePromise } from "../utilities/promise";
-import { Async } from "../utilities/async";
+import { isReactivePromiseLike } from "../utilities/promise";
+import { isAsyncLike } from "../utilities/async";
 import { parseHtml } from "../jsx-runtime/fragment";
 
 export interface MismatchInfo {
@@ -51,7 +51,7 @@ export function setHydrationContext(
 // during evaluation. It returns lightweight descriptors instead; the walk
 // phase then claims the DOM top-down.
 
-const VNODE = Symbol("ek.vnode");
+const VNODE = Symbol.for("elements-kit.vnode");
 
 interface ElVNode {
   [VNODE]: true;
@@ -81,7 +81,7 @@ export const claimRenderer: Renderer = {
     if (typeof type === "string") {
       return { [VNODE]: true, kind: "el", tag: type, props } as ElVNode;
     }
-    if (type === (Fragment as unknown)) {
+    if (isFragmentComponent(type)) {
       return {
         [VNODE]: true,
         kind: "frag",
@@ -89,7 +89,7 @@ export const claimRenderer: Renderer = {
         html: (props as { html?: boolean }).html === true,
       } as FragVNode;
     }
-    if (type === (For as unknown)) {
+    if (isForComponent(type)) {
       return { [VNODE]: true, kind: "for", props } as ForVNode;
     }
     if (typeof type === "function" && !type.prototype?.render) {
@@ -155,8 +155,8 @@ function walkChild(cur: Cursor, c: unknown, om?: OnMismatch): void {
     if (c.kind === "for") return claimFor(cur, c, om);
     return claimElement(cur, c, om);
   }
-  if (c instanceof ReactivePromise || c instanceof Async) {
-    return claimAsync(cur, c as AsyncLike, om);
+  if (isReactivePromiseLike(c) || isAsyncLike(c)) {
+    return claimAsync(cur, c as unknown as AsyncLike, om);
   }
   if (typeof c === "function") {
     return claimDynamic(cur, c as () => unknown, om);

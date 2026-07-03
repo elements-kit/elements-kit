@@ -106,6 +106,25 @@ export class ReactivePromise<T, E = unknown> extends Promise<T> {
   }
 }
 
+// Registry brand: instanceof fails across duplicate runtime copies, so
+// detection goes through this prototype-stamped symbol.
+const REACTIVE_PROMISE_BRAND = Symbol.for("elements-kit.reactive-promise");
+Object.defineProperty(ReactivePromise.prototype, REACTIVE_PROMISE_BRAND, {
+  value: true,
+});
+
+/** @internal Cross-instance-safe `ReactivePromise` detection. */
+export function isReactivePromiseLike(
+  value: unknown,
+): value is ReactivePromise<unknown, unknown> {
+  if (value instanceof ReactivePromise) return true;
+  return (
+    value != null &&
+    (typeof value === "object" || typeof value === "function") &&
+    (value as Record<symbol, unknown>)[REACTIVE_PROMISE_BRAND] === true
+  );
+}
+
 const PROMISE_KEYS = new Set<PropertyKey>([
   "then",
   "catch",
@@ -116,6 +135,7 @@ const PROMISE_KEYS = new Set<PropertyKey>([
   "result",
   SEED,
   CLAIM,
+  REACTIVE_PROMISE_BRAND,
 ]);
 
 /**

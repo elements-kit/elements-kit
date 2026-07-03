@@ -319,3 +319,16 @@ function moveEntry(parent: Node, entry: Entry, before: Node): void {
   range.setEndAfter(entry.end);
   parent.insertBefore(range.extractContents(), before);
 }
+
+// Registry brand so duplicate runtime copies recognize each other's For.
+const FOR_BRAND = Symbol.for("elements-kit.for");
+(For as unknown as Record<symbol, boolean>)[FOR_BRAND] = true;
+
+/** @internal Cross-instance-safe For check (identity or brand). */
+export function isForComponent(type: unknown): boolean {
+  return (
+    type === For ||
+    (typeof type === "function" &&
+      (type as unknown as Record<symbol, boolean>)[FOR_BRAND] === true)
+  );
+}

@@ -9,13 +9,17 @@ export interface Renderer {
   jsx(type: string | Component, props: Record<string, unknown>): unknown;
 }
 
-let activeRenderer: Renderer | null = null;
+// The active renderer lives on globalThis so duplicate runtime copies (dev
+// pre-bundling, mixed chunks) dispatch consistently — a renderer installed
+// by one copy must be seen by jsx calls flowing through another.
+const ACTIVE_RENDERER = Symbol.for("elements-kit.active-renderer");
+const slot = globalThis as Record<symbol, Renderer | null | undefined>;
 
 /** Install or clear (`null`) the active renderer. */
 export function setRenderer(renderer: Renderer | null): void {
-  activeRenderer = renderer;
+  slot[ACTIVE_RENDERER] = renderer;
 }
 
 export function getRenderer(): Renderer | null {
-  return activeRenderer;
+  return slot[ACTIVE_RENDERER] ?? null;
 }

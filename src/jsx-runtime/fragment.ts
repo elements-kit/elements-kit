@@ -65,3 +65,16 @@ export function Fragment(
 
   return fragment;
 }
+
+// Registry brand so duplicate runtime copies recognize each other's Fragment.
+const FRAGMENT_BRAND = Symbol.for("elements-kit.fragment");
+(Fragment as unknown as Record<symbol, boolean>)[FRAGMENT_BRAND] = true;
+
+/** @internal Cross-instance-safe Fragment check (identity or brand). */
+export function isFragmentComponent(type: unknown): boolean {
+  return (
+    type === Fragment ||
+    (typeof type === "function" &&
+      (type as unknown as Record<symbol, boolean>)[FRAGMENT_BRAND] === true)
+  );
+}
