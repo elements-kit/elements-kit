@@ -492,6 +492,16 @@ class XPicker extends HTMLElement {
 // ElementProps<typeof XPicker> now includes `on:commit`
 ```
 
+## Roadmap
+
+Directions under consideration for the SSR/islands layer (nothing here is committed):
+
+- **Declarative Shadow DOM & custom-element SSR** — emit `<template shadowrootmode>` on the server and claim shadow roots at hydration, so elements-kit custom elements server-render inside *any* framework's HTML.
+- **`ErrorBoundary` + `Await` error fallback** — first-class rejection handling; today a rejected awaitable settles into its reason.
+- **Out-of-order streaming + richer `ek-data` serialization** — stream fallbacks immediately and swap content in when ready (today `Await` holds the stream); serialize Dates/Maps/cyclic values instead of JSON-only.
+- **Astro extras** — View Transitions survival, a custom `client:interaction` directive, a live `server:defer` demo.
+- **Hardening toward stable** — real-Astro end-to-end tests in CI (dev + build/preview), an Astro renderer-contract type-pin, SSR↔client parity and escaping property tests, seeding-alignment and stream-robustness suites. The `server` / `hydrate` / `await` / `integrations/astro` entries drop their *experimental* badges when this lands.
+
 ## Learn more
 
 - [Documentation site](docs/) — guides, playgrounds, reference
