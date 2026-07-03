@@ -1,15 +1,18 @@
 import { setRenderer } from "../jsx-runtime/renderer";
 import { setInertEffects } from "../signals/lib";
 import { escapeScriptJson } from "./escape";
-import {
-  AsyncChunk,
-  resolveChildChunks,
-  serverJsx,
-  setServerContext,
-  SNode,
-  type AsyncRecord,
-  type RenderContext,
-} from "./jsx";
+import { AsyncChunk, resolveChildChunks, serverJsx, SNode } from "./jsx";
+
+interface AsyncRecord {
+  id: number;
+  value: unknown;
+}
+
+/** Per-render registry of resolved async values (document-order ids). */
+interface RenderContext {
+  records: AsyncRecord[];
+  counter: number;
+}
 
 /**
  * Render a component tree to a streaming HTML response in any JavaScript
@@ -46,7 +49,7 @@ export function renderToStream(app: () => unknown): ReadableStream<Uint8Array> {
     async start(controller) {
       try {
         const ctx: RenderContext = { records: [], counter: 0 };
-        const root = evaluate(app, ctx);
+        const root = evaluate(app);
 
         let buffer = "";
         const flush = (): void => {
@@ -66,18 +69,12 @@ export function renderToStream(app: () => unknown): ReadableStream<Uint8Array> {
           }
           if (node instanceof AsyncChunk) {
             flush();
+            // Ids are assigned here — the emit walk runs in document order,
+            // matching the hydrate walk's claim order.
+            const id = ctx.counter++;
             const value = await node.instance;
-            ctx.records.push({ id: node.id, value });
-            // New async values discovered inside the resolved value keep
-            // registering against this render's context.
-            const prev = setServerContext(ctx);
-            let chunks;
-            try {
-              chunks = resolveChildChunks(value);
-            } finally {
-              setServerContext(prev);
-            }
-            for (const chunk of chunks) await emit(chunk);
+            ctx.records.push({ id, value });
+            for (const chunk of resolveChildChunks(value)) await emit(chunk);
             return;
           }
           buffer += String(node);
@@ -116,14 +113,12 @@ export async function renderToString(app: () => unknown): Promise<string> {
 }
 
 /** Run `app` with the server renderer installed and effects inert. */
-function evaluate(app: () => unknown, ctx: RenderContext): unknown {
+function evaluate(app: () => unknown): unknown {
   const prevInert = setInertEffects(true);
   setRenderer({ jsx: serverJsx as (type: never, props: never) => unknown });
-  const prevCtx = setServerContext(ctx);
   try {
     return app();
   } finally {
-    setServerContext(prevCtx);
     setRenderer(null);
     setInertEffects(prevInert);
   }

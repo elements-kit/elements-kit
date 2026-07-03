@@ -12,6 +12,7 @@ import {
   isReactive,
   onCleanup,
   resolveProps,
+  SEED,
   untracked,
 } from "../signals";
 import { ReactivePromise } from "../utilities/promise";
@@ -22,6 +23,25 @@ export interface MismatchInfo {
   found: Node | null;
 }
 export type OnMismatch = (info: MismatchInfo) => void;
+
+/** Parsed ek-data payload: document-order id → serialized server value. */
+export type HydrationData = Record<string, { value: unknown }>;
+
+interface HydrationContext {
+  /** Walk-order async counter — mirrors the server's emit-order ids. */
+  counter: number;
+  data: HydrationData | null;
+}
+
+let hydrationContext: HydrationContext | null = null;
+
+export function setHydrationContext(
+  ctx: HydrationContext | null,
+): HydrationContext | null {
+  const prev = hydrationContext;
+  hydrationContext = ctx;
+  return prev;
+}
 
 // ─ VNodes ─────────────────────────────────────────────────────────────────────
 // JSX evaluates children-first, so the claim renderer cannot walk the DOM
@@ -226,6 +246,19 @@ interface AsyncLike {
 }
 
 function claimAsync(cur: Cursor, p: AsyncLike, om?: OnMismatch): void {
+  const ctx = hydrationContext;
+  if (ctx) {
+    // Ids follow walk (document) order — same order the server assigned at
+    // emit time. Seed pending instances from the serialized snapshot; the
+    // instance's own settlement later overwrites it (stale-while-revalidate).
+    const record = ctx.data?.[String(ctx.counter++)];
+    if (record && untracked(() => p.state) === "pending") {
+      const seed = (
+        p as unknown as Record<PropertyKey, ((v: unknown) => void) | undefined>
+      )[SEED];
+      seed?.(record.value);
+    }
+  }
   const slot = claimSlot(cur, om);
   effect(() => {
     // Server content stays visible until the client-side value settles —

@@ -435,6 +435,14 @@ export function computed<T>(getter: (previousValue?: T) => T): () => T {
  * stop();            // final cleanup: abort the last fetch
  * ```
  */
+/**
+ * @internal Method key for settling a reactive async wrapper from a
+ * serialized server snapshot (hydration seeding). Lives here so
+ * `utilities/promise`, `utilities/async` and `hydrate` can share it without
+ * a utility-to-utility dependency.
+ */
+export const SEED: unique symbol = Symbol("elements-kit.seed");
+
 let inertEffects = false;
 
 /**

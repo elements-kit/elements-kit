@@ -3,6 +3,8 @@ import { setRenderer } from "../jsx-runtime/renderer";
 import {
   claimChildren,
   claimRenderer,
+  setHydrationContext,
+  type HydrationData,
   type MismatchInfo,
   type OnMismatch,
 } from "./claim";
@@ -46,6 +48,7 @@ export function hydrate(
   app: () => unknown,
   options: HydrateOptions = {},
 ): HydrateResult {
+  const data = readHydrationData(container);
   let dispose!: () => void;
   untracked(() => {
     dispose = effectScope(() => {
@@ -56,8 +59,30 @@ export function hydrate(
       } finally {
         setRenderer(null);
       }
-      claimChildren(container, root, options.onMismatch);
+      const prevCtx = setHydrationContext({ counter: 0, data });
+      try {
+        claimChildren(container, root, options.onMismatch);
+      } finally {
+        setHydrationContext(prevCtx);
+      }
     });
   });
   return { dispose };
+}
+
+/**
+ * Locate and parse the server's ek-data script. Malformed or absent data
+ * degrades to no seeding — async values settle through their own client
+ * execution instead.
+ */
+function readHydrationData(container: Element): HydrationData | null {
+  const script =
+    container.querySelector('script[type="application/json"]#ek-data') ??
+    container.ownerDocument?.getElementById("ek-data");
+  if (!script?.textContent) return null;
+  try {
+    return JSON.parse(script.textContent) as HydrationData;
+  } catch {
+    return null;
+  }
 }

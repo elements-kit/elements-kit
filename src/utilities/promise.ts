@@ -1,4 +1,4 @@
-import { batch, Computed, computed, signal } from "@/signals";
+import { batch, Computed, computed, SEED, signal } from "@/signals";
 
 /**
  * A `Promise` subclass that exposes its state as reactive signals.
@@ -80,6 +80,19 @@ export class ReactivePromise<T, E = unknown> extends Promise<T> {
       p.then(resolve).catch(reject);
     });
   }
+
+  /**
+   * @internal Hydration seeding: settle the reactive state from a serialized
+   * server snapshot. The underlying promise is untouched — when it actually
+   * resolves or rejects, its handlers overwrite the seeded state
+   * (stale-while-revalidate). `await` still waits for the real settlement.
+   */
+  [SEED](value: unknown): void {
+    batch(() => {
+      this.#state("fulfilled");
+      this.#value(value as T);
+    });
+  }
 }
 
 const PROMISE_KEYS = new Set<PropertyKey>([
@@ -90,6 +103,7 @@ const PROMISE_KEYS = new Set<PropertyKey>([
   "value",
   "reason",
   "result",
+  SEED,
 ]);
 
 /**

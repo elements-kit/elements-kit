@@ -21,36 +21,17 @@ export class SNode {
   constructor(public chunks: Chunk[]) {}
 }
 
-/** A pending async insertion point: the stream awaits it in order. */
+/**
+ * An async insertion point. The stream awaits it in document order and
+ * assigns its serialization id at emit time — ids must follow document
+ * order (not jsx-evaluation order, which is children-first) so the hydrate
+ * walk, which runs in document order, aligns with them.
+ */
 export class AsyncChunk {
-  constructor(
-    readonly id: number,
-    readonly instance: PromiseLike<unknown>,
-  ) {}
+  constructor(readonly instance: PromiseLike<unknown>) {}
 }
 
 export type Chunk = string | SNode | AsyncChunk;
-
-export interface AsyncRecord {
-  id: number;
-  value: unknown;
-}
-
-/** Per-render registry of resolved async values (render-order ids). */
-export interface RenderContext {
-  records: AsyncRecord[];
-  counter: number;
-}
-
-let currentContext: RenderContext | null = null;
-
-export function setServerContext(
-  ctx: RenderContext | null,
-): RenderContext | null {
-  const prev = currentContext;
-  currentContext = ctx;
-  return prev;
-}
 
 /** Normalize an arbitrary resolved value into chunks (used by the stream). */
 export function resolveChildChunks(value: unknown): Chunk[] {
@@ -253,7 +234,7 @@ function child(c: unknown): Chunk[] {
   if (c == null || typeof c === "boolean") return [];
   if (c instanceof SNode) return [c];
   if (c instanceof ReactivePromise || c instanceof Async) {
-    return asyncChild(c as PromiseLike<unknown> & AsyncLike);
+    return asyncChild(c as PromiseLike<unknown>);
   }
   if (typeof c === "function") {
     // Dynamic child (signal, computed or `() => T`): snapshot once, wrap in
@@ -267,25 +248,9 @@ function child(c: unknown): Chunk[] {
   return [escapeHtml(String(c))];
 }
 
-interface AsyncLike {
-  state: "pending" | "fulfilled" | "rejected";
-  value: unknown;
-  reason: unknown;
-}
-
-function asyncChild(p: PromiseLike<unknown> & AsyncLike): Chunk[] {
-  const ctx = currentContext;
-  const id = ctx ? ctx.counter++ : 0;
-  const state = untracked(() => p.state);
-  if (state === "fulfilled") {
-    const value = untracked(() => p.value);
-    ctx?.records.push({ id, value });
-    return [SLOT_OPEN, ...child(value), SLOT_CLOSE];
-  }
-  if (state === "rejected") {
-    throw untracked(() => p.reason);
-  }
-  return [SLOT_OPEN, new AsyncChunk(id, p), SLOT_CLOSE];
+function asyncChild(p: PromiseLike<unknown>): Chunk[] {
+  // Fulfilled instances await instantly; rejected ones reject the stream.
+  return [SLOT_OPEN, new AsyncChunk(p), SLOT_CLOSE];
 }
 
 // ─ For ────────────────────────────────────────────────────────────────────────

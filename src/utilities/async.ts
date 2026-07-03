@@ -1,4 +1,4 @@
-import { effect, MaybeReactive, resolve, signal, untracked } from "@/signals";
+import { effect, MaybeReactive, resolve, SEED, signal, untracked } from "@/signals";
 import { ComputedPromise, promise } from "./promise";
 
 /** Shape of the async function driven by {@link Async} / {@link async}. */
@@ -82,6 +82,20 @@ export class Async<TInput = undefined, TOutput = unknown> {
     return this.raw.finally(onfinally);
   }
 
+  /**
+   * @internal Hydration seeding — delegates to the current operation's
+   * `ReactivePromise`. See `ReactivePromise[SEED]`.
+   */
+  [SEED](value: unknown): void {
+    const seed = (
+      this.raw as unknown as Record<
+        PropertyKey,
+        ((v: unknown) => void) | undefined
+      >
+    )[SEED];
+    seed?.(value);
+  }
+
   constructor(fn: MaybeReactive<Fn<TInput, TOutput>>) {
     this.#fn(resolve(fn));
   }
@@ -148,6 +162,7 @@ const ASYNC_KEYS = new Set<PropertyKey>([
   "run",
   "fn",
   "raw",
+  SEED,
   Symbol.dispose,
 ]);
 

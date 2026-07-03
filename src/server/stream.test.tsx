@@ -65,6 +65,19 @@ describe("renderToStream / async insertion points", () => {
     expect(html).toContain('{"0":{"value":"a"},"1":{"value":"b"}}');
   });
 
+  it("assigns ids in document order, not jsx-evaluation order", async () => {
+    // pA sits before the nested <span>, but the span's jsx call evaluates
+    // first. Ids must follow document order so the hydrate walk (document
+    // order) matches.
+    const html = await renderToString(() => (
+      <div>
+        {promise(Promise.resolve("A"))}
+        <span>{promise(Promise.resolve("B"))}</span>
+      </div>
+    ));
+    expect(html).toContain('{"0":{"value":"A"},"1":{"value":"B"}}');
+  });
+
   it("escapes </script> sequences in serialized data", async () => {
     const html = await renderToString(() => (
       <div>{promise(Promise.resolve("</script><b>"))}</div>
