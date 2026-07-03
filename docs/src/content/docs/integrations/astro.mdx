@@ -5,6 +5,10 @@ description: Render elements-kit components as Astro islands — server-rendered
 
 import { Aside } from "@astrojs/starlight/components";
 import AstroCounter from "@/components/AstroCounter.tsx";
+import AstroAsync from "@/components/AstroAsync.tsx";
+import AstroList from "@/components/AstroList.tsx";
+import AstroLazy from "@/components/AstroLazy.tsx";
+import AstroCard from "@/components/AstroCard.tsx";
 
 elements-kit ships a first-class Astro integration: write `.tsx` components with elements-kit JSX and use them as [Astro islands](https://docs.astro.build/en/concepts/islands/). The server renders them to HTML with `elements-kit/server`; the client adopts that DOM with `elements-kit/hydrate` — handlers attach to the existing nodes, nothing is rebuilt.
 
@@ -68,11 +72,90 @@ All Astro client directives work (`client:load`, `client:idle`, `client:visible`
 - `async`/`promise` values render on the server, serialize, and [seed the client instance](/server-rendering#async-data) — with `async` + `.run()`, the client fetch is skipped entirely.
 - Props must serialize (Astro's island contract) and the component must render the same tree on server and client.
 
-<Aside type="caution" title="Slots are not supported">
-  elements-kit islands don't accept Astro slot content — the runtime has no
-  raw-HTML sink by design (`innerHTML` throws). Place static content outside
-  the island.
-</Aside>
+## Lists
+
+`<For>` rows are adopted at hydration and reconciled in place afterwards — reordering moves the existing DOM nodes:
+
+<AstroList client:load />
+
+## Async data — seeded, no refetch
+
+`async` + `.run()` values are fetched during the server render, serialized into the island's `ek-data`, and seeded on the client. The deferred `run()` is discarded — the fetcher never executes in the browser, which is why this timestamp is the **server's**:
+
+<AstroAsync client:load />
+
+```tsx
+const fetchedAt = async(() => fetchSomething());
+
+export default function Demo() {
+  fetchedAt.run(); // server: awaited + serialized · client: skipped
+  return <p>{fetchedAt}</p>;
+}
+```
+
+## Slots
+
+Islands accept Astro slot content — the integration delivers it as pre-rendered HTML mapped to `children` (default slot) and `slot:<name>` props:
+
+<AstroCard client:load>
+  <Fragment slot="header"><strong>Slotted header</strong></Fragment>
+  <p>This paragraph is Astro slot content living inside an interactive island — collapse it with the button.</p>
+</AstroCard>
+
+```astro
+<AstroCard client:load>
+  <Fragment slot="header"><strong>Slotted header</strong></Fragment>
+  <p>Default slot content.</p>
+</AstroCard>
+```
+
+```tsx
+export default function AstroCard(props: {
+  children?: unknown;          // default slot
+  "slot:header"?: unknown;     // named slot
+}) {
+  return (
+    <section>
+      <header>{props["slot:header"]}</header>
+      {props.children}
+    </section>
+  );
+}
+```
+
+Slot HTML is parsed script-inertly and placed as-is — it is Astro-rendered content, not part of the component's reactive tree.
+
+## Server islands (`server:defer`)
+
+Slots are also how [Astro Server Islands](https://docs.astro.build/en/guides/server-islands/) deliver their fallback — `server:defer` works with elements-kit components out of the box:
+
+```astro
+<AstroCard server:defer>
+  <div slot="fallback">Loading the personalized card…</div>
+</AstroCard>
+```
+
+## Lazy loading & Suspense
+
+`lazy()` code-splits a component behind a dynamic import; `<Suspense>` shows a fallback while it loads. On the server the stream awaits the import — the fallback never server-renders; on hydration the server content stays visible until the chunk lands (no fallback flash):
+
+<AstroLazy client:load />
+
+```tsx
+import { lazy, Suspense } from "elements-kit/suspense";
+
+const Chart = lazy(() => import("./chart"));
+
+export default function Panel() {
+  return (
+    <Suspense fallback={() => <em>loading…</em>}>
+      <Chart />
+    </Suspense>
+  );
+}
+```
+
+`Chart.preload()` starts the import ahead of rendering (e.g. on hover).
 
 ### Coexisting with other frameworks
 

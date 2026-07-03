@@ -25,6 +25,7 @@ Each subpath is a stable import entry declared in [package.json](package.json) `
 | `elements-kit/integrations/react` | `useSignal`, `useScope` | stable |
 | `elements-kit/server` | `renderToStream`, `renderToString` — streaming HTML rendering, no DOM required (§11) | experimental |
 | `elements-kit/hydrate` | `hydrate` — claim-mode adoption of server-rendered DOM (§11) | experimental |
+| `elements-kit/suspense` | `Suspense`, `lazy` — loading boundaries + code-splitting over the §11 async machinery | experimental |
 | `elements-kit/integrations/astro` | `elementsKit()` — Astro integration packaging the §11 renderer pair as an island framework (`astro-server` / `astro-client` entrypoints) | experimental |
 | `elements-kit/utilities/*` | one primary export per module — mix of `createX` factories, verb/imperative functions (`on`, `onClickOutside`, `retry`, `async`, `promise`, `navigate`, `patchHistory`), and pre-instantiated singletons (`online`, `windowFocused`, `activeElement`, `currentLocation`). Async primitives: `async` / `Async` ([src/utilities/async.ts](src/utilities/async.ts)) and `promise` / `ReactivePromise` / `ComputedPromise` ([src/utilities/promise.ts](src/utilities/promise.ts)) | stable per module |
 
@@ -160,7 +161,7 @@ Full dependency and returns matrix: [src/utilities/README.md](src/utilities/READ
 ## 8. Security
 
 - JSX prop namespaces (`prop:`, `style:`, attributes) write raw values directly. Sanitize untrusted input at the call site.
-- No `innerHTML` sink. Children append as DOM nodes or text — strings become text, never markup.
+- One deliberate raw-HTML sink: `<Fragment html>{MaybeReactive<string>}</Fragment>` (and the internal `rawHtml()` node backing Astro slots). Parsing is script-inert — `<script>` never executes — but attribute-based XSS is the caller's to sanitize. Everywhere else strings become text, never markup, and the `innerHTML` prop throws in server rendering and hydration.
 - Handlers attached via `addEventListener`. No `javascript:` URL evaluation, no `eval`/`Function` in the runtime.
 - Signals and stores do not serialize. Consumers persisting state (e.g. `createLocalStorage`) own the serialization boundary.
 
@@ -206,4 +207,6 @@ Two subpaths: `elements-kit/server` ([src/server/](src/server/)) and `elements-k
 - **Fetch skipping**: `Async.run()` calls during hydrate evaluation are deferred; the claim walk discards them for seeded instances — the fetcher never executes. Unseeded or unclaimed deferred runs execute after the walk. `promise(fetch(...))` cannot skip (the promise fires before the library sees it) and `Async.start()` always executes (reactive re-runs need dependency collection). On the server, `run()` executes directly despite inert effects so the stream can await it.
 - **Determinism constraint**: server and client must execute the same tree. Browser-only branches that change structure before hydration cause mismatches (safe fallback: fresh render of that subtree).
 - **v1 excludes**: custom-element/DSD rendering, class components other than `For`, out-of-order streaming, partial/island hydration.
-- **Astro**: `elements-kit/integrations/astro` packages the renderer pair as an Astro island framework — `astro-server` implements Astro's `check`/`renderToStaticMarkup` over `renderToString` (component-return `SNode` discrimination keeps it safe next to other renderers), `astro-client` maps client directives to `hydrate` (or `render` for `client:only`). Astro slots are rejected — no raw-HTML sink.
+- **Astro**: `elements-kit/integrations/astro` packages the renderer pair as an Astro island framework — `astro-server` implements Astro's `check`/`renderToStaticMarkup` over `renderToString` (component-return `SNode` discrimination keeps it safe next to other renderers), `astro-client` maps client directives to `hydrate` (or `render` for `client:only`). Astro slots map to `children` / `slot:<name>` props as `rawHtml` nodes wrapped in `<astro-slot>` / `<astro-static-slot>`; Server Islands (`server:defer`) work through the same contract.
+- **Raw HTML regions**: `<Fragment html>{MaybeReactive<string>}</Fragment>` renders between Slot markers on all three renderers — server emits the string verbatim, hydration keeps the server content until the source changes, the client re-renders the region reactively. Script-inert parsing (§8).
+- **Suspense/lazy** (`elements-kit/suspense`): a `lazy()` element is a `ComputedPromise` of an element factory — the stream awaits it in order, hydration keeps server content until the import lands. `Suspense` shows its fallback only on the client while direct async children (or `when`) are pending, and stamps the region so the claim walk keeps server content and stays ek-data-aligned. One async child per boundary is the supported SSR-hydration shape.

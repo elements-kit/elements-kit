@@ -105,6 +105,26 @@ hydrate(container, () => <App />, {
 });
 ```
 
+## Raw HTML — `<Fragment html>`
+
+The one deliberate raw-HTML sink in the library: pass `html` on a fragment and the child — a `MaybeReactive<string>` — renders as markup instead of text:
+
+```tsx
+const markdown = signal("<h2>rendered</h2><p>from a CMS</p>");
+
+<article>
+  <Fragment html>{markdown}</Fragment>
+</article>
+```
+
+The region lives between slot markers, so it server-renders, hydrates (server content is kept until the source changes), and re-renders when the signal updates. Parsing is **script-inert** — `<script>` tags in the string never execute.
+
+**Sanitize untrusted input at the call site.** The string is emitted verbatim on the server and parsed as markup on the client; attribute-based XSS (`onerror=…`, `javascript:` URLs) is your responsibility to strip. Everywhere else strings remain text-only, and the `innerHTML` prop still throws.
+
+## Lazy loading & Suspense
+
+`lazy()` and `<Suspense>` from `elements-kit/suspense` ride the async machinery: the server stream awaits dynamic imports in order (the fallback never server-renders), the client shows the fallback until the chunk lands, and hydration keeps the server content visible. See the [Astro page](/integrations/astro#lazy-loading--suspense) for a live demo.
+
 ## Astro
 
 Using Astro? The [Astro integration](/integrations/astro) packages this renderer pair as an island framework — `<Counter client:load />` server-renders through `renderToStream` and hydrates through `hydrate`, with no manual wiring.
