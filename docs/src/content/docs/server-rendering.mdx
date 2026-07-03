@@ -1,0 +1,98 @@
+---
+title: Server Rendering
+description: Stream HTML from any JavaScript runtime and hydrate it on the client — no compiler, no VDOM.
+sidebar:
+  badge:
+    text: Experimental
+    variant: caution
+---
+
+`elements-kit/server` renders the same JSX you write for the browser to an HTML stream — in Node, Cloudflare Workers, or any JavaScript runtime, with no DOM. `elements-kit/hydrate` then adopts that HTML on the client and makes it interactive without rebuilding it.
+
+Both entries are **experimental**: APIs may change between minor versions.
+
+## Rendering on the server
+
+Pass a **thunk**, not evaluated JSX — JSX evaluates eagerly, so the server renderer must install before the first jsx call runs.
+
+```tsx
+import { renderToString } from "elements-kit/server";
+
+const html = await renderToString(() => <App />);
+```
+
+For streaming responses use `renderToStream`, which returns a standard `ReadableStream<Uint8Array>`:
+
+```tsx
+import { renderToStream } from "elements-kit/server";
+
+export default {
+  fetch: () =>
+    new Response(renderToStream(() => <App />), {
+      headers: { "content-type": "text/html" },
+    }),
+};
+```
+
+### Snapshot semantics
+
+A server render is a one-shot snapshot of your reactive state:
+
+- Signals and computeds are read **once**, without subscribing.
+- **Effects do not run** — they are client-only.
+- `on:` handlers and `ref` callbacks are skipped; interactivity attaches at hydration.
+- `innerHTML` throws — there is no raw HTML sink. Text and attributes are escaped.
+
+### Async data
+
+`promise` and `async` reactive values used as children become **async insertion points**: everything before them flushes immediately, then the stream awaits the value and continues.
+
+```tsx
+import { promise } from "elements-kit/utilities/promise";
+
+const user = promise(fetch("/api/user").then((r) => r.json()));
+
+const App = () => (
+  <main>
+    <h1>Profile</h1>          {/* flushes immediately */}
+    <p>{user}</p>             {/* stream awaits, then continues */}
+  </main>
+);
+```
+
+Resolved values are also serialized into a `<script type="application/json" id="ek-data">` tag at the end of the stream. Rejected values abort the stream — errors propagate, never swallowed.
+
+## Hydrating on the client
+
+```tsx
+import { hydrate } from "elements-kit/hydrate";
+
+const { dispose } = hydrate(document.getElementById("app")!, () => <App />);
+```
+
+Hydration **re-executes** the component tree in claim mode: instead of creating DOM, the runtime walks the server-rendered nodes and adopts them —
+
+- static elements and text keep their identity (no rebuild, no flicker),
+- `on:` handlers attach to the claimed nodes,
+- dynamic children (`{() => sig()}`) bind live to the server-emitted comment markers,
+- `<For>` adopts each keyed row and reconciles later updates in place,
+- async children keep their server-rendered content visible until the client value settles.
+
+There is no compiler and no serialized closures — your handlers are ordinary closures recreated by re-execution.
+
+### Matching trees
+
+The server and client must render the same tree. If a node doesn't match, that subtree is discarded and rendered fresh; pass `onMismatch` to observe it:
+
+```tsx
+hydrate(container, () => <App />, {
+  onMismatch: ({ expected, found }) => report(expected, found),
+});
+```
+
+## Not in v1
+
+- Custom elements / Declarative Shadow DOM rendering.
+- Class components other than `For`.
+- Out-of-order (Suspense-style) streaming.
+- Qwik-style resumability — hydration re-executes component code by design.

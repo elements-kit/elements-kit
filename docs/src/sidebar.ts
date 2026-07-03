@@ -50,6 +50,7 @@ export const librarySidebar: SidebarItem[] = [
       { label: "Form object", slug: "utilities/form-object" },
     ],
   },
+  { label: "Server Rendering", slug: "server-rendering" },
 ];
 
 export const examplesSidebar: SidebarItem[] = [
