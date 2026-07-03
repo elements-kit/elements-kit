@@ -14,7 +14,7 @@ type RenderFn<T> = (
   index: number,
 ) => Element | DocumentFragment | null;
 
-interface Entry {
+export interface Entry {
   /** Marks the start of this item's DOM range. */
   start: Comment;
   /** Marks the end of this item's DOM range. */
@@ -106,8 +106,10 @@ export class For<T = unknown> {
   by: KeyFn<T> = (_, i) => i;
   children: RenderFn<T> = () => null;
 
-  readonly #start = document.createComment("<For>");
-  readonly #end = document.createComment("</For>");
+  // Mutable (not readonly): the hydrate claim pass rebinds them to
+  // server-rendered comments via `hydrateRange`.
+  #start = document.createComment("<For>");
+  #end = document.createComment("</For>");
   readonly #cache = new Map<string | number, Entry>();
   /** Keys in current DOM order — needed for prefix/suffix optimisation. */
   #order: Array<string | number> = [];
@@ -131,6 +133,31 @@ export class For<T = unknown> {
     });
 
     return fragment;
+  }
+
+  /**
+   * @internal Hydrate support: adopt server-rendered range markers and
+   * pre-claimed entries instead of creating a fresh range. The first
+   * reconcile run sees matching key order and performs no DOM operations;
+   * later `each` changes reconcile against the adopted entries as usual.
+   */
+  hydrateRange(
+    start: Comment,
+    end: Comment,
+    entries: ReadonlyMap<string | number, Entry>,
+    order: ReadonlyArray<string | number>,
+  ): void {
+    this.#start = start;
+    this.#end = end;
+    for (const [key, entry] of entries) this.#cache.set(key, entry);
+    this.#order = [...order];
+
+    effect(() => this.#reconcile());
+    onCleanup(() => {
+      for (const entry of this.#cache.values()) cleanEntry(entry);
+      this.#cache.clear();
+      this.#order = [];
+    });
   }
 
   #reconcile(): void {

@@ -74,6 +74,11 @@
       "import": "./dist/server/index.mjs",
       "types": "./dist/server/index.d.mts"
     },
+    "./hydrate": {
+      "source": "./src/hydrate/index.ts",
+      "import": "./dist/hydrate/index.mjs",
+      "types": "./dist/hydrate/index.d.mts"
+    },
     "./jsx-runtime": {
       "source": "./src/jsx-runtime/index.ts",
       "import": "./dist/jsx-runtime/index.mjs",
