@@ -49,7 +49,7 @@ describe("astro-server renderer", () => {
       { default: "<p>body</p>" },
     );
     expect(html).toBe(
-      "<section><!--{--><astro-slot><p>body</p></astro-slot><!--}--></section>",
+      "<section><!--{--><!--{--><astro-slot><!--{--><p>body</p><!--}--></astro-slot><!--}--><!--}--></section>",
     );
   });
 
@@ -63,7 +63,7 @@ describe("astro-server renderer", () => {
       { header: "<h1>t</h1>" },
     );
     expect(html).toBe(
-      '<header><!--{--><astro-slot name="header"><h1>t</h1></astro-slot><!--}--></header>',
+      '<header><!--{--><!--{--><astro-slot name="header"><!--{--><h1>t</h1><!--}--></astro-slot><!--}--><!--}--></header>',
     );
   });
 
@@ -77,6 +77,6 @@ describe("astro-server renderer", () => {
       { default: "<p>b</p>" },
       { astroStaticSlot: true },
     );
-    expect(html).toContain("<astro-static-slot><p>b</p></astro-static-slot>");
+    expect(html).toContain("<astro-static-slot><!--{--><p>b</p><!--}--></astro-static-slot>");
   });
 });

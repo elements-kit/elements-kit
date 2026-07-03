@@ -6,7 +6,6 @@ import { describe, it, expect } from "vitest";
 import { renderToString } from "./index";
 import { signal } from "../signals";
 import { Fragment } from "../jsx-runtime/fragment";
-import { rawHtml } from "../lib";
 
 describe("SSR conformance — attributes", () => {
   it("skips undefined and null attributes entirely", async () => {
@@ -146,15 +145,4 @@ describe("SSR conformance — raw HTML", () => {
     expect(html).toBe("<div><!--{--><i>x</i><!--}--></div>");
   });
 
-  it("splices rawHtml children, with and without wrapper tags", async () => {
-    const html = await renderToString(() => (
-      <div>
-        {rawHtml("<b>a</b>") as never}
-        {rawHtml("<i>b</i>", "astro-slot", "header") as never}
-      </div>
-    ));
-    expect(html).toBe(
-      '<div><b>a</b><astro-slot name="header"><i>b</i></astro-slot></div>',
-    );
-  });
 });

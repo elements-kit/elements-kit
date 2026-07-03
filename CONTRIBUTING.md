@@ -94,7 +94,7 @@ When a fundamental thing changes, update the surface docs in the same PR. Rule o
 - No React wrappers around core primitives — only thin bridge hooks in [src/integrations/react.ts](src/integrations/react.ts).
 - No runtime dependencies beyond `dom-expressions`.
 - Server rendering stays inside `src/server/` and `src/hydrate/` — no SSR branches in the client runtime beyond the single renderer-dispatch check in `createElement`. Server code must never reach client bundles.
-- Raw HTML only through `<Fragment html>` / `rawHtml()` (script-inert). The `innerHTML` prop throws in server rendering and hydration; strings elsewhere are text-only.
+- Raw HTML only through `<Fragment html>` (script-inert). The `innerHTML` prop throws in server rendering and hydration; strings elsewhere are text-only.
 - No `Symbol.dispose` on `Signal<T>` / `Computed<T>`.
 - No cycles in the utilities dependency graph.
 - No swallowing errors inside effects — let them propagate.

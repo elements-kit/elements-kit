@@ -8,7 +8,6 @@ import {
   ChildProperties,
   Properties,
 } from "../jsx-runtime/constants";
-import { isRawHtml, RAW_HTML } from "../lib";
 import { ReactivePromise } from "../utilities/promise";
 import { Async } from "../utilities/async";
 import { escapeAttr, escapeHtml } from "./escape";
@@ -248,12 +247,6 @@ function childList(raw: unknown): Chunk[] {
 function child(c: unknown): Chunk[] {
   if (c == null || typeof c === "boolean") return [];
   if (c instanceof SNode) return [c];
-  if (isRawHtml(c)) {
-    const raw = c[RAW_HTML];
-    if (!c.tag) return [raw];
-    const nameAttr = c.name ? ` name="${escapeAttr(c.name)}"` : "";
-    return [`<${c.tag}${nameAttr}>`, raw, `</${c.tag}>`];
-  }
   if (c instanceof ReactivePromise || c instanceof Async) {
     return asyncChild(c as PromiseLike<unknown>);
   }

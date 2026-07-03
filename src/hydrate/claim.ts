@@ -19,7 +19,6 @@ import { ASYNC_REGION } from "../signals/lib";
 import type { AsyncRegionMeta } from "../await";
 import { ReactivePromise } from "../utilities/promise";
 import { Async } from "../utilities/async";
-import { isRawHtml, type RawHtmlNode } from "../lib";
 import { parseHtml } from "../jsx-runtime/fragment";
 
 export interface MismatchInfo {
@@ -156,7 +155,6 @@ function walkChild(cur: Cursor, c: unknown, om?: OnMismatch): void {
     if (c.kind === "for") return claimFor(cur, c, om);
     return claimElement(cur, c, om);
   }
-  if (isRawHtml(c)) return claimRawNode(cur, c, om);
   if (c instanceof ReactivePromise || c instanceof Async) {
     return claimAsync(cur, c as AsyncLike, om);
   }
@@ -372,26 +370,6 @@ function claimRawRegion(cur: Cursor, source: unknown, om?: OnMismatch): void {
     slot.set(parseHtml(value == null ? "" : String(value)));
   });
   onCleanup(() => slot.clear());
-}
-
-/** Bare `rawHtml()` child: adopt the wrapper element (tag/name) if present. */
-function claimRawNode(cur: Cursor, c: RawHtmlNode, om?: OnMismatch): void {
-  if (c.tag) {
-    const node = cur.node;
-    const matches =
-      node !== null &&
-      node.nodeType === Node.ELEMENT_NODE &&
-      (node as Element).localName.toLowerCase() === c.tag.toLowerCase() &&
-      (!c.name || (node as Element).getAttribute("name") === c.name);
-    if (matches) {
-      // Foreign pre-rendered content — adopt the wrapper, skip inside.
-      cur.node = node.nextSibling;
-      return;
-    }
-  }
-  fallback(cur, om, c.tag ? `<${c.tag}>` : "raw-html", () =>
-    resolveChild(c as never),
-  );
 }
 
 // ─ For ────────────────────────────────────────────────────────────────────────

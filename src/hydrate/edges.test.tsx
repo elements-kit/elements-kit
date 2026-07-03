@@ -7,7 +7,6 @@ import { hydrate } from "./index";
 import { signal } from "../signals";
 import { For } from "../for";
 import { Fragment } from "../jsx-runtime/fragment";
-import { rawHtml } from "../lib";
 
 async function serve(app: () => unknown): Promise<HTMLElement> {
   const container = document.createElement("div");
@@ -238,33 +237,5 @@ describe("hydrate edges — raw HTML regions", () => {
     expect(container.querySelector("i")!.textContent).toBe("italic");
   });
 
-  it("adopts rawHtml wrapper elements by tag and name", async () => {
-    const app = () => (
-      <div>{rawHtml("<b>slotted</b>", "astro-slot", "header") as never}</div>
-    );
-    const container = await serve(app);
-    const before = container.querySelector("astro-slot");
 
-    const onMismatch = vi.fn();
-    hydrate(container, app, { onMismatch });
-
-    expect(onMismatch).not.toHaveBeenCalled();
-    expect(container.querySelector("astro-slot")).toBe(before);
-    expect(container.querySelector("b")!.textContent).toBe("slotted");
-  });
-
-  it("falls back to a fresh build when the wrapper is missing", async () => {
-    const container = document.createElement("div");
-    container.innerHTML = "<div></div>";
-
-    const onMismatch = vi.fn();
-    hydrate(
-      container,
-      () => <div>{rawHtml("<b>x</b>", "astro-slot") as never}</div>,
-      { onMismatch },
-    );
-
-    expect(onMismatch).toHaveBeenCalled();
-    expect(container.querySelector("astro-slot b")!.textContent).toBe("x");
-  });
 });

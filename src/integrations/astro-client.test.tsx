@@ -80,7 +80,7 @@ describe("astro-client hydrator", () => {
     const el = document.createElement("astro-island");
     el.setAttribute("ssr", "");
     el.innerHTML =
-      "<section><button>go</button><!--{--><astro-slot><p>body</p></astro-slot><!--}--></section>";
+      "<section><button>go</button><!--{--><!--{--><astro-slot><!--{--><p>body</p><!--}--></astro-slot><!--}--><!--}--></section>";
 
     await hydrator(el)(Card, {}, { default: "<p>body</p>" }, {
       client: "load",
