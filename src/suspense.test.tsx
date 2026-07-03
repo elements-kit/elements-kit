@@ -1,11 +1,12 @@
 /** @jsxRuntime automatic */
 /** @jsxImportSource elements-kit */
 import { describe, it, expect, vi } from "vitest";
-import { lazy, Suspense } from "./suspense";
+import { Suspense } from "./suspense";
 import { renderToString } from "./server";
 import { hydrate } from "./hydrate";
 import { render } from "./render";
 import { signal } from "./signals";
+import { async, type Async } from "./utilities/async";
 import { promise } from "./utilities/promise";
 
 const tick = () => new Promise<void>((r) => setTimeout(r, 0));
@@ -16,119 +17,109 @@ function deferred<T>() {
   return { p, resolve };
 }
 
-describe("lazy()", () => {
-  it("server: streams the resolved component in order", async () => {
-    const Inner = (props: { label: () => string }) => <p>{props.label}</p>;
-    const Lazy = lazy(() => Promise.resolve({ default: Inner }));
-    const html = await renderToString(() => (
-      <div>
-        <Lazy label="hi" />
-      </div>
-    ));
-    expect(html).toContain("<p><!--{-->hi<!--}--></p>");
-    // The resolved value is an element factory — not serializable, so no
-    // ek-data record may be emitted for it.
+// The blessed code-splitting pattern: async + dynamic import. `run()` is
+// awaited by the server stream, deferred during hydration, and doubles as
+// preload when called early.
+const Badge = (props: { label?: () => string } = {}) => (
+  <span>{props.label ?? (() => "loaded")}</span>
+);
+
+describe("code-splitting — async + dynamic import", () => {
+  it("server: streams the imported component in order", async () => {
+    const op = async(() => Promise.resolve(Badge));
+    const html = await renderToString(() => {
+      op.run();
+      return <div>{op as unknown as Element}</div>;
+    });
+    expect(html).toContain("<span><!--{-->loaded<!--}--></span>");
+    // Component functions are not serializable — no ek-data record.
     expect(html).not.toContain("ek-data");
   });
 
   it("client: renders once the import resolves", async () => {
-    const d = deferred<{ default: () => Element }>();
-    const Lazy = lazy(() => d.p);
+    const d = deferred<typeof Badge>();
+    const op = async(() => d.p);
     const host = document.createElement("div");
-    render(host, () => (<div>{(<Lazy />) as never}</div>) as Node);
+    render(host, () => {
+      op.run();
+      return (<div>{op as unknown as Element}</div>) as Node;
+    });
 
     expect(host.querySelector("span")).toBeNull();
-    d.resolve({ default: () => (<span>loaded</span>) as unknown as Element });
+    d.resolve(Badge);
     await tick();
     expect(host.querySelector("span")!.textContent).toBe("loaded");
   });
 
-  it("hydrate: keeps server content until the import resolves", async () => {
-    const Inner = () => <span>content</span>;
-    const ServerLazy = lazy(() => Promise.resolve({ default: Inner }));
+  it("hydrate: keeps server content until the deferred import lands", async () => {
+    const app = (op: Async<undefined, unknown>) => () => {
+      op.run();
+      return <div>{op as unknown as Element}</div>;
+    };
     const container = document.createElement("div");
-    container.innerHTML = await renderToString(() => (
-      <div>
-        <ServerLazy />
-      </div>
-    ));
-
-    const d = deferred<{ default: typeof Inner }>();
-    const ClientLazy = lazy(() => d.p);
-    hydrate(container, () => (
-      <div>
-        <ClientLazy />
-      </div>
-    ));
-
-    // Import pending: server markup stays visible.
-    expect(container.querySelector("span")!.textContent).toBe("content");
-    d.resolve({ default: Inner });
-    await tick();
-    expect(container.querySelector("span")!.textContent).toBe("content");
-  });
-
-  it("memoizes the loader and exposes preload()", async () => {
-    const loader = vi.fn(() =>
-      Promise.resolve({ default: () => (<i>x</i>) as unknown as Element }),
+    container.innerHTML = await renderToString(
+      app(async(() => Promise.resolve(Badge)) as never),
     );
-    const Lazy = lazy(loader);
 
-    await Lazy.preload();
-    const host = document.createElement("div");
-    render(host, () => (<div>{(<Lazy />) as never}</div>) as Node);
+    const d = deferred<typeof Badge>();
+    const importer = vi.fn(() => d.p);
+    hydrate(container, app(async(importer) as never));
+
+    expect(container.querySelector("span")!.textContent).toBe("loaded");
+    expect(importer).toHaveBeenCalledTimes(1); // deferred run executed post-walk
+    d.resolve(Badge);
     await tick();
-
-    expect(loader).toHaveBeenCalledTimes(1);
-    expect(host.querySelector("i")!.textContent).toBe("x");
+    expect(container.querySelector("span")!.textContent).toBe("loaded");
   });
 
-  it("forwards getter props to the loaded component", async () => {
-    const Inner = (props: { label: () => string }) => <em>{props.label}</em>;
-    const Lazy = lazy(() => Promise.resolve({ default: Inner }));
-    const host = document.createElement("div");
-    render(host, () => (<div>{(<Lazy label="w" />) as never}</div>) as Node);
-    await tick();
-
-    expect(host.querySelector("em")!.textContent).toBe("w");
+  it("props recipe: promise of an element factory works on the server", async () => {
+    const chart = promise(
+      Promise.resolve(Badge).then((C) => () => <C label={() => "w"} />),
+    );
+    const html = await renderToString(() => (
+      <div>{chart as unknown as Element}</div>
+    ));
+    // Getter-prop indirection nests one extra marker pair.
+    expect(html).toContain("<span><!--{--><!--{-->w<!--}--><!--}--></span>");
   });
 });
 
 describe("Suspense", () => {
-  it("client: shows the fallback while a lazy child loads, then the content", async () => {
-    const d = deferred<{ default: () => Element }>();
-    const Lazy = lazy(() => d.p);
+  it("client: shows the fallback while the import is pending, then the content", async () => {
+    const d = deferred<typeof Badge>();
+    const op = async(() => d.p);
     const host = document.createElement("div");
-    render(
-      host,
-      () =>
-        (
-          <div>
-            <Suspense fallback={() => (<u>loading…</u>) as never}>
-              <Lazy />
-            </Suspense>
-          </div>
-        ) as Node,
-    );
+    render(host, () => {
+      op.run();
+      return (
+        <div>
+          <Suspense fallback={() => (<u>loading…</u>) as never}>
+            {op as never}
+          </Suspense>
+        </div>
+      ) as Node;
+    });
 
     expect(host.querySelector("u")!.textContent).toBe("loading…");
-    d.resolve({ default: () => (<span>ready</span>) as unknown as Element });
+    d.resolve(Badge);
     await tick();
     expect(host.querySelector("u")).toBeNull();
-    expect(host.querySelector("span")!.textContent).toBe("ready");
+    expect(host.querySelector("span")!.textContent).toBe("loaded");
   });
 
   it("server: awaits and renders the content, never the fallback", async () => {
-    const Inner = () => <span>server-ready</span>;
-    const Lazy = lazy(() => Promise.resolve({ default: Inner }));
-    const html = await renderToString(() => (
-      <div>
-        <Suspense fallback={() => (<u>loading…</u>) as never}>
-          <Lazy />
-        </Suspense>
-      </div>
-    ));
-    expect(html).toContain("server-ready");
+    const op = async(() => Promise.resolve(Badge));
+    const html = await renderToString(() => {
+      op.run();
+      return (
+        <div>
+          <Suspense fallback={() => (<u>loading…</u>) as never}>
+            {op as never}
+          </Suspense>
+        </div>
+      );
+    });
+    expect(html).toContain("loaded");
     expect(html).not.toContain("loading…");
   });
 
@@ -175,63 +166,59 @@ describe("Suspense", () => {
 });
 
 describe("Suspense — hydration", () => {
+  const app = (op: unknown) => () => {
+    (op as { run(): void }).run();
+    return (
+      <div>
+        <Suspense fallback={() => (<u>loading…</u>) as never}>
+          {op as never}
+        </Suspense>
+      </div>
+    );
+  };
+
   it("keeps server content while pending — no fallback flash", async () => {
-    const Inner = () => <span>ready</span>;
-    const ServerLazy = lazy(() => Promise.resolve({ default: Inner }));
     const container = document.createElement("div");
-    container.innerHTML = await renderToString(() => (
-      <div>
-        <Suspense fallback={() => (<u>loading…</u>) as never}>
-          <ServerLazy />
-        </Suspense>
-      </div>
-    ));
+    container.innerHTML = await renderToString(
+      app(async(() => Promise.resolve(Badge))),
+    );
 
-    const d = deferred<{ default: typeof Inner }>();
-    const ClientLazy = lazy(() => d.p);
-    hydrate(container, () => (
-      <div>
-        <Suspense fallback={() => (<u>loading…</u>) as never}>
-          <ClientLazy />
-        </Suspense>
-      </div>
-    ));
+    const d = deferred<typeof Badge>();
+    hydrate(container, app(async(() => d.p)));
 
-    expect(container.querySelector("u")).toBeNull();
-    expect(container.querySelector("span")!.textContent).toBe("ready");
-
-    d.resolve({ default: Inner });
+    // The deferred run() re-enters pending after the walk — the server
+    // content must stay, the fallback must never show.
     await tick();
-    expect(container.querySelector("span")!.textContent).toBe("ready");
+    expect(container.querySelector("u")).toBeNull();
+    expect(container.querySelector("span")!.textContent).toBe("loaded");
+
+    d.resolve(Badge);
+    await tick();
+    expect(container.querySelector("u")).toBeNull();
+    expect(container.querySelector("span")!.textContent).toBe("loaded");
   });
 
   it("keeps ek-data ids aligned for async values after a boundary", async () => {
-    const Inner = () => <span>x</span>;
-    const ServerLazy = lazy(() => Promise.resolve({ default: Inner }));
+    const page = (op: unknown, later: unknown) => () => {
+      (op as { run(): void }).run();
+      return (
+        <div>
+          <Suspense fallback={null as never}>{op as never}</Suspense>
+          <p>{later as never}</p>
+        </div>
+      );
+    };
     const container = document.createElement("div");
-    container.innerHTML = await renderToString(() => (
-      <div>
-        <Suspense fallback={null as never}>
-          <ServerLazy />
-        </Suspense>
-        <p>{promise(Promise.resolve("seeded")) as unknown as Element}</p>
-      </div>
-    ));
+    container.innerHTML = await renderToString(
+      page(
+        async(() => Promise.resolve(Badge)),
+        promise(Promise.resolve("seeded")),
+      ),
+    );
 
-    const d = deferred<{ default: typeof Inner }>();
-    const ClientLazy = lazy(() => d.p);
     const later = promise<string>(new Promise<string>(() => {}));
-    hydrate(container, () => (
-      <div>
-        <Suspense fallback={null as never}>
-          <ClientLazy />
-        </Suspense>
-        <p>{later as unknown as Element}</p>
-      </div>
-    ));
+    hydrate(container, page(async(() => new Promise(() => {})), later));
 
-    // The boundary consumed the same number of ids on both sides, so the
-    // trailing promise seeds from its own record.
     expect(later.state).toBe("fulfilled");
     expect(later.value).toBe("seeded");
   });

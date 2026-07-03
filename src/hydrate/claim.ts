@@ -16,6 +16,7 @@ import {
   untracked,
 } from "../signals";
 import { ASYNC_REGION } from "../signals/lib";
+import type { AsyncRegionMeta } from "../suspense";
 import { ReactivePromise } from "../utilities/promise";
 import { Async } from "../utilities/async";
 import { isRawHtml, type RawHtmlNode } from "../lib";
@@ -254,24 +255,22 @@ function splitProps(props: Record<string, unknown>): {
 
 function claimDynamic(cur: Cursor, getter: () => unknown, om?: OnMismatch): void {
   // Suspense boundaries rendered as async insertion points on the server:
-  // mirror the ids the server consumed and keep the server content on the
-  // tracking first run instead of flashing the fallback.
-  const regionIds = (getter as unknown as Record<symbol, number | undefined>)[
-    ASYNC_REGION
-  ];
+  // mirror the ids the server consumed, and keep the server content for as
+  // long as the region is pending — never flash the fallback over it (even
+  // when deferred runs re-enter pending after the walk).
+  const region = (
+    getter as unknown as Record<symbol, AsyncRegionMeta | undefined>
+  )[ASYNC_REGION];
   const claimed =
     cur.node?.nodeType === Node.COMMENT_NODE &&
     (cur.node as Comment).data === "{";
-  if (regionIds && hydrationContext) hydrationContext.counter += regionIds;
+  if (region && hydrationContext) hydrationContext.counter += region.ids;
 
   const slot = claimSlot(cur, om);
-  let skipFirst = Boolean(regionIds) && claimed;
+  const keepWhilePending = Boolean(region) && claimed;
   effect(() => {
     const value = getter();
-    if (skipFirst) {
-      skipFirst = false;
-      return;
-    }
+    if (keepWhilePending && region!.pending()) return;
     slot.set(resolveChild(value as never));
   });
   onCleanup(() => slot.clear());

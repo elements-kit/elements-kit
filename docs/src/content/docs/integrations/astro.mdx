@@ -137,25 +137,31 @@ Slots are also how [Astro Server Islands](https://docs.astro.build/en/guides/ser
 
 ## Lazy loading & Suspense
 
-`lazy()` code-splits a component behind a dynamic import; `<Suspense>` shows a fallback while it loads. On the server the stream awaits the import — the fallback never server-renders; on hydration the server content stays visible until the chunk lands (no fallback flash):
+Code splitting is not a new primitive — it's `async` + a dynamic import. `<Suspense>` shows a fallback while the import is pending. On the server the stream awaits the import — the fallback never server-renders; on hydration the server content stays visible until the chunk lands (no fallback flash):
 
 <AstroLazy client:load />
 
 ```tsx
-import { lazy, Suspense } from "elements-kit/suspense";
+import { async } from "elements-kit/utilities/async";
+import { Suspense } from "elements-kit/suspense";
 
-const Chart = lazy(() => import("./chart"));
+const chart = async(() => import("./chart").then((m) => m.default));
 
 export default function Panel() {
+  chart.run(); // server: awaited · hydration: deferred · client: import
   return (
-    <Suspense fallback={() => <em>loading…</em>}>
-      <Chart />
-    </Suspense>
+    <Suspense fallback={() => <em>loading…</em>}>{chart}</Suspense>
   );
 }
 ```
 
-`Chart.preload()` starts the import ahead of rendering (e.g. on hover).
+Calling `chart.run()` early (e.g. on hover) doubles as preload. To pass props to the code-split component, resolve it into an element factory:
+
+```tsx
+<Suspense fallback={() => <em>loading…</em>}>
+  {promise(chart.then((C) => () => <C data={data} />))}
+</Suspense>
+```
 
 ### Coexisting with other frameworks
 

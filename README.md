@@ -69,7 +69,7 @@ Every feature is a separate subpath export — import only what you use.
 | `elements-kit/jsx-runtime` | JSX factory + type helpers (`ElementProps`, `Props`, `ComponentProps`, `MaybeReactiveProps`, `ReactiveProps`, `Require`) — configure via `jsxImportSource` |
 | `elements-kit/server` | `renderToStream`, `renderToString` — streaming HTML rendering in any JS runtime (Node, edge/Workers), no DOM required *(experimental)* |
 | `elements-kit/hydrate` | `hydrate(container, () => <App/>)` — adopt server-rendered DOM and make it interactive *(experimental)* |
-| `elements-kit/suspense` | `Suspense`, `lazy` — loading boundaries and code-split components *(experimental)* |
+| `elements-kit/suspense` | `Suspense` — loading boundaries; code splitting = `async` + dynamic import *(experimental)* |
 | `elements-kit/integrations/react` | `useSignal`, `useScope` React bridge hooks |
 | `elements-kit/integrations/astro` | `elementsKit()` Astro integration — elements-kit components as server-rendered, hydrated islands *(experimental)* |
 | `elements-kit/utilities/*` | Reactive browser-API utilities — see [src/utilities/README.md](src/utilities/README.md) |

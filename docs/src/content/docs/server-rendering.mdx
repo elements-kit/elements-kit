@@ -123,7 +123,7 @@ The region lives between slot markers, so it server-renders, hydrates (server co
 
 ## Lazy loading & Suspense
 
-`lazy()` and `<Suspense>` from `elements-kit/suspense` ride the async machinery: the server stream awaits dynamic imports in order (the fallback never server-renders), the client shows the fallback until the chunk lands, and hydration keeps the server content visible. See the [Astro page](/integrations/astro#lazy-loading--suspense) for a live demo.
+Code splitting composes from primitives you already have — `async(() => import("./chart"))` — and `<Suspense>` from `elements-kit/suspense` adds the loading boundary: the server stream awaits dynamic imports in order (the fallback never server-renders), the client shows the fallback until the chunk lands, and hydration keeps the server content visible. See the [Astro page](/integrations/astro#lazy-loading--suspense) for a live demo.
 
 ## Astro
 
