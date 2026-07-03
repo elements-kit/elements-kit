@@ -12,7 +12,7 @@ export default function AstroCounter(props: { start?: () => number }) {
   const double = computed(() => count() * 2);
 
   return (
-    <div class="x-card" style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4)">
+    <div class="unset x-card" data-variant="surface" data-size="2" style="display:flex;align-items:center;gap:var(--space-3)">
       <button
         class="unset x-button"
         data-variant="solid"

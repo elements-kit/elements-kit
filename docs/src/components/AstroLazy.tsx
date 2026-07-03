@@ -16,7 +16,7 @@ const badge = async(() =>
 export default function AstroLazy() {
   badge.run();
   return (
-    <div class="x-card" style="padding:var(--space-3) var(--space-4)">
+    <div class="unset x-card" data-variant="surface" data-size="2">
       <Await fallback={() => (<em>loading the chunk…</em>) as never}>
         {badge as never}
       </Await>

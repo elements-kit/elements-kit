@@ -1,14 +1,51 @@
 ---
 // Shared frame for the live Astro-island demos: pulls in the optional
-// elements-kit/ui styles layer once and spaces the preview off the prose.
+// elements-kit/ui styles layer (same stack the Storybook preview uses —
+// tokens + one neutral + one accent) and spaces the preview off the prose.
 import "elements-kit/ui/styles/theme.css";
 import "elements-kit/ui/styles/scaling.css";
 import "elements-kit/ui/styles/radius.css";
+import "elements-kit/ui/styles/space.css";
+import "elements-kit/ui/styles/typography.css";
+import "elements-kit/ui/styles/cursor.css";
 import "elements-kit/ui/styles/unset.css";
+import "elements-kit/ui/styles/shadow.css";
+import "elements-kit/ui/styles/material.css";
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/neutral/gray.css";
+import "elements-kit/ui/styles/palette/mint.css";
+import "elements-kit/ui/styles/accent/mint.css";
 import "elements-kit/ui/button/button.css";
 import "elements-kit/ui/card/card.css";
 ---
 
-<div class="island-demo not-content" style="margin-block: 1.5rem">
+{/* The theme data-* attributes scope their variables here and cascade to
+    every demo inside — same set the Storybook preview applies. */}
+<div
+  class="island-demo not-content"
+  data-radius="medium"
+  data-scaling="md"
+  data-accent="mint"
+  data-neutral="gray"
+  data-material-background="translucent"
+  style="margin-block: 1.5rem"
+>
   <slot />
 </div>
+
+<script>
+  // elements-kit/ui themes switch on .dark/.light classes; Starlight drives
+  // its theme via data-theme on <html>. Mirror one to the other so demo
+  // surfaces follow the site theme (including live toggles).
+  const root = document.documentElement;
+  const sync = () => {
+    const theme = root.dataset.theme;
+    root.classList.toggle("dark", theme === "dark");
+    root.classList.toggle("light", theme === "light");
+  };
+  sync();
+  new MutationObserver(sync).observe(root, {
+    attributes: true,
+    attributeFilter: ["data-theme"],
+  });
+</script>

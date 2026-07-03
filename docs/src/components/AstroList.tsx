@@ -21,7 +21,7 @@ export default function AstroList() {
   ]);
 
   return (
-    <div class="x-card" style="padding:var(--space-3) var(--space-4)">
+    <div class="unset x-card" data-variant="surface" data-size="2">
       <div style="display:flex;gap:var(--space-2);margin-block-end:var(--space-3)">
         <button
           class="unset x-button"

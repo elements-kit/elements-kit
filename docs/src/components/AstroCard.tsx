@@ -14,7 +14,7 @@ export default function AstroCard(props: {
   const display = computed(() => (open() ? "block" : "none"));
   const label = computed(() => (open() ? "collapse" : "expand"));
   return (
-    <section class="x-card" style="padding:0;overflow:hidden">
+    <section class="unset x-card" data-variant="surface" data-size="2" style="padding:0;overflow:hidden">
       <header style="display:flex;justify-content:space-between;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-4)">
         {props["slot:header"] as never}
         <button
