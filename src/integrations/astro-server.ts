@@ -10,7 +10,9 @@ type RendererFn<T> = (
   Component: unknown,
   props: Record<string, unknown> | null | undefined,
   slots: Record<string, string>,
-  metadata?: Record<string, unknown>,
+  // Structural minimum of astro's AstroComponentMetadata — the contract-pin
+  // test checks assignability against the installed astro's real type.
+  metadata?: { astroStaticSlot?: boolean },
 ) => Promise<T>;
 
 interface ElementsKitSSRRenderer {

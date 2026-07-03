@@ -403,7 +403,8 @@ function claimFor(cur: Cursor, v: ForVNode, om?: OnMismatch): void {
 
       const item = items[index] as never;
       const key = inst.by(item, index);
-      if (String(key) !== keyStr) break; // order drift — reconcile heals
+      // Server markers carry the encoded key (see server forElement).
+      if (encodeURIComponent(String(key)) !== keyStr) break; // drift — heals
 
       let dispose!: () => void;
       untracked(() => {
@@ -425,8 +426,27 @@ function claimFor(cur: Cursor, v: ForVNode, om?: OnMismatch): void {
     node = node.nextSibling;
   }
 
+  // Remove server rows the claim couldn't adopt — the first reconcile
+  // rebuilds them fresh. Without this sweep, healed rows would duplicate
+  // the leftover server markup.
+  const keep = new Set<ChildNode>();
+  for (const entry of entries.values()) {
+    let kept: ChildNode | null = entry.start;
+    while (kept) {
+      keep.add(kept);
+      if (kept === entry.end) break;
+      kept = kept.nextSibling;
+    }
+  }
+  let stray: ChildNode | null = range.start.nextSibling;
+  while (stray && stray !== range.end) {
+    const next = stray.nextSibling;
+    if (!keep.has(stray)) stray.remove();
+    stray = next;
+  }
+
   inst.hydrateRange(range.start, range.end, entries, order);
-  // hydrateRange's first reconcile heals anything left unclaimed.
+  // hydrateRange's first reconcile heals anything the claim skipped.
 }
 
 function findEntryEnd(

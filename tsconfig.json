@@ -5,6 +5,7 @@
     "lib": ["ES2022", "DOM"],
     "module": "preserve",
     "moduleResolution": "bundler",
+    "skipLibCheck": true,
     "allowImportingTsExtensions": true,
     "emitDeclarationOnly": true,
     "declaration": true,

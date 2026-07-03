@@ -1,5 +1,5 @@
 import type { Component, ComponentFn } from "../jsx-runtime/types";
-import { Fragment, isFragmentComponent } from "../jsx-runtime/fragment";
+import { isFragmentComponent } from "../jsx-runtime/fragment";
 import { isForComponent } from "../for";
 import { isReactive, resolveProps, untracked } from "../signals";
 import {
@@ -284,8 +284,15 @@ function forElement(props: Record<string, unknown>): SNode {
 
   const chunks: Chunk[] = [FOR_OPEN];
   (items ?? []).forEach((item, index) => {
-    const key = by(item, index);
-    chunks.push(`<!--[${key}]-->`, ...child(render(item, index)), `<!--[/${key}]-->`);
+    // Encoded so a hostile key can't terminate the marker comment (`-->`)
+    // or fake an entry boundary (`]`). Digit/word keys pass through
+    // unchanged; the claim walk compares encoded forms.
+    const key = encodeURIComponent(String(by(item, index)));
+    chunks.push(
+      `<!--[${key}]-->`,
+      ...child(render(item, index)),
+      `<!--[/${key}]-->`,
+    );
   });
   chunks.push(FOR_CLOSE);
   return new SNode(chunks);
