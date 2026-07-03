@@ -20,6 +20,7 @@ export default defineConfig([
       "src/hydrate/index.ts",
       "src/utilities/*.ts",
       "src/integrations/*.ts",
+      "!src/**/*.test.*",
       "src/ui/overlay/index.ts",
     ],
     deps: {
