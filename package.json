@@ -109,6 +109,7 @@
       "import": "./dist/ui/overlay/index.mjs",
       "types": "./dist/ui/overlay/index.d.mts"
     },
+    "./ui/styles.css": "./dist/ui/styles/index.css",
     "./ui/*": "./dist/ui/*"
   },
   "scripts": {

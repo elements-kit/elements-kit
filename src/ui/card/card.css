@@ -87,6 +87,7 @@
  *                                                                                                 *
  ***************************************************************************************************/
 
+:where(:root),
 :where([data-neutral]) {
   /* surface — single ring on ::after, lifts contrast on hover/active */
   --card-surface-box-shadow: 0 0 0 1px var(--neutral-a5);

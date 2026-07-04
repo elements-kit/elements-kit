@@ -42,7 +42,8 @@
     --base-button-height: var(--space-5);
     border-radius: max(var(--radius-1), var(--radius-pill));
   }
-  &:where([data-size="2"]) {
+  /* size 2 is also the default when data-size is absent */
+  &:where([data-size="2"], :not([data-size])) {
     --base-button-height: var(--space-6);
     border-radius: max(var(--radius-2), var(--radius-pill));
   }
@@ -62,7 +63,7 @@
  *                                                                                                 *
  ***************************************************************************************************/
 
-/* solid */
+/* solid (default) */
 
 :where(:root) {
   --base-button-solid-active-filter: brightness(0.92) saturate(1.1);
@@ -80,7 +81,7 @@
     saturate(1.2);
 }
 
-.x-button:where([data-variant="solid"]) {
+.x-button:where(:not([data-variant]), [data-variant="solid"]) {
   background-color: var(--accent-9);
   color: var(--accent-contrast);
 
@@ -335,7 +336,7 @@
       --button-text-padding-y: var(--space-1);
     }
   }
-  &:where([data-size="2"]) {
+  &:where([data-size="2"], :not([data-size])) {
     gap: var(--space-2);
     font-size: var(--font-size-2);
     line-height: var(--line-height-2);

@@ -1,0 +1,31 @@
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/*                                                                             */
+/*  Token barrel — the color-agnostic token + reset layer, in one import.      */
+/*                                                                             */
+/*      import "elements-kit/ui/styles/index.css";                             */
+/*                                                                             */
+/*  Ships structural tokens (radius, space, scaling, typography, shadow,        */
+/*  material, cursor) + the `unset` reset. It carries NO color scale.          */
+/*                                                                             */
+/*  Bring your own color layer — import a neutral and an accent, e.g.          */
+/*      import "elements-kit/ui/styles/palette/slate.css";                     */
+/*      import "elements-kit/ui/styles/neutral/slate.css";   // data-neutral="slate" */
+/*      import "elements-kit/ui/styles/palette/blue.css";                      */
+/*      import "elements-kit/ui/styles/accent/blue.css";     // data-accent="blue"   */
+/*                                                                             */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/* Semantic layer — brings palette/black-alpha + palette/white-alpha. */
+@import "./theme.css";
+
+/* Scales. */
+@import "./scaling.css";
+@import "./space.css";
+@import "./radius.css";
+@import "./typography.css";
+@import "./shadow.css";
+@import "./material.css";
+@import "./cursor.css";
+
+/* Element reset applied via the `unset` class. */
+@import "./unset.css";

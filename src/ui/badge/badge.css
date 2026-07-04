@@ -27,7 +27,8 @@
     gap: calc(var(--space-1) * 1.5);
     border-radius: max(var(--radius-1), var(--radius-pill));
   }
-  &:where([data-size="2"]) {
+  /* size 2 is also the default when data-size is absent */
+  &:where([data-size="2"], :not([data-size])) {
     font-size: var(--font-size-1);
     line-height: var(--line-height-1);
     letter-spacing: var(--letter-spacing-1);
@@ -51,9 +52,9 @@
  *                                                                                                 *
  ***************************************************************************************************/
 
-/* solid */
+/* solid (default) */
 
-.x-badge:where([data-variant="solid"]) {
+.x-badge:where(:not([data-variant]), [data-variant="solid"]) {
   background-color: var(--accent-9);
   color: var(--accent-contrast);
 

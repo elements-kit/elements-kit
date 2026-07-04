@@ -13,33 +13,43 @@ Components in this section are **headless** — they ship with no CSS. The `elem
 
 ## Install
 
-<Tabs>
-  <TabItem label="Everything">
-```ts
-import "elements-kit/ui/styles/theme.css";
-import "elements-kit/ui/styles/material.css";
-import "elements-kit/ui/styles/scaling.css";
-import "elements-kit/ui/styles/radius.css";
-import "elements-kit/ui/styles/space.css";
-import "elements-kit/ui/styles/shadow.css";
-import "elements-kit/ui/styles/typography.css";
-import "elements-kit/ui/styles/cursor.css";
-import "elements-kit/ui/styles/unset.css";
+The token layer is color-agnostic: `styles.css` bundles every structural token (radius, space, scaling, typography, shadow, material, cursor) plus the `unset` reset in one import, and you add a **neutral** and an **accent** on top. Nothing is grayscale-by-default — you pick the palette.
 
-// One gray scale (pick one)
+<Tabs>
+  <TabItem label="Recommended">
+```ts
+// Structural tokens + reset (one import):
+import "elements-kit/ui/styles.css";
+
+// A neutral scale (pick one):
+import "elements-kit/ui/styles/palette/slate.css";
 import "elements-kit/ui/styles/neutral/slate.css";
-// One accent scale (any color)
-import "elements-kit/ui/styles/accent/green.css";
+
+// An accent scale (any color):
+import "elements-kit/ui/styles/accent/neutral.css";
+```
+
+Then **activate them once on your root** — accent/neutral only apply inside `data-accent` / `data-neutral`, so set them high up and every component below is styled with no per-element attributes:
+
+```html
+<html data-accent="neutral" data-neutral="slate">
 ```
   </TabItem>
   <TabItem label="Pick & choose">
 ```ts
+// Or hand-pick individual token files instead of the barrel:
 import "elements-kit/ui/styles/typography.css";
 import "elements-kit/ui/styles/radius.css";
+import "elements-kit/ui/styles/unset.css";
 import "elements-kit/ui/styles/palette/blue.css";
+import "elements-kit/ui/styles/accent/blue.css";
 ```
   </TabItem>
 </Tabs>
+
+<Aside type="tip">
+  `styles.css` carries no color. Colors need **both** the imported scales **and** a matching `data-accent` / `data-neutral` on an ancestor (the accent/neutral files only map their tokens inside `[data-accent="…"]` / `[data-neutral="…"]`) — set them once on `<html>`. Without an active accent, `--accent-*` / `--neutral-*` are undefined and components render uncolored. Radius, size, and each component's default variant/size need no color and work from `styles.css` alone.
+</Aside>
 
 ## Theming via data attributes
 
@@ -114,7 +124,7 @@ Scales:
 
 ### Radius
 
-`--radius-1`..`--radius-6`, `--radius-pill`, `--radius-thumb`. All scale with `--radius-factor` (driven by `data-radius`) and `--scaling`.
+`--radius-1`..`--radius-6`, `--radius-pill`, `--radius-thumb`. All scale with `--radius-factor` (driven by `data-radius`) and `--scaling`. `radius.css` sets the `medium` values at `:root`, so radius resolves even without a `data-radius` ancestor; set `data-radius` to override.
 
 ### Spacing
 
@@ -160,7 +170,7 @@ To swap the active accent, import a different `accent/<color>.css`:
 
 ```ts
 // Replace this …
-import "elements-kit/ui/styles/accent/green.css";
+import "elements-kit/ui/styles/accent/neutral.css";
 // … with this.
 import "elements-kit/ui/styles/accent/iris.css";
 ```
