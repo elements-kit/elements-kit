@@ -26,7 +26,7 @@ pnpm --filter example dev               # example (Vite)
 pnpm build:docs                         # lib + docs
 ```
 
-Package manager: **pnpm 10.33**, workspaces defined in [pnpm-workspace.yaml](pnpm-workspace.yaml).
+Package manager: **pnpm 10.33**, workspaces defined in [pnpm-workspace.yaml](pnpm-workspace.yaml). Node: **24+** for the test suite — it relies on the native `URLPattern` global ([src/utilities/routing.ts](src/utilities/routing.ts)); consumers on older runtimes bring a polyfill per [ARCHITECTURE §7](ARCHITECTURE.md).
 
 ## Build & test
 

@@ -13,9 +13,11 @@ jobs:
 
       - uses: pnpm/action-setup@v4 # version from package.json packageManager
 
+      # Node 24+: the test suite uses the native URLPattern global
+      # (src/utilities/routing.ts) — unflagged since Node 24.
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
 
       - name: Install
