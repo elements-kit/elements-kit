@@ -1,0 +1,94 @@
+---
+title: Group
+description: CSS-only wrapper that attaches adjacent controls — buttons, inputs, selects, toggles — into one joined unit.
+---
+
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
+
+A `.x-group` wraps sibling controls so they read as one joined bar: interior corners flatten, the 1px borders between neighbours collapse to a single hairline, and the hovered or focused control lifts its border and focus ring above its neighbours. No JS — the joining is pure CSS driven by child position.
+
+<StorybookEmbed story="ui-group--button-toolbar" />
+
+## Install
+
+```ts
+import "elements-kit/ui/styles.css";
+
+// a neutral + an accent scale for theming:
+import "elements-kit/ui/styles/palette/slate.css";
+import "elements-kit/ui/styles/neutral/slate.css";
+import "elements-kit/ui/styles/palette/mint.css";
+import "elements-kit/ui/styles/accent/mint.css";
+// the group primitive, plus whichever controls you join:
+import "elements-kit/ui/group/group.css";
+import "elements-kit/ui/button/button.css";
+import "elements-kit/ui/text-input/text-input.css";
+```
+
+See [Styles](/ui/styles) for the full token system, accent/gray scale lists, and theming knobs.
+
+## API
+
+`.x-group` is a class-only wrapper. Its children are ordinary [`.x-button`](/ui/button), [`.x-text-input`](/ui/text-input), [`.x-select`](/ui/select), and [`.x-toggle`](/ui/toggle) elements — no group-specific markup on them.
+
+```html
+<div class="x-group" role="group" aria-label="Text style">
+  <button class="unset x-button" data-variant="outline">Bold</button>
+  <button class="unset x-button" data-variant="outline">Italic</button>
+  <button class="unset x-button" data-variant="outline">Underline</button>
+</div>
+```
+
+Attach a field to a button by placing them in the same group. Text-inputs and selects flex-grow to fill; buttons and toggles keep their intrinsic width.
+
+```html
+<div class="x-group">
+  <input class="unset x-text-input" data-variant="surface" placeholder="Search" />
+  <button class="unset x-button" data-variant="solid">Go</button>
+</div>
+```
+
+| Attribute | Values |
+| --- | --- |
+| `role` | `group` / `toolbar` / `radiogroup` — author-owned, per the controls inside |
+| child `data-size` | `1`, `2`, `3` — set the **same** value on every child |
+| child `data-variant` | each control's own variants (`solid`, `outline`, `surface`, …) |
+
+The group joins whatever variants you give it. `outline` and `surface` children collapse their two 1px borders into one hairline; adjacent `solid` buttons — which share the accent fill — get a hairline divider in the button's own contrast colour instead.
+
+## Sizing
+
+Every child in a group must carry the same `data-size`. Heights and radii are size-derived, so a mismatched child breaks alignment and leaves the seam uneven. The group forces no uniform radius of its own — each end keeps the control's native outer radius, which respects `data-radius` on a parent (set `data-radius="pill"` for pill ends).
+
+## How joining works
+
+The group flattens only the interior-facing corners: the first child keeps its leading corners, the last keeps its trailing corners, middle children are squared off. Corners use logical properties, so the join flips correctly under `dir="rtl"`. Neighbours overlap by 1px so their borders never double up, and the interacted control raises its `z-index` so its focus ring paints on top.
+
+:::note[Two levels of attachment]
+Affixes *inside a single field* — a leading icon or a trailing shortcut chip — use the [text-input wrapper](/ui/text-input) form, not a group. Use `.x-group` to join a field to a *separate* control. The two compose: a wrapper-form text-input can itself be a group child, and the group flattens both the wrapper and its inner input on the seam side.
+:::
+
+## Accessibility
+
+The group is presentational — it paints, it carries no semantics. You own the roles, exactly as with [segmented control](/ui/segmented-control):
+
+1. **Label the group.** A toolbar of buttons wants `role="toolbar"` (or `role="group"`) plus `aria-label`. A set of exclusive toggles wants `role="radiogroup"` and native radios with a shared `name`.
+2. **Keep each control's own semantics.** Buttons stay `<button>`, inputs stay `<input>`. The group changes none of that.
+3. **Don't rely on the seam alone** to convey grouping to assistive tech — the role and label do that. In Windows High Contrast the hairlines fall back to a `ButtonText` border so the boundary stays visible.
+
+## When not to use
+
+- **Single-select from a short list** — that's the [segmented control](/ui/segmented-control), which carries a selection indicator and radio semantics. A group has no selected state.
+- **Spacing a row of controls** — if you want gaps rather than a joined unit, use flexbox with `gap`. The group is attached-only.
+- **Vertical stacks** — v1 is horizontal only.
+
+## Browser support
+
+Works in every browser meeting `elements-kit`'s build targets (Chrome / Firefox 100+, Safari 16+). Corner flattening and the seam overlap use logical border-radius properties and `:is()`, both long-shipped. The solid-button divider uses [`color-mix()`](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/color-mix) (Chrome / Edge 111+, Safari 16.2+, Firefox 113+); where it is unsupported, adjacent solid buttons simply show no divider — every other join still renders.
+
+## See also
+
+- [Button](/ui/button) — the most common group child
+- [Text Input](/ui/text-input) — bare and wrapper (affix) forms
+- [Segmented Control](/ui/segmented-control) — single-select, with an indicator
+- [Styles](/ui/styles) — tokens, radius, and theming

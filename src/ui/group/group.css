@@ -1,0 +1,142 @@
+/***************************************************************************************************
+ *                                                                                                 *
+ * x-group — attach adjacent controls into a single joined unit. CSS-only, no JS.                   *
+ *                                                                                                 *
+ * Wraps sibling controls (buttons, text-inputs, selects, toggles) so they read as one bar:         *
+ * interior corners flattened, the 1px seam between neighbours collapsed to a hairline, and the      *
+ * hovered/focused control's border + focus ring lifted above its overlapped neighbour.             *
+ *                                                                                                 *
+ * ARIA is author-owned (add role="group"/"toolbar" + a label), exactly like x-segmented-control.    *
+ * Children should share the same data-size — heights and radii are size-derived.                    *
+ *                                                                                                 *
+ * v1: horizontal, attached-only. Authored with logical properties so a future                       *
+ * data-orientation="vertical" is an additive flip.                                                 *
+ *                                                                                                 *
+ *   <div class="x-group" role="group" aria-label="Text style">                                     *
+ *     <button class="unset x-button" data-variant="outline">Bold</button>                          *
+ *     <button class="unset x-button" data-variant="outline">Italic</button>                        *
+ *   </div>                                                                                         *
+ *                                                                                                 *
+ *   <div class="x-group">                                                                          *
+ *     <input class="unset x-text-input" data-variant="surface" placeholder="Search" />             *
+ *     <button class="unset x-button" data-variant="solid">Go</button>                              *
+ *   </div>                                                                                         *
+ *                                                                                                 *
+ * Groupable child set: .x-button, .x-text-input, .x-select, .x-toggle. Extend the :is() lists       *
+ * below when adding a new joinable control. The list is enumerated (not `> *`) so these rules       *
+ * outrank each control's own 0,1,0 radius rules regardless of stylesheet load order.               *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-group {
+  display: inline-flex;
+  align-items: stretch;
+  vertical-align: top;
+  /* Contain the children's z-index lift so it can't reorder against page siblings. */
+  isolation: isolate;
+}
+
+/* Fields grow to fill; buttons/toggles keep their intrinsic width. */
+.x-group > :is(.x-text-input, .x-select) {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * STACKING — lift the interacted control above its overlapped neighbour so its border + focus      *
+ * ring paint on top instead of being clipped under the sibling.                                    *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-group > :is(.x-button, .x-text-input, .x-select, .x-toggle) {
+  position: relative;
+  z-index: 0;
+}
+
+.x-group
+  > :is(.x-button, .x-text-input, .x-select, .x-toggle):where(
+    :hover,
+    :focus-within
+  ) {
+  z-index: 1;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SEAM — overlap the 1px inset-box-shadow borders of adjacent controls into one hairline.          *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-group > :is(.x-button, .x-text-input, .x-select, .x-toggle):not(:first-child) {
+  margin-inline-start: -1px;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * CORNERS — flatten only the interior-facing corners (logical props → RTL-safe). Each control       *
+ * keeps its OWN native outer radius: first child keeps leading corners, last keeps trailing,        *
+ * a lone child keeps all four. No radius formula is restated here.                                  *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* All but the last — flatten the trailing (logical-end) corners. */
+.x-group > :is(.x-button, .x-text-input, .x-select, .x-toggle):not(:last-child) {
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+
+/* All but the first — flatten the leading (logical-start) corners. */
+.x-group > :is(.x-button, .x-text-input, .x-select, .x-toggle):not(:first-child) {
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+}
+
+/* Wrapper-form text-input (<div class="x-text-input"><span>affix</span><input></div>) keeps its
+ * own inner <input> radius (calc(border-radius - border-width)), rounded on the side facing no
+ * affix. Flatten that inner corner on the group-seam side too, or it pokes past the flat wrapper
+ * edge. Bare-input text-inputs have no `> input` child, so these rules are wrapper-only. */
+.x-group > .x-text-input:not(:last-child) > input {
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+.x-group > .x-text-input:not(:first-child) > input {
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SOLID DIVIDER — adjacent solid buttons share --accent-9, so the seam is invisible. Draw a         *
+ * hairline in the button's own contrast colour so it reads on any accent hue in both themes.        *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-group
+  > .x-button[data-variant="solid"]
+  + .x-button[data-variant="solid"] {
+  box-shadow: inset 1px 0 0 0
+    color-mix(in srgb, var(--accent-contrast) 20%, transparent);
+}
+[dir="rtl"]
+  .x-group
+  > .x-button[data-variant="solid"]
+  + .x-button[data-variant="solid"] {
+  box-shadow: inset -1px 0 0 0
+    color-mix(in srgb, var(--accent-contrast) 20%, transparent);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * FORCED COLORS — box-shadows drop, so the seam overlap can merge neighbours into one block.        *
+ * Restore an explicit system-coloured divider and undo the overlap so it stays visible.            *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+@media (forced-colors: active) {
+  .x-group
+    > :is(.x-button, .x-text-input, .x-select, .x-toggle):not(:first-child) {
+    margin-inline-start: 0;
+    border-inline-start: 1px solid ButtonText;
+  }
+}
