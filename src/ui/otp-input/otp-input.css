@@ -1,0 +1,228 @@
+/***************************************************************************************************
+ *                                                                                                 *
+ * x-otp-input — segmented OTP / pin input.                                                         *
+ *                                                                                                 *
+ * The host owns a shadow root holding a transparent overlay <input> (styled inline) + a <slot>     *
+ * projecting the authored cells. This stylesheet styles the light-DOM visual layer. Cells reuse    *
+ * the same size scale, variants, border and focus tokens as text-input so an OTP field reads as     *
+ * part of the same family.                                                                         *
+ *                                                                                                 *
+ *   <x-otp-input maxlength="6" data-size="2" data-variant="surface">                               *
+ *     <x-otp-group><x-otp-slot index="0"></x-otp-slot> … </x-otp-group>                            *
+ *     <x-otp-separator></x-otp-separator>                                                          *
+ *     <x-otp-group> … </x-otp-group>                                                               *
+ *   </x-otp-input>                                                                                 *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+x-otp-input {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  vertical-align: top;
+
+  font-family: var(--default-font-family);
+  color: var(--neutral-12);
+
+  /* size 2 (default) — mirrors .x-text-input[data-size="2"] */
+  --otp-cell-height: var(--space-6);
+  --otp-cell-radius: var(--radius-2);
+  --otp-cell-font: var(--font-size-3);
+  --otp-border-width: 1px;
+  --otp-border-color: var(--neutral-a7);
+  --otp-focus-color: var(--focus-8);
+  --otp-surface: var(--color-surface);
+}
+
+x-otp-input:where([data-size="1"]) {
+  --otp-cell-height: var(--space-5);
+  --otp-cell-radius: var(--radius-2);
+  --otp-cell-font: var(--font-size-2);
+  gap: var(--space-2);
+}
+x-otp-input:where([data-size="3"]) {
+  --otp-cell-height: var(--space-7);
+  --otp-cell-radius: var(--radius-3);
+  --otp-cell-font: var(--font-size-4);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * GROUP — attached cells (shared edges, only the group's outer corners rounded).                  *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+x-otp-group {
+  display: inline-flex;
+  align-items: stretch;
+  isolation: isolate;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * CELL                                                                                            *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+x-otp-slot {
+  position: relative;
+  z-index: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: var(--otp-cell-height);
+  /* Slightly wider than tall so digits sit comfortably; never narrower than square. */
+  min-width: calc(var(--otp-cell-height) * 0.9);
+  padding-inline: calc(var(--otp-cell-height) * 0.28);
+
+  font-size: var(--otp-cell-font);
+  font-weight: var(--font-weight-medium);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  user-select: none;
+
+  background-color: var(--otp-surface);
+  border: var(--otp-border-width) solid var(--otp-border-color);
+  border-radius: var(--otp-cell-radius);
+}
+
+/* Attach cells within a group: flatten interior corners; each seam is drawn
+ * once — non-first cells drop their leading border and abut the previous cell's
+ * trailing border (no overlap, so alpha borders never stack into a darker line). */
+x-otp-group > x-otp-slot:not(:last-child) {
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+x-otp-group > x-otp-slot:not(:first-child) {
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+  border-inline-start-width: 0;
+}
+
+/* Empty-cell placeholder character. */
+x-otp-slot:where([data-placeholder]) {
+  color: var(--neutral-a8);
+}
+
+/* Active cell — the caret position. Ring uses the same focus color as text-input;
+ * lifts above attached neighbours. */
+/* Active (caret) cell — a uniform 2px ring. It must sit ON TOP of the shared
+ * seam (drawn by the neighbour's border, since non-first cells drop their
+ * leading border), so an inset shadow can't reach it — use an OUTSET ring that
+ * hugs the outer edge on all sides and lifts above neighbours via z-index. The
+ * cell's own border width goes to 0 (box-border keeps the size) so the outer
+ * sides don't read border + ring while the seam sides read ring only. */
+x-otp-slot:where([data-active]) {
+  z-index: 1;
+  border-width: 0;
+  box-shadow: 0 0 0 2px var(--otp-focus-color);
+}
+
+/* Range selection (Shift-arrows, drag, select-all) — a continuous tint across
+ * the selected cells, so shared seams never show a doubled ring. */
+x-otp-slot:where([data-selected]) {
+  z-index: 1;
+  background-color: var(--accent-a4);
+}
+
+x-otp-slot:where([data-disabled]) {
+  color: var(--neutral-a8);
+  background-color: var(--neutral-a2);
+  border-color: var(--neutral-a6);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * FAKE CARET — the real input's caret is transparent; draw a blinking one in the active cell.     *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+x-otp-slot:where([data-caret])::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 1px;
+  height: 1.1em;
+  background-color: var(--neutral-12);
+  animation: x-otp-caret-blink 1s steps(1, start) infinite;
+}
+
+@keyframes x-otp-caret-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SEPARATOR                                                                                       *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+x-otp-separator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--neutral-a8);
+}
+
+x-otp-separator:where(:empty)::before {
+  content: "";
+  width: var(--space-3);
+  height: 2px;
+  border-radius: var(--radius-thumb);
+  background-color: currentColor;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SOFT VARIANT — mirrors .x-text-input[data-variant="soft"] (accent-tinted, borderless).          *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+x-otp-input:where([data-variant="soft"]) {
+  --otp-border-width: 0px;
+  --otp-focus-color: var(--accent-8);
+}
+x-otp-input:where([data-variant="soft"]) x-otp-slot {
+  background-color: var(--accent-a3);
+  color: var(--accent-12);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * MOTION / FORCED COLORS                                                                          *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+@media (prefers-reduced-motion: reduce) {
+  x-otp-slot:where([data-caret])::after {
+    animation: none;
+  }
+}
+
+@media (forced-colors: active) {
+  x-otp-slot {
+    border-color: ButtonText;
+  }
+  x-otp-slot:where([data-active]) {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+  x-otp-slot:where([data-selected]) {
+    background-color: Highlight;
+    color: HighlightText;
+  }
+  x-otp-slot:where([data-caret])::after {
+    background-color: CanvasText;
+  }
+}

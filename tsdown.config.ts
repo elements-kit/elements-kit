@@ -23,6 +23,7 @@ export default defineConfig([
       "src/integrations/*.ts",
       "!src/**/*.test.*",
       "src/ui/overlay/index.ts",
+      "src/ui/otp-input/index.ts",
     ],
     deps: {
       neverBundle: ["react", "react-dom"],
