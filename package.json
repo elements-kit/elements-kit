@@ -134,6 +134,7 @@
     "vitest": "^4.1.2"
   },
   "dependencies": {
+    "@floating-ui/dom": "^1.7.6",
     "dom-expressions": "^0.40.6"
   },
   "peerDependencies": {

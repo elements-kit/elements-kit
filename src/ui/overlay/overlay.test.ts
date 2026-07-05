@@ -299,7 +299,7 @@ describe("createOverlayGestures", () => {
     overlay.remove();
   });
 
-  it("does not engage when data-anchor is element (reserved)", () => {
+  it("does not engage when data-anchor is element (anchored mode)", () => {
     const overlay = createOverlay({ resize: "block-start" });
     overlay.setAttribute("data-anchor", "element");
     const gestures = createOverlayGestures(overlay);

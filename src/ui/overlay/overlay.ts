@@ -1,4 +1,5 @@
 import { onCleanup } from "@/signals/index.ts";
+import { anchorOverlay, type OverlayAnchor } from "./anchor.ts";
 import {
   type ConstraintRect,
   constrainOverlay,
@@ -11,8 +12,12 @@ import {
 
 export interface OverlayConfig extends OverlayGestureOptions {
   /** Confine the overlay to an element's rect (or a custom
-   * {@link ConstraintRect}). Omit for the default viewport constraint. */
+   * {@link ConstraintRect}). Omit for the default viewport constraint.
+   * Ignored when `anchor` is set — the two are mutually exclusive. */
   constrain?: Element | ConstraintRect;
+  /** Anchor the overlay to an element (popover placement) — see
+   * `anchorOverlay`. Gestures never engage on anchored overlays. */
+  anchor?: Element;
 }
 
 export interface OverlayController {
@@ -38,23 +43,26 @@ export interface OverlayController {
  * const o = overlay(el, {
  *   constrain: document.querySelector("main")!,
  *   resize: detents([0.25, 0.6, 0.9]),
- *   onResize: (size) => console.log(size),
  * });
+ * el.addEventListener("resizechange", (e) => e.detail);
  * ```
  */
 export function overlay(
   el: HTMLElement,
   config?: OverlayConfig,
 ): OverlayController {
-  const { constrain, ...gestureOptions } = config ?? {};
+  const { constrain, anchor, ...gestureOptions } = config ?? {};
 
+  let anchored: OverlayAnchor | null = null;
   let constraint: OverlayConstraint | null = null;
-  if (constrain) constraint = constrainOverlay(el, constrain);
+  if (anchor) anchored = anchorOverlay(el, anchor);
+  else if (constrain) constraint = constrainOverlay(el, constrain);
 
   const gestures = createOverlayGestures(el, gestureOptions);
 
   const dispose = () => {
     gestures.dispose();
+    anchored?.dispose();
     constraint?.dispose();
   };
   onCleanup(dispose);

@@ -27,6 +27,18 @@
  *   DRAGGABLE — `data-draggable` (boolean), the x/y window move from
  *   the top strip.
  *
+ *   ANCHOR — `data-anchor="element"`, element-relative placement for
+ *   popovers (menus, tooltips, pickers). Where CSS anchor positioning
+ *   exists (index.css ANCHORED MODE) the anchor is the popover invoker
+ *   (`popovertarget` / `showPopover({ source })`); elsewhere, and for
+ *   programmatic opens, wire `anchorOverlay(el, trigger)` (or
+ *   `overlay(el, { anchor })`). `--overlay-area` picks the side,
+ *   `--overlay-gap` the distance. Anchored overlays should omit
+ *   `data-resize` / `data-draggable` — gestures never engage on them —
+ *   and don't combine `anchor` with `constrain` (the rect still caps
+ *   size but no longer positions; `overlay()` ignores `constrain` when
+ *   `anchor` is set).
+ *
  *   MODALITY — how you open it, no attribute:
  *     dialog.showModal()          modal: focus trap, inert page, backdrop
  *     popover + popovertarget     non-modal top layer, light dismiss
@@ -54,6 +66,13 @@
  *     </dialog>
  *     <button popovertarget="panel">Toggle panel</button>
  *
+ *   Anchored popover (menu under its trigger):
+ *     <button popovertarget="menu">Open menu</button>
+ *     <dialog class="unset x-overlay" popover id="menu" data-anchor="element"
+ *             style="--overlay-area: block-end span-inline-end">
+ *       <div class="x-card" data-variant="elevated">…</div>
+ *     </dialog>
+ *
  * Changing the location point or size channels on an open overlay morphs
  * it with a plain CSS transition — everything is expressed in
  * interpolable lengths.
@@ -62,7 +81,14 @@
  *   data-resize        handle side, see vocabulary above (no default);
  *                      also shows the resize affordance
  *   data-draggable     boolean — x/y move gesture + move affordance
- *   data-anchor        reserved, do not use
+ *   data-anchor        "element" — anchor to the invoker (see ANCHOR
+ *                      above); gestures never engage
+ *   --overlay-area     anchored-mode side — any position-area value
+ *                      (block-end). Must be VALID: under the native tier
+ *                      an invalid value computes to `position-area: none`
+ *                      (IACVT — the var() fallback does not rescue it)
+ *                      and the box parks at the static position
+ *   --overlay-gap      anchored-mode distance to the anchor (--space-2)
  *   data-material-background  the card surface defaults to solid inside
  *                      an overlay when no material context is declared;
  *                      an explicit value on the frame or any ancestor
@@ -79,6 +105,15 @@
  *                        adds enter/exit transitions via @starting-style.
  *   Tier 3 (nested)    — `@supports (overlay: auto)` keeps the exit
  *                        transition inside the top layer.
+ *   Anchored           — `@supports (anchor-name: --x) and
+ *                        (position-area: block-end)` places
+ *                        `data-anchor="element"` against its anchor
+ *                        (index.css); below the gate the centered scheme
+ *                        holds unless `anchorOverlay` (JS, Floating UI)
+ *                        drives the location channels. Note: toggling
+ *                        `data-anchor` on an open overlay snaps —
+ *                        top/left flip to/from `auto`, which doesn't
+ *                        interpolate.
  *
  * Gestures are opt-in JS — see `createOverlayGestures` in
  * elements-kit/ui/overlay. Edge handles drag the size along their axis

@@ -30,19 +30,21 @@ export interface ConstraintRect {
 /**
  * Resolves a custom property holding a length to pixels. Plain `px` values
  * parse directly; anything else (`svh` / `calc()` / fractions of the
- * constraint) resolves natively by measuring a hidden probe.
+ * constraint) resolves natively by measuring a hidden probe. `fallback` is
+ * a CSS length expression used when the property is unset.
  */
-function resolveVarPx(
+export function resolveVarPx(
   overlay: HTMLElement,
   name: string,
   axis: "height" | "width",
+  fallback?: string,
 ): number {
   const raw = getComputedStyle(overlay).getPropertyValue(name).trim();
   if (/^-?\d+(\.\d+)?px$/.test(raw)) return parseFloat(raw);
   const probe = document.createElement("div");
   probe.style.position = "absolute";
   probe.style.visibility = "hidden";
-  probe.style[axis] = `var(${name})`;
+  probe.style[axis] = fallback ? `var(${name}, ${fallback})` : `var(${name})`;
   overlay.appendChild(probe);
   const px = probe.getBoundingClientRect()[axis];
   probe.remove();

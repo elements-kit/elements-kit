@@ -6,7 +6,13 @@ import "../button/button.css";
 import "../toggle/toggle.css";
 import "./index.css";
 import "./overlay.css";
-import { constrainOverlay, createOverlayGestures, detents } from "./index.ts";
+import {
+  anchorOverlay,
+  constrainOverlay,
+  createOverlayGestures,
+  detents,
+  type OverlayAnchor,
+} from "./index.ts";
 
 const RESIZES = [
   "none",
@@ -388,6 +394,109 @@ export const Morph: Story = {
                 </label>
               ))}
             </div>
+          </div>
+        </dialog>
+      </>
+    ) as Node;
+  },
+};
+
+const AREAS = [
+  "block-end",
+  "block-start",
+  "inline-end",
+  "inline-start",
+  "block-end span-inline-end",
+  "block-end span-inline-start",
+  "block-start span-inline-end",
+  "inline-end span-block-start",
+  "inline-start span-block-end",
+] as const;
+
+type AnchoredArgs = Args & { area: (typeof AREAS)[number] };
+
+/**
+ * `data-anchor="element"` — the popover opens in the `--overlay-area`
+ * region of whichever trigger invoked it. Where CSS anchor positioning
+ * exists the invoker is the implicit anchor and everything (placement,
+ * flip near the viewport edge, scroll tracking) is pure CSS; the click
+ * handler also wires `anchorOverlay`, which pins an explicit
+ * `anchor-name` pair there and is the Floating UI fallback everywhere
+ * else (without it, browsers below the gate open centered).
+ */
+export const Anchored: StoryObj<AnchoredArgs> = {
+  argTypes: {
+    area: {
+      control: "select",
+      options: [...AREAS],
+      description:
+        "--overlay-area — the position-area region the popover occupies relative to its trigger",
+    },
+    resize: { control: false },
+    draggable: { control: false },
+    x: { control: false },
+    y: { control: false },
+    w: { control: false },
+    h: { control: false },
+    snap: { control: false },
+    modal: { control: false },
+    gestures: { control: false },
+  },
+  args: {
+    area: "block-end",
+    resize: "none",
+    draggable: false,
+    modal: false,
+    gestures: false,
+  },
+  render: (args) => {
+    const id = `overlay-story-${uid++}`;
+    const overlay = signal<HTMLDialogElement | null>();
+    let anchored: OverlayAnchor | null = null;
+    const wire = (ev: Event) => {
+      const el = overlay();
+      if (!el) return;
+      // Re-anchor to the clicked trigger — explicit anchor-name pair
+      // under the native tier, Floating UI loop otherwise.
+      anchored?.dispose();
+      anchored = anchorOverlay(el, ev.currentTarget as Element);
+    };
+    const trigger = (inset: string, label: string) => (
+      <button
+        class:unset
+        class:x-button
+        data-variant="solid"
+        data-size="2"
+        popovertarget={id}
+        on:click={wire}
+        style={`position: fixed; ${inset}`}
+      >
+        {label}
+      </button>
+    );
+    return (
+      <>
+        {trigger("top: 96px; left: 48px", "Top start")}
+        {trigger("top: 96px; right: 48px", "Top end")}
+        {trigger("top: 50%; left: 50%; translate: -50% -50%", "Center")}
+        {trigger("bottom: 48px; left: 48px", "Bottom start")}
+        {trigger("bottom: 48px; right: 48px", "Bottom end")}
+        <dialog
+          ref={overlay}
+          id={id}
+          class:unset
+          class:x-overlay
+          popover="auto"
+          data-anchor="element"
+          style={`--overlay-area: ${args.area}; --overlay-w: 260px`}
+        >
+          <div class:unset class:x-card data-variant="elevated" data-size="3">
+            <strong>Anchored</strong>
+            <p>
+              Opens in the <code>{args.area}</code> region of the clicked
+              trigger; edge triggers flip instead of overflowing. Light
+              dismiss, no gestures.
+            </p>
           </div>
         </dialog>
       </>

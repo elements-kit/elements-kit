@@ -106,7 +106,8 @@ export function createOverlayGestures(
     const resize = overlay.getAttribute("data-resize") ?? "";
     const draggable = overlay.hasAttribute("data-draggable");
     if (!resize && !draggable) return false;
-    // data-anchor is reserved for future element anchoring — don't drag it.
+    // Anchored overlays are placed by CSS anchor positioning (or
+    // anchorOverlay) — gestures never engage on them.
     if (overlay.getAttribute("data-anchor") === "element") return false;
     // Leave interactive elements alone — capturing the pointer would
     // retarget the pointerup to the overlay and swallow their click.

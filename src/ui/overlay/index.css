@@ -26,6 +26,14 @@
  *   the gesture's `resize` strategy writes the rested size to
  *   `--overlay-w` / `--overlay-h`.
  *
+ *   ANCHOR — `data-anchor="element"`: element-relative placement (see
+ *   the ANCHORED MODE block). `--overlay-area` picks the side (any
+ *   `position-area` value, default `block-end`); `--overlay-gap` the
+ *   distance. LOCATION's `--overlay-x`/`-y` are inert in this mode;
+ *   SIZE channels still apply (`--overlay-w: anchor-size(width)` makes
+ *   a trigger-width menu). Browsers without CSS anchor positioning fall
+ *   back to the centered scheme unless `anchorOverlay` (JS) is wired.
+ *
  * Everything computes against the constraint rect
  * (`--overlay-constraint-top/-left/-width/-height`, viewport by
  * default, synced from a container via `constrainOverlay`), so the
@@ -43,6 +51,8 @@
  *   --overlay-x / -y                  location point (see above)
  *   --overlay-w / -h                  size channels
  *   --overlay-width                   default width (when --overlay-w unset)
+ *   --overlay-area                    anchored-mode side (position-area value)
+ *   --overlay-gap                     anchored-mode distance (--space-2)
  *   --overlay-duration / --overlay-easing       shared motion tokens
  */
 
@@ -107,6 +117,42 @@
           calc(-50% + var(--_ch))
         )
     );
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * LOCATION — ANCHORED MODE (data-anchor="element")                                                *
+ *                                                                                                 *
+ * Element-relative placement via CSS anchor positioning: the box sits                             *
+ * in the `position-area` region of its anchor (the popover invoker by                             *
+ * default — `popovertarget` / `showPopover({ source })` establish the                             *
+ * implicit anchor; other openers need `anchor-name`/`position-anchor`).                           *
+ * The center clamp above is replaced wholesale — `--overlay-x`/`-y` are                           *
+ * inert here — but the enter/exit and drag-delta channels stay in the                             *
+ * translate so Tier-2 transitions and the rubber band still compose.                              *
+ *                                                                                                 *
+ * The gate is compound on purpose: Chrome 125–128 pass                                            *
+ * `(anchor-name: --x)` but only ship the pre-rename `inset-area` —                                *
+ * under a bare gate they would apply `top/left: auto` yet drop                                    *
+ * `position-area`, parking the box at the viewport corner. Requiring                              *
+ * `position-area` too makes the block all-or-nothing; below the gate                              *
+ * the centered location scheme above stays in charge (JS fallback:                                *
+ * `anchorOverlay` drives the `--overlay-x`/`-y` channels instead).                                *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+@supports (anchor-name: --x) and (position-area: block-end) {
+  .x-overlay[data-anchor="element"] {
+    top: auto;
+    left: auto;
+    /* Keep the enter/exit slide + drag channels; drop the center clamp. */
+    translate: calc(var(--_ex, 0px) + var(--overlay-dx, 0px))
+      calc(var(--_ey, 0px) + var(--overlay-dy, 0px));
+    position-area: var(--overlay-area, block-end);
+    position-try-fallbacks: flip-block, flip-inline;
+    position-visibility: anchors-visible;
+    margin: var(--overlay-gap, var(--space-2));
+  }
 }
 
 /***************************************************************************************************
