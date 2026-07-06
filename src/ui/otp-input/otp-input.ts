@@ -73,14 +73,8 @@ export class XOtpInput extends HTMLElement {
     pattern(value) {
       this.pattern = value;
     },
-    placeholder(value) {
-      this.placeholder = value ?? "";
-    },
     inputmode(value) {
       this.#inputMode(value ?? "text");
-    },
-    "data-align"(value) {
-      this.textAlign = (value as XOtpInput["textAlign"]) ?? "left";
     },
   };
 
@@ -135,22 +129,6 @@ export class XOtpInput extends HTMLElement {
   }
   set pattern(v: string | null) {
     this.#pattern(v);
-  }
-
-  #placeholder = signal("");
-  get placeholder(): string {
-    return this.#placeholder();
-  }
-  set placeholder(v: string) {
-    this.#placeholder(v ?? "");
-  }
-
-  #textAlign = signal<"left" | "center" | "right">("left");
-  get textAlign(): "left" | "center" | "right" {
-    return this.#textAlign();
-  }
-  set textAlign(v: "left" | "center" | "right") {
-    this.#textAlign(v);
   }
 
   // Reflect `name` as a property (native form controls do) so form serializers
@@ -237,7 +215,6 @@ export class XOtpInput extends HTMLElement {
       input.inputMode = this.#inputMode();
       input.maxLength = this.maxLength;
       input.disabled = this.disabled;
-      input.style.textAlign = this.textAlign;
       const label = this.getAttribute("aria-label");
       if (label) input.setAttribute("aria-label", label);
     });
@@ -263,15 +240,10 @@ export class XOtpInput extends HTMLElement {
       const e = this.#selEnd();
       const max = this.maxLength;
       const disabled = this.disabled;
-      const placeholder = this.placeholder;
       for (const slot of this.querySelectorAll("x-otp-slot")) {
         const i = Number(slot.getAttribute("index")) || 0;
         const char = value[i];
-        const ph =
-          char == null && placeholder
-            ? (placeholder[i] ?? placeholder[0])
-            : undefined;
-        slot.textContent = char ?? ph ?? "";
+        slot.textContent = char ?? "";
         const hasSel = focused && s !== null && e !== null;
         // Single caret (start === end) → one active cell with the ring + caret.
         // A multi-cell range → those cells get a continuous selection tint (no
@@ -281,7 +253,6 @@ export class XOtpInput extends HTMLElement {
         toggleAttr(slot, "data-active", caretCell);
         toggleAttr(slot, "data-selected", inRange);
         toggleAttr(slot, "data-caret", caretCell && char == null);
-        toggleAttr(slot, "data-placeholder", char == null && ph != null);
         toggleAttr(slot, "data-disabled", disabled);
       }
     });

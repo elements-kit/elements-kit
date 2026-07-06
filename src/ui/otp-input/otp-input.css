@@ -101,11 +101,6 @@ x-otp-group > x-otp-slot:not(:first-child) {
   border-inline-start-width: 0;
 }
 
-/* Empty-cell placeholder character. */
-x-otp-slot:where([data-placeholder]) {
-  color: var(--neutral-a8);
-}
-
 /* Active cell — the caret position. Ring uses the same focus color as text-input;
  * lifts above attached neighbours. */
 /* Active (caret) cell — a uniform 2px ring. It must sit ON TOP of the shared
