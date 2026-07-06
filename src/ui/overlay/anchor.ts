@@ -66,13 +66,51 @@ const nativeAnchorSupport = (): boolean =>
   CSS.supports("anchor-name: --x") &&
   CSS.supports("position-area: block-end");
 
+/** Measure whether the chain rule actually lands on the anchor's VISUAL
+ * box — `CSS.supports` is a parser check, and Firefox 151 passes it
+ * while resolving `anchor()` against the pre-transform layout box (a
+ * `translate`d trigger pins half a box off). The probe host is
+ * deliberately translated to catch exactly that. Inconclusive without a
+ * layout engine (tests) — then trust the declared support. */
+let chainMeasured: boolean | undefined;
+function probeChain(): boolean {
+  const host = document.createElement("div");
+  host.style.cssText =
+    "position:fixed;top:80px;left:60px;width:40px;height:20px;" +
+    "translate:10px 5px;" + // visual box at (70, 85)
+    "visibility:hidden;pointer-events:none;anchor-name:--ek-chain-probe";
+  const pin = document.createElement("div");
+  pin.style.cssText =
+    "position:fixed;visibility:hidden;pointer-events:none;" +
+    "position-anchor:--ek-chain-probe;top:anchor(top);left:anchor(left);" +
+    "width:anchor-size(width);height:anchor-size(height)";
+  document.body.append(host, pin);
+  const hostRect = host.getBoundingClientRect();
+  const rect = pin.getBoundingClientRect();
+  host.remove();
+  pin.remove();
+  if (Math.abs(hostRect.top - 85) > 1) return true; // no layout engine
+  return (
+    Math.abs(rect.top - 85) < 1 &&
+    Math.abs(rect.left - 70) < 1 &&
+    Math.abs(rect.width - 40) < 1
+  );
+}
+
 /** The follow pin needs more than the placement gate — the chain rule
  * mirrors the followed box with `anchor()`/`anchor-size()`. A browser
- * that places but can't size falls back to the JS rect copy. */
-const chainSupport = (): boolean =>
-  nativeAnchorSupport() &&
-  CSS.supports("top: anchor(top)") &&
-  CSS.supports("width: anchor-size(width)");
+ * that places but can't chain falls back to the JS rect copy. */
+const chainSupport = (): boolean => {
+  if (
+    !nativeAnchorSupport() ||
+    !CSS.supports("top: anchor(top)") ||
+    !CSS.supports("width: anchor-size(width)")
+  ) {
+    return false;
+  }
+  chainMeasured ??= probeChain();
+  return chainMeasured;
+};
 
 /** While the Floating UI loop tracks, geometry writes must land
  * instantly — but ONLY geometry. Enter/exit (opacity, scale) and
@@ -154,6 +192,13 @@ export function anchor(
   const el = document.createElement("span");
   el.className = "x-overlay-anchor";
   el.setAttribute("aria-hidden", "true");
+  // Under the CHANNEL engine the proxy is a measured reference — its
+  // CSS glide transition must not ease JS writes, or the overlay
+  // positions against a mid-flight rect (the channel morph provides the
+  // glide there). Under the native engine the overlay follows the proxy
+  // continuously, so the transition stays and IS the glide — even when
+  // the follow is a JS rect copy (chain probe failed, e.g. Firefox).
+  if (!native) el.style.transitionProperty = "none";
   document.body.append(el);
 
   const proxyName = `--overlay-anchor-${anchorNames++}`;
@@ -185,7 +230,8 @@ export function anchor(
     // inline BEFORE touching the names (same pixels — no motion), so the
     // release below transitions px → anchor() px on the same properties.
     // Anchor-reference changes alone don't reliably interpolate.
-    const flip = hasPinned && target instanceof Element && chainSupport();
+    const repositioning = hasPinned;
+    const flip = repositioning && target instanceof Element && chainSupport();
     if (flip) placeAtRect(el.getBoundingClientRect());
     releasePinMachinery();
     if (!target) {
@@ -215,7 +261,24 @@ export function anchor(
       el.style.removeProperty("width");
       el.style.removeProperty("height");
     } else {
-      const sync = () => placeAtRect(target.getBoundingClientRect());
+      // JS rect copy. The very first placement must not animate (the
+      // proxy would glide in from wherever it was created) — but a
+      // RE-pin glides from its valid position; later copies ride the
+      // proxy's transition under the native engine — that's the glide.
+      let first = !repositioning;
+      const sync = () => {
+        if (first) {
+          first = false;
+          const prev = el.style.transitionProperty;
+          el.style.transitionProperty = "none";
+          placeAtRect(target.getBoundingClientRect());
+          void el.offsetTop;
+          if (prev) el.style.transitionProperty = prev;
+          else el.style.removeProperty("transition-property");
+          return;
+        }
+        placeAtRect(target.getBoundingClientRect());
+      };
       stopFollowSync = autoUpdate(target, el, sync);
     }
   };
@@ -331,17 +394,18 @@ export function anchor(
         { strategy: "fixed", placement: placementHint, middleware },
       );
       if (disposed) return;
-      const rect = overlay.getBoundingClientRect();
       const constraint = resolveConstraint(overlay);
       // The channels hold the box CENTER relative to the constraint
       // origin (index.css LOCATION) — convert the viewport top-left.
+      // Layout size, NOT getBoundingClientRect: the enter animation has
+      // the box at scale(0.97) and a scaled measurement skews the write.
       overlay.style.setProperty(
         "--overlay-x",
-        `${x + rect.width / 2 - constraint.left}px`,
+        `${x + overlay.offsetWidth / 2 - constraint.left}px`,
       );
       overlay.style.setProperty(
         "--overlay-y",
-        `${y + rect.height / 2 - constraint.top}px`,
+        `${y + overlay.offsetHeight / 2 - constraint.top}px`,
       );
       if (placement)
         overlay.setAttribute("data-placed", placement.split("-")[0]);
@@ -418,7 +482,12 @@ export function anchor(
       void update();
     };
     const onDragEnd = () => {
-      if (!disposed && stop) release();
+      if (disposed || !stop) return;
+      release();
+      // Settle: the drag service may have snapped the anchor to a rest
+      // point — reposition with transitions live so the overlay morphs
+      // there (autoUpdate alone observes anchor movement too coarsely).
+      void update();
     };
 
     overlay.addEventListener("toggle", sync);

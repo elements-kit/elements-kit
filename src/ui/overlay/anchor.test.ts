@@ -48,6 +48,9 @@ function createAnchored(open = true): {
   el.getBoundingClientRect = () =>
     ({ x: 100, y: 100, left: 100, top: 100, right: 580, bottom: 400,
        width: 480, height: 300, toJSON: () => ({}) }) as DOMRect;
+  // Layout size (used for the center conversion — transform-immune).
+  Object.defineProperty(el, "offsetWidth", { value: 480 });
+  Object.defineProperty(el, "offsetHeight", { value: 300 });
   document.body.appendChild(el);
   const trigger = document.createElement("button");
   document.body.appendChild(trigger);
@@ -115,8 +118,9 @@ describe("anchor (native engine)", () => {
     const followName = trigger.style.getPropertyValue("anchor-name");
     expect(followName).toMatch(/^--overlay-follow-\d+$/);
     expect(a.style.getPropertyValue("position-anchor")).toBe(followName);
-    // zero JS while following
+    // zero JS while following; the CSS glide transition stays live
     expect(floating.autoUpdate).not.toHaveBeenCalled();
+    expect(a.style.transitionProperty).toBe("");
 
     el.remove();
     trigger.remove();
@@ -220,6 +224,9 @@ describe("anchor (Floating UI engine)", () => {
       a,
       expect.any(Function),
     );
+    // JS-driven proxy: the CSS glide transition must not ease its writes
+    // (the overlay's channel morph provides the glide below the gate).
+    expect(a.style.transitionProperty).toBe("none");
     await vi.waitFor(() => {
       // computePosition's (200, 300) top-left + (240, 150) half-box.
       expect(el.style.getPropertyValue("--overlay-x")).toBe("440px");
