@@ -7,20 +7,20 @@ import { computed, effect, signal } from "@/signals/index.ts";
 import { render } from "@/render.ts";
 import { on } from "@/utilities/event-listener.ts";
 import { isBrowser } from "@/utilities/environment.ts";
+import shadowCss from "./otp-input.shadow.css?inline";
 
 function toggleAttr(el: Element, name: string, on: boolean): void {
   if (on) el.setAttribute(name, "");
   else el.removeAttribute(name);
 }
 
-// Transparent overlay input: covers the host, invisible text + caret, native
-// interaction only. Reactive bits (text-align, disabled, value) are applied in
-// an effect; everything static lives here.
-const FIELD_STYLE =
-  "position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;" +
-  "border:0;background:transparent;color:transparent;caret-color:transparent;" +
-  "outline:none;font:inherit;letter-spacing:inherit;text-align:inherit;" +
-  "pointer-events:auto;";
+// One shared constructable stylesheet, adopted into every instance's shadow
+// root. Authored in otp-input.shadow.css and imported as a processed string
+// (`?inline`) — styles the transparent overlay input + hides its native
+// selection highlight. Guarded for DOMs without constructable sheets.
+const SHADOW_SHEET =
+  typeof CSSStyleSheet === "undefined" ? null : new CSSStyleSheet();
+SHADOW_SHEET?.replaceSync(shadowCss);
 
 /**
  * `<x-otp-input>` — segmented one-time-passcode / pin input.
@@ -192,14 +192,9 @@ export class XOtpInput extends HTMLElement {
   });
 
   connectedCallback(): void {
+    if (SHADOW_SHEET) this.#shadow.adoptedStyleSheets = [SHADOW_SHEET];
     if (!this.#shadow.querySelector("slot")) {
-      // The overlay input's text is transparent, but its native selection
-      // highlight would still paint over the cells. Hide it with a shadow
-      // <style> (the companion stylesheet can't reach the shadow root).
-      const style = document.createElement("style");
-      style.textContent =
-        "input::selection{background-color:transparent;color:transparent}";
-      this.#shadow.append(style, document.createElement("slot"));
+      this.#shadow.append(document.createElement("slot"));
     }
     this.#unmount?.();
     this.#unmount = render(this.#shadow, () => this.#renderField());
@@ -235,7 +230,6 @@ export class XOtpInput extends HTMLElement {
     input.autocomplete = "one-time-code";
     input.setAttribute("autocapitalize", "none");
     input.spellcheck = false;
-    input.style.cssText = FIELD_STYLE;
     this.#input = input;
 
     // Keep the input configured from reactive state.
