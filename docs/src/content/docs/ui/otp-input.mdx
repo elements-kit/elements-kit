@@ -1,0 +1,117 @@
+---
+title: OTP Input
+description: Segmented one-time-passcode input — a single hidden field behind rendered cells, form-associated, with SMS autofill.
+---
+
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
+
+A segmented passcode field. A single transparent `<input>` overlays the rendered cells and owns all keyboard, pointer, paste, and mobile-autofill behavior; the cells only paint the value and a caret. Because it is one field, a screen reader hears one textbox and there is no roving focus.
+
+<StorybookEmbed story="ui-otp-input--with-separator" />
+
+## Install
+
+```ts
+import "elements-kit/ui/styles.css";
+
+// a neutral + an accent scale for theming:
+import "elements-kit/ui/styles/palette/slate.css";
+import "elements-kit/ui/styles/neutral/slate.css";
+import "elements-kit/ui/styles/palette/mint.css";
+import "elements-kit/ui/styles/accent/mint.css";
+// importing the module registers the elements + the css:
+import "elements-kit/ui/otp-input";
+import "elements-kit/ui/otp-input/otp-input.css";
+```
+
+Importing `elements-kit/ui/otp-input` registers `x-otp-input`, `x-otp-group`, `x-otp-slot`, and `x-otp-separator`.
+
+## API
+
+Compose the root with one or more groups of indexed cells. Insert `x-otp-separator` between groups as you like. The number of `maxlength` characters is authoritative — give one `x-otp-slot` per position.
+
+```html
+<x-otp-input name="code" maxlength="6" pattern="[0-9]" inputmode="numeric" aria-label="Verification code">
+  <x-otp-group>
+    <x-otp-slot index="0"></x-otp-slot>
+    <x-otp-slot index="1"></x-otp-slot>
+    <x-otp-slot index="2"></x-otp-slot>
+  </x-otp-group>
+  <x-otp-separator></x-otp-separator>
+  <x-otp-group>
+    <x-otp-slot index="3"></x-otp-slot>
+    <x-otp-slot index="4"></x-otp-slot>
+    <x-otp-slot index="5"></x-otp-slot>
+  </x-otp-group>
+</x-otp-input>
+```
+
+By default every character is accepted. Pass `pattern` to restrict input — each character must match the regular expression. `pattern="[0-9]"` makes a digit-only code.
+
+### State
+
+| Field | Type | Controlled? | Writable? | Attribute mirror |
+| --- | --- | --- | --- | --- |
+| `value` | `string` | yes | yes | `value` |
+| `maxLength` | `number` | no | yes | `maxlength` |
+| `pattern` | `string \| null` | no | yes | `pattern` |
+| `disabled` | `boolean` | no | yes | `disabled` |
+| `required` | `boolean` | no | yes | `required` |
+
+`pasteTransformer?: (text: string) => string` is a property-only hook — return a cleaned string (e.g. strip spaces or hyphens) before the paste is validated.
+
+### Events
+
+| Event | `detail` | Bubbles | Notes |
+| --- | --- | --- | --- |
+| `input` | — | yes | Native — fires on every value change. |
+| `change` | — | yes | Native — fires on every committed value change. |
+| `complete` | `string` | yes | Custom — fires once when the value reaches `maxlength`. |
+
+### Keyboard
+
+| Key | Action |
+| --- | --- |
+| any matching character | Appends; the active cell advances. |
+| any non-matching character | Blocked (when `pattern` is set). |
+| Backspace / Delete | Removes a character. |
+| ← / → / Home / End | Moves the caret; the active cell follows. |
+| Paste | Runs through `pasteTransformer`, the `pattern`, then `maxlength`. |
+
+## Sizing & variants
+
+`data-size` (`1`, `2`, `3`) and `data-variant` (`surface`, `soft`) map to the same tokens as [Text Input](/ui/text-input), so an OTP field sits in the same visual family. The active cell uses the same focus color; set `data-radius` on a parent to change the corner rounding.
+
+## Autofill
+
+The hidden input carries `autocomplete="one-time-code"`, so iOS and Android offer to fill a code received by SMS. When the platform fills it, the value flows through the same validation path and paints the cells. `inputmode` (default `text`; set `numeric` for digit codes) picks the mobile keyboard.
+
+## Form participation
+
+`x-otp-input` is a [form-associated custom element](https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements#form-associated_custom_elements). With a `name`, it submits its value in `FormData`, reflects `name`/`value` as properties (so serializers like [`FormObject`](/utilities) read it), participates in `reset`, and reports `valueMissing` (when `required`) and `tooShort` validity.
+
+```ts
+const form = document.querySelector("form")!;
+new FormData(form).get("code"); // "123456"
+```
+
+## Accessibility
+
+There is no dedicated APG pattern for a passcode field — it is a single masked textbox, so that is what it exposes:
+
+1. **Label the field.** Put `aria-label` (or `aria-labelledby`) on `x-otp-input`; it proxies to the hidden input.
+2. **One field, not many.** The cells are `aria-hidden`; assistive tech sees only the input. Don't add per-cell labels or roles.
+3. **`autocomplete="one-time-code"` + `inputmode`** are set for you — supply an accurate `inputmode` for the character set.
+4. **Forced colors.** The cell border, active ring, and caret fall back to system colors in Windows High Contrast.
+5. **Reduced motion.** `prefers-reduced-motion: reduce` stops the caret blink.
+
+## When not to use
+
+- **A general text field** — use [Text Input](/ui/text-input). OTP is for fixed-length codes split into cells.
+- **A single-select from a short list** — that's the [Segmented Control](/ui/segmented-control).
+
+## See also
+
+- [Text Input](/ui/text-input) — shares the size and variant tokens
+- [Segmented Control](/ui/segmented-control) — single-select with an indicator
+- [Styles](/ui/styles) — tokens, radius, and theming

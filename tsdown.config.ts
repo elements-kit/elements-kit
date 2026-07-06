@@ -23,13 +23,16 @@ export default defineConfig([
       "src/integrations/*.ts",
       "!src/**/*.test.*",
       "src/ui/overlay/index.ts",
+      "src/ui/otp-input/index.ts",
     ],
     deps: {
       neverBundle: ["react", "react-dom"],
     },
   },
   {
-    entry: ["src/ui/**/*.css"],
+    // `*.shadow.css` is inlined into JS via `?inline` (adopted stylesheets), not
+    // shipped as a public CSS file.
+    entry: ["src/ui/**/*.css", "!src/ui/**/*.shadow.css"],
     outDir: "dist/ui",
     clean: false,
     css: {

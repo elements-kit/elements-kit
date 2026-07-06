@@ -82,6 +82,7 @@ export const integrationsSidebar: SidebarItem[] = [
 ];
 
 const cssBadge = { text: "CSS", variant: "tip" } as const;
+const jsBadge = { text: "JS", variant: "note" } as const;
 
 export const uiSidebar: SidebarItem[] = [
   { label: "Overview", slug: "ui" },
@@ -110,6 +111,7 @@ export const uiSidebar: SidebarItem[] = [
       { label: "Group", slug: "ui/group", badge: cssBadge },
       { label: "Kbd", slug: "ui/kbd", badge: cssBadge },
       { label: "Link", slug: "ui/link", badge: cssBadge },
+      { label: "OTP Input", slug: "ui/otp-input", badge: jsBadge },
       { label: "Progress", slug: "ui/progress", badge: cssBadge },
       { label: "Radio", slug: "ui/radio", badge: cssBadge },
       {

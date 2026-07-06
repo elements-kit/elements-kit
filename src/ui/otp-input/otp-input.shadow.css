@@ -1,0 +1,32 @@
+/* Shadow-scoped styles for <x-otp-input>. Imported with `?inline` (a processed
+ * string, never emitted as a public file) and adopted as a single shared
+ * constructable stylesheet across every instance — see otp-input.ts.
+ *
+ * Only the overlay input lives here; the visible cells are light-DOM and styled
+ * by the companion otp-input.css. */
+
+/* Transparent overlay input: covers the host, invisible text + caret; owns all
+ * pointer/keyboard interaction. */
+.x-otp-input__field {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+  outline: none;
+  font: inherit;
+  letter-spacing: inherit;
+  pointer-events: auto;
+}
+
+/* The text is transparent, but the native selection highlight would still paint
+ * over the cells — hide it. */
+.x-otp-input__field::selection {
+  background-color: transparent;
+  color: transparent;
+}

@@ -5,7 +5,11 @@ const src = fileURLToPath(new URL("../../src", import.meta.url));
 
 const config: StorybookConfig = {
   stories: ["../../src/ui/**/*.stories.@(ts|tsx)"],
-  addons: ["@storybook/addon-themes"],
+  addons: [
+    "@storybook/addon-themes",
+    "@storybook/addon-vitest",
+    "@storybook/addon-a11y"
+  ],
   framework: "@storybook/html-vite",
   viteFinal: (cfg) => {
     // Relative base so the static build works under the docs site's
