@@ -780,8 +780,11 @@ export const AnimatedPopover: StoryObj<Args> = {
             }}
           />
           <div class:unset class:x-card data-variant="elevated" data-size="3">
-            <div style="position: relative; overflow: clip">
-              <div ref={content}>
+            {/* The Base UI Viewport: clips at the CARD edge (negative
+                margin bleeds over the padding), each panel carries the
+                padding itself — so content slides beneath it. */}
+            <div style="position: relative; overflow: clip; margin: calc(-1 * var(--card-padding)) calc(-1 * var(--card-padding)) 0">
+              <div ref={content} style="padding: var(--card-padding) var(--card-padding) var(--space-2)">
                 <strong>{() => active()}</strong>
                 <p>{() => PANELS[active()]}</p>
               </div>

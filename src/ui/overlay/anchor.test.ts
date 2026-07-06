@@ -169,6 +169,22 @@ describe("anchor (native engine)", () => {
     trigger.remove();
   });
 
+  it("releasing the binding leaves the overlay where it was", async () => {
+    const { overlay: el, trigger } = createAnchored();
+    const { effectScope } = await import("@/signals/index.ts");
+    const stop = effectScope(() => void anchor(el, trigger));
+
+    stop();
+    // Seeded from the rendered rect: center (340, 250) − origin (0, 0).
+    expect(el.style.getPropertyValue("--overlay-x")).toBe("340px");
+    expect(el.style.getPropertyValue("--overlay-y")).toBe("250px");
+    expect(el.getAttribute("data-anchor")).toBeNull();
+    expect(document.querySelector(".x-overlay-anchor")).toBeNull();
+
+    el.remove();
+    trigger.remove();
+  });
+
   it("cleans everything up when the scope disposes", () => {
     const { overlay: el, trigger } = createAnchored();
     // No surrounding scope in tests — grab the cleanup via a rect anchor
@@ -239,6 +255,40 @@ describe("anchor (Floating UI engine)", () => {
 
     el.removeAttribute("open");
     await vi.waitFor(() => expect(floating.stop).toHaveBeenCalled());
+    expect(el.style.transitionProperty).toBe("");
+
+    el.remove();
+    trigger.remove();
+  });
+
+  it("releasing the binding keeps the location channels", async () => {
+    const { overlay: el, trigger } = createAnchored();
+    const { effectScope } = await import("@/signals/index.ts");
+    const stop = effectScope(() => void anchor(el, trigger));
+    await vi.waitFor(() =>
+      expect(el.style.getPropertyValue("--overlay-x")).toBe("440px"),
+    );
+
+    stop();
+    expect(el.style.getPropertyValue("--overlay-x")).toBe("440px");
+    expect(el.getAttribute("data-placed")).toBeNull();
+    expect(document.querySelector(".x-overlay-anchor")).toBeNull();
+
+    el.remove();
+    trigger.remove();
+  });
+
+  it("re-anchoring an already-placed overlay morphs in (no instant write)", async () => {
+    const { overlay: el, trigger } = createAnchored();
+    el.style.setProperty("--overlay-x", "300px");
+    el.style.setProperty("--overlay-y", "300px");
+
+    anchor(el, trigger);
+    // Open + already placed → the first write animates (recipe switch).
+    expect(el.style.transitionProperty).toBe("");
+    await vi.waitFor(() =>
+      expect(el.style.getPropertyValue("--overlay-x")).toBe("440px"),
+    );
     expect(el.style.transitionProperty).toBe("");
 
     el.remove();

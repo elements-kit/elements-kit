@@ -172,6 +172,7 @@ export function anchor(
    * so under the native chain the proxy's `anchor()` insets resolve to
    * the new box and its CSS transition GLIDES there — the nav slide. */
   let pinnedEl: HTMLElement | undefined;
+  let hasPinned = false;
   let stopFollowSync: (() => void) | undefined;
   const releasePinMachinery = () => {
     stopFollowSync?.();
@@ -180,6 +181,12 @@ export function anchor(
     pinnedEl = undefined;
   };
   const pin = (target: Element | RectInit | undefined) => {
+    // FLIP handoff for a re-pin under the chain: freeze the current rect
+    // inline BEFORE touching the names (same pixels — no motion), so the
+    // release below transitions px → anchor() px on the same properties.
+    // Anchor-reference changes alone don't reliably interpolate.
+    const flip = hasPinned && target instanceof Element && chainSupport();
+    if (flip) placeAtRect(el.getBoundingClientRect());
     releasePinMachinery();
     if (!target) {
       // Unfollowed anchor — start at the viewport center.
@@ -187,6 +194,7 @@ export function anchor(
       el.style.left = "50vw";
       return;
     }
+    hasPinned = true;
     if (!(target instanceof Element)) {
       el.removeAttribute("data-follow"); // a rect pin is one-shot
       placeAtRect(target);
@@ -198,8 +206,10 @@ export function anchor(
       (target as HTMLElement).style?.setProperty("anchor-name", followName);
       pinnedEl = target as HTMLElement;
       el.style.setProperty("position-anchor", followName);
-      // Inline geometry would win over the chain rule — clear it (an
-      // interpolable change, so a repoint from a freed position glides).
+      // Commit the frozen state before releasing it, then clear the
+      // inline geometry — the chain rule takes over and the proxy's CSS
+      // transition glides there (the overlay follows natively).
+      if (flip) void el.offsetTop;
       el.style.removeProperty("top");
       el.style.removeProperty("left");
       el.style.removeProperty("width");
@@ -254,6 +264,22 @@ export function anchor(
     el.style.setProperty("anchor-name", proxyName);
     overlay.style.setProperty("position-anchor", proxyName);
     engineDispose = () => {
+      // Leave the overlay where it was: seed the location channels from
+      // the rendered rect (inert while the native block still applies,
+      // pixel-identical when the attribute drops) — releasing a binding
+      // must not snap the box to the centered default.
+      const rect = overlay.getBoundingClientRect();
+      if (isOpen() && rect.width > 0) {
+        const c = resolveConstraint(overlay);
+        overlay.style.setProperty(
+          "--overlay-x",
+          `${rect.left + rect.width / 2 - c.left}px`,
+        );
+        overlay.style.setProperty(
+          "--overlay-y",
+          `${rect.top + rect.height / 2 - c.top}px`,
+        );
+      }
       overlay.style.removeProperty("position-anchor");
       overlay.removeAttribute("data-anchor");
     };
@@ -329,6 +355,9 @@ export function anchor(
     };
 
     let stop: (() => void) | undefined;
+    // Bound while already visible → the arrival write should morph, not
+    // snap (a later fresh open still positions instantly).
+    let morphIn = isOpen();
     const suppress = () =>
       overlay.style.setProperty("transition-property", TRACKING_TRANSITIONS);
     const release = () =>
@@ -339,13 +368,30 @@ export function anchor(
       // (their `data-instant`); geometry transitions re-enable after it,
       // so every later reposition — a re-pinned follow, a live area
       // change — morphs by the stylesheet. Enter/exit (opacity, scale,
-      // display) stay live throughout.
-      suppress();
-      let first = true;
+      // display) stay live throughout. Exception: an overlay VISIBLE at
+      // bind time (a recipe switch re-anchoring it) morphs to the anchor
+      // instead of snapping — seeding the rendered position first when
+      // no channels exist yet, so the morph has a starting point.
+      const instant = !morphIn;
+      morphIn = false;
+      if (instant) suppress();
+      else if (!overlay.style.getPropertyValue("--overlay-x")) {
+        const rect = overlay.getBoundingClientRect();
+        const c = resolveConstraint(overlay);
+        overlay.style.setProperty(
+          "--overlay-x",
+          `${rect.left + rect.width / 2 - c.left}px`,
+        );
+        overlay.style.setProperty(
+          "--overlay-y",
+          `${rect.top + rect.height / 2 - c.top}px`,
+        );
+      }
+      let pending = instant;
       stop = autoUpdate(el, overlay, () =>
         update().then(() => {
-          if (first && !disposed) {
-            first = false;
+          if (pending && !disposed) {
+            pending = false;
             release();
           }
         }),
@@ -394,8 +440,8 @@ export function anchor(
       overlay.removeEventListener("close", sync);
       el.removeEventListener("dragmove", onDragMove);
       el.removeEventListener("dragend", onDragEnd);
-      overlay.style.removeProperty("--overlay-x");
-      overlay.style.removeProperty("--overlay-y");
+      // --overlay-x/-y stay — releasing a binding leaves the overlay
+      // where it was (the binding model's own rule).
       overlay.style.removeProperty("--overlay-arrow-x");
       overlay.style.removeProperty("--overlay-arrow-y");
       if (typeof opts.arrow === "number")
