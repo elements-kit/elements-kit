@@ -28,16 +28,16 @@
  *   the top strip.
  *
  *   ANCHOR — `data-anchor="element"`, element-relative placement for
- *   popovers (menus, tooltips, pickers). Where CSS anchor positioning
- *   exists (index.css ANCHORED MODE) the anchor is the popover invoker
- *   (`popovertarget` / `showPopover({ source })`); elsewhere, and for
- *   programmatic opens, wire `anchorOverlay(el, trigger)` (or
- *   `overlay(el, { anchor })`). `--overlay-area` picks the side,
- *   `--overlay-gap` the distance. Anchored overlays should omit
- *   `data-resize` / `data-draggable` — gestures never engage on them —
- *   and don't combine `anchor` with `constrain` (the rect still caps
- *   size but no longer positions; `overlay()` ignores `constrain` when
- *   `anchor` is set).
+ *   popovers (menus, tooltips, pickers). The zero-JS recipe uses the
+ *   popover invoker as the implicit anchor (`popovertarget` /
+ *   `showPopover({ source })`) where CSS anchor positioning exists
+ *   (index.css ANCHORED MODE). The JS primitive is `anchor(overlay,
+ *   trigger)` — it gives the overlay an anchor ELEMENT it follows for
+ *   life; the anchor follows the trigger until something moves it
+ *   (dragging moves the ANCHOR — see `draggable()` — so tear-off is a
+ *   composition, not a mode; the overlay itself never changes state).
+ *   `--overlay-area` picks the side, `--overlay-gap` the distance. The
+ *   markup gestures stay off anchored overlays.
  *
  *   MODALITY — how you open it, no attribute:
  *     dialog.showModal()          modal: focus trap, inert page, backdrop
@@ -81,14 +81,19 @@
  *   data-resize        handle side, see vocabulary above (no default);
  *                      also shows the resize affordance
  *   data-draggable     boolean — x/y move gesture + move affordance
- *   data-anchor        "element" — anchor to the invoker (see ANCHOR
- *                      above); gestures never engage
- *   --overlay-area     anchored-mode side — any position-area value
+ *   data-anchor        "element" — anchored placement (see ANCHOR above);
+ *                      static wiring marker, stamped by anchor() or
+ *                      authored for the zero-JS recipe — never toggled
+ *   data-placed        OUTPUT — the settled side (top/bottom/left/right);
+ *                      drives the arrow and the enter/exit origin
+ *   --overlay-area     anchored side — any position-area value
  *                      (block-end). Must be VALID: under the native tier
  *                      an invalid value computes to `position-area: none`
  *                      (IACVT — the var() fallback does not rescue it)
  *                      and the box parks at the static position
- *   --overlay-gap      anchored-mode distance to the anchor (--space-2)
+ *   --overlay-gap      anchored distance to the anchor (--space-2)
+ *   --overlay-arrow-size   caret size (10px); .x-overlay-arrow is the
+ *                      caret element, injected by anchor(…, { arrow })
  *   data-material-background  the card surface defaults to solid inside
  *                      an overlay when no material context is declared;
  *                      an explicit value on the frame or any ancestor
@@ -109,19 +114,19 @@
  *                        (position-area: block-end)` places
  *                        `data-anchor="element"` against its anchor
  *                        (index.css); below the gate the centered scheme
- *                        holds unless `anchorOverlay` (JS, Floating UI)
- *                        drives the location channels. Note: toggling
- *                        `data-anchor` on an open overlay snaps —
- *                        top/left flip to/from `auto`, which doesn't
- *                        interpolate.
+ *                        holds unless `anchor()` (JS, Floating UI)
+ *                        drives the location channels.
  *
- * Gestures are opt-in JS — see `createOverlayGestures` in
- * elements-kit/ui/overlay. Edge handles drag the size along their axis
- * (flick-to-dismiss); corner grips resize like a desktop window (the
- * opposite corner stays anchored); `data-draggable` moves the window in
- * x/y from the top strip (flinging it off the constraint closes). The
- * resize `resize` strategy (`freeResize` default, or `detents`) decides
- * the resting size, written to `--overlay-w`/`-h`.
+ * JS is opt-in, one feature per module (see index.ts): the two spatial
+ * primitives are `anchor` and `constraint`; `detents` quantize a
+ * constraint (sizes AND positions), `rubber` resists at its edges, and
+ * the `draggable` / `resize` services move a target through them.
+ * Behaviors attach to primitives, never to the overlay — the location
+ * point is bound to the anchor for life; dragging moves the anchor.
+ * `createOverlayGestures` is the markup-driven preset (`data-resize` /
+ * `data-draggable` on free overlays): edge handles drag the size along
+ * their axis (flick-to-dismiss); corner grips resize like a desktop
+ * window; `data-draggable` moves the window from the top strip.
  */
 
 .x-overlay {
@@ -391,6 +396,56 @@
 
 /***************************************************************************************************
  *                                                                                                 *
+ * ARROW — the anchored caret (.x-overlay-arrow)                                                   *
+ *                                                                                                 *
+ * A real element (both frame pseudos belong to the affordances), found                            *
+ * or injected by `anchor(…, { arrow })`. A rotated square behind the                              *
+ * card (z-index: -1 — only the protruding half shows, the card ring                               *
+ * stays clean) on the edge facing the anchor; `data-placed` names the                             *
+ * settled side and `--overlay-arrow-x/-y` the cross-axis position                                 *
+ * (written per reposition by anchor.ts).                                                          *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-overlay > .x-overlay-arrow {
+  display: none;
+}
+
+.x-overlay:where([data-placed]) > .x-overlay-arrow {
+  --_as: var(--overlay-arrow-size, 10px);
+
+  display: block;
+  position: absolute;
+  z-index: -1;
+  width: var(--_as);
+  height: var(--_as);
+  rotate: 45deg;
+  background-color: var(--color-material, var(--color-surface));
+  box-shadow: 0 0 0 0.5px var(--neutral-a3);
+}
+
+.x-overlay:where([data-placed="bottom"]) > .x-overlay-arrow {
+  top: calc(var(--_as) / -2);
+  left: var(--overlay-arrow-x, calc(50% - var(--_as) / 2));
+}
+
+.x-overlay:where([data-placed="top"]) > .x-overlay-arrow {
+  bottom: calc(var(--_as) / -2);
+  left: var(--overlay-arrow-x, calc(50% - var(--_as) / 2));
+}
+
+.x-overlay:where([data-placed="right"]) > .x-overlay-arrow {
+  left: calc(var(--_as) / -2);
+  top: var(--overlay-arrow-y, calc(50% - var(--_as) / 2));
+}
+
+.x-overlay:where([data-placed="left"]) > .x-overlay-arrow {
+  right: calc(var(--_as) / -2);
+  top: var(--overlay-arrow-y, calc(50% - var(--_as) / 2));
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
  * ENTER / EXIT — Tier 2 (@starting-style + allow-discrete)                                        *
  *                                                                                                 *
  * The handle side implies the docked edge (a block-start handle means                             *
@@ -429,6 +484,22 @@
         scale: 0.97;
       }
     }
+  }
+
+  /* anchored — the settle scales FROM the anchor's side (data-placed is
+   * the settled side, stamped by anchor() in both engines: below the
+   * trigger → grow from the top edge). */
+  .x-overlay:where([data-placed="bottom"]) {
+    transform-origin: top center;
+  }
+  .x-overlay:where([data-placed="top"]) {
+    transform-origin: bottom center;
+  }
+  .x-overlay:where([data-placed="right"]) {
+    transform-origin: center left;
+  }
+  .x-overlay:where([data-placed="left"]) {
+    transform-origin: center right;
   }
 
   /* block-start handle (bottom-docked sheet) — slide from below */

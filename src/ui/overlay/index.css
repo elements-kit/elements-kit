@@ -32,11 +32,11 @@
  *   distance. LOCATION's `--overlay-x`/`-y` are inert in this mode;
  *   SIZE channels still apply (`--overlay-w: anchor-size(width)` makes
  *   a trigger-width menu). Browsers without CSS anchor positioning fall
- *   back to the centered scheme unless `anchorOverlay` (JS) is wired.
+ *   back to the centered scheme unless `anchor()` (JS) is wired.
  *
  * Everything computes against the constraint rect
  * (`--overlay-constraint-top/-left/-width/-height`, viewport by
- * default, synced from a container via `constrainOverlay`), so the
+ * default, synced from a container via `confine`), so the
  * overlay re-clamps reactively whenever the rect changes — no JS.
  *
  * Channel ownership:
@@ -136,8 +136,8 @@
  * under a bare gate they would apply `top/left: auto` yet drop                                    *
  * `position-area`, parking the box at the viewport corner. Requiring                              *
  * `position-area` too makes the block all-or-nothing; below the gate                              *
- * the centered location scheme above stays in charge (JS fallback:                                *
- * `anchorOverlay` drives the `--overlay-x`/`-y` channels instead).                                *
+ * the centered location scheme above stays in charge (JS: `anchor()`                              *
+ * drives the `--overlay-x`/`-y` channels instead).                                                *
  *                                                                                                 *
  ***************************************************************************************************/
 
@@ -152,6 +152,49 @@
     position-try-fallbacks: flip-block, flip-inline;
     position-visibility: anchors-visible;
     margin: var(--overlay-gap, var(--space-2));
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * THE ANCHOR ELEMENT (.x-overlay-anchor)                                                          *
+ *                                                                                                 *
+ * The anchor always exists: `anchor()` (anchor.ts) gives the overlay an                           *
+ * invisible 0-size element it follows for life. While `[data-follow]`                             *
+ * holds, the anchor mirrors the followed element's box through a second                           *
+ * native hop — the overlay's position-area/flip behave exactly as if                              *
+ * anchored to the trigger, compositor-tracked, zero JS. A drag tears                              *
+ * the pin (draggable.ts freezes the rect inline first — inline wins,                              *
+ * no jump) and moves the element. The transition below is what makes a                            *
+ * repointed follow GLIDE (anchor() insets are plain interpolable                                  *
+ * lengths) — the nav-popover slide, with no JS loop.                                              *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-overlay-anchor {
+  position: fixed;
+  width: 0;
+  height: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    top var(--overlay-duration, 300ms)
+      var(--overlay-easing, cubic-bezier(0.32, 0.72, 0, 1)),
+    left var(--overlay-duration, 300ms)
+      var(--overlay-easing, cubic-bezier(0.32, 0.72, 0, 1)),
+    width var(--overlay-duration, 300ms)
+      var(--overlay-easing, cubic-bezier(0.32, 0.72, 0, 1)),
+    height var(--overlay-duration, 300ms)
+      var(--overlay-easing, cubic-bezier(0.32, 0.72, 0, 1));
+}
+
+@supports (anchor-name: --x) and (position-area: block-end) {
+  .x-overlay-anchor[data-follow] {
+    /* position-anchor is set inline by anchor() — mirror the followed box. */
+    top: anchor(top);
+    left: anchor(left);
+    width: anchor-size(width);
+    height: anchor-size(height);
   }
 }
 

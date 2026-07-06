@@ -43,7 +43,7 @@
 
 - No VDOM, no diffing.
 - No React wrappers in core — bridge hooks only in `integrations/react`.
-- No runtime deps beyond `dom-expressions` — one scoped exception: `@floating-ui/dom`, imported only from `src/ui/overlay/anchor.ts` (fallback for browsers without CSS anchor positioning; drop when Firefox ships `position-area`).
+- No runtime deps beyond `dom-expressions` — one scoped exception: `@floating-ui/dom`, imported only under `src/ui/overlay/` (fallback for browsers without CSS anchor positioning; drop when Firefox ships `position-area`).
 - SSR/hydration live only in `src/server/` + `src/hydrate/` — the client runtime's sole SSR touchpoint is the renderer-dispatch check in `createElement`. Server code must never land in client bundles.
 - No `console.*` under [src/](src/). Brand symbols (`SIGNAL` / `COMPUTED` / `EFFECT` / `EFFECT_SCOPE`) don't log. Playground, example, tests, JSDoc may log.
 - No `Symbol.dispose` on `Signal` / `Computed`.

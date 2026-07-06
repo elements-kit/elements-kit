@@ -13,7 +13,7 @@
  * element-free (`gesture-model` + the mode files).
  */
 
-import { resolveConstraint } from "./constrain.ts";
+import { resolveConstraint } from "./constraint.ts";
 import {
   type Box,
   type Frame,

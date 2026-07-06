@@ -1,11 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
 import {
   closestDetent,
-  constrainOverlay,
+  confine,
+  constraint,
   createOverlayGestures,
   detents,
   freeResize,
-  overlay,
   type ResizeContext,
 } from "./index.ts";
 
@@ -196,7 +196,7 @@ describe("resize strategies", () => {
   });
 
   it("detents snaps to the nearest step (velocity-aware) and dismisses", () => {
-    const s = detents([0.2, 0.5, 0.9]); // → 200, 500, 900
+    const s = detents(constraint(), [0.2, 0.5, 0.9]); // → 200, 500, 900
     expect(s.bounds?.(ctx({}))).toEqual([200, 900]);
     expect(s.rest(ctx({ size: 540 }))).toBe(500);
     expect(s.rest(ctx({ size: 540, velocity: -1.2 }))).toBe(900);
@@ -204,7 +204,7 @@ describe("resize strategies", () => {
   });
 
   it("detents resolves CSS-length steps too", () => {
-    const s = detents(["300px", "600px"]);
+    const s = detents(constraint(), ["300px", "600px"]);
     expect(s.bounds?.(ctx({}))).toEqual([300, 600]);
     expect(s.rest(ctx({ size: 650 }))).toBe(600);
   });
@@ -699,53 +699,20 @@ describe("block-start sheet + draggable (resize handle owns the top)", () => {
   });
 });
 
-describe("overlay facade", () => {
-  it("wires gestures and forwards resize() (+ resizechange)", () => {
-    const el = createOverlay({ resize: "block-start" });
-    mockWindowRect(el);
-    const onChange = vi.fn();
-    el.addEventListener("resizechange", onChange);
-    const o = overlay(el);
-
-    o.resize(420); // block → height channel
-    expect(el.style.getPropertyValue("--overlay-h")).toBe("420px");
-    expect(onChange.mock.calls.at(-1)?.[0].detail).toEqual({ height: "420px" });
-
-    o.dispose();
-    el.remove();
-  });
-
-  it("syncs a constraint element and tears it down on dispose", () => {
-    const el = createOverlay({ draggable: true });
-    const container = document.createElement("div");
-    document.body.appendChild(container);
-
-    const o = overlay(el, { constrain: container });
-    expect(el.style.getPropertyValue("--overlay-constraint-width")).toMatch(
-      /px$/,
-    );
-
-    o.dispose();
-    expect(el.style.getPropertyValue("--overlay-constraint-width")).toBe("");
-    container.remove();
-    el.remove();
-  });
-});
-
-describe("constrainOverlay", () => {
-  it("syncs the container rect into the constraint vars and cleans up", () => {
+describe("constraint + confine", () => {
+  it("syncs an element region into the constraint vars and cleans up", () => {
     const overlay = createOverlay({ draggable: true });
     const container = document.createElement("div");
     document.body.appendChild(container);
 
-    const constraint = constrainOverlay(overlay, container);
+    const confined = confine(overlay, constraint(container));
     for (const side of ["top", "left", "width", "height"]) {
       expect(
         overlay.style.getPropertyValue(`--overlay-constraint-${side}`),
       ).toMatch(/px$/);
     }
 
-    constraint.dispose();
+    confined.dispose();
     for (const side of ["top", "left", "width", "height"]) {
       expect(
         overlay.style.getPropertyValue(`--overlay-constraint-${side}`),
@@ -754,6 +721,18 @@ describe("constrainOverlay", () => {
 
     container.remove();
     overlay.remove();
+  });
+
+  it("builds regions from plain rects and the viewport", () => {
+    const rect = constraint({ top: 10, left: 20, width: 300, height: 400 });
+    expect(rect.top()).toBe(10);
+    expect(rect.left()).toBe(20);
+    expect(rect.width()).toBe(300);
+    expect(rect.height()).toBe(400);
+
+    const viewport = constraint();
+    expect(viewport.top()).toBe(0);
+    expect(viewport.width()).toBe(window.innerWidth);
   });
 });
 
@@ -826,7 +805,7 @@ describe("corner resize (start/end pair data-resize)", () => {
     mockWindowRect(overlay);
     // Fractions of the 1024px constraint width → 256 / 512 / 768.
     const gestures = createOverlayGestures(overlay, {
-      resize: detents([0.25, 0.5, 0.75]),
+      resize: detents(constraint(), [0.25, 0.5, 0.75]),
       dismissible: false,
     });
     const onChange = vi.fn();

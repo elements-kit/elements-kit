@@ -85,10 +85,10 @@ function selectSession(
  *
  * @example
  * ```ts
- * import { createOverlayGestures, detents } from "elements-kit/ui/overlay";
+ * import { constraint, createOverlayGestures, detents } from "elements-kit/ui/overlay";
  *
  * const el = document.querySelector("dialog.x-overlay")!;
- * createOverlayGestures(el, { resize: detents([0.25, 0.6, 0.9]) });
+ * createOverlayGestures(el, { resize: detents(constraint(), [0.25, 0.6, 0.9]) });
  * el.addEventListener("resizechange", (e) => console.log(e.detail));
  * ```
  */
@@ -106,8 +106,8 @@ export function createOverlayGestures(
     const resize = overlay.getAttribute("data-resize") ?? "";
     const draggable = overlay.hasAttribute("data-draggable");
     if (!resize && !draggable) return false;
-    // Anchored overlays are placed by CSS anchor positioning (or
-    // anchorOverlay) — gestures never engage on them.
+    // Anchored overlays are driven by anchor()/draggable() — the markup
+    // gestures stay off them (drag the ANCHOR, not the overlay).
     if (overlay.getAttribute("data-anchor") === "element") return false;
     // Leave interactive elements alone — capturing the pointer would
     // retarget the pointerup to the overlay and swallow their click.

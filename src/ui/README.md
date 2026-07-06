@@ -130,7 +130,7 @@ v0 = the load-bearing set. Composite surfaces and inputs that depend on form sem
 | `x-roving-tabindex` | — | 3 | `event-listener` |
 | `x-option` | [Listbox](https://www.w3.org/WAI/ARIA/apg/patterns/listbox/) | 3 | — |
 | `x-listbox` | [Listbox](https://www.w3.org/WAI/ARIA/apg/patterns/listbox/) | 3 | `x-roving-tabindex` |
-| `x-popover` | — | 4 | `x-overlay` (anchored mode — `data-anchor="element"` / `anchorOverlay` — ships the placement layer), `x-dismissable-layer` |
+| `x-popover` | — | 4 | `x-overlay` (anchored mode — `data-anchor="element"` / `anchor()` — ships the placement layer), `x-dismissable-layer` |
 | `x-dialog` | [Dialog](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/) | 4 | `x-overlay`, `x-focus-trap`, `x-portal` |
 | `x-tooltip` | [Tooltip](https://www.w3.org/WAI/ARIA/apg/patterns/tooltip/) | 4 | `x-overlay` |
 | `x-menu` | [Menu](https://www.w3.org/WAI/ARIA/apg/patterns/menu/) | 4 | `x-listbox`, `x-popover` |

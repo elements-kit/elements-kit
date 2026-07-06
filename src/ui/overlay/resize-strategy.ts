@@ -1,7 +1,8 @@
 /**
  * Resize strategies — pluggable policy for a resize drag's live bounds
  * and resting size. Pure (no DOM); the gesture injects the context.
- * Built-ins: `freeResize` (default), `detents`.
+ * Built-in: `freeResize` (default). `detents()` (detents.ts) quantizes a
+ * constraint region and doubles as a strategy.
  */
 
 /** How far (ms) a release velocity is projected when picking a rest. */
@@ -97,35 +98,6 @@ export function freeResize(opts?: { min?: number }): ResizeStrategy {
         return null;
       }
       return clamp(ctx.size, lo, ctx.max);
-    },
-  };
-}
-
-/**
- * Snap to discrete steps — each a fraction of the constraint along the
- * axis (number `0–1`) or a CSS length (string). Flick-aware; shrinking
- * past the smallest step dismisses.
- */
-export function detents(steps: readonly (number | string)[]): ResizeStrategy {
-  const resolved = (ctx: ResizeContext) =>
-    steps
-      .map((s) => clamp(ctx.resolve(s), ctx.min, ctx.max))
-      .sort((a, b) => a - b);
-  return {
-    bounds: (ctx) => {
-      const s = resolved(ctx);
-      return [s[0] ?? ctx.min, s[s.length - 1] ?? ctx.max];
-    },
-    rest: (ctx) => {
-      const s = resolved(ctx);
-      const i = closestDetent(
-        ctx.size,
-        s,
-        ctx.velocity,
-        ctx.dismissible,
-        ctx.velocityThreshold,
-      );
-      return i === -1 ? null : s[i];
     },
   };
 }
