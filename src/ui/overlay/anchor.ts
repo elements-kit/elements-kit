@@ -1,4 +1,4 @@
-import { onCleanup } from "@/signals/index.ts";
+import { effect, onCleanup } from "@/signals/index.ts";
 import {
   arrow as floatingArrow,
   autoUpdate,
@@ -35,9 +35,11 @@ import {
  *   CSS has no boundary control and no flip signal): `autoUpdate` writes
  *   the box center into the `--overlay-x`/`-y` channels while the
  *   overlay is open; a `dragmove` event from the drag service triggers
- *   an immediate reposition. Tracking writes suppress transitions,
- *   except the first write of a bind made while already open — so
- *   re-anchoring an open popover morphs to the new trigger.
+ *   an immediate reposition. The initial positioning write is instant;
+ *   geometry transitions re-enable after it (Base UI's `data-instant`
+ *   semantics), so re-pins and live area changes morph by the
+ *   stylesheet. During an anchor drag, writes suppress geometry
+ *   transitions again — the overlay must not ease behind the finger.
  *
  * `data-anchor="element"` is a static wiring marker (stamped here,
  * removed on dispose, never toggled). `data-placed` is output state —
@@ -63,6 +65,19 @@ const nativeAnchorSupport = (): boolean =>
   typeof CSS !== "undefined" &&
   CSS.supports("anchor-name: --x") &&
   CSS.supports("position-area: block-end");
+
+/** The follow pin needs more than the placement gate — the chain rule
+ * mirrors the followed box with `anchor()`/`anchor-size()`. A browser
+ * that places but can't size falls back to the JS rect copy. */
+const chainSupport = (): boolean =>
+  nativeAnchorSupport() &&
+  CSS.supports("top: anchor(top)") &&
+  CSS.supports("width: anchor-size(width)");
+
+/** While the Floating UI loop tracks, geometry writes must land
+ * instantly — but ONLY geometry. Enter/exit (opacity, scale) and
+ * close (display) keep transitioning, so `@starting-style` still plays. */
+const TRACKING_TRANSITIONS = "opacity, scale, display";
 
 let anchorNames = 0;
 
@@ -104,6 +119,11 @@ export function areaToPlacement(area: string, rtl = false): Placement {
  * until something moves it. Pass the returned element to `draggable()`
  * to make the composition tearable — dragging moves the anchor.
  *
+ * `follow` may be a getter reading a signal — re-pinning on change is
+ * how a shared popover slides between nav triggers: the native chain
+ * glides there on the anchor element's CSS transition; the channel
+ * engine lets that one write animate.
+ *
  * Registers all cleanup with the current scope (`onCleanup`): the anchor
  * element, the wiring, and the stamped attributes are removed together.
  *
@@ -113,15 +133,22 @@ export function areaToPlacement(area: string, rtl = false): Placement {
  *
  * const a = anchor(panel, trigger);
  * draggable(a, undefined, rubber()).attach(panel);
+ *
+ * // shared nav popover — re-anchors (and glides) when the signal changes
+ * const active = signal(firstTrigger);
+ * anchor(menu, () => active(), { arrow: true });
  * ```
  */
 export function anchor(
   overlay: HTMLElement,
-  follow?: Element | RectInit,
+  follow?: Element | RectInit | (() => Element | RectInit | null | undefined),
   opts: AnchorOptions = {},
 ): HTMLElement {
   const native = nativeAnchorSupport() && !opts.within && !opts.arrow;
   let disposed = false;
+
+  const resolveFollow = (): Element | RectInit | undefined =>
+    (typeof follow === "function" ? follow() : follow) ?? undefined;
 
   // --- the anchor element ---------------------------------------------
   const el = document.createElement("span");
@@ -131,8 +158,6 @@ export function anchor(
 
   const proxyName = `--overlay-anchor-${anchorNames++}`;
   const followName = `--overlay-follow-${anchorNames++}`;
-  const followStyle =
-    follow instanceof Element ? (follow as HTMLElement).style : undefined;
 
   const placeAtRect = (rect: RectInit) => {
     el.style.top = `${rect.top}px`;
@@ -141,38 +166,50 @@ export function anchor(
     el.style.height = `${rect.height}px`;
   };
 
-  /** Pin the anchor element to `follow` (the `data-follow` contract —
-   * `draggable()` tears it on the first pointer-down). */
+  /** Pin the anchor element to a follow target (the `data-follow`
+   * contract — `draggable()` tears it on the first pointer-down).
+   * Re-pinning to another element keeps the SAME `position-anchor` name,
+   * so under the native chain the proxy's `anchor()` insets resolve to
+   * the new box and its CSS transition GLIDES there — the nav slide. */
+  let pinnedEl: HTMLElement | undefined;
   let stopFollowSync: (() => void) | undefined;
-  const pin = () => {
-    if (!follow) {
+  const releasePinMachinery = () => {
+    stopFollowSync?.();
+    stopFollowSync = undefined;
+    pinnedEl?.style.removeProperty("anchor-name");
+    pinnedEl = undefined;
+  };
+  const pin = (target: Element | RectInit | undefined) => {
+    releasePinMachinery();
+    if (!target) {
       // Unfollowed anchor — start at the viewport center.
       el.style.top = "50vh";
       el.style.left = "50vw";
       return;
     }
-    if (!(follow instanceof Element)) {
-      placeAtRect(follow);
+    if (!(target instanceof Element)) {
+      el.removeAttribute("data-follow"); // a rect pin is one-shot
+      placeAtRect(target);
       return;
     }
     el.setAttribute("data-follow", "");
-    if (nativeAnchorSupport()) {
+    if (chainSupport()) {
       // Native chain — index.css [data-follow] mirrors the followed box.
-      followStyle?.setProperty("anchor-name", followName);
+      (target as HTMLElement).style?.setProperty("anchor-name", followName);
+      pinnedEl = target as HTMLElement;
       el.style.setProperty("position-anchor", followName);
+      // Inline geometry would win over the chain rule — clear it (an
+      // interpolable change, so a repoint from a freed position glides).
+      el.style.removeProperty("top");
+      el.style.removeProperty("left");
+      el.style.removeProperty("width");
+      el.style.removeProperty("height");
     } else {
-      const sync = () => {
-        const r = follow.getBoundingClientRect();
-        placeAtRect(r);
-      };
-      stopFollowSync = autoUpdate(follow, el, sync);
+      const sync = () => placeAtRect(target.getBoundingClientRect());
+      stopFollowSync = autoUpdate(target, el, sync);
     }
   };
-  const unpinCleanup = () => {
-    stopFollowSync?.();
-    stopFollowSync = undefined;
-    followStyle?.removeProperty("anchor-name");
-  };
+  const unpinCleanup = () => releasePinMachinery();
   // The drag service removes [data-follow] when it takes over — release
   // the pinning machinery (the chain is inert without the attribute, but
   // the below-gate sync loop must stop).
@@ -205,6 +242,9 @@ export function anchor(
   // --- wiring the overlay to the anchor element ------------------------
   let haltLoop: (() => void) | undefined;
   let engineDispose: (() => void) | undefined;
+  /** Channel engine only: reposition against a re-pinned target, letting
+   * that one write animate (the morph to the new anchor). */
+  let onRepoint: (() => void) | undefined;
 
   if (native) {
     // data-anchor selects the native scheme (index.css) — stamped only
@@ -289,18 +329,24 @@ export function anchor(
     };
 
     let stop: (() => void) | undefined;
-    const startLoop = (animateFirst = false) => {
+    const suppress = () =>
+      overlay.style.setProperty("transition-property", TRACKING_TRANSITIONS);
+    const release = () =>
+      overlay.style.removeProperty("transition-property");
+    const startLoop = () => {
       if (stop) return;
-      if (!animateFirst)
-        overlay.style.setProperty("transition-duration", "0s");
-      let first = animateFirst;
+      // Base UI semantics: the INITIAL positioning write is instant
+      // (their `data-instant`); geometry transitions re-enable after it,
+      // so every later reposition — a re-pinned follow, a live area
+      // change — morphs by the stylesheet. Enter/exit (opacity, scale,
+      // display) stay live throughout.
+      suppress();
+      let first = true;
       stop = autoUpdate(el, overlay, () =>
         update().then(() => {
-          // Rebind-while-open: the arrival write animates (the morph to
-          // the new anchor); every tracking write after it is suppressed.
           if (first && !disposed) {
             first = false;
-            overlay.style.setProperty("transition-duration", "0s");
+            release();
           }
         }),
       );
@@ -308,22 +354,31 @@ export function anchor(
     haltLoop = () => {
       stop?.();
       stop = undefined;
-      overlay.style.removeProperty("transition-duration");
+      release();
+    };
+    onRepoint = () => {
+      if (stop) void update(); // transitions are on — the write morphs
     };
 
-    let initial = true;
     const sync = () => {
       if (disposed) return;
-      const animateFirst = initial && isOpen();
-      initial = false;
-      if (isOpen()) startLoop(animateFirst);
+      if (isOpen()) startLoop();
       else haltLoop?.();
     };
-    const onDragMove = () => void update();
+    // While the anchor is being dragged the overlay must track the
+    // pointer instantly — eased geometry would lag behind the finger.
+    const onDragMove = () => {
+      suppress();
+      void update();
+    };
+    const onDragEnd = () => {
+      if (!disposed && stop) release();
+    };
 
     overlay.addEventListener("toggle", sync);
     overlay.addEventListener("close", sync);
     el.addEventListener("dragmove", onDragMove);
+    el.addEventListener("dragend", onDragEnd);
     // show()/showModal() flip [open] without firing an event everywhere.
     const openObserver = new MutationObserver(sync);
     openObserver.observe(overlay, {
@@ -338,6 +393,7 @@ export function anchor(
       overlay.removeEventListener("toggle", sync);
       overlay.removeEventListener("close", sync);
       el.removeEventListener("dragmove", onDragMove);
+      el.removeEventListener("dragend", onDragEnd);
       overlay.style.removeProperty("--overlay-x");
       overlay.style.removeProperty("--overlay-y");
       overlay.style.removeProperty("--overlay-arrow-x");
@@ -350,7 +406,9 @@ export function anchor(
 
   // A fresh open re-pins a torn-off anchor to its followed element.
   const repin = (event: Event) => {
-    if (disposed || !follow) return;
+    if (disposed) return;
+    const target = resolveFollow();
+    if (!target) return;
     const opening =
       (event as { newState?: string }).newState === "open" ||
       (event.type !== "toggle" && isOpen());
@@ -359,7 +417,7 @@ export function anchor(
       el.style.removeProperty("left");
       el.style.removeProperty("width");
       el.style.removeProperty("height");
-      pin();
+      pin(target);
     }
   };
   overlay.addEventListener("toggle", repin);
@@ -373,10 +431,23 @@ export function anchor(
   });
 
   stampPlacedHint();
-  pin();
+  let stopFollowEffect: (() => void) | undefined;
+  if (typeof follow === "function") {
+    // Reactive follow — a signal-driven getter re-pins on change; the
+    // native chain glides there, the channel engine morphs one write.
+    let first = true;
+    stopFollowEffect = effect(() => {
+      pin(resolveFollow());
+      if (!first) onRepoint?.();
+      first = false;
+    });
+  } else {
+    pin(resolveFollow());
+  }
 
   const dispose = () => {
     disposed = true;
+    stopFollowEffect?.();
     engineDispose?.();
     unpinCleanup();
     followObserver.disconnect();

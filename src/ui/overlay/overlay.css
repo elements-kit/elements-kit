@@ -422,6 +422,12 @@
   rotate: 45deg;
   background-color: var(--color-material, var(--color-surface));
   box-shadow: 0 0 0 0.5px var(--neutral-a3);
+  /* The caret glides along the edge when the popup re-anchors. */
+  transition:
+    top var(--overlay-duration, 300ms)
+      var(--overlay-easing, cubic-bezier(0.32, 0.72, 0, 1)),
+    left var(--overlay-duration, 300ms)
+      var(--overlay-easing, cubic-bezier(0.32, 0.72, 0, 1));
 }
 
 .x-overlay:where([data-placed="bottom"]) > .x-overlay-arrow {

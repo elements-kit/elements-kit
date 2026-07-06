@@ -122,6 +122,33 @@ describe("anchor (native engine)", () => {
     trigger.remove();
   });
 
+  it("a reactive follow getter re-pins to the new element (nav glide)", async () => {
+    const { overlay: el, trigger } = createAnchored();
+    const second = document.createElement("button");
+    document.body.appendChild(second);
+    const { signal } = await import("@/signals/index.ts");
+    const target = signal<Element>(trigger);
+
+    const a = anchor(el, () => target());
+    expect(trigger.style.getPropertyValue("anchor-name")).toMatch(
+      /^--overlay-follow-\d+$/,
+    );
+
+    target(second);
+    await vi.waitFor(() => {
+      // Same position-anchor name migrates — the proxy glides via CSS.
+      expect(trigger.style.getPropertyValue("anchor-name")).toBe("");
+      expect(second.style.getPropertyValue("anchor-name")).toBe(
+        a.style.getPropertyValue("position-anchor"),
+      );
+    });
+    expect(a.hasAttribute("data-follow")).toBe(true);
+
+    el.remove();
+    trigger.remove();
+    second.remove();
+  });
+
   it("re-pins a torn-off anchor on a fresh open", async () => {
     const { overlay: el, trigger } = createAnchored();
     const a = anchor(el, trigger);
@@ -187,8 +214,9 @@ describe("anchor (Floating UI engine)", () => {
       el,
       expect.objectContaining({ strategy: "fixed", placement: "bottom" }),
     );
-    // Tracking suppresses transitions…
-    await vi.waitFor(() => expect(el.style.transitionDuration).toBe("0s"));
+    // The initial positioning write is instant; geometry transitions
+    // re-enable after it (Base UI's data-instant semantics).
+    await vi.waitFor(() => expect(el.style.transitionProperty).toBe(""));
 
     el.remove();
     trigger.remove();
@@ -211,24 +239,28 @@ describe("anchor (Floating UI engine)", () => {
 
     el.removeAttribute("open");
     await vi.waitFor(() => expect(floating.stop).toHaveBeenCalled());
-    expect(el.style.transitionDuration).toBe("");
+    expect(el.style.transitionProperty).toBe("");
 
     el.remove();
     trigger.remove();
   });
 
-  it("dragmove on the anchor element triggers an immediate reposition", async () => {
+  it("dragmove repositions instantly (geometry suppressed until dragend)", async () => {
     const { overlay: el, trigger } = createAnchored();
     const a = anchor(el, trigger);
     await vi.waitFor(() => expect(floating.computePosition).toHaveBeenCalled());
     const calls = floating.computePosition.mock.calls.length;
 
     a.dispatchEvent(new CustomEvent("dragmove", { detail: { x: 1, y: 2 } }));
+    // Tracking the finger: geometry transitions off, enter/exit kept.
+    expect(el.style.transitionProperty).toBe("opacity, scale, display");
     await vi.waitFor(() =>
       expect(floating.computePosition.mock.calls.length).toBeGreaterThan(
         calls,
       ),
     );
+    a.dispatchEvent(new CustomEvent("dragend", { detail: {} }));
+    expect(el.style.transitionProperty).toBe("");
 
     el.remove();
     trigger.remove();

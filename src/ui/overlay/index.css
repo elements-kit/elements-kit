@@ -175,7 +175,9 @@
   position: fixed;
   width: 0;
   height: 0;
-  visibility: hidden;
+  /* Paint-invisible but NOT visibility:hidden — the overlay's
+   * `position-visibility: anchors-visible` strong-hides it when its
+   * anchor is invisible. */
   pointer-events: none;
   transition:
     top var(--overlay-duration, 300ms)

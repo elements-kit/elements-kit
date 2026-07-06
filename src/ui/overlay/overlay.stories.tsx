@@ -463,16 +463,14 @@ export const Anchored: StoryObj<AnchoredArgs> = {
   render: (args) => {
     const id = `overlay-story-${uid++}`;
     const overlay = signal<HTMLDialogElement | null>();
-    let stop: (() => void) | null = null;
+    // ONE anchor for the story's life; clicking a trigger re-points the
+    // reactive follow — the open popover morphs there instead of closing.
+    const target = signal<Element | null>(null);
     const wire = (ev: Event) => {
       const el = overlay();
       if (!el) return;
-      const trigger = ev.currentTarget as Element;
-      // Re-anchor to the clicked trigger — swap the wiring scope.
-      stop?.();
-      stop = effectScope(() => {
-        anchor(el, trigger, args.arrow ? { arrow: true } : undefined);
-      });
+      target(ev.currentTarget as Element);
+      if (!el.matches(":popover-open")) el.showPopover();
     };
     const trigger = (inset: string, label: string) => (
       <button
@@ -480,7 +478,6 @@ export const Anchored: StoryObj<AnchoredArgs> = {
         class:x-button
         data-variant="solid"
         data-size="2"
-        popovertarget={id}
         on:click={wire}
         style={`position: fixed; ${inset}`}
       >
@@ -499,16 +496,35 @@ export const Anchored: StoryObj<AnchoredArgs> = {
           id={id}
           class:unset
           class:x-overlay
-          popover="auto"
+          popover="manual"
           style={`--overlay-area: ${args.area}; --overlay-w: 260px`}
         >
+          <dom-lifecycle
+            onConnect={(self) => {
+              const el = self.parentElement as HTMLDialogElement;
+              anchor(
+                el,
+                () => target() ?? undefined,
+                args.arrow ? { arrow: true } : undefined,
+              );
+            }}
+          />
           <div class:unset class:x-card data-variant="elevated" data-size="3">
             <strong>Anchored</strong>
             <p>
               Opens in the <code>{args.area}</code> region of the clicked
-              trigger; edge triggers flip instead of overflowing. Light
-              dismiss, no gestures.
+              trigger — click another trigger and it morphs there; edge
+              triggers flip instead of overflowing.
             </p>
+            <button
+              class:unset
+              class:x-button
+              data-variant="soft"
+              data-size="1"
+              on:click={() => overlay()?.hidePopover()}
+            >
+              Close
+            </button>
           </div>
         </dialog>
       </>
@@ -667,21 +683,68 @@ export const AnimatedPopover: StoryObj<Args> = {
   render: () => {
     const id = `overlay-story-${uid++}`;
     const overlay = signal<HTMLDialogElement | null>();
+    const content = signal<HTMLElement | null>();
     const active = signal("Products");
-    let stop: (() => void) | null = null;
-    // No popovertarget on the items — a toggle would CLOSE the open
-    // popover on the second trigger. Re-anchor, then ensure it's open
-    // (popover="manual", so no light dismiss fights the switch).
+    const target = signal<Element | null>(null);
+    const PANELS: Record<string, string> = {
+      Products: "Design primitives, overlays, and reactive utilities.",
+      Solutions: "Recipes for sheets, drawers, menus, and windows.",
+      Pricing: "Free and open source — the best kind of pricing.",
+      About: "A tiny reactive UI kit built on the platform.",
+    };
+    const ITEMS = Object.keys(PANELS);
+    // ONE anchor, reactive follow — clicking another item re-points it
+    // and the popup GLIDES there (no scope swap, no reopen). No
+    // popovertarget: a toggle would close the open popover instead.
     const wire = (ev: Event) => {
       const el = overlay();
       if (!el) return;
       const trigger = ev.currentTarget as HTMLButtonElement;
-      active(trigger.textContent ?? "");
-      stop?.();
-      stop = effectScope(() => {
-        anchor(el, trigger, { arrow: true });
-      });
-      if (!el.matches(":popover-open")) el.showPopover();
+      const label = trigger.textContent ?? "";
+      const open = el.matches(":popover-open");
+      const switching = open && active() !== label;
+      const host = content();
+      // The Base UI Viewport effect: the previous panel (a ghost clone)
+      // slides out toward the old item, the new one slides in from the
+      // new item's direction; opacity crosses at half duration.
+      let ghost: HTMLElement | null = null;
+      let dir = 1;
+      if (switching && host) {
+        dir = ITEMS.indexOf(label) > ITEMS.indexOf(active()) ? 1 : -1;
+        ghost = host.cloneNode(true) as HTMLElement;
+        Object.assign(ghost.style, { position: "absolute", inset: "0" });
+      }
+      active(label);
+      target(trigger);
+      if (!open) {
+        el.showPopover();
+        return;
+      }
+      if (switching && host && ghost) {
+        host.parentElement?.append(ghost);
+        const timing = {
+          duration: 300,
+          easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+        };
+        ghost
+          .animate(
+            [
+              { translate: "0 0", opacity: 1 },
+              { opacity: 0, offset: 0.5 },
+              { translate: `${dir * -50}% 0`, opacity: 0 },
+            ],
+            timing,
+          )
+          .finished.finally(() => ghost.remove());
+        host.animate(
+          [
+            { translate: `${dir * 50}% 0`, opacity: 0 },
+            { opacity: 1, offset: 0.5 },
+            { translate: "0 0", opacity: 1 },
+          ],
+          timing,
+        );
+      }
     };
     const item = (label: string) => (
       <button
@@ -710,12 +773,19 @@ export const AnimatedPopover: StoryObj<Args> = {
           popover="manual"
           style="--overlay-w: 260px"
         >
+          <dom-lifecycle
+            onConnect={(self) => {
+              const el = self.parentElement as HTMLDialogElement;
+              anchor(el, () => target() ?? undefined, { arrow: true });
+            }}
+          />
           <div class:unset class:x-card data-variant="elevated" data-size="3">
-            <strong>{() => active()}</strong>
-            <p>
-              Click another nav item while open — the popup slides to it
-              and the caret follows.
-            </p>
+            <div style="position: relative; overflow: clip">
+              <div ref={content}>
+                <strong>{() => active()}</strong>
+                <p>{() => PANELS[active()]}</p>
+              </div>
+            </div>
             <button
               class:unset
               class:x-button
