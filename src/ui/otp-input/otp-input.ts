@@ -57,7 +57,9 @@ export class XOtpInput extends HTMLElement {
   // Attribute → property map. `@attributes` isn't used as a decorator (oxc's
   // test transform only supports legacy decorators); we wire the same machinery
   // by hand via `observedAttributes` + `dispatchAttrChange` below.
-  static [ATTRIBUTES]: Attributes<XOtpInput> = {
+  // `satisfies` (not an annotation) keeps the literal keys so JSX gets typed
+  // attribute props (`maxlength`, `inputmode`, …).
+  static [ATTRIBUTES] = {
     value(value) {
       this.value = value ?? "";
     },
@@ -76,7 +78,7 @@ export class XOtpInput extends HTMLElement {
     inputmode(value) {
       this.#inputMode(value ?? "text");
     },
-  };
+  } satisfies Attributes<XOtpInput>;
 
   static observedAttributes = observedAttributes(XOtpInput);
 
@@ -87,7 +89,10 @@ export class XOtpInput extends HTMLElement {
     oldValue: string | null,
     newValue: string | null,
   ): void {
-    XOtpInput[ATTRIBUTES][name]?.call(this, newValue, oldValue);
+    // Widen to the open record for string-keyed dispatch — the static keeps
+    // its literal keys for the JSX layer.
+    const handlers: Attributes<XOtpInput> = XOtpInput[ATTRIBUTES];
+    handlers[name]?.call(this, newValue, oldValue);
   }
 
   // — Reactive public state (hand-written signal accessors) —

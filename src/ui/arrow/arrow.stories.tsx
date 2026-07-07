@@ -22,7 +22,7 @@ function Arrow(size?: string) {
       aria-hidden="true"
       style={size ? `font-size: ${size}` : undefined}
     />
-  ) as Node;
+  );
 }
 
 const linkStyle =
@@ -42,7 +42,7 @@ const meta = {
         Read the guide
         {Arrow()}
       </a>
-    ) as Node,
+    ),
 } satisfies Meta<Args>;
 
 export default meta;
@@ -59,7 +59,7 @@ export const InButton: Story = {
         Get started
         {Arrow()}
       </a>
-    ) as Node,
+    ),
 };
 
 export const Sizes: Story = {
@@ -73,7 +73,7 @@ export const Sizes: Story = {
           </a>
         ))}
       </div>
-    ) as Node,
+    ),
 };
 
 // `dir="rtl"` flips the arrow to point left (its only non-default direction).
@@ -91,7 +91,7 @@ export const Rtl: Story = {
         اطلب عرضًا
         {Arrow()}
       </a>
-    ) as Node,
+    ),
 };
 
 export const Gallery: Story = {
@@ -145,5 +145,5 @@ export const Gallery: Story = {
           </a>
         </div>
       </div>
-    ) as Node,
+    ),
 };

@@ -41,7 +41,7 @@ export const ButtonToolbar: Story = {
           </button>
         ))}
       </div>
-    ) as Node,
+    ),
 };
 
 // Solid buttons share --accent-9, so the seam is drawn as a hairline in the
@@ -61,7 +61,7 @@ export const SolidActions: Story = {
           </button>
         ))}
       </div>
-    ) as Node,
+    ),
 };
 
 // Bare input + button addon. The input flex-grows; the button keeps its
@@ -86,7 +86,7 @@ export const InputWithButton: Story = {
           Go
         </button>
       </div>
-    ) as Node,
+    ),
 };
 
 // Wrapper-form input (leading affix) + button. Exercises the inner-<input>
@@ -108,7 +108,7 @@ export const InputAffixWithButton: Story = {
           Go
         </button>
       </div>
-    ) as Node,
+    ),
 };
 
 // Select + button. The select flex-grows like an input.
@@ -135,7 +135,7 @@ export const SelectWithButton: Story = {
           Apply
         </button>
       </div>
-    ) as Node,
+    ),
 };
 
 // A row of toggles joined as one control (independent checkboxes — multi-select).
@@ -150,7 +150,7 @@ export const ToggleRow: Story = {
           </label>
         ))}
       </div>
-    ) as Node;
+    );
   },
 };
 
@@ -186,5 +186,5 @@ export const Mixed: Story = {
           Send
         </button>
       </div>
-    ) as Node,
+    ),
 };

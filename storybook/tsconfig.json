@@ -1,29 +1,47 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
+    // Composite so the root project can reference this one (IDE routing for
+    // *.stories.tsx). Referenced projects may not disable emit, so instead of
+    // `noEmit` we emit declarations only, into a gitignored cache dir.
+    "composite": true,
+    "rootDir": "..",
+    "outDir": "./.tscache",
+    "emitDeclarationOnly": true,
     "target": "es2022",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "preserve",
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
-    "noEmit": true,
     "skipLibCheck": true,
     "jsx": "react-jsx",
     "jsxImportSource": "elements-kit",
     "paths": {
       "@/*": ["../src/*"],
+      // Resolve the JSX runtime from source, not dist. Stories import library
+      // classes from ../src; letting jsxImportSource hit dist would mix two
+      // declaration instances whose `ATTRIBUTES`/`SLOTS` unique symbols don't
+      // match, silently dropping typed attribute props. Mirrors the runtime
+      // alias in vitest.config.ts.
+      "elements-kit/jsx-runtime": ["../src/jsx-runtime/index.ts"],
+      "elements-kit/jsx-dev-runtime": ["../src/jsx-runtime/index.ts"],
       "@storybook/html-vite": [
         "./node_modules/@storybook/html-vite/dist/index.d.ts"
       ],
       "@storybook/addon-themes": [
         "./node_modules/@storybook/addon-themes/dist/index.d.ts"
-      ]
+      ],
+      "storybook/test": ["./node_modules/storybook/dist/test/index.d.ts"]
     }
   },
   "include": [
     "css.d.ts",
     ".storybook/**/*.ts",
-    "../src/ui/**/*.stories.ts",
-    "../src/ui/**/*.stories.tsx"
-  ]
+    // Composite projects must list every file in the program; stories import
+    // library source transitively, so the whole of ../src is included (the
+    // css-inline.d.ts `?inline` declaration rides along with it).
+    "../src/**/*.ts",
+    "../src/**/*.tsx"
+  ],
+  "exclude": ["../src/**/*.test.ts", "../src/**/*.test.tsx"]
 }

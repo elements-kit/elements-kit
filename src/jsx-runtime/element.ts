@@ -20,10 +20,13 @@ import "../polyfill";
 
 // ─ Public API ─────────────────────────────────────────────────────────────────
 
+// Returns `JSX.Element | null` (not bare `JSX.Element`): null-returning
+// function/class components propagate here. TS types JSX *expressions* via
+// the `JSX.Element` namespace type, not this signature.
 export function createElement(
   type: string | Component,
   allProps: JSX.IntrinsicAttributes & Record<string, unknown> = {},
-): JSX.Element {
+): JSX.Element | null {
   const renderer = getRenderer();
   if (renderer) return renderer.jsx(type, allProps) as JSX.Element;
 
@@ -56,7 +59,7 @@ function createFunctionElement(
   type: ComponentFn,
   props: Record<string, unknown>,
   ref: ((el: Element) => void) | undefined,
-): JSX.Element {
+): JSX.Element | null {
   let el: Element | DocumentFragment | null | undefined;
   let dispose!: () => void;
 
@@ -80,7 +83,7 @@ function createNodeElement(
   type: JSX.ElementType,
   props: Record<string, unknown>,
   ref: ((el: Element) => void) | undefined,
-): JSX.Element {
+): JSX.Element | null {
   const node = resolveNode(type);
   if (!node) return null;
 

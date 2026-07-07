@@ -37,7 +37,7 @@ const meta = {
         />
         {args.label}
       </label>
-    ) as Node,
+    ),
 } satisfies Meta<Args>;
 
 export default meta;
@@ -55,7 +55,7 @@ export const Binary: Story = {
         <input type="checkbox" class:unset checked />
         Bold
       </label>
-    ) as Node,
+    ),
 };
 
 // Exclusive group — radios sharing a `name` give native single-select.
@@ -79,7 +79,7 @@ export const ExclusiveGroup: Story = {
           </label>
         ))}
       </div>
-    ) as Node,
+    ),
 };
 
 // Icon-only — `data-icon` makes a square toggle. B / I / U formatting marks.
@@ -115,7 +115,7 @@ export const Icon: Story = {
           <input type="checkbox" class:unset />U
         </label>
       </div>
-    ) as Node,
+    ),
 };
 
 export const Disabled: Story = {
@@ -131,7 +131,7 @@ export const Disabled: Story = {
           On + Disabled
         </label>
       </div>
-    ) as Node,
+    ),
 };
 
 const SIZES = ["1", "2", "3"] as const;
@@ -219,5 +219,5 @@ export const Gallery: Story = {
           </div>
         </section>
       </div>
-    ) as Node,
+    ),
 };

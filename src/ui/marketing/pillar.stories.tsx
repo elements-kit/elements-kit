@@ -38,7 +38,7 @@ const meta = {
           Learn more
         </a>
       </div>
-    ) as Node,
+    ),
 } satisfies Meta<Args>;
 
 export default meta;
@@ -68,7 +68,7 @@ export const Center: Story = {
         <h4 data-heading>Responsive</h4>
         <p data-paragraph>Mobile-first. No JS resize handlers.</p>
       </div>
-    ) as Node,
+    ),
 };
 
 // Pillars tile into any grid — three across here.
@@ -137,5 +137,5 @@ export const Grid: Story = {
           </a>
         </div>
       </div>
-    ) as Node,
+    ),
 };

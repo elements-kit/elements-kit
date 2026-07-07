@@ -56,7 +56,7 @@ const meta = {
         </div>
         <GradientVisual />
       </div>
-    ) as Node,
+    ),
 } satisfies Meta<Args>;
 
 export default meta;
@@ -85,7 +85,7 @@ export const End: Story = {
         </div>
         <GradientVisual />
       </div>
-    ) as Node,
+    ),
 };
 
 // Content and visual stack vertically with center justification.
@@ -107,7 +107,7 @@ export const Centered: Story = {
         </div>
         <GradientVisual width="100%" maxWidth="640px" />
       </div>
-    ) as Node,
+    ),
 };
 
 // Split shifts to 5/7. Use when the visual carries the message.
@@ -129,7 +129,7 @@ export const LargeVisual: Story = {
         </div>
         <GradientVisual aspect="16/10" />
       </div>
-    ) as Node,
+    ),
 };
 
 // A large quote-style paragraph breaks out of the normal rhythm — bigger,
@@ -167,7 +167,7 @@ export const Breakout: Story = {
         </div>
         <GradientVisual aspect="21/9" />
       </div>
-    ) as Node,
+    ),
 };
 
 // `data-border` on the visual adds a 1px border + rounded corners + clipping.
@@ -187,5 +187,5 @@ export const BorderedVisual: Story = {
         </div>
         <GradientVisual bordered />
       </div>
-    ) as Node,
+    ),
 };

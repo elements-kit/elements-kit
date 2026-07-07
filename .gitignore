@@ -5,3 +5,5 @@ dist
 .wrangler
 .astro
 storybook-static
+
+.tscache

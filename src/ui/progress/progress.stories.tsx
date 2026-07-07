@@ -34,7 +34,7 @@ const meta = {
         value={String(args.value)}
         max="100"
       />
-    ) as Node,
+    ),
 } satisfies Meta<Args>;
 
 export default meta;
@@ -56,7 +56,7 @@ export const Indeterminate: Story = {
         data-variant={args.variant}
         data-size={args.size}
       />
-    ) as Node,
+    ),
 };
 
 export const Gallery: Story = {
@@ -122,6 +122,6 @@ export const Gallery: Story = {
           </div>
         </div>
       </div>
-    ) as Node;
+    );
   },
 };

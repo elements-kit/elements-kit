@@ -183,7 +183,7 @@ const meta = {
           </div>
         </dialog>
       </>
-    ) as Node;
+    );
   },
 } satisfies Meta<Args>;
 
@@ -399,7 +399,7 @@ export const Morph: Story = {
           </div>
         </dialog>
       </>
-    ) as Node;
+    );
   },
 };
 
@@ -528,7 +528,7 @@ export const Anchored: StoryObj<AnchoredArgs> = {
           </div>
         </dialog>
       </>
-    ) as Node;
+    );
   },
 };
 
@@ -590,7 +590,7 @@ export const TearOff: StoryObj<Args> = {
           </div>
         </dialog>
       </>
-    ) as Node;
+    );
   },
 };
 
@@ -665,7 +665,7 @@ export const AnchoredWithin: StoryObj<AnchoredArgs> = {
           </div>
         </dialog>
       </>
-    ) as Node;
+    );
   },
 };
 
@@ -801,7 +801,7 @@ export const AnimatedPopover: StoryObj<Args> = {
           </div>
         </dialog>
       </>
-    ) as Node;
+    );
   },
 };
 
@@ -885,7 +885,7 @@ export const Constrained: Story = {
           </div>
         </dialog>
       </>
-    ) as Node;
+    );
   },
 };
 
@@ -1050,6 +1050,6 @@ export const MorphGallery: StoryObj<Args> = {
           </div>
         </dialog>
       </>
-    ) as Node;
+    );
   },
 };

@@ -21,7 +21,7 @@ const Options = () =>
         <option value={f.toLowerCase()}>{f}</option>
       ))}
     </>
-  ) as unknown as Node;
+  );
 
 const meta = {
   title: "UI/Select",
@@ -42,7 +42,7 @@ const meta = {
       >
         <Options />
       </select>
-    ) as Node,
+    ),
 } satisfies Meta<Args>;
 
 export default meta;
@@ -80,7 +80,7 @@ export const Truncation: Story = {
           <option>Short</option>
         </select>
       </div>
-    ) as Node,
+    ),
 };
 
 export const Disabled: Story = {
@@ -100,7 +100,7 @@ export const Disabled: Story = {
           </select>
         ))}
       </div>
-    ) as Node,
+    ),
 };
 
 export const Gallery: Story = {
@@ -167,5 +167,5 @@ export const Gallery: Story = {
           </div>
         </section>
       </div>
-    ) as Node,
+    ),
 };

@@ -24,7 +24,7 @@ const InfoIcon = () =>
     >
       <path d="M8 0a8 8 0 100 16A8 8 0 008 0zm0 3a1 1 0 110 2 1 1 0 010-2zm1 10H7V7h2v6z" />
     </svg>
-  ) as Node;
+  );
 
 const meta = {
   title: "UI/Alert",
@@ -56,7 +56,7 @@ const meta = {
           <strong>{args.title}</strong> — {args.description}
         </div>
       </div>
-    ) as Node,
+    ),
 } satisfies Meta<Args>;
 
 export default meta;
@@ -86,7 +86,7 @@ export const Info: Story = {
           <strong>{args.title}</strong> — {args.description}
         </div>
       </div>
-    ) as Node,
+    ),
 };
 
 export const Success: Story = {
@@ -108,7 +108,7 @@ export const Success: Story = {
           <strong>{args.title}</strong> — {args.description}
         </div>
       </div>
-    ) as Node,
+    ),
 };
 
 export const Warning: Story = {
@@ -130,7 +130,7 @@ export const Warning: Story = {
           <strong>{args.title}</strong> — {args.description}
         </div>
       </div>
-    ) as Node,
+    ),
 };
 
 export const Error: Story = {
@@ -152,7 +152,7 @@ export const Error: Story = {
           <strong>{args.title}</strong> — {args.description}
         </div>
       </div>
-    ) as Node,
+    ),
 };
 
 // `--accent-12` text bump for higher contrast.
@@ -176,7 +176,7 @@ export const HighContrast: Story = {
           <strong>{args.title}</strong> — {args.description}
         </div>
       </div>
-    ) as Node,
+    ),
 };
 
 // Composition: an action button laid out alongside the message body.
@@ -212,7 +212,7 @@ export const WithAction: Story = {
           </button>
         </div>
       </div>
-    ) as Node,
+    ),
 };
 
 export const Gallery: Story = {
@@ -263,6 +263,6 @@ export const Gallery: Story = {
           </div>
         </div>
       </div>
-    ) as Node;
+    );
   },
 };

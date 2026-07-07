@@ -57,7 +57,7 @@ const meta = {
         />
         <span>{args.label}</span>
       </label>
-    ) as Node,
+    ),
 } satisfies Meta<Args>;
 
 export default meta;
@@ -87,7 +87,7 @@ export const WithLabel: Story = {
           <span>Security alerts</span>
         </label>
       </div>
-    ) as Node,
+    ),
 };
 
 export const Card: Story = {
@@ -121,7 +121,7 @@ export const Card: Story = {
           </label>
         ))}
       </div>
-    ) as Node,
+    ),
 };
 
 export const Gallery: Story = {
@@ -248,5 +248,5 @@ export const Gallery: Story = {
           </div>
         </section>
       </div>
-    ) as Node,
+    ),
 };

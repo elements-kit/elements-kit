@@ -412,6 +412,27 @@ type _PI = InstanceProps<Probe>;
 type _PI_Excited = Assert<Equal<_PI["excited"], boolean | undefined>>;
 type _PI_Name = Assert<Equal<_PI["name"], string | undefined>>;
 
+// ─ Registry → HTMLElementTagNameMap bridge (src/custom-elements.ts) ──────────
+// Registered tags get typed DOM lookups: querySelector / querySelectorAll /
+// createElement return the concrete class instead of bare `Element`.
+
+type _TagMap_XRange = Assert<Equal<HTMLElementTagNameMap["x-range"], XRange>>;
+const _tag_create = () => {
+  const created: XRange = document.createElement("x-range");
+  const queried: XRange | null = document.querySelector("x-range");
+  void created;
+  void queried;
+};
+void _tag_create;
+
+// ─ JSX.Element is non-null ────────────────────────────────────────────────────
+// A JSX expression is usable anywhere a `Node` is expected without narrowing;
+// null-returning components keep `| null` on their own signatures
+// (`ComponentFn`, `ComponentInstance.render`).
+
+type _JsxElement_NonNull = Assert<Equal<Extract<JSX.Element, null>, never>>;
+type _JsxElement_IsNode = Assert<Extends<JSX.Element, Node>>;
+
 // ─ Tiny runtime anchor so vitest picks the file up ───────────────────────────
 
 it("type-only tests compile", () => {

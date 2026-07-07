@@ -45,7 +45,7 @@ const meta = {
           </label>
         ))}
       </div>
-    ) as Node;
+    );
   },
 } satisfies Meta<Args>;
 
@@ -206,5 +206,5 @@ export const Gallery: Story = {
           </div>
         </section>
       </div>
-    ) as Node,
+    ),
 };

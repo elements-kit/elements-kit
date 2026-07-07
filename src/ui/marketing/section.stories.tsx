@@ -28,7 +28,7 @@ const meta = {
           Optional CTA
         </a>
       </header>
-    ) as Node,
+    ),
 } satisfies Meta<Args>;
 
 export default meta;
@@ -56,7 +56,7 @@ export const HeadingSizes: Story = {
           The quick brown fox
         </h2>
       </div>
-    ) as Node,
+    ),
 };
 
 // `.page-section` gives the themed background + vertical padding;
@@ -77,5 +77,5 @@ export const PageSection: Story = {
           </header>
         </div>
       </section>
-    ) as Node,
+    ),
 };

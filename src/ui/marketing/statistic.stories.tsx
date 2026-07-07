@@ -25,7 +25,7 @@ const meta = {
         <p data-heading>75%</p>
         <p data-description>faster builds across the engineering org.</p>
       </div>
-    ) as Node,
+    ),
 } satisfies Meta<Args>;
 
 export default meta;
@@ -46,7 +46,7 @@ export const Center: Story = {
         <p data-heading>99.99%</p>
         <p data-description>uptime across managed deployments.</p>
       </div>
-    ) as Node,
+    ),
 };
 
 // Statistics tile into a row of equal columns.
@@ -70,5 +70,5 @@ export const Row: Story = {
           <p data-description>with monthly releases.</p>
         </div>
       </div>
-    ) as Node,
+    ),
 };

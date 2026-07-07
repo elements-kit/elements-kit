@@ -18,7 +18,7 @@ function group(start: number, n: number): Node {
         <x-otp-slot index={String(start + i)} />
       ))}
     </x-otp-group>
-  ) as Node;
+  );
 }
 
 const meta = {
@@ -47,7 +47,7 @@ export const Basic: Story = {
       >
         {group(0, 6)}
       </x-otp-input>
-    ) as Node,
+    ),
 };
 
 // Digits only via `pattern`; numeric mobile keyboard.
@@ -64,7 +64,7 @@ export const DigitsOnly: Story = {
       >
         {group(0, 6)}
       </x-otp-input>
-    ) as Node,
+    ),
 };
 
 // Author-inserted separator between two 3-cell groups.
@@ -83,7 +83,7 @@ export const WithSeparator: Story = {
         <x-otp-separator />
         {group(3, 3)}
       </x-otp-input>
-    ) as Node,
+    ),
 };
 
 // Preset value.
@@ -99,7 +99,7 @@ export const Prefilled: Story = {
       >
         {group(0, 6)}
       </x-otp-input>
-    ) as Node,
+    ),
 };
 
 export const Disabled: Story = {
@@ -115,7 +115,7 @@ export const Disabled: Story = {
       >
         {group(0, 6)}
       </x-otp-input>
-    ) as Node,
+    ),
 };
 
 // Real-browser test of form participation (ElementInternals FACE) + FormObject —
@@ -134,7 +134,7 @@ export const FormSubmit: Story = {
           {group(0, 6)}
         </x-otp-input>
       </form>
-    ) as Node,
+    ),
   play: async ({ canvasElement }) => {
     const form = canvasElement.querySelector("form")!;
     const otp = form.querySelector("x-otp-input")!;
@@ -172,7 +172,7 @@ export const Behaviors: Story = {
       <x-otp-input maxlength="4" pattern="[0-9]" aria-label="Code">
         {group(0, 4)}
       </x-otp-input>
-    ) as Node,
+    ),
   play: async ({ canvasElement }) => {
     const otp = canvasElement.querySelector("x-otp-input")!;
     const input = otp.shadowRoot!.querySelector("input")!;

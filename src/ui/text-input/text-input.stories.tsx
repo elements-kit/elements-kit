@@ -39,7 +39,7 @@ const meta = {
         placeholder={args.placeholder}
         disabled={args.disabled}
       />
-    ) as Node,
+    ),
 } satisfies Meta<Args>;
 
 export default meta;
@@ -70,7 +70,7 @@ export const Wrapper: Story = {
           ⌘K
         </kbd>
       </div>
-    ) as Node,
+    ),
 };
 
 // Textarea wrapper — vertical container with top/bottom affixes around a bare
@@ -96,7 +96,7 @@ export const Textarea: Story = {
           <span style="font-size: 12px; color: var(--neutral-a11)">0 / 280</span>
         </div>
       </div>
-    ) as Node,
+    ),
 };
 
 // Native input types share the same `.x-text-input` styling.
@@ -117,7 +117,7 @@ export const Types: Story = {
           />
         ))}
       </div>
-    ) as Node,
+    ),
 };
 
 export const Disabled: Story = {
@@ -151,7 +151,7 @@ export const Disabled: Story = {
           disabled
         />
       </div>
-    ) as Node,
+    ),
 };
 
 export const Gallery: Story = {
@@ -218,5 +218,5 @@ export const Gallery: Story = {
           </div>
         </section>
       </div>
-    ) as Node,
+    ),
 };

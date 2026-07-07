@@ -40,7 +40,7 @@ const meta = {
           </a>
         </section>
       </div>
-    ) as Node,
+    ),
 } satisfies Meta<Args>;
 
 export default meta;
