@@ -1,0 +1,178 @@
+---
+title: Overlay
+description: One frame for every floating surface — windows, sheets, drawers, panels, and anchored popovers — geometry in CSS, behavior as opt-in primitives.
+---
+
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
+
+
+:::caution[Experimental]
+The overlay module is experimental — the API below can change between minor versions.
+:::
+
+An invisible frame around a card. The frame owns *where* and *how big* through a handful of CSS custom properties; the card owns *what it looks like*. Every archetype — centered window, bottom sheet, side drawer, corner panel, anchored popover — is the same class with different property values, so one surface can morph into another with a plain CSS transition.
+
+<StorybookEmbed story="ui-overlay--window" />
+
+
+## Install
+
+```ts
+import "elements-kit/ui/styles.css";
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/neutral/gray.css";
+
+import "elements-kit/ui/styles/unset.css";
+import "elements-kit/ui/card/card.css";
+import "elements-kit/ui/overlay/index.css"; // geometry — import first
+import "elements-kit/ui/overlay/overlay.css"; // presentation
+```
+
+JS is optional and imported per feature from one entry:
+
+```ts
+import { anchor, confine, constraint, detents, draggable, rubber, resize, createOverlayGestures } from "elements-kit/ui/overlay";
+```
+
+## Markup
+
+A `<dialog>` with `unset x-overlay`, wrapping a plain [card](/ui/card). How you open it decides the modality — there is no attribute for it.
+
+```html
+<dialog class="unset x-overlay" data-resize="end-end" data-draggable>
+  <div class="x-card" data-variant="elevated">Hello.</div>
+</dialog>
+```
+
+| Opened via | Modality |
+| --- | --- |
+| `dialog.showModal()` | Modal — focus trap, inert page, backdrop |
+| `popover` + `popovertarget` | Non-modal top layer, light dismiss |
+| `popover="manual"` | Persistent — the page stays interactive |
+
+## Geometry channels
+
+The frame positions its **center** at a point inside a constraint rect, clamped so the box can never leave it. Saturated values dock flush: `--overlay-y: 9999px` means "the bottom edge", reactively, whatever the rect becomes.
+
+| Property | Meaning | Unset |
+| --- | --- | --- |
+| `--overlay-x` / `--overlay-y` | Center's distance from the rect's top-left | centered |
+| `--overlay-w` / `--overlay-h` | Explicit size | `--overlay-width` (480px) × fit-content |
+| `--overlay-constraint-top/-left/-width/-height` | The rect everything computes against | the viewport |
+| `--overlay-duration` / `--overlay-easing` | Motion tokens | 300ms, iOS-style ease-out |
+
+Changing any channel on an open overlay morphs it — every value is an interpolable length. The recipes are just points in this space:
+
+```html
+<!-- bottom sheet -->
+<dialog class="unset x-overlay" data-resize="block-start"
+        style="--overlay-y: 9999px; --overlay-h: 60svh;
+               --overlay-w: var(--overlay-constraint-width)">
+
+<!-- right drawer -->
+<dialog class="unset x-overlay" data-resize="inline-start"
+        style="--overlay-x: 9999px; --overlay-h: var(--overlay-constraint-height)">
+
+<!-- corner panel -->
+<dialog class="unset x-overlay" popover="manual" data-resize="start-start"
+        style="--overlay-x: 9999px; --overlay-y: 9999px; --overlay-h: 60svh">
+```
+
+## Anchored popovers
+
+`data-anchor="element"` places the overlay against its invoker — zero JS in browsers with CSS anchor positioning. `--overlay-area` picks the side (any `position-area` value); `--overlay-gap` the distance; edge collisions flip automatically.
+
+```html
+<button popovertarget="menu">Open menu</button>
+
+<dialog id="menu" popover class="unset x-overlay" data-anchor="element"
+        style="--overlay-area: block-end span-inline-end; --overlay-w: 240px">
+  <div class="x-card" data-variant="elevated">…</div>
+</dialog>
+```
+
+:::caution[`--overlay-area` must be valid]
+An invalid value computes to `position-area: none` — the `var()` fallback cannot rescue it — and the box parks at the static position.
+:::
+
+For cross-browser anchoring, programmatic opens, or a caret, use the `anchor()` primitive below instead of the attribute.
+
+## JS primitives
+
+Two spatial primitives — the **anchor** (a point the overlay follows) and the **constraint** (a region it lives in). Everything else derives from them: `detents()` quantize a constraint, `rubber()` resists at its edges, and the `draggable()` / `resize()` services move a target through them. Behaviors attach to primitives, never to the overlay — dragging moves the *anchor*, so the overlay itself has no modes.
+
+All factories assume a scope: wrap wiring in [`effectScope`](/scopes) (or a component) and cleanup is automatic.
+
+### `anchor(overlay, follow?, opts?)`
+
+Gives the overlay an anchor element it follows for life and returns it. The anchor follows `follow` — an element, a rect, or a signal-reading getter — until something moves it.
+
+```ts
+import { anchor } from "elements-kit/ui/overlay";
+
+anchor(menu, trigger); // element-anchored popover
+
+// shared nav popover — re-pointing the getter GLIDES the popup across
+const active = signal(firstTrigger);
+anchor(menu, () => active(), { arrow: true });
+```
+
+`opts.arrow` renders a caret pointing at the anchor; `opts.within` confines flipping to a region instead of the viewport. Both force the Floating UI engine — native CSS anchor positioning can express neither.
+
+### `constraint(source?)` and `confine(overlay, region)`
+
+`constraint()` builds a reactive region from an element, a plain rect, or nothing (the viewport). `confine()` syncs it into the constraint channels — the location clamps and gestures bound inside it.
+
+```ts
+const region = constraint(document.querySelector("main")!);
+confine(panel, region);
+anchor(panel, trigger, { within: region }); // flip at ITS edges
+```
+
+### `detents(region, stops)` and `rubber()`
+
+`detents()` quantizes a region — one snapping concept for both services: `resize()` snaps sizes to the stops, `draggable()` snaps positions. `rubber()` is edge resistance during the drag.
+
+```ts
+const d = detents(constraint(), [0.25, 0.6, 0.9]); // fractions of the viewport
+```
+
+### `draggable(target, space?, ...effects)`
+
+Moves a target through a space — generic, but built to move anchors. Tear-off is a composition, not a feature:
+
+```ts
+const a = anchor(panel, trigger); // follows the trigger…
+draggable(a, undefined, rubber()).attach(panel); // …until you drag the panel
+```
+
+The panel follows its trigger until the first drag takes the anchor; reopening re-pins. Events on the target: `dragmove` (`{x, y}`) and `dragend` (`{x, y, velocity, rest}` — `rest: null` signals a dismiss).
+
+### `resize(target, space?, ...effects)` and `createOverlayGestures(el, options?)`
+
+`resize()` wires a resize handle service (`attach(handle)`, `update(px)`); the side comes from the target's `data-resize` value. `createOverlayGestures()` is the markup-driven preset — it reads `data-resize` / `data-draggable` and gives edge drags, corner grips, window moves, and flick-to-dismiss:
+
+```ts
+createOverlayGestures(sheet, { resize: detents(constraint(), [0.25, 0.6, 0.9]) });
+```
+
+| `data-resize` | Handle |
+| --- | --- |
+| `block-start` / `block-end` | Height drag from that edge (sheets) |
+| `inline-start` / `inline-end` | Width drag (drawers) |
+| `end-end`, `start-start`, … | Corner grip, block side first (windows) |
+
+:::note[Anchored overlays ignore markup gestures]
+Dragging an anchored overlay means moving its anchor — compose `anchor()` + `draggable()` as above. `data-draggable` stays for free windows.
+:::
+
+## Browser support
+
+Geometry and morphs work everywhere the `translate` property exists (Chrome 104+). Enter/exit transitions layer on via `@starting-style`; anchored placement uses native CSS anchor positioning where the compound gate passes and a Floating UI-driven fallback elsewhere — same authoring interface, verified per-geometry at runtime.
+
+## See also
+
+- [Card](/ui/card) — the surface inside the frame
+- [Theming](/ui/styles) — palettes, materials, light & dark
+- [Scopes](/scopes) — `effectScope` and cleanup
+- [Signals](/signals) — the reactivity the primitives assume

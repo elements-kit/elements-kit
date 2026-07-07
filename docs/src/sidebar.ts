@@ -112,6 +112,7 @@ export const uiSidebar: SidebarItem[] = [
       { label: "Kbd", slug: "ui/kbd", badge: cssBadge },
       { label: "Link", slug: "ui/link", badge: cssBadge },
       { label: "OTP Input", slug: "ui/otp-input", badge: jsBadge },
+      { label: "Overlay", slug: "ui/overlay", badge: jsBadge },
       { label: "Progress", slug: "ui/progress", badge: cssBadge },
       { label: "Radio", slug: "ui/radio", badge: cssBadge },
       {
