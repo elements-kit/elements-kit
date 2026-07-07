@@ -18,6 +18,13 @@
     "jsxImportSource": "elements-kit",
     "paths": {
       "@/*": ["../src/*"],
+      // Resolve the JSX runtime from source, not dist. Stories import library
+      // classes from ../src; letting jsxImportSource hit dist would mix two
+      // declaration instances whose `ATTRIBUTES`/`SLOTS` unique symbols don't
+      // match, silently dropping typed attribute props. Mirrors the runtime
+      // alias in vitest.config.ts.
+      "elements-kit/jsx-runtime": ["../src/jsx-runtime/index.ts"],
+      "elements-kit/jsx-dev-runtime": ["../src/jsx-runtime/index.ts"],
       "@storybook/html-vite": [
         "./node_modules/@storybook/html-vite/dist/index.d.ts"
       ],

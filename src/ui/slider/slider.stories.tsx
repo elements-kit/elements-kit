@@ -30,7 +30,7 @@ const meta = {
         value={String(args.value)}
         disabled={args.disabled || undefined}
       />
-    ) as Node,
+    ),
 } satisfies Meta<Args>;
 
 export default meta;
@@ -134,5 +134,5 @@ export const Gallery: Story = {
           />
         </section>
       </div>
-    ) as Node,
+    ),
 };

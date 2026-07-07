@@ -52,7 +52,7 @@ const meta = {
           </details>
         ))}
       </div>
-    ) as Node,
+    ),
 } satisfies Meta<Args>;
 
 export default meta;
@@ -98,7 +98,7 @@ export const Nested: Story = {
           <p>Opening this closes Child A.</p>
         </details>
       </details>
-    ) as Node,
+    ),
 };
 
 // The primitive ships no chevron — drop an SVG into <summary> and rotate it
@@ -138,5 +138,5 @@ export const WithChevron: Story = {
           </details>
         ))}
       </div>
-    ) as Node,
+    ),
 };

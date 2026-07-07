@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import "./index.ts";
 import type { XOtpInput } from "./otp-input.ts";
+import type { XOtpSlot } from "./otp-slot.ts";
+import type { JSX } from "@/jsx-runtime/index.ts";
 
 // happy-dom has no form-associated-custom-element support (no `attachInternals`,
 // and the element isn't placed in `form.elements`). So form participation,
@@ -13,7 +15,8 @@ function mount(
   attrs: Record<string, string> = {},
   count = 6,
 ): { root: XOtpInput; input: HTMLInputElement } {
-  const root = document.createElement("x-otp-input") as XOtpInput;
+  // `createElement` is typed via the registry → HTMLElementTagNameMap bridge.
+  const root = document.createElement("x-otp-input");
   for (const [k, v] of Object.entries(attrs)) root.setAttribute(k, v);
   const group = document.createElement("x-otp-group");
   for (let i = 0; i < count; i++) {
@@ -159,3 +162,32 @@ describe("x-otp-input", () => {
     expect(input.disabled).toBe(false);
   });
 });
+
+// ─ Type-level: JSX + DOM surface (compile-time assertions) ───────────────────
+// The `satisfies Attributes<XOtpInput>` map keeps its literal keys, so JSX
+// accepts the attribute props; `declare static [ATTRIBUTES]` on XOtpSlot types
+// `index`; the registry bridge types tag-name DOM lookups.
+
+type Assert<T extends true> = T;
+type Equal<A, B> =
+  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+    ? true
+    : false;
+
+type _OtpJsx = JSX.IntrinsicElements["x-otp-input"];
+type _SlotJsx = JSX.IntrinsicElements["x-otp-slot"];
+const _otp_attrs: _OtpJsx = {
+  maxlength: "6",
+  pattern: "[0-9]",
+  inputmode: "numeric",
+  value: "42",
+  "on:complete": (_e: CustomEvent<string>) => void 0,
+};
+const _slot_attrs: _SlotJsx = { index: "0" };
+void _otp_attrs;
+void _slot_attrs;
+
+type _OtpTagMap = Assert<Equal<HTMLElementTagNameMap["x-otp-input"], XOtpInput>>;
+type _SlotTagMap = Assert<
+  Equal<HTMLElementTagNameMap["x-otp-slot"], XOtpSlot>
+>;

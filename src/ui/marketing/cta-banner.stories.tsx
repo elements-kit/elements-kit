@@ -43,7 +43,7 @@ const meta = {
           </a>
         </div>
       </div>
-    ) as Node,
+    ),
 } satisfies Meta<Args>;
 
 export default meta;
@@ -69,5 +69,5 @@ export const Start: Story = {
           </a>
         </div>
       </div>
-    ) as Node,
+    ),
 };

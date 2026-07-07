@@ -169,7 +169,11 @@ type IntrinsicElementOf<T> = T extends { ref?: infer R | undefined }
 // ─ JSX namespace ─────────────────────────────────────────────────────────────
 
 export namespace JSX {
-  export type Element = globalThis.Element | globalThis.DocumentFragment | null;
+  // Non-null, like React's `JSX.Element`: a JSX *expression* always yields a
+  // node from intrinsic tags and fragments, so `<div />` is usable anywhere a
+  // `Node` is expected without narrowing. Components may still *return* null —
+  // their signatures are `JSX.Element | null` (see ./types).
+  export type Element = globalThis.Element | globalThis.DocumentFragment;
   export type ElementType = Child | Component;
   export interface ElementChildrenAttribute {
     children: {};

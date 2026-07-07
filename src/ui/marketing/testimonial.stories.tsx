@@ -33,7 +33,7 @@ const meta = {
           <span data-title>Staff Engineer, Acme Co</span>
         </figcaption>
       </figure>
-    ) as Node,
+    ),
 } satisfies Meta<Args>;
 
 export default meta;
@@ -55,7 +55,7 @@ export const Elevated: Story = {
           <span data-title>Head of Design, Beta Inc</span>
         </figcaption>
       </figure>
-    ) as Node,
+    ),
 };
 
 export const Borderless: Story = {
@@ -72,5 +72,5 @@ export const Borderless: Story = {
           <span data-title>Engineering Lead, Gamma Labs</span>
         </figcaption>
       </figure>
-    ) as Node,
+    ),
 };

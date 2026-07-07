@@ -89,7 +89,10 @@ export class XOtpInput extends HTMLElement {
     oldValue: string | null,
     newValue: string | null,
   ): void {
-    XOtpInput[ATTRIBUTES][name]?.call(this, newValue, oldValue);
+    // Widen to the open record for string-keyed dispatch — the static keeps
+    // its literal keys for the JSX layer.
+    const handlers: Attributes<XOtpInput> = XOtpInput[ATTRIBUTES];
+    handlers[name]?.call(this, newValue, oldValue);
   }
 
   // — Reactive public state (hand-written signal accessors) —

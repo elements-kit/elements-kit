@@ -13,7 +13,12 @@
     "jsx": "react-jsx",
     "jsxImportSource": "elements-kit",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      // Type-check .test.tsx JSX against source, not the built dist types —
+      // dist is a separate declaration instance whose `ATTRIBUTES`/`SLOTS`
+      // unique symbols don't match source classes. Mirrors vitest.config.ts.
+      "elements-kit/jsx-runtime": ["./src/jsx-runtime/index.ts"],
+      "elements-kit/jsx-dev-runtime": ["./src/jsx-runtime/index.ts"]
     }
   },
   "exclude": [
