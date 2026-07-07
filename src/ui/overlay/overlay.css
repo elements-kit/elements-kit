@@ -149,7 +149,7 @@
  *                                                                                                 *
  ***************************************************************************************************/
 
-/* The frame's 1fr grid row (index.css) stretches and shrinks the card —
+/* The frame's flex column (index.css) stretches and shrinks the card —
  * no percentage heights, so the card tracks morphs. */
 .x-overlay > .x-card {
   overflow-y: auto;
@@ -466,7 +466,7 @@
 @supports (transition-behavior: allow-discrete) {
   .x-overlay {
     transition-property:
-      top, left, translate, width, height, opacity, scale, display;
+      top, left, translate, transform, width, height, opacity, scale, display;
     transition-duration: var(--overlay-duration);
     transition-timing-function: var(--overlay-easing);
     transition-behavior: allow-discrete;
@@ -608,7 +608,8 @@
   @supports (overlay: auto) {
     .x-overlay {
       transition-property:
-        top, left, translate, width, height, opacity, scale, display, overlay;
+        top, left, translate, transform, width, height, opacity, scale,
+        display, overlay;
     }
     .x-overlay::backdrop {
       transition-property: opacity, display, overlay;

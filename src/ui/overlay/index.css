@@ -101,8 +101,15 @@
 .x-overlay {
   top: var(--_ct);
   left: var(--_cl);
+  /* The UA popover/dialog styles set `inset: 0` — the far insets MUST be
+   * auto here, or any browser that fails the intrinsic height fallback
+   * (Safari: `fit-content` substituted through var() can be discarded)
+   * stretches the box from `top` to the UA `bottom: 0`. With them auto,
+   * a failed fallback degrades to height: auto — same shrink-to-fit. */
+  right: auto;
+  bottom: auto;
   translate: calc(
-      -50% + var(--_ex, 0px) + var(--overlay-dx, 0px) +
+      -50% + var(--overlay-dx, 0px) +
         clamp(
           50%,
           var(--overlay-x, calc(var(--_cw) / 2)),
@@ -110,13 +117,19 @@
         )
     )
     calc(
-      -50% + var(--_ey, 0px) + var(--overlay-dy, 0px) +
+      -50% + var(--overlay-dy, 0px) +
         clamp(
           50%,
           var(--overlay-y, calc(var(--_ch) / 2)),
           calc(-50% + var(--_ch))
         )
     );
+  /* Enter/exit slide on `transform`, NOT inside the translate calc:
+   * Safari cannot interpolate between the clamp() trees above (the
+   * transition freezes at progress 0) but interpolates a plain
+   * percentage translate fine. `translate` (position) and `transform`
+   * (enter/exit offset) compose. */
+  transform: translate(var(--_ex, 0px), var(--_ey, 0px));
 }
 
 /***************************************************************************************************
@@ -145,9 +158,9 @@
   .x-overlay[data-anchor="element"] {
     top: auto;
     left: auto;
-    /* Keep the enter/exit slide + drag channels; drop the center clamp. */
-    translate: calc(var(--_ex, 0px) + var(--overlay-dx, 0px))
-      calc(var(--_ey, 0px) + var(--overlay-dy, 0px));
+    /* Keep the drag channels; drop the center clamp (the enter/exit
+     * slide rides `transform`, declared in the base rule). */
+    translate: var(--overlay-dx, 0px) var(--overlay-dy, 0px);
     position-area: var(--overlay-area, block-end);
     position-try-fallbacks: flip-block, flip-inline;
     position-visibility: anchors-visible;
@@ -222,13 +235,16 @@
  ***************************************************************************************************/
 
 .x-overlay {
-  /* The open frame is a single-row grid (see the display guard below);
-   * the 1fr row makes the card track the frame height during morphs —
-   * a percentage height can't resolve against a mid-interpolation
-   * fit-content height and would snap at transition end. Declared here,
-   * outside the open state, so the card stays stretched through the
-   * discrete-display exit transition. */
-  grid-template-rows: minmax(0, 1fr);
+  /* The open frame is a flex column (see the display guard below); the
+   * card is its growable, shrinkable item, tracking the frame height
+   * frame-by-frame during morphs — a percentage height can't resolve
+   * against a mid-interpolation fit-content height and would snap at
+   * transition end. NOT a grid: Safari inflates the auto height of a
+   * grid-display top-layer popover to the whole viewport (every track
+   * flavor — fr, %, even auto rows — absorbs the phantom space).
+   * Declared here, outside the open state, so the card stays stretched
+   * through the discrete-display exit transition. */
+  flex-direction: column;
 
   --overlay-duration: 300ms;
   --overlay-easing: cubic-bezier(0.32, 0.72, 0, 1);
@@ -240,6 +256,7 @@
     top var(--overlay-duration) var(--overlay-easing),
     left var(--overlay-duration) var(--overlay-easing),
     translate var(--overlay-duration) var(--overlay-easing),
+    transform var(--overlay-duration) var(--overlay-easing),
     width var(--overlay-duration) var(--overlay-easing),
     height var(--overlay-duration) var(--overlay-easing);
 }
@@ -254,11 +271,11 @@
  *                                                                                                 *
  * Pre-Popover-API browsers ignore the `popover` attribute and would                               *
  * render the element inline — keep it hidden instead. Open overlays                               *
- * (either modality) become a single-row grid: with the base rule's                                *
- * `minmax(0, 1fr)` row the card stretches and shrinks with the frame,                             *
- * tracking morphs frame-by-frame. Scoped to the open states so the UA's                           *
- * `dialog:not([open]) { display: none }` and the Tier-2 discrete                                  *
- * display exit keep working.                                                                      *
+ * (either modality) become a flex column: the card grows into a                                   *
+ * definite frame and shrinks below its content (scrolling) when the                               *
+ * frame is smaller, tracking morphs frame-by-frame. Scoped to the open                            *
+ * states so the UA's `dialog:not([open]) { display: none }` and the                               *
+ * Tier-2 discrete display exit keep working.                                                      *
  *                                                                                                 *
  ***************************************************************************************************/
 
@@ -267,7 +284,12 @@
 }
 
 .x-overlay:where([open], :popover-open) {
-  display: grid;
+  display: flex;
+}
+
+.x-overlay > .x-card {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 /***************************************************************************************************
