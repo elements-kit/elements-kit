@@ -1,3 +1,4 @@
+import { ATTRIBUTES, type AttrChangeHandler } from "@/attributes.ts";
 import { isBrowser } from "@/utilities/environment.ts";
 
 /**
@@ -7,6 +8,11 @@ import { isBrowser } from "@/utilities/environment.ts";
  * index; all styling lives in the companion CSS.
  */
 export class XOtpSlot extends HTMLElement {
+  // Type-only: gives JSX a typed `index` attribute prop. No property is
+  // declared, so the runtime writes a real attribute — which is what the
+  // parent `<x-otp-input>` reads (`getAttribute("index")`).
+  declare static [ATTRIBUTES]: { index: AttrChangeHandler<XOtpSlot> };
+
   connectedCallback(): void {
     this.setAttribute("aria-hidden", "true");
   }

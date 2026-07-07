@@ -35,10 +35,24 @@
  * }
  * ```
  */
+// Instance types of every registry entry, keyed by tag. Feeding these into
+// `HTMLElementTagNameMap` types the DOM surface for registered elements —
+// `querySelector("x-range")`, `querySelectorAll`, `createElement`, … return
+// the concrete element class instead of bare `Element`. Later augmentations
+// of `CustomElementRegistry` merge before checking, so they're picked up too.
+type RegisteredElementInstances = {
+  [K in keyof ElementsKit.CustomElementRegistry]: ElementsKit.CustomElementRegistry[K] extends abstract new (
+    ...args: any[]
+  ) => infer I
+    ? I
+    : never;
+};
+
 declare global {
   namespace ElementsKit {
     interface CustomElementRegistry {}
   }
+  interface HTMLElementTagNameMap extends RegisteredElementInstances {}
 }
 export type CustomElementRegistry = ElementsKit.CustomElementRegistry;
 

@@ -25,5 +25,8 @@
     "tsdown.config.ts",
     "**/*.stories.ts",
     "**/*.stories.tsx"
-  ]
+  ],
+  // IDE wiring only: routes *.stories.tsx (excluded above) to the Storybook
+  // project so editors type-check them with storybook/tsconfig.json.
+  "references": [{ "path": "./storybook" }]
 }
