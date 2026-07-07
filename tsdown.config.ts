@@ -6,7 +6,9 @@ import { defineConfig } from "tsdown";
 // explicit outDir. `clean: false` keeps it from wiping the JS output.
 export default defineConfig([
   {
-    dts: true,
+    // References-free tsconfig: the root tsconfig's `references` (Storybook IDE
+    // wiring) makes rolldown-plugin-dts bail out of source loading.
+    dts: { tsconfig: "tsconfig.build.json" },
     entry: [
       "src/index.ts",
       "src/for.ts",
