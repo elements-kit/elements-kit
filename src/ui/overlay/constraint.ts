@@ -7,7 +7,7 @@ import {
   type PlainBox,
   readBox,
 } from "./box.ts";
-import { clamp } from "./gesture-model.ts";
+import { clamp } from "./session.ts";
 
 /**
  * The constraint — a region the overlay stays inside; one of the

@@ -1,10 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { Constraint, Overlay } from "./index.ts";
-import {
-  closestDetent,
-  freeResize,
-  type ResizeContext,
-} from "./gesture-model.ts";
+import { closestDetent } from "./session.ts";
 
 function createOverlay(attrs?: {
   resize?: string;
@@ -164,32 +160,6 @@ describe("closestDetent", () => {
   it("dismisses on a fast shrinking flick below the smallest detent", () => {
     expect(closestDetent(180, detents, 0.8, true, 0.5)).toBe(-1);
     expect(closestDetent(180, detents, 0.2, true, 0.5)).toBe(0);
-  });
-});
-
-describe("resize strategies", () => {
-  // A resolve that treats numbers as fractions of a 1000px axis and
-  // strings as px (parseFloat), matching the gesture's real resolver.
-  const ctx = (over: Partial<ResizeContext>): ResizeContext => ({
-    size: 0,
-    startSize: 0,
-    velocity: 0,
-    axis: "height",
-    min: 0,
-    max: 1000,
-    dismissible: true,
-    velocityThreshold: 0.5,
-    resolve: (v) => (typeof v === "number" ? v * 1000 : parseFloat(v)),
-    ...over,
-  });
-
-  it("freeResize clamps to the room and dismisses past the minimum", () => {
-    const s = freeResize({ min: 200 });
-    expect(s.bounds?.(ctx({}))).toEqual([200, 1000]);
-    expect(s.rest(ctx({ size: 600 }))).toBe(600);
-    expect(s.rest(ctx({ size: 1500 }))).toBe(1000);
-    expect(s.rest(ctx({ size: 80 }))).toBeNull();
-    expect(s.rest(ctx({ size: 80, dismissible: false }))).toBe(200);
   });
 });
 

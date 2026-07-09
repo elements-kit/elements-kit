@@ -6,10 +6,10 @@ import {
   edgeDrag,
   edgeSetup,
   parseResize,
-  resist,
   slidePastRoom,
   updateVelocity,
-} from "./gesture-model.ts";
+} from "./preset.ts";
+import { resist } from "./session.ts";
 
 const CONSTRAINT = { top: 0, left: 0, width: 1024, height: 768 };
 

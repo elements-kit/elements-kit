@@ -12,14 +12,14 @@ import {
   resolveConstraint,
 } from "./constraint.ts";
 import {
+  createFrameIO,
+  createGestureRecognizer,
   detectEngagement,
   type FrameIO,
-  freeResize,
   type GestureSession,
   parseResize,
-} from "./gesture-model.ts";
-import { createFrameIO, createGestureRecognizer } from "./overlay-dom.ts";
-import { selectSession } from "./preset.ts";
+  selectSession,
+} from "./preset.ts";
 
 export interface OverlayOptions {
   /** Initial geometry, written to the channels (one-shot). */
@@ -101,7 +101,6 @@ export class Overlay extends Box {
       this.#disposers.push(opts.anchor.bind(el, opts.within !== undefined));
 
     this.#io = createFrameIO(el, {
-      strategy: freeResize(),
       dismissible: opts.dismissible ?? true,
       velocityThreshold: 0.5,
     });
@@ -201,7 +200,7 @@ export class Overlay extends Box {
     const engage = (event: PointerEvent): GestureSession | null => {
       const parsed = parseResize(el.getAttribute("data-resize") ?? "");
       const draggable = el.hasAttribute("data-draggable");
-      const { snapshot, resizer, move } = this.#io.engage();
+      const { snapshot, deps } = this.#io.engage();
       const key = detectEngagement({
         ...parsed,
         draggable,
@@ -210,7 +209,7 @@ export class Overlay extends Box {
         dir: snapshot.dir,
       });
       if (!key) return null;
-      return selectSession(key, parsed, snapshot, resizer, move, this.#io);
+      return selectSession(key, parsed, snapshot, deps, this.#io);
     };
 
     const recognizer = createGestureRecognizer(el, { canEngage, engage });
