@@ -409,7 +409,12 @@ export class Overlay extends Box {
       };
       el.style.userSelect = "none";
       el.style.setProperty("-webkit-user-select", "none");
-      el.setPointerCapture?.(event.pointerId);
+      try {
+        el.setPointerCapture(event.pointerId);
+      } catch {
+        // No active pointer with that id (synthetic events) — the drag
+        // still tracks through the listeners.
+      }
     };
 
     const onMove = (event: PointerEvent) => {
@@ -441,7 +446,11 @@ export class Overlay extends Box {
       };
       const velocity = tracker.velocity;
       tracker = null;
-      el.releasePointerCapture?.(event.pointerId);
+      try {
+        el.releasePointerCapture(event.pointerId);
+      } catch {
+        // Was never captured — nothing to release.
+      }
       const dismiss =
         this.#dismissible &&
         (plan.kind === "move"
@@ -505,7 +514,11 @@ export class Overlay extends Box {
         down: { x: event.clientX, y: event.clientY },
         origin: { x: anchor.x(), y: anchor.y() },
       };
-      el.setPointerCapture(event.pointerId);
+      try {
+        el.setPointerCapture(event.pointerId);
+      } catch {
+        // No active pointer with that id (synthetic events).
+      }
     };
     const onMove = (event: PointerEvent) => {
       if (!engaged) return;
