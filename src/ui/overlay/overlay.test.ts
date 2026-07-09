@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { Constraint, Overlay } from "./index.ts";
+import { Constraint, Overlay, SnapSession } from "./index.ts";
 import { closestDetent } from "./session.ts";
 
 function createOverlay(attrs?: {
@@ -340,6 +340,35 @@ describe("Overlay", () => {
     expect(hidePopover).toHaveBeenCalledOnce();
     popGestures.dispose();
     popover.remove();
+  });
+
+  it("a gestureSession() override snaps the markup drag to detents", () => {
+    // The subclass hook: the preset's edits run with a SnapSession —
+    // stops resolve against the drag's room ([0, 400] for this floating
+    // block-start sheet: bottom 400 anchored, constraint top 0).
+    class SheetOverlay extends Overlay {
+      protected override gestureSession() {
+        return new SnapSession([0.25, 0.5, 0.75]); // → 100 / 200 / 300
+      }
+    }
+    const el = createOverlay({ resize: "block-start" });
+    mockWindowRect(el); // rect (100,100) 480×300 → bottom 400, floating
+    const gestures = new SheetOverlay(el, { dismissible: false });
+    const onChange = vi.fn();
+    el.addEventListener("resizechange", onChange);
+
+    // Grow from 300 toward 350 (slowly — settle the velocity), release:
+    // nearest stop is 300.
+    drag(el, 150, 100);
+    el.dispatchEvent(
+      new PointerEvent("pointermove", { clientY: 100, bubbles: true }),
+    );
+    pointerUp(el, { y: 100 });
+    expect(el.style.getPropertyValue("--overlay-h")).toBe("300px");
+    expect(onChange).toHaveBeenCalledOnce();
+
+    gestures.dispose();
+    el.remove();
   });
 
   it("stops reacting after dispose", () => {

@@ -31,13 +31,13 @@
  *   popovers (menus, tooltips, pickers). The zero-JS recipe uses the
  *   popover invoker as the implicit anchor (`popovertarget` /
  *   `showPopover({ source })`) where CSS anchor positioning exists
- *   (index.css ANCHORED MODE). The JS primitive is `anchor(overlay,
- *   trigger)` — it gives the overlay an anchor ELEMENT it follows for
- *   life; the anchor follows the trigger until something moves it
- *   (dragging moves the ANCHOR — see `draggable()` — so tear-off is a
- *   composition, not a mode; the overlay itself never changes state).
- *   `--overlay-area` picks the side, `--overlay-gap` the distance. The
- *   markup gestures stay off anchored overlays.
+ *   (index.css ANCHORED MODE). The JS class is `new Anchor(trigger)`
+ *   (bound via `new Overlay(el, { anchor })`) — it gives the overlay an
+ *   anchor ELEMENT it follows for life; the anchor tracks the trigger
+ *   until something moves it (an edit or a `data-draggable` drag moves
+ *   the ANCHOR — the tear contract — so tear-off is a composition, not
+ *   a mode; the overlay itself never changes state). `--overlay-area`
+ *   picks the side, `--overlay-gap` the distance.
  *
  *   MODALITY — how you open it, no attribute:
  *     dialog.showModal()          modal: focus trap, inert page, backdrop
@@ -93,7 +93,7 @@
  *                      and the box parks at the static position
  *   --overlay-gap      anchored distance to the anchor (--space-2)
  *   --overlay-arrow-size   caret size (10px); .x-overlay-arrow is the
- *                      caret element, injected by anchor(…, { arrow })
+ *                      caret element, injected by new Anchor(t, { arrow })
  *   data-material-background  the card surface defaults to solid inside
  *                      an overlay when no material context is declared;
  *                      an explicit value on the frame or any ancestor
@@ -114,19 +114,19 @@
  *                        (position-area: block-end)` places
  *                        `data-anchor="element"` against its anchor
  *                        (index.css); below the gate the centered scheme
- *                        holds unless `anchor()` (JS, Floating UI)
- *                        drives the location channels.
+ *                        holds unless `Anchor` (JS, Floating UI) drives
+ *                        the location channels.
  *
- * JS is opt-in, one feature per module (see index.ts): the two spatial
- * primitives are `anchor` and `constraint`; `detents` quantize a
- * constraint (sizes AND positions), `rubber` resists at its edges, and
- * the `draggable` / `resize` services move a target through them.
- * Behaviors attach to primitives, never to the overlay — the location
- * point is bound to the anchor for life; dragging moves the anchor.
- * `createOverlayGestures` is the markup-driven preset (`data-resize` /
- * `data-draggable` on free overlays): edge handles drag the size along
- * their axis (flick-to-dismiss); corner grips resize like a desktop
- * window; `data-draggable` moves the window from the top strip.
+ * JS is opt-in (see index.ts): everything spatial is a Box — `Overlay`
+ * (the surface), `Anchor` (a tracked box it attaches to), `Constraint`
+ * (a region it stays inside) — readable getters, one `set()` setter,
+ * and an edit lifecycle (`begin`/`set`/`release`/`cancel`) whose physics
+ * come from a `Session` (`SnapSession` for detents). `new Overlay(el)`
+ * wires the markup preset (`data-resize` / `data-draggable` on free
+ * overlays): edge handles drag the size along their axis
+ * (flick-to-dismiss); corner grips resize like a desktop window;
+ * `data-draggable` moves the window from the top strip — or, with an
+ * anchor bound, moves the ANCHOR (tear-off).
  */
 
 .x-overlay {

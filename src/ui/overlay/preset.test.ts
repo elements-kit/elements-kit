@@ -3,11 +3,8 @@ import {
   anchor,
   type Box,
   detectEngagement,
-  edgeDrag,
   edgeSetup,
   parseResize,
-  slidePastRoom,
-  updateVelocity,
 } from "./preset.ts";
 import { resist } from "./session.ts";
 
@@ -74,25 +71,6 @@ describe("parseResize", () => {
     expect(parseResize("end-start")).toEqual({ block: "end", inline: "start" });
     expect(parseResize("")).toEqual({ block: null, inline: null });
     expect(parseResize("nonsense")).toEqual({ block: null, inline: null });
-  });
-});
-
-describe("updateVelocity", () => {
-  it("computes px/ms when time advances", () => {
-    const v = updateVelocity(
-      { prev: { x: 0, y: 0 }, lastTime: 0, velocity: { x: 0, y: 0 } },
-      { x: 100, y: 50 },
-      10,
-    );
-    expect(v).toEqual({ x: 10, y: 5 });
-  });
-  it("keeps the prior velocity when time doesn't advance", () => {
-    const prev = {
-      prev: { x: 0, y: 0 },
-      lastTime: 5,
-      velocity: { x: 3, y: 1 },
-    };
-    expect(updateVelocity(prev, { x: 100, y: 0 }, 5)).toEqual({ x: 3, y: 1 });
   });
 });
 
@@ -210,41 +188,3 @@ describe("edgeSetup", () => {
   });
 });
 
-describe("slidePastRoom", () => {
-  it("passes through within the room", () => {
-    expect(slidePastRoom(500, 620, 1)).toEqual({ size: 500, slide: null });
-  });
-  it("pins at the room and signs the overshoot onto the slide", () => {
-    expect(slidePastRoom(700, 620, 1)).toEqual({ size: 620, slide: 80 });
-    expect(slidePastRoom(700, 620, -1)).toEqual({ size: 620, slide: -80 });
-  });
-});
-
-describe("edgeDrag", () => {
-  it("passes through within bounds", () => {
-    expect(edgeDrag({ target: 400, lo: 200, hi: 600, sign: -1 })).toEqual({
-      size: 400,
-      slide: null,
-    });
-  });
-  it("rubber-bands past the upper bound", () => {
-    expect(edgeDrag({ target: 660, lo: 200, hi: 600, sign: -1 })).toEqual({
-      size: 600 + 60 / 3,
-      slide: null,
-    });
-  });
-  it("pins the size at the hard max and rubber-slides past it", () => {
-    // soft hi 600, room 620: banded = 600 + 300/3 = 700 > 620, so the size
-    // pins at the room and the resisted overshoot (700-620) rides the slide —
-    // the surface translates past the edge instead of shoving the anchored edge.
-    expect(edgeDrag({ target: 900, lo: 200, hi: 600, sign: -1, max: 620 })).toEqual({
-      size: 620,
-      slide: -1 * (700 - 620),
-    });
-  });
-  it("pins to lo and slides the surface away below the lower bound", () => {
-    const r = edgeDrag({ target: 120, lo: 200, hi: 600, sign: -1 });
-    expect(r.size).toBe(200);
-    expect(r.slide).toBe(-(-1) * (200 - 120)); // -sign * (lo - target) = 80
-  });
-});

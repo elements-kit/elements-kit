@@ -94,7 +94,7 @@ export abstract class Editable {
 
   /** Hard room for one axis: positions range over the region minus the
    * box's own extent; sizes range up to the region's extent. */
-  #bounds(axis: Axis): [number, number] {
+  protected editBounds(axis: Axis): [number, number] {
     const r = this.region();
     const current = this.read();
     switch (axis) {
@@ -139,7 +139,7 @@ export abstract class Editable {
           ? (raw - prev.value) / (now - prev.lastTime)
           : (prev?.velocity ?? 0);
       this.#axes[axis] = { value: raw, lastTime: now, velocity, driven: true };
-      out[axis] = session.during(raw, axis, this.#bounds(axis));
+      out[axis] = session.during(raw, axis, this.editBounds(axis));
     }
     this.write(out);
   }
@@ -159,7 +159,7 @@ export abstract class Editable {
         state.value,
         state.velocity,
         axis,
-        this.#bounds(axis),
+        this.editBounds(axis),
       );
       if (r === null) {
         this.cancel();

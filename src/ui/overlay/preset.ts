@@ -1,18 +1,19 @@
-import { resolveConstraint } from "./constraint.ts";
-import { clamp, PROJECTION_MS, resist } from "./session.ts";
+import type { PlainBox } from "./box.ts";
+import { PROJECTION_MS, resist, Session } from "./session.ts";
 
 /**
- * The markup gesture preset — everything behind `data-resize` /
- * `data-draggable`, in one place: the value vocabulary, the zone
- * dispatch, the per-dimension reducer, the channel I/O, and the pointer
- * recognizer. `Overlay` wires it; the physics come from the same pure
- * functions the public `Session` uses (session.ts).
+ * The markup gesture preset's LOGIC — pure helpers behind `data-resize`
+ * / `data-draggable`: the attribute vocabulary, the engagement zones,
+ * and the per-gesture plan (which axes the pointer drives, their rooms,
+ * signs, and coupling). The `Overlay` owns the pointer plumbing and
+ * drives its OWN edit lifecycle (`begin`/`set`/`release`/`cancel`) from
+ * these — the preset's physics are the same `Session` machinery custom
+ * handles use.
  *
  * In box space every gesture is the same idea — some edges follow the
- * pointer, the rest stay pinned: an edge word drives one dimension, a
- * corner grip two, `data-draggable` moves all four edges together (a
- * translate). Each driven dimension is described by a {@link Dim}; the
- * differences between handle shapes are `Dim` fields, not code paths.
+ * pointer, the rest stay pinned: an edge word drives one size dimension
+ * (the opposite edge pinned by a location shift), a corner grip two,
+ * `data-draggable` moves all four edges together (a translate).
  */
 
 /** Corner grip: square engagement zone at the handle corner. */
@@ -40,71 +41,6 @@ export interface Rect {
 export interface Box extends Rect {
   right: number;
   bottom: number;
-}
-
-/** Live pointer tracking for one drag — owned by the recognizer, passed
- * to the active session on every move/release. */
-export interface Pointer {
-  start: Point;
-  prev: Point;
-  current: Point;
-  lastTime: number;
-  /** Per-axis velocity, px/ms (sign = pointer direction). */
-  velocity: Point;
-}
-
-/** The four persisted channels as one value (1:1 `--overlay-{x,y,w,h}`).
- * x/y are rect-relative box-CENTER lengths; w/h are the size channels. */
-export interface Frame {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
-
-/** The unclamped transient translate offset (1:1 `--overlay-{dx,dy}`) —
- * composed into the CSS translate on top of the clamped position, so the
- * surface can overshoot/fling past the edge. `null` for an axis = clear it. */
-export interface Offset {
-  dx?: number | null;
-  dy?: number | null;
-}
-
-/** Engage-time geometry — pure px layout facts. */
-export interface Snapshot {
-  readonly constraint: Rect;
-  readonly rect: Box;
-  readonly center0: Point;
-  readonly dir: 1 | -1;
-}
-
-/** Per-gesture policy + the one live DOM read the move dismiss needs. */
-export interface GestureDeps {
-  readonly dismissible: boolean;
-  readonly velocityThreshold: number;
-  liveRect(): Box;
-}
-
-/** The element side a session writes through (see `createFrameIO`). */
-export interface FrameIO {
-  /** Snapshot the element into the pure parts for the engaging drag. */
-  engage(): { snapshot: Snapshot; deps: GestureDeps };
-  /** Live render (transition suppressed): size inline, position + offset. */
-  sync(patch: { frame?: Partial<Frame>; offset?: Offset }): void;
-  /** Persist a frame to the channels (animated); emits `resizechange` for w/h. */
-  commit(frame: Partial<Frame>): void;
-  /** Restore the named channels to their engage values. */
-  revert(keys: ReadonlyArray<keyof Frame>): void;
-  /** Restore all channels and close the overlay. */
-  dismiss(): void;
-}
-
-/** One drag session — computes geometry per pointer event and writes it
- * through the `io` it closed over on engage. */
-export interface GestureSession {
-  move(p: Pointer): void;
-  release(p: Pointer): void;
-  cancel(): void;
 }
 
 /* ------------------------------------------------------------------ *
@@ -179,7 +115,7 @@ export function detectEngagement(args: {
 }
 
 /* ------------------------------------------------------------------ *
- * Edge math — pure helpers the per-dimension reducer builds on.       *
+ * Edge math.                                                          *
  * ------------------------------------------------------------------ */
 
 /**
@@ -220,56 +156,11 @@ export function edgeSetup(args: {
 }
 
 /**
- * Edge-drag resolution: from a target size + soft bounds, the rendered
- * size and the slide offset (the value to write to `--overlay-dx/-dy`, or
- * `null` to remove it). Both bounds rubber-band, but in different channels:
- *
- * - Above `hi` the size grows with resistance, but only up to the hard `max`
- *   (the room from the anchored edge to the constraint). Past the room the
- *   box cannot grow — `max-width`/`-height` caps it and the location clamp
- *   would shove the *anchored* edge inward — so the size pins to `max` and
- *   the resisted overshoot rides the unclamped slide instead, translating
- *   the whole surface past the edge (handle-side rubber-band). On release the
- *   rest clamps to the room and the slide clears, snapping it back in.
- * - Below `lo` the size pins to `lo` and the surface slides toward its edge
- *   (the dismiss preview).
- */
-export function edgeDrag(args: {
-  target: number;
-  lo: number;
-  hi: number;
-  sign: number;
-  max?: number;
-}): { size: number; slide: number | null } {
-  const { target, lo, hi, sign, max = Infinity } = args;
-  if (target > hi) return slidePastRoom(resist(target, lo, hi), max, sign);
-  if (target < lo) {
-    return { size: lo, slide: -sign * (lo - Math.max(target, 0)) };
-  }
-  return { size: target, slide: null };
-}
-
-/**
- * Cap a resisted size at the room `max`; route the resisted overshoot beyond
- * it to the slide channel (translating the surface past the edge instead of
- * letting the CSS clamp shove the anchored edge). `null` slide within the room.
- * The handle-side rubber-band shared by the edge ({@link edgeDrag}) and corner
- * resizes — both can only grow until the handle reaches the constraint.
- */
-export function slidePastRoom(
-  resisted: number,
-  max: number,
-  sign: number,
-): { size: number; slide: number | null } {
-  if (resisted <= max) return { size: resisted, slide: null };
-  return { size: max, slide: sign * (resisted - max) };
-}
-
-/**
  * Pin the opposite edge along one axis: shift the center-anchored location
- * by half the size change. Returns the rect-relative center coordinate, or
- * `null` when docked (the CSS clamp already holds that edge). The single
- * source of anchoring truth for block, inline, and corner resizes.
+ * by half the size change. Returns the rect-relative center coordinate
+ * (channel space), or `null` when docked (the CSS clamp already holds that
+ * edge). The single source of anchoring truth for block, inline, and
+ * corner resizes.
  */
 export function anchor(args: {
   axis: "width" | "height";
@@ -289,213 +180,213 @@ export function anchor(args: {
 }
 
 /* ------------------------------------------------------------------ *
- * The sessions — one per-dimension reducer for every handle shape,    *
- * plus the translate (move).                                          *
+ * The gesture plan — what an engaged pointer drives.                  *
  * ------------------------------------------------------------------ */
 
-/** One driven dimension of a resize drag. */
-interface Dim {
-  /** The channel/frame keys this dimension writes. */
+/** One driven size dimension of a resize gesture. */
+export interface AxisPlan {
+  /** The channel keys this dimension writes. */
   size: "w" | "h";
   loc: "x" | "y";
   offset: "dx" | "dy";
   /** Pointer axis driving it. */
   pointer: keyof Point;
-  axis: "width" | "height";
+  axisName: "width" | "height";
   startSize: number;
   /** Growth sign (handle grows toward the pointer) + anchoring. */
   sign: number;
   anchorSign: number;
   docked: boolean;
-  /** Hard room from the anchored edge to the constraint. */
-  hardMin: number;
-  hardMax: number;
-  /** May this dimension's rest dismiss (shrink-past-min flick) — false
-   * for the corner's free height clamp. */
+  /** Hard room `[lo, hi]` — hi runs from the anchored edge to the
+   * constraint (past it the CSS clamp would shove the anchored edge). */
+  lo: number;
+  hi: number;
+  /** May a shrink-flick past `lo` dismiss — false for the corner's free
+   * height clamp. */
   dismisses: boolean;
-  /** Below the lower bound: pin + slide toward the edge (edge handles,
-   * the dismiss preview) or plain resistance (corner). */
-  belowLo: "slide" | "resist";
+  /** Below `lo`: pin the size and slide toward the edge 1:1 (edge
+   * handles — the dismiss preview) or render the resisted value
+   * (corner). */
+  pinBelow: boolean;
 }
 
-/** An edge word — one driven dimension. */
-function edgeDim(
+export interface GesturePlan {
+  kind: "move" | "resize";
+  /** Driven size dimensions (resize only; move drives x/y directly). */
+  axes: AxisPlan[];
+  rect: Box;
+  constraint: Rect;
+  center0: Point;
+  /** The edit physics for this gesture. */
+  session: Session;
+}
+
+/** Edge handles pass raw values below `lo` through `during` — the
+ * Overlay's render mapping pins the size there and slides the surface
+ * 1:1 toward its edge (the dismiss preview must track the finger). */
+class EdgeSession extends Session {
+  override during(
+    value: number,
+    _axis: "x" | "y" | "w" | "h",
+    bounds: readonly [number, number],
+  ): number {
+    return value < bounds[0] ? value : resist(value, bounds[0], bounds[1]);
+  }
+}
+
+const edgeSession = new EdgeSession();
+const freeSession = new Session();
+
+function edgeAxis(
   axis: "block" | "inline",
   side: "start" | "end",
-  snap: Snapshot,
-): Dim {
+  rect: Box,
+  constraint: Rect,
+  dir: 1 | -1,
+): AxisPlan {
   const { sign, anchorSign, docked } = edgeSetup({
     axis,
     side,
-    rect: snap.rect,
-    constraint: snap.constraint,
-    dir: snap.dir,
+    rect,
+    constraint,
+    dir,
   });
-  // Room from the *anchored* edge to the far constraint edge — not the
-  // full constraint span. The anchored edge holds, so the surface can
-  // only grow until the handle reaches the constraint; past that point
-  // the CSS clamp would shove the anchored edge inward.
-  const hardMax =
+  const hi =
     axis === "block"
       ? anchorSign > 0
-        ? snap.constraint.top + snap.constraint.height - snap.rect.top
-        : snap.rect.bottom - snap.constraint.top
+        ? constraint.top + constraint.height - rect.top
+        : rect.bottom - constraint.top
       : anchorSign > 0
-        ? snap.constraint.left + snap.constraint.width - snap.rect.left
-        : snap.rect.right - snap.constraint.left;
+        ? constraint.left + constraint.width - rect.left
+        : rect.right - constraint.left;
   const width = axis === "inline";
   return {
     size: width ? "w" : "h",
     loc: width ? "x" : "y",
     offset: width ? "dx" : "dy",
     pointer: width ? "x" : "y",
-    axis: width ? "width" : "height",
-    startSize: width ? snap.rect.width : snap.rect.height,
+    axisName: width ? "width" : "height",
+    startSize: width ? rect.width : rect.height,
     sign,
     anchorSign,
     docked,
-    hardMin: 0,
-    hardMax,
+    lo: 0,
+    hi,
     dismisses: true,
-    belowLo: "slide",
+    pinBelow: true,
   };
-}
-
-/** A corner grip — two driven dimensions, opposite corner anchored. The
- * axes are asymmetric: the width alone decides dismissal; the height is
- * a free clamp that never dismisses. */
-function cornerDims(
-  block: "start" | "end",
-  inline: "start" | "end",
-  snap: Snapshot,
-): [Dim, Dim] {
-  const dir = snap.dir;
-  const signX = (inline === "end" ? 1 : -1) * dir;
-  const signY = block === "end" ? 1 : -1;
-  const handleRight = (inline === "end") === (dir === 1);
-  const maxW = handleRight
-    ? snap.constraint.left + snap.constraint.width - snap.rect.left
-    : snap.rect.right - snap.constraint.left;
-  const maxH =
-    block === "end"
-      ? snap.constraint.top + snap.constraint.height - snap.rect.top
-      : snap.rect.bottom - snap.constraint.top;
-  return [
-    {
-      size: "w", loc: "x", offset: "dx", pointer: "x", axis: "width",
-      startSize: snap.rect.width,
-      sign: signX, anchorSign: signX, docked: false,
-      hardMin: MIN_RESIZE_W, hardMax: maxW,
-      dismisses: true, belowLo: "resist",
-    },
-    {
-      size: "h", loc: "y", offset: "dy", pointer: "y", axis: "height",
-      startSize: snap.rect.height,
-      sign: signY, anchorSign: signY, docked: false,
-      hardMin: MIN_RESIZE_H, hardMax: maxH,
-      dismisses: false, belowLo: "resist",
-    },
-  ];
 }
 
 /**
- * The one resize session — edge handles (one `Dim`) and corner grips
- * (two) reduce identically per dimension: target size from the pointer
- * delta, rubber at the bounds, overshoot past the room riding the slide
- * channel, the opposite edge pinned by the location shift (unless
- * docked — then the CSS clamp holds it). On release the size clamps
- * into the room; a shrink-projected flick past the minimum dismisses.
+ * Builds the plan for an engaged gesture: which size dimensions the
+ * pointer drives (edge word = one, corner grip = two; asymmetric — the
+ * corner's width alone decides dismissal, its height is a free clamp)
+ * and the physics session the edit runs with.
  */
-export function resizeGesture(
-  snap: Snapshot,
-  deps: GestureDeps,
-  io: FrameIO,
-  dims: Dim[],
-): GestureSession {
-  const anchorAt = (d: Dim, size: number) =>
-    anchor({
-      axis: d.axis,
-      center0: snap.center0,
-      constraint: snap.constraint,
-      anchorSign: d.anchorSign,
-      startSize: d.startSize,
-      size,
-      docked: d.docked,
-    });
-
+export function planGesture(
+  kind: "block" | "inline" | "resize" | "move",
+  parsed: { block: "start" | "end" | null; inline: "start" | "end" | null },
+  rect: Box,
+  constraint: Rect,
+  dir: 1 | -1,
+): GesturePlan {
+  const center0 = {
+    x: rect.left + rect.width / 2,
+    y: rect.top + rect.height / 2,
+  };
+  if (kind === "move") {
+    return { kind: "move", axes: [], rect, constraint, center0, session: freeSession };
+  }
+  if (kind === "resize") {
+    const block = parsed.block!;
+    const inline = parsed.inline!;
+    const signX = (inline === "end" ? 1 : -1) * dir;
+    const signY = block === "end" ? 1 : -1;
+    const handleRight = (inline === "end") === (dir === 1);
+    const maxW = handleRight
+      ? constraint.left + constraint.width - rect.left
+      : rect.right - constraint.left;
+    const maxH =
+      block === "end"
+        ? constraint.top + constraint.height - rect.top
+        : rect.bottom - constraint.top;
+    return {
+      kind: "resize",
+      rect,
+      constraint,
+      center0,
+      session: freeSession,
+      axes: [
+        {
+          size: "w", loc: "x", offset: "dx", pointer: "x", axisName: "width",
+          startSize: rect.width,
+          sign: signX, anchorSign: signX, docked: false,
+          lo: MIN_RESIZE_W, hi: maxW,
+          dismisses: true, pinBelow: false,
+        },
+        {
+          size: "h", loc: "y", offset: "dy", pointer: "y", axisName: "height",
+          startSize: rect.height,
+          sign: signY, anchorSign: signY, docked: false,
+          lo: MIN_RESIZE_H, hi: maxH,
+          dismisses: false, pinBelow: false,
+        },
+      ],
+    };
+  }
+  const axis = kind === "block" ? "block" : "inline";
+  const side = kind === "block" ? parsed.block! : parsed.inline!;
   return {
-    move(p) {
-      const frame: Partial<Frame> = {};
-      const offset: Offset = {};
-      for (const d of dims) {
-        const target =
-          d.startSize + d.sign * (p.current[d.pointer] - p.start[d.pointer]);
-        const { size, slide } =
-          d.belowLo === "slide"
-            ? edgeDrag({
-                target,
-                lo: d.hardMin,
-                hi: d.hardMax,
-                sign: d.sign,
-                max: d.hardMax,
-              })
-            : slidePastRoom(
-                resist(target, d.hardMin, d.hardMax),
-                d.hardMax,
-                d.sign,
-              );
-        frame[d.size] = size;
-        const a = anchorAt(d, size);
-        if (a !== null) frame[d.loc] = a;
-        offset[d.offset] = slide;
-      }
-      io.sync({ frame, offset });
-    },
-    release(p) {
-      const frame: Partial<Frame> = {};
-      for (const d of dims) {
-        const target =
-          d.startSize + d.sign * (p.current[d.pointer] - p.start[d.pointer]);
-        // Free rest: clamp into the room; a shrink-projected flick past
-        // the minimum dismisses (velocity positive = shrinking).
-        const velocity = -d.sign * p.velocity[d.pointer];
-        const projected = target - velocity * PROJECTION_MS;
-        if (
-          d.dismisses &&
-          deps.dismissible &&
-          (projected < d.hardMin / 2 ||
-            (target < d.hardMin && velocity > deps.velocityThreshold))
-        ) {
-          return io.dismiss();
-        }
-        const size = clamp(target, d.hardMin, d.hardMax);
-        frame[d.size] = size;
-        const a = anchorAt(d, size);
-        if (a !== null) frame[d.loc] = a;
-      }
-      io.commit(frame);
-    },
-    cancel() {
-      io.revert(["x", "y", "w", "h"]);
-    },
+    kind: "resize",
+    rect,
+    constraint,
+    center0,
+    session: edgeSession,
+    axes: [edgeAxis(axis, side, rect, constraint, dir)],
   };
 }
 
-/** Move bounds on the box center — the same clamp the stylesheet applies
- * to the persisted location point (center floor = half the box). */
-function moveBounds(rect: Box, constraint: Rect) {
-  const minX = constraint.left + rect.width / 2;
-  const minY = constraint.top + rect.height / 2;
-  return {
-    minX,
-    minY,
-    maxX: Math.max(constraint.left + constraint.width - rect.width / 2, minX),
-    maxY: Math.max(constraint.top + constraint.height - rect.height / 2, minY),
-  };
+/** The raw driven values for a pointer delta — sizes for a resize (the
+ * coupling and physics apply downstream), the box top-left for a move. */
+export function targetsAt(plan: GesturePlan, delta: Point): Partial<PlainBox> {
+  if (plan.kind === "move") {
+    return { x: plan.rect.left + delta.x, y: plan.rect.top + delta.y };
+  }
+  const out: Partial<PlainBox> = {};
+  for (const a of plan.axes) {
+    out[a.size] = a.startSize + a.sign * delta[a.pointer];
+  }
+  return out;
+}
+
+/* ------------------------------------------------------------------ *
+ * Dismissal predicates (preset policy, applied before release).       *
+ * ------------------------------------------------------------------ */
+
+/** A shrink-projected flick past a dismissing axis's minimum. */
+export function shouldDismissResize(
+  plan: GesturePlan,
+  delta: Point,
+  velocity: Point,
+  velocityThreshold: number,
+): boolean {
+  for (const a of plan.axes) {
+    if (!a.dismisses) continue;
+    const target = a.startSize + a.sign * delta[a.pointer];
+    const v = -a.sign * velocity[a.pointer]; // positive = shrinking
+    const projected = target - v * PROJECTION_MS;
+    if (projected < a.lo / 2) return true;
+    if (target < a.lo && v > velocityThreshold) return true;
+  }
+  return false;
 }
 
 /** Whether a flicked move's projected center leaves the constraint. */
-function projectedOutOfBounds(rect: Box, velocity: Point, constraint: Rect) {
+export function projectedOutOfBounds(
+  rect: Box,
+  velocity: Point,
+  constraint: Rect,
+): boolean {
   const px = rect.left + rect.width / 2 + velocity.x * PROJECTION_MS;
   const py = rect.top + rect.height / 2 + velocity.y * PROJECTION_MS;
   return (
@@ -504,311 +395,4 @@ function projectedOutOfBounds(rect: Box, velocity: Point, constraint: Rect) {
     py < constraint.top ||
     py > constraint.top + constraint.height
   );
-}
-
-/**
- * The move session — x/y drag (all four edges travel together), 1:1
- * inside the constraint with rubber past it, flick off the constraint
- * to dismiss. The live delta rides the unclamped `--overlay-dx/-dy`;
- * the rested box center commits to the location channels.
- */
-export function moveGesture(
-  snap: Snapshot,
-  deps: GestureDeps,
-  io: FrameIO,
-): GestureSession {
-  const bounds = moveBounds(snap.rect, snap.constraint);
-  const at = (p: Pointer) => ({
-    x: snap.center0.x + (p.current.x - p.start.x),
-    y: snap.center0.y + (p.current.y - p.start.y),
-  });
-  return {
-    move(p) {
-      const c = at(p);
-      io.sync({
-        offset: {
-          dx: resist(c.x, bounds.minX, bounds.maxX) - snap.center0.x,
-          dy: resist(c.y, bounds.minY, bounds.maxY) - snap.center0.y,
-        },
-      });
-    },
-    release(p) {
-      if (
-        deps.dismissible &&
-        projectedOutOfBounds(deps.liveRect(), p.velocity, snap.constraint)
-      ) {
-        return io.dismiss();
-      }
-      const c = at(p);
-      io.commit({
-        x: clamp(c.x, bounds.minX, bounds.maxX) - snap.constraint.left,
-        y: clamp(c.y, bounds.minY, bounds.maxY) - snap.constraint.top,
-      });
-    },
-    cancel() {
-      io.revert(["x", "y", "w", "h"]);
-    },
-  };
-}
-
-/** Build the session for an engaged zone (the preset's dispatcher). */
-export function selectSession(
-  key: "block" | "inline" | "resize" | "move",
-  parsed: { block: "start" | "end" | null; inline: "start" | "end" | null },
-  snapshot: Snapshot,
-  deps: GestureDeps,
-  io: FrameIO,
-): GestureSession {
-  if (key === "move") return moveGesture(snapshot, deps, io);
-  const dims =
-    key === "resize"
-      ? cornerDims(parsed.block!, parsed.inline!, snapshot)
-      : key === "block"
-        ? [edgeDim("block", parsed.block!, snapshot)]
-        : [edgeDim("inline", parsed.inline!, snapshot)];
-  return resizeGesture(snapshot, deps, io, dims);
-}
-
-/* ------------------------------------------------------------------ *
- * The DOM side — channel I/O and the pointer recognizer.              *
- * ------------------------------------------------------------------ */
-
-const CHANNEL: Record<keyof Frame, string> = {
-  x: "--overlay-x",
-  y: "--overlay-y",
-  w: "--overlay-w",
-  h: "--overlay-h",
-};
-
-export function createFrameIO(
-  overlay: HTMLElement,
-  options: { dismissible: boolean; velocityThreshold: number },
-): FrameIO {
-  const getProp = (name: string) => overlay.style.getPropertyValue(name);
-  const setLen = (name: string, px: number) =>
-    overlay.style.setProperty(name, `${px}px`);
-
-  /** Channels at engage — `revert`/`dismiss` restore these. */
-  let prev: Record<keyof Frame, string> = { x: "", y: "", w: "", h: "" };
-
-  const restoreChannel = (name: string, value: string) => {
-    if (value) overlay.style.setProperty(name, value);
-    else overlay.style.removeProperty(name);
-  };
-
-  const clearDrag = () => {
-    overlay.style.removeProperty("height");
-    overlay.style.removeProperty("width");
-    overlay.style.removeProperty("--overlay-dy");
-    overlay.style.removeProperty("--overlay-dx");
-    overlay.style.removeProperty("transition");
-    overlay.style.removeProperty("user-select");
-    overlay.style.removeProperty("-webkit-user-select");
-  };
-
-  const emitResize = () => {
-    overlay.dispatchEvent(
-      new CustomEvent("resizechange", {
-        bubbles: true,
-        composed: true,
-        detail: {
-          width: getProp("--overlay-w") || undefined,
-          height: getProp("--overlay-h") || undefined,
-        },
-      }),
-    );
-  };
-
-  const writeFrame = (frame: Partial<Frame>) => {
-    for (const k of ["x", "y", "w", "h"] as const) {
-      const v = frame[k];
-      if (v !== undefined) setLen(CHANNEL[k], v);
-    }
-  };
-
-  const applyOffset = (name: string, v: number | null | undefined) => {
-    if (v === undefined) return;
-    if (v === null) overlay.style.removeProperty(name);
-    else setLen(name, v);
-  };
-
-  return {
-    engage() {
-      const constraint = resolveConstraint(overlay);
-      const rect = overlay.getBoundingClientRect();
-      prev = {
-        x: getProp("--overlay-x"),
-        y: getProp("--overlay-y"),
-        w: getProp("--overlay-w"),
-        h: getProp("--overlay-h"),
-      };
-      const dir = getComputedStyle(overlay).direction === "rtl" ? -1 : 1;
-      return {
-        snapshot: {
-          constraint,
-          rect,
-          center0: {
-            x: rect.left + rect.width / 2,
-            y: rect.top + rect.height / 2,
-          },
-          dir,
-        },
-        deps: {
-          dismissible: options.dismissible,
-          velocityThreshold: options.velocityThreshold,
-          liveRect: () => overlay.getBoundingClientRect() as Box,
-        },
-      };
-    },
-
-    sync(patch) {
-      overlay.style.transition = "none";
-      if (patch.frame) {
-        const f = patch.frame;
-        // Live size renders inline (instant, no transition); position to the
-        // channels. On commit it all moves to channels and animates.
-        if (f.w !== undefined) overlay.style.width = `${f.w}px`;
-        if (f.h !== undefined) overlay.style.height = `${f.h}px`;
-        if (f.x !== undefined) setLen("--overlay-x", f.x);
-        if (f.y !== undefined) setLen("--overlay-y", f.y);
-      }
-      if (patch.offset) {
-        applyOffset("--overlay-dx", patch.offset.dx);
-        applyOffset("--overlay-dy", patch.offset.dy);
-      }
-    },
-
-    commit(frame) {
-      clearDrag();
-      writeFrame(frame);
-      if (frame.w !== undefined || frame.h !== undefined) emitResize();
-    },
-
-    dismiss() {
-      clearDrag();
-      // Revert just this gesture — restore the channels as they were at
-      // engage (a prior persisted move/resize, or the author's morph,
-      // survives; only this gesture's changes are undone).
-      restoreChannel("--overlay-x", prev.x);
-      restoreChannel("--overlay-y", prev.y);
-      restoreChannel("--overlay-w", prev.w);
-      restoreChannel("--overlay-h", prev.h);
-      if (overlay instanceof HTMLDialogElement && overlay.open) overlay.close();
-      else (overlay as { hidePopover?: () => void }).hidePopover?.();
-    },
-
-    revert(keys) {
-      clearDrag();
-      for (const k of keys) restoreChannel(CHANNEL[k], prev[k]);
-    },
-  };
-}
-
-/** New per-axis velocity (px/ms) from a move; keeps the prior value when
- * the timestamp doesn't advance (synthetic events). */
-export function updateVelocity(
-  prev: { prev: Point; lastTime: number; velocity: Point },
-  client: Point,
-  timeStamp: number,
-): Point {
-  const dt = timeStamp - prev.lastTime;
-  if (dt > 0) {
-    return {
-      x: (client.x - prev.prev.x) / dt,
-      y: (client.y - prev.prev.y) / dt,
-    };
-  }
-  return prev.velocity;
-}
-
-export interface RecognizerOptions {
-  /** Cheap guard run before engaging — bail without capturing the pointer
-   * (interactive children, scrolled content, etc.). */
-  canEngage(event: PointerEvent): boolean;
-  /** The session (if any) this pointerdown starts. `null` = ignore. */
-  engage(event: PointerEvent): GestureSession | null;
-}
-
-/**
- * The pointer loop for `target`: single-pointer capture, velocity
- * tracking, text-selection suppression, and a non-passive `touchmove`
- * block while a drag is live. It owns the "is a drag active" state and
- * drives the engaged {@link GestureSession}. The session owns the DOM
- * writes (through the `io` it closed over); the recognizer knows
- * nothing about channels.
- */
-export function createGestureRecognizer(
-  target: HTMLElement,
-  { canEngage, engage }: RecognizerOptions,
-): { dispose(): void } {
-  let active: GestureSession | null = null;
-  let pointer: Pointer | null = null;
-
-  const onPointerDown = (event: PointerEvent) => {
-    if (active) return;
-    if (!canEngage(event)) return;
-    const session = engage(event);
-    if (!session) return;
-
-    active = session;
-    const c = { x: event.clientX, y: event.clientY };
-    pointer = {
-      start: { ...c },
-      prev: { ...c },
-      current: { ...c },
-      lastTime: event.timeStamp,
-      velocity: { x: 0, y: 0 },
-    };
-    target.style.userSelect = "none";
-    target.style.setProperty("-webkit-user-select", "none");
-    target.setPointerCapture?.(event.pointerId);
-  };
-
-  const onPointerMove = (event: PointerEvent) => {
-    if (!active || !pointer) return;
-    const c = { x: event.clientX, y: event.clientY };
-    pointer.velocity = updateVelocity(pointer, c, event.timeStamp);
-    pointer.prev = c;
-    pointer.lastTime = event.timeStamp;
-    pointer.current = c;
-    active.move(pointer);
-  };
-
-  const onPointerUp = (event: PointerEvent) => {
-    if (!active || !pointer) return;
-    pointer.current = { x: event.clientX, y: event.clientY };
-    const session = active;
-    active = null;
-    target.releasePointerCapture?.(event.pointerId);
-    session.release(pointer);
-    pointer = null;
-  };
-
-  const onPointerCancel = () => {
-    if (!active) return;
-    const session = active;
-    active = null;
-    pointer = null;
-    session.cancel();
-  };
-
-  const blockScroll = (event: TouchEvent) => {
-    if (active) event.preventDefault();
-  };
-
-  target.addEventListener("pointerdown", onPointerDown);
-  target.addEventListener("pointermove", onPointerMove);
-  target.addEventListener("pointerup", onPointerUp);
-  target.addEventListener("pointercancel", onPointerCancel);
-  target.addEventListener("touchmove", blockScroll, { passive: false });
-
-  return {
-    dispose() {
-      target.removeEventListener("pointerdown", onPointerDown);
-      target.removeEventListener("pointermove", onPointerMove);
-      target.removeEventListener("pointerup", onPointerUp);
-      target.removeEventListener("pointercancel", onPointerCancel);
-      target.removeEventListener("touchmove", blockScroll);
-    },
-  };
 }

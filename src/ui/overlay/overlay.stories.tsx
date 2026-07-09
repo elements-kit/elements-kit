@@ -172,15 +172,69 @@ type Story = StoryObj<Args>;
 /** Centered window: move from the top strip, corner grip resize. */
 export const Window: Story = {};
 
-/** Bottom edge, full constraint width, height drag from the top handle
- * (free resize — snapping is a custom-handle edit). */
+/**
+ * Bottom sheet with SNAPPING — the markup preset drives the drag (the
+ * `data-resize="block-start"` pill affordance is overlay.css's
+ * `::before`), and a one-line `Overlay` subclass swaps the gesture
+ * physics: `gestureSession()` returns a `SnapSession`, so the height
+ * rests on 25 / 60 / 90% of the constraint, velocity-projected; a flick
+ * past the smallest stop dismisses.
+ */
 export const BottomSheet: Story = {
-  args: {
-    resize: "block-start",
-    draggable: false,
-    y: "9999px",
-    w: "var(--overlay-constraint-width)",
-    h: "60svh",
+  argTypes: {
+    resize: { control: false },
+    draggable: { control: false },
+    x: { control: false },
+    y: { control: false },
+    w: { control: false },
+    h: { control: false },
+    modal: { control: false },
+    gestures: { control: false },
+  },
+  args: { resize: "none", draggable: false, modal: false, gestures: false },
+  render: () => {
+    const id = `overlay-story-${uid++}`;
+    const sheetFeel = new SnapSession([0.25, 0.6, 0.9]);
+    class SheetOverlay extends Overlay {
+      protected override gestureSession() {
+        return sheetFeel;
+      }
+    }
+    return (
+      <>
+        <button
+          class:unset
+          class:x-button
+          data-variant="solid"
+          data-size="2"
+          popovertarget={id}
+        >
+          Open sheet
+        </button>
+        <dialog
+          id={id}
+          class:unset
+          class:x-overlay
+          popover="auto"
+          data-resize="block-start"
+          style="--overlay-y: 9999px; --overlay-h: 60svh; --overlay-w: var(--overlay-constraint-width)"
+        >
+          <dom-lifecycle
+            onConnect={(self) => {
+              const el = self.parentElement as HTMLDialogElement;
+              new SheetOverlay(el);
+            }}
+          />
+          <div class:unset class:x-card data-variant="elevated" data-size="3">
+            <strong>Bottom sheet</strong>
+            <p>
+              Drag the top pill — the height snaps to 25 / 60 / 90% of the
+              viewport. Flick down past the smallest stop to dismiss.
+            </p>
+          </div>
+        </dialog>
+      </>
+    );
   },
 };
 
@@ -215,99 +269,6 @@ export const CornerPanel: Story = {
     y: "9999px",
     h: "60svh",
     modal: false,
-  },
-};
-
-/**
- * A custom handle — user pointer code driving the edit API. The grip
- * begins an edit with a `Session` (this edit's physics: detent stops,
- * rubber), feeds it pointer positions, and releases: the sheet snaps to
- * the nearest stop, velocity-projected; a flick past the smallest stop
- * rests `null` — the caller decides what dismissal means (here: close).
- */
-export const CustomHandle: Story = {
-  argTypes: {
-    resize: { control: false },
-    draggable: { control: false },
-    x: { control: false },
-    y: { control: false },
-    w: { control: false },
-    h: { control: false },
-    modal: { control: false },
-    gestures: { control: false },
-  },
-  args: { resize: "none", draggable: false, modal: false, gestures: false },
-  render: () => {
-    const id = `overlay-story-${uid++}`;
-    const panel = signal<HTMLDialogElement | null>();
-    const sheetFeel = new SnapSession([0.25, 0.6, 0.9]);
-    let dragging = false;
-    return (
-      <>
-        <button
-          class:unset
-          class:x-button
-          data-variant="solid"
-          data-size="2"
-          popovertarget={id}
-        >
-          Open sheet
-        </button>
-        <dialog
-          ref={panel}
-          id={id}
-          class:unset
-          class:x-overlay
-          popover="auto"
-          style="--overlay-y: 9999px; --overlay-h: 60svh; --overlay-w: var(--overlay-constraint-width)"
-        >
-          <dom-lifecycle
-            onConnect={(self) => {
-              const el = self.parentElement as HTMLDialogElement;
-              const o = new Overlay(el);
-              // The custom handle: plain pointer code driving the edit.
-              const grip = el.querySelector<HTMLElement>("[data-grip]")!;
-              grip.addEventListener("pointerdown", (e) => {
-                o.begin(sheetFeel);
-                dragging = true;
-                grip.setPointerCapture(e.pointerId);
-              });
-              grip.addEventListener("pointermove", (e) => {
-                if (!dragging) return;
-                o.set({ h: window.innerHeight - e.clientY });
-              });
-              grip.addEventListener("pointerup", () => {
-                if (!dragging) return;
-                dragging = false;
-                if (o.release() === null) panel()?.hidePopover();
-              });
-              grip.addEventListener("pointercancel", () => {
-                if (!dragging) return;
-                dragging = false;
-                o.cancel();
-              });
-            }}
-          />
-          <div class:unset class:x-card data-variant="elevated" data-size="3">
-            <button
-              class:unset
-              class:x-button
-              data-variant="soft"
-              data-size="1"
-              data-grip="handle"
-              style="touch-action: none; width: 100%; cursor: grab"
-            >
-              ⠿ drag me — snaps to 25 / 60 / 90%
-            </button>
-            <p>
-              The grip above is plain pointer code: <code>begin(session)</code>,{" "}
-              <code>set(&#123; h &#125;)</code>, <code>release()</code>. Flick
-              down past the smallest stop to dismiss.
-            </p>
-          </div>
-        </dialog>
-      </>
-    );
   },
 };
 
