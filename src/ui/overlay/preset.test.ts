@@ -1,25 +1,18 @@
 import { describe, expect, it } from "vitest";
-import {
-  anchor,
-  type Box,
-  detectEngagement,
-  edgeSetup,
-  parseResize,
-} from "./preset.ts";
+import { anchor, detectEngagement, edgeSetup, parseResize } from "./preset.ts";
+import type { PlainBox } from "./box.ts";
 import { resist } from "./session.ts";
 
-const CONSTRAINT = { top: 0, left: 0, width: 1024, height: 768 };
+const CONSTRAINT = { x: 0, y: 0, w: 1024, h: 768 };
 
 /** A box from origin + size, with the far edges filled in. */
-function box(left: number, top: number, width: number, height: number): Box {
-  return {
-    left,
-    top,
-    width,
-    height,
-    right: left + width,
-    bottom: top + height,
-  };
+function box(
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+): Required<PlainBox> {
+  return { x, y, w, h };
 }
 
 describe("anchor (the single both-sides anchoring primitive)", () => {

@@ -428,6 +428,36 @@ describe("Anchor (Floating UI engine)", () => {
     trigger.remove();
   });
 
+  it("an anchored drag from scrolled content does not engage", async () => {
+    const { overlay: el, trigger } = createAnchored();
+    el.setAttribute("data-draggable", "");
+    const scroller = document.createElement("div");
+    Object.defineProperty(scroller, "scrollTop", { value: 40 });
+    el.appendChild(scroller);
+    const anchor = new Anchor(trigger);
+    new Overlay(el, { anchor });
+    const a = anchorEl();
+    await vi.waitFor(() => expect(a.hasAttribute("data-follow")).toBe(true));
+
+    // A pointer starting inside scrolled content keeps its scroll-back
+    // gesture — the drag must not tear the pin.
+    scroller.dispatchEvent(
+      new PointerEvent("pointerdown", {
+        clientX: 10, clientY: 10, button: 0, bubbles: true,
+      }),
+    );
+    el.dispatchEvent(
+      new PointerEvent("pointermove", {
+        clientX: 60, clientY: 40, bubbles: true,
+      }),
+    );
+    expect(a.hasAttribute("data-follow")).toBe(true);
+
+    anchor.dispose();
+    el.remove();
+    trigger.remove();
+  });
+
   it("a dot target pins one-shot at a zero-size box", () => {
     const { overlay: el, trigger } = createAnchored();
     trigger.remove();

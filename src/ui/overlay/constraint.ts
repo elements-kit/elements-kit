@@ -122,22 +122,6 @@ export function applyConstraint(
   return { dispose };
 }
 
-/** The rect shape the gesture internals and anchor engines exchange. */
-export interface RectInit {
-  top: number;
-  left: number;
-  width: number;
-  height: number;
-}
-
-/** A reactive rect in the gesture internals' vocabulary (draggable). */
-export interface Region {
-  top(): number;
-  left(): number;
-  width(): number;
-  height(): number;
-}
-
 /**
  * Resolves a custom property holding a length to pixels. Plain `px` values
  * parse directly; anything else (`svh` / `calc()` / fractions of the
@@ -162,17 +146,13 @@ export function resolveVarPx(
   return px;
 }
 
-/** Resolves the constraint rect every gesture bound derives from. */
-export function resolveConstraint(overlay: HTMLElement): {
-  top: number;
-  left: number;
-  width: number;
-  height: number;
-} {
+/** Resolves the constraint region every gesture bound derives from —
+ * the one box vocabulary (`x`/`y` = the region's viewport top-left). */
+export function resolveConstraint(overlay: HTMLElement): Required<PlainBox> {
   return {
-    top: resolveVarPx(overlay, "--overlay-constraint-top", "height"),
-    left: resolveVarPx(overlay, "--overlay-constraint-left", "width"),
-    width: resolveVarPx(overlay, "--overlay-constraint-width", "width"),
-    height: resolveVarPx(overlay, "--overlay-constraint-height", "height"),
+    y: resolveVarPx(overlay, "--overlay-constraint-top", "height"),
+    x: resolveVarPx(overlay, "--overlay-constraint-left", "width"),
+    w: resolveVarPx(overlay, "--overlay-constraint-width", "width"),
+    h: resolveVarPx(overlay, "--overlay-constraint-height", "height"),
   };
 }

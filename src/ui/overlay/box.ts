@@ -1,5 +1,8 @@
 import { Session } from "./session.ts";
 
+/** The default edit physics — stateless, shared across all edits. */
+const FREE = new Session();
+
 /**
  * The spatial vocabulary and the edit lifecycle — the root of the
  * overlay hierarchy (`Editable` → `Box` → `Overlay` / `Anchor` /
@@ -114,7 +117,7 @@ export abstract class Editable {
    * if an edit is already active. */
   begin(session?: Session): void {
     if (this.#session) throw new Error("edit already active");
-    this.#session = session ?? new Session();
+    this.#session = session ?? FREE;
     this.#snapshot = this.read();
     this.#axes = {};
     this.editStart();

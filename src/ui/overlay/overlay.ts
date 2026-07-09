@@ -130,11 +130,10 @@ export class Overlay extends Box {
       });
     }
 
-    // The markup gesture preset. With an anchor, the move gesture drives
-    // the anchor's edit (drag the ANCHOR, not the overlay); without one,
-    // the pointer plumbing drives THIS box's edits.
-    if (opts.anchor) this.#wireAnchorDrag(opts.anchor);
-    else this.#wireGestures();
+    // The markup gesture preset: one pointer drive. With an anchor, the
+    // move gesture drives the ANCHOR's edit (the tear contract); without
+    // one, it drives THIS box's edits through the zone plans.
+    this.#wireGestures(opts.anchor);
 
     onCleanup(() => this.dispose());
   }
@@ -147,8 +146,7 @@ export class Overlay extends Box {
   }
 
   protected override region(): Required<PlainBox> {
-    const c = resolveConstraint(this.#el);
-    return { x: c.left, y: c.top, w: c.width, h: c.height };
+    return resolveConstraint(this.#el);
   }
 
   /** A preset resize is bounded by its plan's rooms (from the ANCHORED
@@ -171,17 +169,24 @@ export class Overlay extends Box {
     else this.#commit(box);
   }
 
-  /** Plain (custom-handle) edit: live channel writes, converted. */
-  #syncEdit(box: Partial<PlainBox>): void {
+  /** Viewport x/y → channel space (the channels hold the box CENTER
+   * relative to the constraint origin). */
+  #locChannels(box: Partial<PlainBox>): void {
     const el = this.#el;
     const c = resolveConstraint(el);
     const current = this.read();
     const w = box.w ?? current.w;
     const h = box.h ?? current.h;
     if (box.x !== undefined)
-      el.style.setProperty(CHANNEL.x, `${box.x + w / 2 - c.left}px`);
+      el.style.setProperty(CHANNEL.x, `${box.x + w / 2 - c.x}px`);
     if (box.y !== undefined)
-      el.style.setProperty(CHANNEL.y, `${box.y + h / 2 - c.top}px`);
+      el.style.setProperty(CHANNEL.y, `${box.y + h / 2 - c.y}px`);
+  }
+
+  /** Plain (custom-handle) edit: live channel writes, converted. */
+  #syncEdit(box: Partial<PlainBox>): void {
+    const el = this.#el;
+    this.#locChannels(box);
     if (box.w !== undefined) el.style.setProperty(CHANNEL.w, `${box.w}px`);
     if (box.h !== undefined) el.style.setProperty(CHANNEL.h, `${box.h}px`);
   }
@@ -198,9 +203,9 @@ export class Overlay extends Box {
     el.style.transition = "none";
     if (plan.kind === "move") {
       if (box.x !== undefined)
-        el.style.setProperty("--overlay-dx", `${box.x - plan.rect.left}px`);
+        el.style.setProperty("--overlay-dx", `${box.x - plan.rect.x}px`);
       if (box.y !== undefined)
-        el.style.setProperty("--overlay-dy", `${box.y - plan.rect.top}px`);
+        el.style.setProperty("--overlay-dy", `${box.y - plan.rect.y}px`);
       return;
     }
     for (const a of plan.axes) {
@@ -250,10 +255,6 @@ export class Overlay extends Box {
     el.style.removeProperty("transition");
     el.style.removeProperty("user-select");
     el.style.removeProperty("-webkit-user-select");
-    const c = resolveConstraint(el);
-    const current = this.read();
-    const w = box.w ?? current.w;
-    const h = box.h ?? current.h;
     if (box.w !== undefined) el.style.setProperty(CHANNEL.w, `${box.w}px`);
     if (box.h !== undefined) el.style.setProperty(CHANNEL.h, `${box.h}px`);
     const plan = this.#gesture;
@@ -275,10 +276,7 @@ export class Overlay extends Box {
           el.style.setProperty(CHANNEL[a.loc], `${loc}px`);
       }
     } else {
-      if (box.x !== undefined)
-        el.style.setProperty(CHANNEL.x, `${box.x + w / 2 - c.left}px`);
-      if (box.y !== undefined)
-        el.style.setProperty(CHANNEL.y, `${box.y + h / 2 - c.top}px`);
+      this.#locChannels(box);
     }
     if ((box.w !== undefined || box.h !== undefined) && !this.#suppressEmit) {
       el.dispatchEvent(
@@ -370,43 +368,69 @@ export class Overlay extends Box {
   /** The built-in handles: pointer plumbing driving THIS box's edit
    * lifecycle — zones from the markup attributes, physics from the
    * plan's `Session`, dismissal as preset policy. */
-  #wireGestures(): void {
+  /** The built-in handles — ONE pointer drive for both modes. With an
+   * anchor bound, `data-draggable` drags the ANCHOR through its edit
+   * API (the tear contract; the overlay follows through the engine);
+   * otherwise the zones plan drives THIS box's edits. Shared: the
+   * engagement guards, capture, user-select suppression, and the
+   * touch-scroll block. */
+  #wireGestures(anchor?: Anchor): void {
     const el = this.#el;
-    let tracker: {
-      start: Point;
-      prev: Point;
-      lastTime: number;
-      velocity: Point;
-    } | null = null;
+    type Drag =
+      | {
+          kind: "self";
+          start: Point;
+          prev: Point;
+          lastTime: number;
+          velocity: Point;
+        }
+      | { kind: "anchor"; down: Point; origin: { x: number; y: number } };
+    let drag: Drag | null = null;
+
+    const clearSelection = () => {
+      el.style.removeProperty("user-select");
+      el.style.removeProperty("-webkit-user-select");
+    };
 
     const onDown = (event: PointerEvent) => {
-      if (this.#gesture) return;
-      const resize = el.getAttribute("data-resize") ?? "";
-      const draggable = el.hasAttribute("data-draggable");
-      if (!resize && !draggable) return;
-      if (this.#guarded(event)) return;
-      const parsed = parseResize(resize);
-      const constraint = resolveConstraint(el);
-      const rect = el.getBoundingClientRect();
-      const dir = getComputedStyle(el).direction === "rtl" ? -1 : 1;
-      const kind = detectEngagement({
-        ...parsed,
-        draggable,
-        rect,
-        pointer: { x: event.clientX, y: event.clientY },
-        dir,
-      });
-      if (!kind) return;
-
-      this.#gesture = planGesture(kind, parsed, rect, constraint, dir);
-      this.begin(this.gestureSession(this.#gesture));
-      const c = { x: event.clientX, y: event.clientY };
-      tracker = {
-        start: { ...c },
-        prev: { ...c },
-        lastTime: event.timeStamp,
-        velocity: { x: 0, y: 0 },
-      };
+      if (drag || event.button !== 0) return;
+      if (anchor) {
+        if (!el.hasAttribute("data-draggable")) return;
+        if (this.#guarded(event)) return;
+        anchor.begin();
+        drag = {
+          kind: "anchor",
+          down: { x: event.clientX, y: event.clientY },
+          origin: { x: anchor.x(), y: anchor.y() },
+        };
+      } else {
+        const resize = el.getAttribute("data-resize") ?? "";
+        const draggable = el.hasAttribute("data-draggable");
+        if (!resize && !draggable) return;
+        if (this.#guarded(event)) return;
+        const parsed = parseResize(resize);
+        const constraint = resolveConstraint(el);
+        const rect = this.read();
+        const dir = getComputedStyle(el).direction === "rtl" ? -1 : 1;
+        const kind = detectEngagement({
+          ...parsed,
+          draggable,
+          rect,
+          pointer: { x: event.clientX, y: event.clientY },
+          dir,
+        });
+        if (!kind) return;
+        this.#gesture = planGesture(kind, parsed, rect, constraint, dir);
+        this.begin(this.gestureSession(this.#gesture));
+        const c = { x: event.clientX, y: event.clientY };
+        drag = {
+          kind: "self",
+          start: { ...c },
+          prev: { ...c },
+          lastTime: event.timeStamp,
+          velocity: { x: 0, y: 0 },
+        };
+      }
       el.style.userSelect = "none";
       el.style.setProperty("-webkit-user-select", "none");
       try {
@@ -418,48 +442,56 @@ export class Overlay extends Box {
     };
 
     const onMove = (event: PointerEvent) => {
-      if (!this.#gesture || !tracker) return;
+      if (!drag) return;
+      if (drag.kind === "anchor") {
+        anchor!.set({
+          x: drag.origin.x + (event.clientX - drag.down.x),
+          y: drag.origin.y + (event.clientY - drag.down.y),
+        });
+        return;
+      }
       const c = { x: event.clientX, y: event.clientY };
-      const dt = event.timeStamp - tracker.lastTime;
+      const dt = event.timeStamp - drag.lastTime;
       if (dt > 0) {
-        tracker.velocity = {
-          x: (c.x - tracker.prev.x) / dt,
-          y: (c.y - tracker.prev.y) / dt,
+        drag.velocity = {
+          x: (c.x - drag.prev.x) / dt,
+          y: (c.y - drag.prev.y) / dt,
         };
       }
-      tracker.prev = c;
-      tracker.lastTime = event.timeStamp;
+      drag.prev = c;
+      drag.lastTime = event.timeStamp;
       this.set(
-        targetsAt(this.#gesture, {
-          x: c.x - tracker.start.x,
-          y: c.y - tracker.start.y,
+        targetsAt(this.#gesture!, {
+          x: c.x - drag.start.x,
+          y: c.y - drag.start.y,
         }),
       );
     };
 
     const onUp = (event: PointerEvent) => {
-      const plan = this.#gesture;
-      if (!plan || !tracker) return;
-      const delta = {
-        x: event.clientX - tracker.start.x,
-        y: event.clientY - tracker.start.y,
-      };
-      const velocity = tracker.velocity;
-      tracker = null;
+      if (!drag) return;
+      const ended = drag;
+      drag = null;
       try {
         el.releasePointerCapture(event.pointerId);
       } catch {
         // Was never captured — nothing to release.
       }
+      if (ended.kind === "anchor") {
+        clearSelection();
+        anchor!.release();
+        return;
+      }
+      const plan = this.#gesture!;
+      const delta = {
+        x: event.clientX - ended.start.x,
+        y: event.clientY - ended.start.y,
+      };
       const dismiss =
         this.#dismissible &&
         (plan.kind === "move"
-          ? projectedOutOfBounds(
-              el.getBoundingClientRect(),
-              velocity,
-              plan.constraint,
-            )
-          : shouldDismissResize(plan, delta, velocity, 0.5));
+          ? projectedOutOfBounds(this.read(), ended.velocity, plan.constraint)
+          : shouldDismissResize(plan, delta, ended.velocity, 0.5));
       if (dismiss) {
         this.#dismiss();
       } else if (this.release() === null && this.#dismissible) {
@@ -472,14 +504,20 @@ export class Overlay extends Box {
     };
 
     const onCancel = () => {
-      if (!this.#gesture) return;
-      tracker = null;
+      if (!drag) return;
+      const ended = drag;
+      drag = null;
+      if (ended.kind === "anchor") {
+        clearSelection();
+        anchor!.cancel();
+        return;
+      }
       this.cancel();
       this.#gesture = undefined;
     };
 
     const blockScroll = (event: TouchEvent) => {
-      if (this.#gesture) event.preventDefault();
+      if (drag) event.preventDefault();
     };
 
     el.addEventListener("pointerdown", onDown);
@@ -493,60 +531,6 @@ export class Overlay extends Box {
       el.removeEventListener("pointerup", onUp);
       el.removeEventListener("pointercancel", onCancel);
       el.removeEventListener("touchmove", blockScroll);
-    });
-  }
-
-  /** Anchored overlays: `data-draggable` drags the ANCHOR through its
-   * edit API — first write tears the follow pin (the tear contract);
-   * the overlay follows through the engine. */
-  #wireAnchorDrag(anchor: Anchor): void {
-    const el = this.#el;
-    let engaged: { down: { x: number; y: number }; origin: PlainBox } | null =
-      null;
-
-    const onDown = (event: PointerEvent) => {
-      if (engaged || event.button !== 0) return;
-      if (!el.hasAttribute("data-draggable")) return;
-      const at = event.target as Element | null;
-      if (at?.closest(INTERACTIVE)) return;
-      anchor.begin();
-      engaged = {
-        down: { x: event.clientX, y: event.clientY },
-        origin: { x: anchor.x(), y: anchor.y() },
-      };
-      try {
-        el.setPointerCapture(event.pointerId);
-      } catch {
-        // No active pointer with that id (synthetic events).
-      }
-    };
-    const onMove = (event: PointerEvent) => {
-      if (!engaged) return;
-      anchor.set({
-        x: engaged.origin.x + (event.clientX - engaged.down.x),
-        y: engaged.origin.y + (event.clientY - engaged.down.y),
-      });
-    };
-    const onUp = () => {
-      if (!engaged) return;
-      engaged = null;
-      anchor.release();
-    };
-    const onCancel = () => {
-      if (!engaged) return;
-      engaged = null;
-      anchor.cancel();
-    };
-
-    el.addEventListener("pointerdown", onDown as EventListener);
-    el.addEventListener("pointermove", onMove as EventListener);
-    el.addEventListener("pointerup", onUp as EventListener);
-    el.addEventListener("pointercancel", onCancel as EventListener);
-    this.#disposers.push(() => {
-      el.removeEventListener("pointerdown", onDown as EventListener);
-      el.removeEventListener("pointermove", onMove as EventListener);
-      el.removeEventListener("pointerup", onUp as EventListener);
-      el.removeEventListener("pointercancel", onCancel as EventListener);
     });
   }
 

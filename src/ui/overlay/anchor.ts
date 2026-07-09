@@ -15,7 +15,7 @@ import {
   type PlainBox,
   readValue,
 } from "./box.ts";
-import { type RectInit, resolveConstraint, resolveVarPx } from "./constraint.ts";
+import { resolveConstraint, resolveVarPx } from "./constraint.ts";
 
 /**
  * The anchor — a tracked box the overlay attaches to; one of the
@@ -158,11 +158,18 @@ export function areaToPlacement(area: string, rtl = false): Placement {
   return `${side}${align}` as Placement;
 }
 
-const boxToRect = (box: BoxLike): RectInit => ({
-  top: readValue(box.y),
-  left: readValue(box.x),
-  width: readValue(box.w),
-  height: readValue(box.h),
+const resolveBox = (box: BoxLike): Required<PlainBox> => ({
+  x: readValue(box.x),
+  y: readValue(box.y),
+  w: readValue(box.w),
+  h: readValue(box.h),
+});
+
+const rectBox = (r: DOMRect): Required<PlainBox> => ({
+  x: r.left,
+  y: r.top,
+  w: r.width,
+  h: r.height,
 });
 
 /**
@@ -247,12 +254,12 @@ export class Anchor extends Box {
     return (typeof t === "function" ? t() : t) ?? undefined;
   }
 
-  #placeAtRect(rect: RectInit): void {
+  #placeAtRect(box: Required<PlainBox>): void {
     const el = this.#el;
-    el.style.top = `${rect.top}px`;
-    el.style.left = `${rect.left}px`;
-    el.style.width = `${rect.width}px`;
-    el.style.height = `${rect.height}px`;
+    el.style.top = `${box.y}px`;
+    el.style.left = `${box.x}px`;
+    el.style.width = `${box.w}px`;
+    el.style.height = `${box.h}px`;
   }
 
   #releasePin(): void {
@@ -276,7 +283,7 @@ export class Anchor extends Box {
     const repositioning = this.#hasPinned;
     const flipHandoff =
       repositioning && to instanceof Element && chainSupport();
-    if (flipHandoff) this.#placeAtRect(el.getBoundingClientRect());
+    if (flipHandoff) this.#placeAtRect(rectBox(el.getBoundingClientRect()));
     this.#releasePin();
     if (!to) {
       // Untargeted anchor — start at the viewport center.
@@ -293,13 +300,13 @@ export class Anchor extends Box {
         el.setAttribute("data-follow", "");
         let first = true;
         this.#stopFollowSync = effect(() => {
-          this.#placeAtRect(boxToRect(to));
+          this.#placeAtRect(resolveBox(to));
           if (!first) this.#onRepoint?.();
           first = false;
         });
       } else {
         el.removeAttribute("data-follow"); // a static box pin is one-shot
-        this.#placeAtRect(boxToRect(to));
+        this.#placeAtRect(resolveBox(to));
       }
       return;
     }
@@ -328,13 +335,13 @@ export class Anchor extends Box {
           first = false;
           const prev = el.style.transitionProperty;
           el.style.transitionProperty = "none";
-          this.#placeAtRect(to.getBoundingClientRect());
+          this.#placeAtRect(rectBox(to.getBoundingClientRect()));
           void el.offsetTop;
           if (prev) el.style.transitionProperty = prev;
           else el.style.removeProperty("transition-property");
           return;
         }
-        this.#placeAtRect(to.getBoundingClientRect());
+        this.#placeAtRect(rectBox(to.getBoundingClientRect()));
       };
       this.#stopFollowSync = autoUpdate(to, el, sync);
     }
@@ -355,7 +362,7 @@ export class Anchor extends Box {
   protected write(box: Partial<PlainBox>): void {
     const el = this.#el;
     if (el.hasAttribute("data-follow")) {
-      this.#placeAtRect(el.getBoundingClientRect());
+      this.#placeAtRect(rectBox(el.getBoundingClientRect()));
       el.removeAttribute("data-follow");
       el.style.removeProperty("position-anchor");
       // Synchronously — the MutationObserver tear fires a microtask
@@ -453,11 +460,11 @@ export class Anchor extends Box {
           const c = resolveConstraint(overlay);
           overlay.style.setProperty(
             "--overlay-x",
-            `${rect.left + rect.width / 2 - c.left}px`,
+            `${rect.left + rect.width / 2 - c.x}px`,
           );
           overlay.style.setProperty(
             "--overlay-y",
-            `${rect.top + rect.height / 2 - c.top}px`,
+            `${rect.top + rect.height / 2 - c.y}px`,
           );
         }
         overlay.style.removeProperty("position-anchor");
@@ -499,7 +506,7 @@ export class Anchor extends Box {
         // Flip/shift inside the overlay's constraint (the viewport when
         // unconfined — the channels' defaults).
         const c = resolveConstraint(overlay);
-        const boundary = { x: c.left, y: c.top, width: c.width, height: c.height };
+        const boundary = { x: c.x, y: c.y, width: c.w, height: c.h };
         const middleware = [
           offset(gapPx),
           flip({ boundary }),
@@ -518,11 +525,11 @@ export class Anchor extends Box {
         // the box at scale(0.97) and a scaled measurement skews the write.
         overlay.style.setProperty(
           "--overlay-x",
-          `${x + overlay.offsetWidth / 2 - c.left}px`,
+          `${x + overlay.offsetWidth / 2 - c.x}px`,
         );
         overlay.style.setProperty(
           "--overlay-y",
-          `${y + overlay.offsetHeight / 2 - c.top}px`,
+          `${y + overlay.offsetHeight / 2 - c.y}px`,
         );
         if (placement)
           overlay.setAttribute("data-placed", placement.split("-")[0]);
@@ -564,11 +571,11 @@ export class Anchor extends Box {
           const c = resolveConstraint(overlay);
           overlay.style.setProperty(
             "--overlay-x",
-            `${rect.left + rect.width / 2 - c.left}px`,
+            `${rect.left + rect.width / 2 - c.x}px`,
           );
           overlay.style.setProperty(
             "--overlay-y",
-            `${rect.top + rect.height / 2 - c.top}px`,
+            `${rect.top + rect.height / 2 - c.y}px`,
           );
         }
         let pending = instant;

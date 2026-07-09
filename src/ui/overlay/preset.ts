@@ -29,20 +29,6 @@ export interface Point {
   y: number;
 }
 
-/** The constraint rect (and any axis-aligned region). */
-export interface Rect {
-  top: number;
-  left: number;
-  width: number;
-  height: number;
-}
-
-/** A rendered box — `Rect` plus the far edges. `DOMRect` satisfies it. */
-export interface Box extends Rect {
-  right: number;
-  bottom: number;
-}
-
 /* ------------------------------------------------------------------ *
  * Dispatch — the markup vocabulary and the engagement zones.          *
  * ------------------------------------------------------------------ */
@@ -81,18 +67,19 @@ export function detectEngagement(args: {
   block: "start" | "end" | null;
   inline: "start" | "end" | null;
   draggable: boolean;
-  rect: Box;
+  rect: Required<PlainBox>;
   pointer: Point;
   dir: 1 | -1;
 }): "resize" | "move" | "block" | "inline" | null {
   const { block, inline, draggable, rect, pointer, dir } = args;
+  const right = rect.x + rect.w;
+  const bottom = rect.y + rect.h;
   const corner = block !== null && inline !== null;
   const handleRight = (inline === "end") === (dir === 1);
   const inCorner =
     corner &&
-    Math.abs(pointer.x - (handleRight ? rect.right : rect.left)) <=
-      RESIZE_ZONE_PX &&
-    Math.abs(pointer.y - (block === "end" ? rect.bottom : rect.top)) <=
+    Math.abs(pointer.x - (handleRight ? right : rect.x)) <= RESIZE_ZONE_PX &&
+    Math.abs(pointer.y - (block === "end" ? bottom : rect.y)) <=
       RESIZE_ZONE_PX;
   if (inCorner) return "resize";
 
@@ -102,11 +89,10 @@ export function detectEngagement(args: {
   const topCenterResize = block === "start" && inline === null;
   const inMoveZone =
     draggable &&
-    pointer.y - rect.top >= 0 &&
-    pointer.y - rect.top <= MOVE_ZONE_PX &&
+    pointer.y - rect.y >= 0 &&
+    pointer.y - rect.y <= MOVE_ZONE_PX &&
     (!topCenterResize ||
-      Math.abs(pointer.x - (dir === 1 ? rect.left : rect.right)) <=
-        MOVE_ZONE_PX);
+      Math.abs(pointer.x - (dir === 1 ? rect.x : right)) <= MOVE_ZONE_PX);
   if (inMoveZone) return "move";
 
   if (block !== null && inline === null) return "block";
@@ -127,16 +113,16 @@ export function detectEngagement(args: {
 export function edgeSetup(args: {
   axis: "block" | "inline";
   side: "start" | "end";
-  rect: Box;
-  constraint: Rect;
+  rect: Required<PlainBox>;
+  constraint: Required<PlainBox>;
   dir: 1 | -1;
 }): { sign: number; anchorSign: number; docked: boolean } {
   const { axis, side, rect, constraint, dir } = args;
   if (axis === "block") {
     const sign = side === "end" ? 1 : -1;
-    const anchorEdge = side === "start" ? rect.bottom : rect.top;
+    const anchorEdge = side === "start" ? rect.y + rect.h : rect.y;
     const constraintEdge =
-      side === "start" ? constraint.top + constraint.height : constraint.top;
+      side === "start" ? constraint.y + constraint.h : constraint.y;
     return {
       sign,
       anchorSign: sign,
@@ -144,10 +130,10 @@ export function edgeSetup(args: {
     };
   }
   const handleRight = (side === "end") === (dir === 1);
-  const anchorEdge = handleRight ? rect.left : rect.right;
+  const anchorEdge = handleRight ? rect.x : rect.x + rect.w;
   const constraintEdge = handleRight
-    ? constraint.left
-    : constraint.left + constraint.width;
+    ? constraint.x
+    : constraint.x + constraint.w;
   return {
     sign: (side === "end" ? 1 : -1) * dir,
     anchorSign: handleRight ? 1 : -1,
@@ -165,7 +151,7 @@ export function edgeSetup(args: {
 export function anchor(args: {
   axis: "width" | "height";
   center0: Point;
-  constraint: Rect;
+  constraint: Required<PlainBox>;
   anchorSign: number;
   startSize: number;
   size: number;
@@ -174,7 +160,7 @@ export function anchor(args: {
   const { axis, center0, constraint, anchorSign, startSize, size, docked } =
     args;
   if (docked) return null;
-  const origin = axis === "width" ? constraint.left : constraint.top;
+  const origin = axis === "width" ? constraint.x : constraint.y;
   const c0 = axis === "width" ? center0.x : center0.y;
   return c0 - origin + (anchorSign * (size - startSize)) / 2;
 }
@@ -214,8 +200,8 @@ export interface GesturePlan {
   kind: "move" | "resize";
   /** Driven size dimensions (resize only; move drives x/y directly). */
   axes: AxisPlan[];
-  rect: Box;
-  constraint: Rect;
+  rect: Required<PlainBox>;
+  constraint: Required<PlainBox>;
   center0: Point;
   /** The edit physics for this gesture. */
   session: Session;
@@ -240,8 +226,8 @@ const freeSession = new Session();
 function edgeAxis(
   axis: "block" | "inline",
   side: "start" | "end",
-  rect: Box,
-  constraint: Rect,
+  rect: Required<PlainBox>,
+  constraint: Required<PlainBox>,
   dir: 1 | -1,
 ): AxisPlan {
   const { sign, anchorSign, docked } = edgeSetup({
@@ -254,11 +240,11 @@ function edgeAxis(
   const hi =
     axis === "block"
       ? anchorSign > 0
-        ? constraint.top + constraint.height - rect.top
-        : rect.bottom - constraint.top
+        ? constraint.y + constraint.h - rect.y
+        : rect.y + rect.h - constraint.y
       : anchorSign > 0
-        ? constraint.left + constraint.width - rect.left
-        : rect.right - constraint.left;
+        ? constraint.x + constraint.w - rect.x
+        : rect.x + rect.w - constraint.x;
   const width = axis === "inline";
   return {
     size: width ? "w" : "h",
@@ -266,7 +252,7 @@ function edgeAxis(
     offset: width ? "dx" : "dy",
     pointer: width ? "x" : "y",
     axisName: width ? "width" : "height",
-    startSize: width ? rect.width : rect.height,
+    startSize: width ? rect.w : rect.h,
     sign,
     anchorSign,
     docked,
@@ -286,13 +272,13 @@ function edgeAxis(
 export function planGesture(
   kind: "block" | "inline" | "resize" | "move",
   parsed: { block: "start" | "end" | null; inline: "start" | "end" | null },
-  rect: Box,
-  constraint: Rect,
+  rect: Required<PlainBox>,
+  constraint: Required<PlainBox>,
   dir: 1 | -1,
 ): GesturePlan {
   const center0 = {
-    x: rect.left + rect.width / 2,
-    y: rect.top + rect.height / 2,
+    x: rect.x + rect.w / 2,
+    y: rect.y + rect.h / 2,
   };
   if (kind === "move") {
     return { kind: "move", axes: [], rect, constraint, center0, session: freeSession };
@@ -304,12 +290,12 @@ export function planGesture(
     const signY = block === "end" ? 1 : -1;
     const handleRight = (inline === "end") === (dir === 1);
     const maxW = handleRight
-      ? constraint.left + constraint.width - rect.left
-      : rect.right - constraint.left;
+      ? constraint.x + constraint.w - rect.x
+      : rect.x + rect.w - constraint.x;
     const maxH =
       block === "end"
-        ? constraint.top + constraint.height - rect.top
-        : rect.bottom - constraint.top;
+        ? constraint.y + constraint.h - rect.y
+        : rect.y + rect.h - constraint.y;
     return {
       kind: "resize",
       rect,
@@ -319,14 +305,14 @@ export function planGesture(
       axes: [
         {
           size: "w", loc: "x", offset: "dx", pointer: "x", axisName: "width",
-          startSize: rect.width,
+          startSize: rect.w,
           sign: signX, anchorSign: signX, docked: false,
           lo: MIN_RESIZE_W, hi: maxW,
           dismisses: true, pinBelow: false,
         },
         {
           size: "h", loc: "y", offset: "dy", pointer: "y", axisName: "height",
-          startSize: rect.height,
+          startSize: rect.h,
           sign: signY, anchorSign: signY, docked: false,
           lo: MIN_RESIZE_H, hi: maxH,
           dismisses: false, pinBelow: false,
@@ -350,7 +336,7 @@ export function planGesture(
  * coupling and physics apply downstream), the box top-left for a move. */
 export function targetsAt(plan: GesturePlan, delta: Point): Partial<PlainBox> {
   if (plan.kind === "move") {
-    return { x: plan.rect.left + delta.x, y: plan.rect.top + delta.y };
+    return { x: plan.rect.x + delta.x, y: plan.rect.y + delta.y };
   }
   const out: Partial<PlainBox> = {};
   for (const a of plan.axes) {
@@ -383,16 +369,16 @@ export function shouldDismissResize(
 
 /** Whether a flicked move's projected center leaves the constraint. */
 export function projectedOutOfBounds(
-  rect: Box,
+  rect: Required<PlainBox>,
   velocity: Point,
-  constraint: Rect,
+  constraint: Required<PlainBox>,
 ): boolean {
-  const px = rect.left + rect.width / 2 + velocity.x * PROJECTION_MS;
-  const py = rect.top + rect.height / 2 + velocity.y * PROJECTION_MS;
+  const px = rect.x + rect.w / 2 + velocity.x * PROJECTION_MS;
+  const py = rect.y + rect.h / 2 + velocity.y * PROJECTION_MS;
   return (
-    px < constraint.left ||
-    px > constraint.left + constraint.width ||
-    py < constraint.top ||
-    py > constraint.top + constraint.height
+    px < constraint.x ||
+    px > constraint.x + constraint.w ||
+    py < constraint.y ||
+    py > constraint.y + constraint.h
   );
 }
