@@ -3,9 +3,7 @@
  * math, and the one `anchor` primitive. No DOM, no closures over the
  * overlay: plain numbers in, numbers out. The modes and the DOM layer
  * (`overlay-dom`) all build on this; keeping it pure is what makes the gesture
- * unit-testable (the anchoring class of bug is caught here on a plain
- * number rather than only in a laid-out browser). Session-specific math
- * lives with its session (resize-session.ts / move-session.ts).
+ * unit-testable. The preset sessions live in preset.ts.
  */
 
 /** Rubber-band resistance past a bound. */
@@ -130,7 +128,7 @@ export interface FrameIO {
 /** One drag session — a live per-drag handler that owns both the geometry
  * and its application: each method computes, then writes through the `io`
  * it closed over on engage. Created on engage, driven until release. */
-export interface Session {
+export interface GestureSession {
   move(p: Pointer): void;
   release(p: Pointer): void;
   cancel(): void;
@@ -340,4 +338,117 @@ export function anchor(args: {
   const origin = axis === "width" ? constraint.left : constraint.top;
   const c0 = axis === "width" ? center0.x : center0.y;
   return c0 - origin + (anchorSign * (size - startSize)) / 2;
+}
+
+/* ------------------------------------------------------------------ *
+ * Resize policy — pluggable rest/bounds for the markup preset's       *
+ * resize drags (freeResize is the only built-in; edit sessions carry  *
+ * their own physics via `Session`). Pure; the I/O layer injects ctx.  *
+ * ------------------------------------------------------------------ */
+
+/** How far (ms) a release velocity is projected when picking a rest. */
+export const PROJECTION_MS = 160;
+
+/** Clamp `value` into `[min, max]`. */
+export function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+
+/** Resolve a snap stop against an axis's bounds: a number is a fraction
+ * of the span (anchored at the lower bound); a string is a px length. */
+export function resolveStop(
+  stop: number | string,
+  bounds: readonly [number, number],
+): number {
+  if (typeof stop === "string") return parseFloat(stop);
+  return bounds[0] + stop * (bounds[1] - bounds[0]);
+}
+
+/**
+ * The release context a `ResizeStrategy` decides against. The gesture
+ * builds it per drag; `resolve` turns a step value into pixels.
+ */
+export interface ResizeContext {
+  /** Dragged size along the axis (px, before clamping). */
+  size: number;
+  /** Size at the gesture's start (px). */
+  startSize: number;
+  /** Release velocity along the axis (px/ms; positive = shrinking). */
+  velocity: number;
+  /** Resize axis. */
+  axis: "width" | "height";
+  /** Hard room the surface may occupy on the axis (px). */
+  min: number;
+  max: number;
+  /** Whether a drag/flick past the minimum may dismiss. */
+  dismissible: boolean;
+  /** Release velocity (px/ms) past which a sub-minimum release dismisses. */
+  velocityThreshold: number;
+  /** Resolves a step to px — a number is a fraction of the constraint
+   * along the axis; a string is any CSS length. */
+  resolve(value: number | string): number;
+}
+
+/**
+ * Decides where a resize drag rests. The gesture calls `bounds()` for the
+ * live rubber-band and `rest()` on release (the resting size, or `null`
+ * to dismiss).
+ */
+export interface ResizeStrategy {
+  /** Soft `[lo, hi]` bounds for the live drag — rubber-band past these.
+   * Defaults to the hard room when omitted. */
+  bounds?(ctx: ResizeContext): [number, number];
+  /** Resting size (px) on release, or `null` to dismiss. */
+  rest(ctx: ResizeContext): number | null;
+}
+
+/**
+ * Picks the index of the detent closest to the released size, projected
+ * along the release velocity (px/ms, positive = shrinking). Returns `-1`
+ * when the gesture should dismiss instead.
+ */
+export function closestDetent(
+  sizePx: number,
+  detentsPx: readonly number[],
+  velocityPxPerMs = 0,
+  dismissible = false,
+  velocityThreshold = 0.5,
+): number {
+  const projected = sizePx - velocityPxPerMs * PROJECTION_MS;
+  if (dismissible) {
+    const smallest = detentsPx[0] ?? 0;
+    if (projected < smallest / 2) return -1;
+    if (sizePx < smallest && velocityPxPerMs > velocityThreshold) return -1;
+  }
+  let best = 0;
+  for (let i = 1; i < detentsPx.length; i++) {
+    if (
+      Math.abs(detentsPx[i] - projected) < Math.abs(detentsPx[best] - projected)
+    ) {
+      best = i;
+    }
+  }
+  return best;
+}
+
+/**
+ * Free resize: drag to any size within the room; a flick or shrink past
+ * the minimum dismisses. The preset's default (and only) strategy.
+ */
+export function freeResize(opts?: { min?: number }): ResizeStrategy {
+  return {
+    bounds: (ctx) => [opts?.min ?? ctx.min, ctx.max],
+    rest: (ctx) => {
+      const lo = opts?.min ?? ctx.min;
+      const projected = ctx.size - ctx.velocity * PROJECTION_MS;
+      if (
+        ctx.dismissible &&
+        (projected < lo / 2 ||
+          (ctx.size < lo && ctx.velocity > ctx.velocityThreshold))
+      ) {
+        return null;
+      }
+      return clamp(ctx.size, lo, ctx.max);
+    },
+  };
 }

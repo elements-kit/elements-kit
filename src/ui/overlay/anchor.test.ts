@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { anchor, areaToPlacement, constraint } from "./index.ts";
+import { Anchor, Constraint, Overlay } from "./index.ts";
+import { areaToPlacement } from "./anchor.ts";
 
 const floating = vi.hoisted(() => {
   const stop = vi.fn();
@@ -57,6 +58,10 @@ function createAnchored(open = true): {
   return { overlay: el, trigger };
 }
 
+/** The proxy element an Anchor creates (no element return anymore). */
+const anchorEl = (): HTMLElement =>
+  document.querySelector<HTMLElement>(".x-overlay-anchor")!;
+
 beforeEach(() => {
   floating.stop.mockClear();
   floating.autoUpdate.mockClear();
@@ -97,14 +102,16 @@ describe("areaToPlacement", () => {
   });
 });
 
-describe("anchor (native engine)", () => {
+describe("Anchor (native engine)", () => {
   beforeEach(() => {
     vi.stubGlobal("CSS", { supports: () => true });
   });
 
-  it("returns the anchor element, chained overlay ← anchor ← trigger", () => {
+  it("creates the anchor element, chained overlay ← anchor ← trigger", () => {
     const { overlay: el, trigger } = createAnchored();
-    const a = anchor(el, trigger);
+    const anchor = new Anchor(trigger);
+    const o = new Overlay(el, { anchor });
+    const a = anchorEl();
 
     expect(a.className).toBe("x-overlay-anchor");
     expect(el.getAttribute("data-anchor")).toBe("element");
@@ -122,18 +129,22 @@ describe("anchor (native engine)", () => {
     expect(floating.autoUpdate).not.toHaveBeenCalled();
     expect(a.style.transitionProperty).toBe("");
 
+    o.dispose();
+    anchor.dispose();
     el.remove();
     trigger.remove();
   });
 
-  it("a reactive follow getter re-pins to the new element (nav glide)", async () => {
+  it("a reactive target getter re-pins to the new element (nav glide)", async () => {
     const { overlay: el, trigger } = createAnchored();
     const second = document.createElement("button");
     document.body.appendChild(second);
     const { signal } = await import("@/signals/index.ts");
     const target = signal<Element>(trigger);
 
-    const a = anchor(el, () => target());
+    const anchor = new Anchor(() => target());
+    new Overlay(el, { anchor });
+    const a = anchorEl();
     expect(trigger.style.getPropertyValue("anchor-name")).toMatch(
       /^--overlay-follow-\d+$/,
     );
@@ -148,6 +159,7 @@ describe("anchor (native engine)", () => {
     });
     expect(a.hasAttribute("data-follow")).toBe(true);
 
+    anchor.dispose();
     el.remove();
     trigger.remove();
     second.remove();
@@ -155,9 +167,11 @@ describe("anchor (native engine)", () => {
 
   it("re-pins a torn-off anchor on a fresh open", async () => {
     const { overlay: el, trigger } = createAnchored();
-    const a = anchor(el, trigger);
+    const anchor = new Anchor(trigger);
+    new Overlay(el, { anchor });
+    const a = anchorEl();
 
-    // The drag service tears the pin (the data-follow contract).
+    // An edit tears the pin (the data-follow contract).
     a.removeAttribute("data-follow");
     a.style.left = "600px";
     a.style.top = "400px";
@@ -169,6 +183,31 @@ describe("anchor (native engine)", () => {
       expect(a.style.left).toBe("");
     });
 
+    anchor.dispose();
+    el.remove();
+    trigger.remove();
+  });
+
+  it("set() tears the pin and places the box (size kept when omitted)", () => {
+    const { overlay: el, trigger } = createAnchored();
+    const anchor = new Anchor(trigger);
+    new Overlay(el, { anchor });
+    const a = anchorEl();
+    a.getBoundingClientRect = () =>
+      ({ x: 100, y: 100, left: 100, top: 100, right: 120, bottom: 130,
+         width: 20, height: 30, toJSON: () => ({}) }) as DOMRect;
+    expect(a.hasAttribute("data-follow")).toBe(true);
+
+    anchor.set({ x: 400, y: 500 });
+    expect(a.hasAttribute("data-follow")).toBe(false);
+    expect(a.style.getPropertyValue("position-anchor")).toBe("");
+    expect(a.style.left).toBe("400px");
+    expect(a.style.top).toBe("500px");
+    // Frozen at the current size — no w/h in the write.
+    expect(a.style.width).toBe("20px");
+    expect(a.style.height).toBe("30px");
+
+    anchor.dispose();
     el.remove();
     trigger.remove();
   });
@@ -176,7 +215,9 @@ describe("anchor (native engine)", () => {
   it("releasing the binding leaves the overlay where it was", async () => {
     const { overlay: el, trigger } = createAnchored();
     const { effectScope } = await import("@/signals/index.ts");
-    const stop = effectScope(() => void anchor(el, trigger));
+    const stop = effectScope(() => {
+      new Overlay(el, { anchor: new Anchor(trigger) });
+    });
 
     stop();
     // Seeded from the rendered rect: center (340, 250) − origin (0, 0).
@@ -188,33 +229,22 @@ describe("anchor (native engine)", () => {
     el.remove();
     trigger.remove();
   });
-
-  it("cleans everything up when the scope disposes", () => {
-    const { overlay: el, trigger } = createAnchored();
-    // No surrounding scope in tests — grab the cleanup via a rect anchor
-    // and dispose manually through element removal checks after GC of
-    // scope is impossible here; assert the wiring exists then remains
-    // author-managed. (Scope-level disposal is covered by effectScope
-    // usage in the utilities suites.)
-    const a = anchor(el, trigger);
-    expect(document.body.contains(a)).toBe(true);
-    el.remove();
-    trigger.remove();
-  });
 });
 
-describe("anchor (Floating UI engine)", () => {
+describe("Anchor (Floating UI engine)", () => {
   beforeEach(() => {
     vi.stubGlobal("CSS", { supports: () => false });
   });
 
   it("writes the box center into the location channels while open", async () => {
     const { overlay: el, trigger } = createAnchored();
-    const a = anchor(el, trigger);
+    const anchor = new Anchor(trigger);
+    new Overlay(el, { anchor });
+    const a = anchorEl();
 
     // Overlay loop runs against the anchor element…
     expect(floating.autoUpdate).toHaveBeenCalledWith(
-      el.ownerDocument.querySelector(".x-overlay-anchor"),
+      a,
       el,
       expect.any(Function),
     );
@@ -241,13 +271,15 @@ describe("anchor (Floating UI engine)", () => {
     // re-enable after it (Base UI's data-instant semantics).
     await vi.waitFor(() => expect(el.style.transitionProperty).toBe(""));
 
+    anchor.dispose();
     el.remove();
     trigger.remove();
   });
 
   it("starts and stops the loop with the open state", async () => {
     const { overlay: el, trigger } = createAnchored(false);
-    anchor(el, trigger);
+    const anchor = new Anchor(trigger);
+    new Overlay(el, { anchor });
     const overlayLoop = floating.autoUpdate.mock.calls.filter(
       (c) => c[1] === el,
     );
@@ -264,6 +296,7 @@ describe("anchor (Floating UI engine)", () => {
     await vi.waitFor(() => expect(floating.stop).toHaveBeenCalled());
     expect(el.style.transitionProperty).toBe("");
 
+    anchor.dispose();
     el.remove();
     trigger.remove();
   });
@@ -271,7 +304,9 @@ describe("anchor (Floating UI engine)", () => {
   it("releasing the binding keeps the location channels", async () => {
     const { overlay: el, trigger } = createAnchored();
     const { effectScope } = await import("@/signals/index.ts");
-    const stop = effectScope(() => void anchor(el, trigger));
+    const stop = effectScope(() => {
+      new Overlay(el, { anchor: new Anchor(trigger) });
+    });
     await vi.waitFor(() =>
       expect(el.style.getPropertyValue("--overlay-x")).toBe("440px"),
     );
@@ -290,7 +325,8 @@ describe("anchor (Floating UI engine)", () => {
     el.style.setProperty("--overlay-x", "300px");
     el.style.setProperty("--overlay-y", "300px");
 
-    anchor(el, trigger);
+    const anchor = new Anchor(trigger);
+    new Overlay(el, { anchor });
     // Open + already placed → the first write animates (recipe switch).
     expect(el.style.transitionProperty).toBe("");
     await vi.waitFor(() =>
@@ -298,17 +334,24 @@ describe("anchor (Floating UI engine)", () => {
     );
     expect(el.style.transitionProperty).toBe("");
 
+    anchor.dispose();
     el.remove();
     trigger.remove();
   });
 
-  it("dragmove repositions instantly (geometry suppressed until dragend)", async () => {
+  it("an edit repositions instantly (geometry suppressed until release)", async () => {
     const { overlay: el, trigger } = createAnchored();
-    const a = anchor(el, trigger);
+    const anchor = new Anchor(trigger);
+    new Overlay(el, { anchor });
+    const a = anchorEl();
+    a.getBoundingClientRect = () =>
+      ({ x: 100, y: 100, left: 100, top: 100, right: 120, bottom: 120,
+         width: 20, height: 20, toJSON: () => ({}) }) as DOMRect;
     await vi.waitFor(() => expect(floating.computePosition).toHaveBeenCalled());
     const calls = floating.computePosition.mock.calls.length;
 
-    a.dispatchEvent(new CustomEvent("dragmove", { detail: { x: 1, y: 2 } }));
+    anchor.begin();
+    anchor.set({ x: 101, y: 102 });
     // Tracking the finger: geometry transitions off, enter/exit kept.
     expect(el.style.transitionProperty).toBe("opacity, scale, display");
     await vi.waitFor(() =>
@@ -316,18 +359,23 @@ describe("anchor (Floating UI engine)", () => {
         calls,
       ),
     );
-    a.dispatchEvent(new CustomEvent("dragend", { detail: {} }));
+    anchor.release();
     expect(el.style.transitionProperty).toBe("");
 
+    anchor.dispose();
     el.remove();
     trigger.remove();
   });
 
-  it("within confines the flip/shift boundary (and forces this engine)", async () => {
+  it("within bounds the flip/shift (and forces this engine)", async () => {
     vi.stubGlobal("CSS", { supports: () => true }); // native available…
     const { overlay: el, trigger } = createAnchored();
-    const region = constraint({ top: 5, left: 10, width: 500, height: 400 });
-    anchor(el, trigger, { within: region }); // …but within forces Floating UI
+    const anchor = new Anchor(trigger);
+    // …but within forces the boundary-aware engine.
+    new Overlay(el, {
+      anchor,
+      within: new Constraint({ x: 10, y: 5, w: 500, h: 400 }),
+    });
 
     await vi.waitFor(() => {
       expect(floating.flip).toHaveBeenCalledWith({
@@ -339,6 +387,103 @@ describe("anchor (Floating UI engine)", () => {
     });
     expect(el.style.getPropertyValue("position-anchor")).toBe("");
 
+    anchor.dispose();
+    el.remove();
+    trigger.remove();
+  });
+
+  it("data-draggable drags the anchor through its edit (tear contract)", async () => {
+    const { overlay: el, trigger } = createAnchored();
+    el.setAttribute("data-draggable", "");
+    const anchor = new Anchor(trigger);
+    new Overlay(el, { anchor });
+    const a = anchorEl();
+    a.getBoundingClientRect = () =>
+      ({ x: 100, y: 100, left: 100, top: 100, right: 120, bottom: 120,
+         width: 20, height: 20, toJSON: () => ({}) }) as DOMRect;
+    await vi.waitFor(() => expect(a.hasAttribute("data-follow")).toBe(true));
+
+    // Dragging the OVERLAY moves the anchor element (the handle contract).
+    el.dispatchEvent(
+      new PointerEvent("pointerdown", {
+        clientX: 10, clientY: 10, button: 0, bubbles: true,
+      }),
+    );
+    el.dispatchEvent(
+      new PointerEvent("pointermove", {
+        clientX: 60, clientY: 40, bubbles: true,
+      }),
+    );
+    expect(a.hasAttribute("data-follow")).toBe(false);
+    expect(a.style.left).toBe("150px");
+    expect(a.style.top).toBe("130px");
+    el.dispatchEvent(
+      new PointerEvent("pointerup", {
+        clientX: 60, clientY: 40, bubbles: true,
+      }),
+    );
+
+    anchor.dispose();
+    el.remove();
+    trigger.remove();
+  });
+
+  it("a dot target pins one-shot at a zero-size box", () => {
+    const { overlay: el, trigger } = createAnchored();
+    trigger.remove();
+    const anchor = new Anchor({ x: 320, y: 240 });
+    new Overlay(el, { anchor });
+    const a = anchorEl();
+
+    expect(a.style.left).toBe("320px");
+    expect(a.style.top).toBe("240px");
+    expect(a.style.width).toBe("0px");
+    expect(a.style.height).toBe("0px");
+    expect(a.hasAttribute("data-follow")).toBe(false); // one-shot
+
+    anchor.dispose();
+    el.remove();
+  });
+
+  it("a reactive box re-places the anchor until torn", async () => {
+    const { overlay: el, trigger } = createAnchored();
+    trigger.remove();
+    const { signal } = await import("@/signals/index.ts");
+    const mx = signal(100);
+    const anchor = new Anchor({ x: () => mx(), y: 50 });
+    new Overlay(el, { anchor });
+    const a = anchorEl();
+
+    expect(a.hasAttribute("data-follow")).toBe(true); // reactive pin holds
+    expect(a.style.left).toBe("100px");
+    mx(260);
+    await vi.waitFor(() => expect(a.style.left).toBe("260px"));
+
+    // Tearing (an edit) stops the effect.
+    anchor.set({ x: 10, y: 10 });
+    mx(999);
+    await new Promise((r) => setTimeout(r, 10));
+    expect(a.style.left).toBe("10px");
+
+    anchor.dispose();
+    el.remove();
+  });
+
+  it("composes with constrain(): set lands clamped", () => {
+    const { overlay: el, trigger } = createAnchored();
+    const anchor = new Anchor(trigger);
+    new Overlay(el, { anchor });
+    const a = anchorEl();
+    a.getBoundingClientRect = () =>
+      ({ x: 0, y: 0, left: 0, top: 0, right: 20, bottom: 20,
+         width: 20, height: 20, toJSON: () => ({}) }) as DOMRect;
+
+    const c = new Constraint({ x: 0, y: 0, w: 300, h: 300 });
+    anchor.set(c.constrain({ x: 900, y: 900, w: 20, h: 20 }));
+    expect(a.style.left).toBe("280px");
+    expect(a.style.top).toBe("280px");
+
+    anchor.dispose();
     el.remove();
     trigger.remove();
   });
@@ -351,7 +496,8 @@ describe("anchor (Floating UI engine)", () => {
       placement: "top",
       middlewareData: { arrow: { x: 120 } },
     });
-    anchor(el, trigger, { arrow: 12 });
+    const anchor = new Anchor(trigger, { arrow: 12 });
+    new Overlay(el, { anchor });
 
     const caret = el.querySelector(":scope > .x-overlay-arrow");
     expect(caret).not.toBeNull();
@@ -362,6 +508,7 @@ describe("anchor (Floating UI engine)", () => {
       expect(el.style.getPropertyValue("--overlay-arrow-x")).toBe("120px");
     });
 
+    anchor.dispose();
     el.remove();
     trigger.remove();
   });

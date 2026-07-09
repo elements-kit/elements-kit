@@ -36,7 +36,7 @@
  *
  * Everything computes against the constraint rect
  * (`--overlay-constraint-top/-left/-width/-height`, viewport by
- * default, synced from a container via `confine`), so the
+ * default, synced from a container via `constrain`), so the
  * overlay re-clamps reactively whenever the rect changes — no JS.
  *
  * Channel ownership:

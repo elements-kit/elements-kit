@@ -7,10 +7,10 @@
  *   their output back to the `--overlay-*` channels (`sync` / `commit`) or
  *   reverts/dismisses.
  * - `createGestureRecognizer`: generic single-pointer drag plumbing
- *   (capture, velocity, the touch-scroll block) that drives a {@link Session}.
+ *   (capture, velocity, the touch-scroll block) that drives a {@link GestureSession}.
  *
- * Everything between — the mode reducers and their math — stays pure and
- * element-free (`gesture-model` + the mode files).
+ * Everything between — the session reducers and their math — stays pure
+ * and element-free (`gesture-model` + `preset.ts`).
  */
 
 import { resolveConstraint } from "./constraint.ts";
@@ -19,11 +19,13 @@ import {
   type Frame,
   type FrameIO,
   type FramePatch,
+  type GestureSession,
   type Pointer,
-  type Session,
+  type ResizeContext,
+  type ResizeStrategy,
   updateVelocity,
 } from "./gesture-model.ts";
-import type { ResizeContext, ResizeStrategy } from "./resize-strategy.ts";
+
 
 const CHANNEL: Record<keyof Frame, string> = {
   x: "--overlay-x",
@@ -203,7 +205,7 @@ export interface RecognizerOptions {
    * (interactive children, scrolled content, etc.). */
   canEngage(event: PointerEvent): boolean;
   /** The session (if any) this pointerdown starts. `null` = ignore. */
-  engage(event: PointerEvent): Session | null;
+  engage(event: PointerEvent): GestureSession | null;
 }
 
 export interface GestureRecognizer {
@@ -214,7 +216,7 @@ export interface GestureRecognizer {
  * The pointer loop for `target`: single-pointer capture, velocity tracking,
  * text-selection suppression, and a non-passive `touchmove` block while a
  * drag is live. It owns the "is a drag active" state and drives the engaged
- * {@link Session} — `move`/`release`/`cancel` on pointermove/up/cancel. The
+ * {@link GestureSession} — `move`/`release`/`cancel` on pointermove/up/cancel. The
  * session owns the DOM writes (through the `io` it closed over); the
  * recognizer knows nothing about channels.
  */
@@ -222,7 +224,7 @@ export function createGestureRecognizer(
   target: HTMLElement,
   { canEngage, engage }: RecognizerOptions,
 ): GestureRecognizer {
-  let active: Session | null = null;
+  let active: GestureSession | null = null;
   let pointer: Pointer | null = null;
 
   const onPointerDown = (event: PointerEvent) => {

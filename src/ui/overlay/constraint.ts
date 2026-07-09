@@ -1,28 +1,128 @@
-import { effect, onCleanup } from "@/signals/index.ts";
+import { effect, onCleanup, signal } from "@/signals/index.ts";
 import { createElementRect } from "@/utilities/element-rect.ts";
+import {
+  Box,
+  type BoxLike,
+  isReactiveBox,
+  type PlainBox,
+  readBox,
+} from "./box.ts";
+import { clamp } from "./gesture-model.ts";
 
 /**
- * The constraint — one of the two spatial primitives (with the anchor).
- * A `Region` is a reactive rect; `constraint()` builds one from an
- * element, a plain rect, or nothing (the live viewport). `confine()`
- * applies a region to an overlay by syncing it into the
- * `--overlay-constraint-top/-left/-width/-height` channels every location
- * clamp and gesture bound derives from (declared in index.css with
- * viewport defaults). Derived values build on regions — `detents()`
- * quantizes one, `rubber()` resists at its edges.
+ * The constraint — a region the overlay stays inside; one of the
+ * spatial classes (with the anchor and the overlay itself). Built from
+ * an element (observed), a `BoxLike` (reactive getters pass through; a
+ * plain box becomes an OWNED, editable region — spotlights, split
+ * panes), or nothing (the live viewport).
+ *
+ * `constrain()` is the pure clamp every composition builds on:
+ * `overlay.set(c.constrain(box))`. Applying a constraint to an overlay
+ * (syncing the `--overlay-constraint-*` channels every location clamp
+ * and gesture bound derives from) is `applyConstraint` — internal,
+ * reached through the `within` option.
  */
+export class Constraint extends Box {
+  #read: () => Required<PlainBox>;
+  /** The owned region when built from a plain box — editable. */
+  #owned: ReturnType<typeof signal<Required<PlainBox>>> | undefined;
 
-/** A reactive rect — the shape `createElementRect` returns, so an
- * `Element` works directly and custom rects (a static region, a virtual
- * area) can be supplied too. */
-export interface Region {
-  top(): number;
-  left(): number;
-  width(): number;
-  height(): number;
+  constructor(source?: Element | BoxLike) {
+    super();
+    if (source === undefined) {
+      this.#read = () => ({
+        x: 0,
+        y: 0,
+        w: window.innerWidth,
+        h: window.innerHeight,
+      });
+    } else if (source instanceof Element) {
+      const rect = createElementRect(source);
+      onCleanup(() => rect[Symbol.dispose]());
+      this.#read = () => ({
+        x: rect.left(),
+        y: rect.top(),
+        w: rect.width(),
+        h: rect.height(),
+      });
+    } else if (isReactiveBox(source)) {
+      this.#read = () => readBox(source);
+    } else {
+      const owned = signal(readBox(source));
+      this.#owned = owned;
+      this.#read = () => ({ ...owned() });
+    }
+  }
+
+  protected read(): Required<PlainBox> {
+    return this.#read();
+  }
+
+  protected write(box: Partial<PlainBox>): void {
+    const owned = this.#owned;
+    if (!owned) {
+      throw new Error(
+        "Constraint is read-only — only a plain-box Constraint owns its region",
+      );
+    }
+    owned({ ...owned(), ...box });
+  }
+
+  /** Pure clamp: the box forced inside the region — size capped to the
+   * region, position clamped so the box can't leave it. */
+  constrain(box: PlainBox): Required<PlainBox> {
+    const r = this.read();
+    const w = Math.min(box.w ?? 0, r.w);
+    const h = Math.min(box.h ?? 0, r.h);
+    return {
+      x: clamp(box.x, r.x, Math.max(r.x + r.w - w, r.x)),
+      y: clamp(box.y, r.y, Math.max(r.y + r.h - h, r.y)),
+      w,
+      h,
+    };
+  }
 }
 
-/** A plain rect a `Region` can be built from. */
+/**
+ * Applies a constraint to an overlay by syncing its region into the
+ * `--overlay-constraint-top/-left/-width/-height` channels (declared in
+ * index.css with viewport defaults) — the overlay re-clamps reactively
+ * whenever the region changes. Internal: reached through the `within`
+ * option on `Overlay` (and the flip boundary in `Anchor.bind`).
+ *
+ * Caveat: an element-backed region observes size changes
+ * (`ResizeObserver`) — a container that moves without resizing (e.g.
+ * page scroll) does not retrigger the sync.
+ */
+export function applyConstraint(
+  overlay: HTMLElement,
+  within: Element | BoxLike | Constraint,
+): { dispose(): void } {
+  const region =
+    within instanceof Constraint ? within : new Constraint(within);
+  const stop = effect(() => {
+    overlay.style.setProperty("--overlay-constraint-top", `${region.y()}px`);
+    overlay.style.setProperty("--overlay-constraint-left", `${region.x()}px`);
+    overlay.style.setProperty("--overlay-constraint-width", `${region.w()}px`);
+    overlay.style.setProperty(
+      "--overlay-constraint-height",
+      `${region.h()}px`,
+    );
+  });
+
+  const dispose = () => {
+    stop();
+    overlay.style.removeProperty("--overlay-constraint-top");
+    overlay.style.removeProperty("--overlay-constraint-left");
+    overlay.style.removeProperty("--overlay-constraint-width");
+    overlay.style.removeProperty("--overlay-constraint-height");
+  };
+  onCleanup(dispose);
+
+  return { dispose };
+}
+
+/** The rect shape the gesture internals and anchor engines exchange. */
 export interface RectInit {
   top: number;
   left: number;
@@ -30,37 +130,12 @@ export interface RectInit {
   height: number;
 }
 
-/**
- * Builds a {@link Region}: from an `Element` (observed via
- * `ResizeObserver` through `createElementRect`; cleanup routes through
- * the current scope), from a plain rect (static), or with no argument —
- * the live viewport (read at call time, not observed).
- */
-export function constraint(source?: Element | RectInit): Region {
-  if (source === undefined) {
-    return {
-      top: () => 0,
-      left: () => 0,
-      width: () => window.innerWidth,
-      height: () => window.innerHeight,
-    };
-  }
-  if (source instanceof Element) {
-    const rect = createElementRect(source);
-    onCleanup(() => rect[Symbol.dispose]());
-    return rect;
-  }
-  return {
-    top: () => source.top,
-    left: () => source.left,
-    width: () => source.width,
-    height: () => source.height,
-  };
-}
-
-export interface OverlayConstraint {
-  dispose(): void;
-  [Symbol.dispose](): void;
+/** A reactive rect in the gesture internals' vocabulary (draggable). */
+export interface Region {
+  top(): number;
+  left(): number;
+  width(): number;
+  height(): number;
 }
 
 /**
@@ -100,58 +175,4 @@ export function resolveConstraint(overlay: HTMLElement): {
     width: resolveVarPx(overlay, "--overlay-constraint-width", "width"),
     height: resolveVarPx(overlay, "--overlay-constraint-height", "height"),
   };
-}
-
-/**
- * Confines an overlay to a {@link Region} by syncing it into the
- * `--overlay-constraint-*` variables. Every location clamp and gesture
- * bound derives from those variables, so the overlay re-clamps when the
- * region changes.
- *
- * Caveat: an element region observes size changes (`ResizeObserver`) — a
- * container that moves without resizing (e.g. page scroll) does not
- * retrigger the sync.
- *
- * Registers its cleanup with the current scope (`onCleanup`) and also
- * returns it as `dispose` / `Symbol.dispose`; disposing removes the
- * variables, restoring the viewport constraint.
- *
- * @example
- * ```ts
- * import { constraint, confine } from "elements-kit/ui/overlay";
- *
- * const panel = document.querySelector("dialog.x-overlay")!;
- * confine(panel, constraint(document.querySelector("main")!));
- * ```
- */
-export function confine(
-  overlay: HTMLElement,
-  region: Region,
-): OverlayConstraint {
-  const stop = effect(() => {
-    overlay.style.setProperty("--overlay-constraint-top", `${region.top()}px`);
-    overlay.style.setProperty(
-      "--overlay-constraint-left",
-      `${region.left()}px`,
-    );
-    overlay.style.setProperty(
-      "--overlay-constraint-width",
-      `${region.width()}px`,
-    );
-    overlay.style.setProperty(
-      "--overlay-constraint-height",
-      `${region.height()}px`,
-    );
-  });
-
-  const dispose = () => {
-    stop();
-    overlay.style.removeProperty("--overlay-constraint-top");
-    overlay.style.removeProperty("--overlay-constraint-left");
-    overlay.style.removeProperty("--overlay-constraint-width");
-    overlay.style.removeProperty("--overlay-constraint-height");
-  };
-  onCleanup(dispose);
-
-  return { dispose, [Symbol.dispose]: dispose };
 }
