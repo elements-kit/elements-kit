@@ -132,13 +132,14 @@
     "@tsdown/css": "^0.22.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "esbuild": "^0.28.1",
     "happy-dom": "^20.8.9",
+    "puppeteer-core": "^24.0.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "tsdown": "0.22.0",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.2",
-    "puppeteer-core": "^24.0.0"
+    "vitest": "^4.1.2"
   },
   "dependencies": {
     "@floating-ui/dom": "^1.7.6",

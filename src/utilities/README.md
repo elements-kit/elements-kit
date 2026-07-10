@@ -38,6 +38,7 @@ Core primitives (signal, computed, effect, onCleanup, trigger, batch, untracked)
 ├── intersection-observer.ts ─── createIntersectionObserver
 │
 ├── mutation-observer.ts ─── createMutationObserver
+│   └── direction.ts
 │
 ├── media-query.ts ─── createMediaQuery, isBrowser
 │
@@ -70,6 +71,7 @@ Foundations used by other helpers.
 | **event-driven** | `fromEvent(target, events)`, `sync(subscribe, getter, setter?)`, `Subscribe` type | Declarative DOM-state-to-signal bridge. `fromEvent` builds a `Subscribe` from DOM events; `sync` keeps a `Computed<T>` (or writable `Signal<T>` if a setter is given) aligned with an external source. |
 | **resize-observer** | `createResizeObserver(target, callback)` | `ResizeObserver` with auto-cleanup. |
 | **intersection-observer** | `createIntersectionObserver(target, callback, options?)` | `IntersectionObserver` with auto-cleanup. |
+| **direction** | `direction` | The page's resolved `direction` (`"ltr"`/`"rtl"`), resyncing on `dir` mutations. |
 | **mutation-observer** | `createMutationObserver(target, options, callback)` | `MutationObserver` with auto-cleanup. |
 | **media-query** | `createMediaQuery(query, defaultState?)`, `isBrowser` | `window.matchMedia` as a `Computed<boolean>`. `isBrowser` is the shared environment guard. |
 
@@ -302,4 +304,4 @@ Full rules → [ARCHITECTURE §6](../../ARCHITECTURE.md). Short version: `onClea
 
 ## Environment
 
-Six singletons (`activeElement`, `currentLocation`, `online`, `orientation`, `windowFocused`, `windowSize`) read DOM globals at module load. Node-safe via `isBrowser` gate — degrade to neutral defaults. Factories (`createX`) always import-safe.
+Seven singletons (`activeElement`, `currentLocation`, `direction`, `online`, `orientation`, `windowFocused`, `windowSize`) read DOM globals at module load. Node-safe via `isBrowser` gate — degrade to neutral defaults. Factories (`createX`) always import-safe.
