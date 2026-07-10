@@ -102,6 +102,78 @@ describe("areaToPlacement", () => {
   });
 });
 
+/**
+ * The engine support matrix — `Anchor.bind` reads `CSS.supports` at
+ * bind time, so every browser tier is simulable by stubbing it:
+ *   full     — Chrome-class: placement + chain (native engine)
+ *   none     — Safari-class / below the gate (channel engine)
+ *   no-chain — Firefox 151-class: placement parses but `anchor()`
+ *              insets don't chain (native placement, JS rect copy)
+ * The invariants below must hold in EVERY tier; engine-specific
+ * behavior lives in the dedicated describes further down.
+ */
+const SUPPORT_PROFILES = [
+  { name: "full support (native)", supports: () => true },
+  { name: "no support (channel)", supports: () => false },
+  {
+    name: "placement without chain (Firefox 151)",
+    supports: (q: string) =>
+      !q.startsWith("top: anchor") && !q.startsWith("width: anchor-size"),
+  },
+] as const;
+
+describe.each(SUPPORT_PROFILES)("engine invariants — $name", ({ supports }) => {
+  beforeEach(() => {
+    vi.stubGlobal("CSS", { supports });
+  });
+
+  it("an element target is followed and re-pins on a fresh open", async () => {
+    const { overlay: el, trigger } = createAnchored();
+    const anchor = new Anchor(trigger);
+    new Overlay(el, { anchor });
+    const a = anchorEl();
+    expect(a.hasAttribute("data-follow")).toBe(true);
+
+    // Tear, close, reopen — the pin must come back in every tier.
+    a.removeAttribute("data-follow");
+    el.removeAttribute("open");
+    el.setAttribute("open", "");
+    await vi.waitFor(() => expect(a.hasAttribute("data-follow")).toBe(true));
+
+    anchor.dispose();
+    el.remove();
+    trigger.remove();
+  });
+
+  it("a reactive target always uses the channel engine (flips must morph)", () => {
+    const { overlay: el, trigger } = createAnchored();
+    const anchor = new Anchor(() => trigger);
+    new Overlay(el, { anchor });
+
+    expect(el.getAttribute("data-anchor")).toBeNull();
+    expect(
+      floating.autoUpdate.mock.calls.filter((c) => c[1] === el),
+    ).toHaveLength(1);
+
+    anchor.dispose();
+    el.remove();
+    trigger.remove();
+  });
+
+  it("dispose removes the proxy and every stamped attribute", () => {
+    const { overlay: el, trigger } = createAnchored();
+    const anchor = new Anchor(trigger);
+    new Overlay(el, { anchor });
+    anchor.dispose();
+
+    expect(document.querySelector(".x-overlay-anchor")).toBeNull();
+    expect(trigger.style.getPropertyValue("anchor-name")).toBe("");
+
+    el.remove();
+    trigger.remove();
+  });
+});
+
 describe("Anchor (native engine)", () => {
   beforeEach(() => {
     vi.stubGlobal("CSS", { supports: () => true });
