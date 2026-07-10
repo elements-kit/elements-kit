@@ -124,7 +124,8 @@
     "storybook": "pnpm --filter elements-kit-storybook dev",
     "watch": "tsdown -w",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:engines": "node scripts/engine-matrix.mjs"
   },
   "packageManager": "pnpm@10.33.0",
   "devDependencies": {
@@ -138,7 +139,8 @@
     "react-dom": "^19.2.5",
     "tsdown": "0.22.0",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.2"
+    "vitest": "^4.1.2",
+    "puppeteer-core": "^24.0.0"
   },
   "dependencies": {
     "@floating-ui/dom": "^1.7.6",
