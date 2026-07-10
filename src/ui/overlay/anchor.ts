@@ -13,7 +13,7 @@ import {
   type BoxLike,
   isReactiveBox,
   type PlainBox,
-  readValue,
+  readBox,
 } from "./box.ts";
 import {
   INSTANT_TRANSITIONS,
@@ -159,13 +159,6 @@ export function areaToPlacement(area: string, rtl = false): Placement {
   return `${side}${align}` as Placement;
 }
 
-const resolveBox = (box: BoxLike): Required<PlainBox> => ({
-  x: readValue(box.x),
-  y: readValue(box.y),
-  w: readValue(box.w),
-  h: readValue(box.h),
-});
-
 const rectBox = (r: DOMRect): Required<PlainBox> => ({
   x: r.left,
   y: r.top,
@@ -301,13 +294,13 @@ export class Anchor extends Box {
         el.setAttribute("data-follow", "");
         let first = true;
         this.#stopFollowSync = effect(() => {
-          this.#placeAtRect(resolveBox(to));
+          this.#placeAtRect(readBox(to));
           if (!first) this.#onRepoint?.();
           first = false;
         });
       } else {
         el.removeAttribute("data-follow"); // a static box pin is one-shot
-        this.#placeAtRect(resolveBox(to));
+        this.#placeAtRect(readBox(to));
       }
       return;
     }

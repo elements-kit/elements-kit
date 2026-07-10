@@ -156,10 +156,15 @@ export type MaybeReactive<T> = T | Computed<T>;
  * Resolve a {@link MaybeReactive} to its current value. Calls the getter
  * when reactive; returns the value as-is when static.
  *
+ * Only branded handles created by `signal`/`computed` are called — a
+ * plain function is treated as a static VALUE and returned as-is (so
+ * `T` itself may be a function type).
+ *
  * @example
  * ```ts
- * resolve(5);              // 5
- * resolve(() => count());  // current count value
+ * resolve(5);        // 5
+ * resolve(count);    // current count value (signal handle)
+ * resolve(() => 1);  // the arrow itself — not branded, not called
  * ```
  */
 export function resolve<T>(value: MaybeReactive<T>): T {

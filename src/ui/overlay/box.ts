@@ -1,3 +1,4 @@
+import type { MaybeReactive } from "@/signals/index.ts";
 import { Session } from "./session.ts";
 
 /** The default edit physics — stateless, shared across all edits. */
@@ -20,15 +21,12 @@ const FREE = new Session();
  * restores the snapshot. Handles are the caller's own pointer code.
  */
 
-/** A reactive value — plain, or a getter reading signals. */
-export type Reactive<T> = T | (() => T);
-
 /** Structural box shape accepted everywhere a box is an input. */
 export interface BoxLike {
-  x: Reactive<number>;
-  y: Reactive<number>;
-  w?: Reactive<number>;
-  h?: Reactive<number>;
+  x: MaybeReactive<number>;
+  y: MaybeReactive<number>;
+  w?: MaybeReactive<number>;
+  h?: MaybeReactive<number>;
 }
 
 /** A resolved box — plain numbers, viewport top-left. */
@@ -39,8 +37,11 @@ export type Axis = "x" | "y" | "w" | "h";
 
 const AXES: readonly Axis[] = ["x", "y", "w", "h"];
 
-/** Resolve a possibly-reactive field. */
-export const readValue = (v: Reactive<number> | undefined): number =>
+/** Resolve a possibly-reactive field. Not `resolve()` from signals —
+ * that unwraps only branded `signal`/`computed` handles, while `BoxLike`
+ * accepts any getter (reactive literals, Box methods). Numbers are never
+ * callable, so the structural unwrap is safe here. */
+export const readValue = (v: MaybeReactive<number> | undefined): number =>
   typeof v === "function" ? v() : (v ?? 0);
 
 /** Resolve a whole `BoxLike` to plain numbers. */
