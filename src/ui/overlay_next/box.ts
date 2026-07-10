@@ -10,15 +10,11 @@ export interface IBox {
   h: number;
 }
 
-/** Content direction — how logical inline sides (`start`/`end`)
- * resolve. Implemented by boxes that HAVE a direction (an element's
- * computed style); consumers needing one from a plain box fall back to
- * the document's. */
 export interface IDirection {
   readonly direction: "ltr" | "rtl";
 }
 
-class Box implements IBox {
+export class Box implements IBox {
   @reactive() x: number;
   @reactive() y: number;
   @reactive() w: number;
@@ -32,7 +28,7 @@ class Box implements IBox {
   }
 }
 
-class WindowBox implements IBox, IDirection {
+export class WindowBox implements IBox, IDirection {
   get x() {
     return 0;
   }
