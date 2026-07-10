@@ -20,7 +20,10 @@ import { PROJECTION_MS, resist, Session } from "./session.ts";
 const RESIZE_ZONE_PX = 28;
 /** Draggable: top strip that engages the x/y move. */
 const MOVE_ZONE_PX = 28;
-/** Corner grip: minimum width / height. */
+/** Resize minimums — corner grips and edge handles alike: a drawer
+ * can't be dragged narrower than MIN_RESIZE_W, a sheet shorter than
+ * MIN_RESIZE_H (below them the drag slides toward dismissal instead of
+ * collapsing the surface to a sliver). Capped by the available room. */
 const MIN_RESIZE_W = 240;
 const MIN_RESIZE_H = 160;
 
@@ -254,7 +257,7 @@ function edgeAxis(
     sign,
     anchorSign,
     docked,
-    lo: 0,
+    lo: Math.min(width ? MIN_RESIZE_W : MIN_RESIZE_H, hi),
     hi,
     dismisses: true,
     pinBelow: true,

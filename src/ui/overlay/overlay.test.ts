@@ -344,11 +344,12 @@ describe("Overlay", () => {
 
   it("a gestureSession() override snaps the markup drag to detents", () => {
     // The subclass hook: the preset's edits run with a SnapSession —
-    // stops resolve against the drag's room ([0, 400] for this floating
-    // block-start sheet: bottom 400 anchored, constraint top 0).
+    // stops resolve against the drag's room ([160, 400] for this
+    // floating block-start sheet: the edge minimum up to the anchored
+    // bottom's distance from the constraint top).
     class SheetOverlay extends Overlay {
       protected override gestureSession() {
-        return new SnapSession([0.25, 0.5, 0.75]); // → 100 / 200 / 300
+        return new SnapSession([0.25, 0.5, 0.75]); // → 220 / 280 / 340
       }
     }
     const el = createOverlay({ resize: "block-start" });
@@ -358,13 +359,13 @@ describe("Overlay", () => {
     el.addEventListener("resizechange", onChange);
 
     // Grow from 300 toward 350 (slowly — settle the velocity), release:
-    // nearest stop is 300.
+    // nearest stop is 340.
     drag(el, 150, 100);
     el.dispatchEvent(
       new PointerEvent("pointermove", { clientY: 100, bubbles: true }),
     );
     pointerUp(el, { y: 100 });
-    expect(el.style.getPropertyValue("--overlay-h")).toBe("300px");
+    expect(el.style.getPropertyValue("--overlay-h")).toBe("340px");
     expect(onChange).toHaveBeenCalledOnce();
 
     gestures.dispose();
