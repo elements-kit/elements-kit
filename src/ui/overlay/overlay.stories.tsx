@@ -460,11 +460,11 @@ const ANCHORED_CONTROLS = {
 
 /**
  * `new Anchor(trigger)` — the popover follows its anchor element,
- * which follows whichever trigger you click. Where CSS anchor
- * positioning exists everything (placement, flip near the viewport
- * edge, scroll tracking) is compositor-side; with `arrow` the Floating
- * UI engine drives the same channels and the caret tracks the settled
- * side. Browsers below the gate always use the Floating UI engine.
+ * which follows whichever trigger you click. A reactive (getter) target
+ * uses the Floating UI engine so a re-pin morphs to its destination in
+ * one interpolation — flip included (native placement would flip
+ * mid-glide: a visible jump). Static element targets stay compositor-
+ * side where CSS anchor positioning exists.
  */
 export const Anchored: StoryObj<AnchoredArgs> = {
   argTypes: {

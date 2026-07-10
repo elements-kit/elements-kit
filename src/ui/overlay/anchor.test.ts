@@ -165,6 +165,25 @@ describe("Anchor (native engine)", () => {
     second.remove();
   });
 
+  it("a reactive target forces the channel engine (flips morph, never jump)", async () => {
+    // Native placement cannot INTERPOLATE a side flip — a signal-driven
+    // re-pin gliding the proxy would flip position-area mid-flight (a
+    // visible jump). Reactive targets therefore use the channel engine,
+    // which resolves placement once at the destination and morphs.
+    const { overlay: el, trigger } = createAnchored();
+    const anchor = new Anchor(() => trigger);
+    new Overlay(el, { anchor });
+
+    expect(el.getAttribute("data-anchor")).toBeNull();
+    expect(
+      floating.autoUpdate.mock.calls.filter((c) => c[1] === el),
+    ).toHaveLength(1); // the channel loop runs (overlay is open)
+
+    anchor.dispose();
+    el.remove();
+    trigger.remove();
+  });
+
   it("re-pins a torn-off anchor on a fresh open", async () => {
     const { overlay: el, trigger } = createAnchored();
     const anchor = new Anchor(trigger);

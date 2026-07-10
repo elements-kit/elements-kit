@@ -128,7 +128,7 @@ With an `anchor` bound, `data-draggable` moves the *anchor* (the tear contract) 
 
 ### `new Anchor(target?, opts?)`
 
-A tracked box the overlay follows for life. The target is an element, a box (a *dot* when `w`/`h` are omitted — context menus, cursors; reactive fields re-place it), or a signal-reading getter. `opts.arrow` renders a caret pointing at the anchor (forces the Floating UI engine).
+A tracked box the overlay follows for life. The target is an element, a box (a *dot* when `w`/`h` are omitted — context menus, cursors; reactive fields re-place it), or a signal-reading getter. `opts.arrow` renders a caret pointing at the anchor. Arrows, `within`, and getter targets all force the Floating UI engine — native CSS placement has no caret data, no boundary control, and cannot *interpolate* a side flip when a signal-driven re-pin lands where the popover must flip.
 
 ```ts
 import { Anchor, Overlay } from "elements-kit/ui/overlay";

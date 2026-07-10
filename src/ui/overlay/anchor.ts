@@ -35,8 +35,10 @@ import {
  * by the `Overlay` constructor for its `anchor` option) wires the
  * following engine. Two engines, chosen once at bind time:
  *
- * - Native CSS anchor positioning (compound gate, no `arrow`, no
- *   explicit constraint): the overlay's `position-anchor` points at the
+ * - Native CSS anchor positioning (compound gate; no `arrow`, no
+ *   explicit constraint, and a NON-reactive target — native placement
+ *   cannot interpolate a side flip, so signal-driven re-pins need the
+ *   channel engine): the overlay's `position-anchor` points at the
  *   anchor element; an element target pins through a second native hop
  *   (`[data-follow]` rule in index.css mirrors the followed box via
  *   `anchor()`/`anchor-size()`). Placement, flip and scroll tracking
@@ -414,7 +416,16 @@ export class Anchor extends Box {
   bind(overlay: HTMLElement, confined = false): () => void {
     if (this.#unbind) throw new Error("Anchor is already bound");
     const el = this.#el;
-    const native = nativeAnchorSupport() && !this.#arrow && !confined;
+    // A reactive target ALSO forces the channel engine: native placement
+    // cannot INTERPOLATE a side flip, so a signal-driven re-pin gliding
+    // the proxy would flip `position-area` mid-flight — a visible jump.
+    // The channel engine resolves placement once at the destination and
+    // morphs there, flip included.
+    const native =
+      nativeAnchorSupport() &&
+      !this.#arrow &&
+      !confined &&
+      typeof this.#target !== "function";
     // Under the CHANNEL engine the proxy is a measured reference — its
     // CSS glide transition must not ease JS writes, or the overlay
     // positions against a mid-flight rect (the channel morph provides
