@@ -173,7 +173,7 @@ type Story = StoryObj<Args>;
 export const Window: Story = {};
 
 /**
- * Bottom sheet with SNAPPING — the markup preset drives the drag (the
+ * Bottom sheet with SNAPPING — the markup gestures drive the drag (the
  * `data-resize="block-start"` pill affordance is overlay.css's
  * `::before`), and a one-line `Overlay` subclass swaps the gesture
  * physics: `gestureSession()` returns a `SnapSession`, so the height
@@ -194,10 +194,9 @@ export const BottomSheet: Story = {
   args: { resize: "none", draggable: false, modal: false, gestures: false },
   render: () => {
     const id = `overlay-story-${uid++}`;
-    const sheetFeel = new SnapSession([0.25, 0.6, 0.9]);
     class SheetOverlay extends Overlay {
       protected override gestureSession() {
-        return sheetFeel;
+        return new SnapSession([0.25, 0.6, 0.9]);
       }
     }
     return (

@@ -151,20 +151,25 @@ describe("Session", () => {
     b.cancel();
   });
 
-  it("a session is reusable across edits and boxes", () => {
-    const feel = new SnapSession([0.5]);
+  it("a session is one edit — reusing a spent one throws", () => {
+    const spent = new SnapSession([0.5]);
     const a = makeBox();
-    const b = makeBox();
-    a.begin(feel);
+    a.begin(spent);
     a.set({ h: 300 });
     a.set({ h: 300 });
     a.release();
-    b.begin(feel);
-    b.set({ h: 900 });
-    b.set({ h: 900 });
-    b.release();
     expect(a.value.h).toBe(500);
-    expect(b.value.h).toBe(500);
+    const b = makeBox();
+    expect(() => b.begin(spent)).toThrow(/one per edit|already used/);
+    // A cancelled session is spent too.
+    const aborted = new Session();
+    const c = makeBox();
+    c.begin(aborted);
+    c.cancel();
+    expect(() => c.begin(aborted)).toThrow(/one per edit|already used/);
+    // The box itself stays editable with a fresh session.
+    expect(() => c.begin()).not.toThrow();
+    c.cancel();
   });
 
   it("custom physics: subclass overrides rest (grid snap)", () => {

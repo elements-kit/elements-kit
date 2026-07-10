@@ -1,9 +1,6 @@
 import type { MaybeReactive } from "@/signals/index.ts";
 import { Session } from "./session.ts";
 
-/** The default edit physics — stateless, shared across all edits. */
-const FREE = new Session();
-
 /**
  * The spatial vocabulary and the edit lifecycle — the root of the
  * overlay hierarchy (`Editable` → `Box` → `Overlay` / `Anchor` /
@@ -15,10 +12,11 @@ const FREE = new Session();
  * (`{ x: () => mx(), y: () => my() }`) and class instances alike, so an
  * `Overlay` can be another overlay's anchor target or constraint source.
  *
- * An edit is a drag's logic without its plumbing: `begin()` snapshots
- * the box and starts velocity tracking, `set()` writes live through the
- * session's physics, `release()` rests (or signals dismissal), `cancel()`
- * restores the snapshot. Handles are the caller's own pointer code.
+ * An edit is a drag's logic without its plumbing, and the session IS
+ * the edit: `begin(session)` binds a fresh episode (it snapshots the box
+ * and velocity-tracks), `set()` writes live through the session's feel,
+ * `release()` rests (or signals dismissal), `cancel()` restores the
+ * snapshot. Handles are the caller's own pointer code.
  */
 
 /** Structural box shape accepted everywhere a box is an input. */
@@ -59,19 +57,12 @@ export const isReactiveBox = (box: BoxLike): boolean =>
   typeof box.w === "function" ||
   typeof box.h === "function";
 
-/** Per-axis state of the active edit. */
-interface EditAxis {
-  value: number;
-  lastTime: number;
-  velocity: number;
-  driven: boolean;
-}
-
 /**
- * Manages the current edit over a box value. Subclasses supply the
- * storage (`read`/`write`), the bounding region (`region`), and optional
- * edit-lifecycle side effects (`editStart`/`editEnd` — e.g. suppressing
- * CSS transitions while a finger drives the box).
+ * Holds the box's current edit (the session) and routes the lifecycle
+ * into it. Subclasses supply the storage (`read`/`write`), the bounding
+ * region (`region`), and optional edit-lifecycle side effects
+ * (`editStart`/`editEnd` — e.g. suppressing CSS transitions while a
+ * finger drives the box).
  *
  * `set()` is dual-mode, deterministically: inside an edit it is a LIVE
  * write through the session's `during` (rubber at the bounds); outside
@@ -81,8 +72,6 @@ interface EditAxis {
  */
 export abstract class Editable {
   #session: Session | undefined;
-  #snapshot: Required<PlainBox> | undefined;
-  #axes: Partial<Record<Axis, EditAxis>> = {};
 
   /** Current box value (viewport top-left, resolved). */
   protected abstract read(): Required<PlainBox>;
@@ -113,14 +102,14 @@ export abstract class Editable {
     }
   }
 
-  /** Start an edit: snapshot the box, begin velocity tracking. `session`
-   * is THIS edit's physics (default: free — clamp with rubber). Throws
-   * if an edit is already active. */
-  begin(session?: Session): void {
+  /** Start an edit: bind `session` as THIS edit (default: a fresh free
+   * session — clamp with rubber). The session snapshots the box and
+   * velocity-tracks. Throws if an edit is already active, or if the
+   * session was already used — a session is one edit. */
+  begin(session: Session = new Session()): void {
     if (this.#session) throw new Error("edit already active");
-    this.#session = session ?? FREE;
-    this.#snapshot = this.read();
-    this.#axes = {};
+    session.start(this.read());
+    this.#session = session;
     this.editStart();
   }
 
@@ -132,18 +121,11 @@ export abstract class Editable {
       this.write(box);
       return;
     }
-    const now = performance.now();
     const out: Partial<PlainBox> = {};
     for (const axis of AXES) {
       const raw = box[axis];
       if (raw === undefined) continue;
-      const prev = this.#axes[axis];
-      const velocity =
-        prev && now > prev.lastTime
-          ? (raw - prev.value) / (now - prev.lastTime)
-          : (prev?.velocity ?? 0);
-      this.#axes[axis] = { value: raw, lastTime: now, velocity, driven: true };
-      out[axis] = session.during(raw, axis, this.editBounds(axis));
+      out[axis] = session.track(axis, raw, this.editBounds(axis));
     }
     this.write(out);
   }
@@ -155,36 +137,23 @@ export abstract class Editable {
   release(): PlainBox | null {
     const session = this.#session;
     if (!session) return this.read();
-    const rested: Partial<PlainBox> = {};
-    for (const axis of AXES) {
-      const state = this.#axes[axis];
-      if (!state?.driven) continue;
-      const r = session.rest(
-        state.value,
-        state.velocity,
-        axis,
-        this.editBounds(axis),
-      );
-      if (r === null) {
-        this.cancel();
-        return null;
-      }
-      rested[axis] = r;
+    const rested = session.end((axis) => this.editBounds(axis));
+    if (rested === null) {
+      this.cancel();
+      return null;
     }
     this.#session = undefined;
-    this.#snapshot = undefined;
     this.editEnd();
     this.write(rested);
     return this.read();
   }
 
-  /** Abort the edit: restore the snapshot. */
+  /** Abort the edit: restore the session's entry snapshot. */
   cancel(): void {
-    const snapshot = this.#snapshot;
+    const session = this.#session;
     this.#session = undefined;
-    this.#snapshot = undefined;
-    this.#axes = {};
     this.editEnd();
+    const snapshot = session?.abort();
     if (snapshot) this.write(snapshot);
   }
 }

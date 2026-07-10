@@ -343,7 +343,7 @@ describe("Overlay", () => {
   });
 
   it("a gestureSession() override snaps the markup drag to detents", () => {
-    // The subclass hook: the preset's edits run with a SnapSession —
+    // The subclass hook: the markup gesture's edit runs with a SnapSession —
     // stops resolve against the drag's room ([160, 400] for this
     // floating block-start sheet: the edge minimum up to the anchored
     // bottom's distance from the constraint top).

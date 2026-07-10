@@ -1,14 +1,16 @@
-import type { PlainBox } from "./box.ts";
+import type { Axis, PlainBox } from "./box.ts";
+import { resolveConstraint } from "./constraint.ts";
 import { PROJECTION_MS, resist, Session } from "./session.ts";
 
 /**
- * The markup gesture preset's LOGIC — pure helpers behind `data-resize`
- * / `data-draggable`: the attribute vocabulary, the engagement zones,
- * and the per-gesture plan (which axes the pointer drives, their rooms,
- * signs, and coupling). The `Overlay` owns the pointer plumbing and
- * drives its OWN edit lifecycle (`begin`/`set`/`release`/`cancel`) from
- * these — the preset's physics are the same `Session` machinery custom
- * handles use.
+ * The gesture layer — the markup contract (`data-resize` /
+ * `data-draggable`) turned into sessions. `engageGesture(el, pointer)`
+ * is the whole interface: it reads the attributes, hit-tests the
+ * engagement zones, and returns a `GestureSession` — the engaged
+ * gesture AS an edit — or `undefined` when the pointer missed. The
+ * `Overlay` owns only the plumbing around it: pointer listeners on its
+ * element, applying the session's render intent to its channels, and
+ * open/close.
  *
  * In box space every gesture is the same idea — some edges follow the
  * pointer, the rest stay pinned: an edge word drives one size dimension
@@ -82,8 +84,7 @@ export function detectEngagement(args: {
   const inCorner =
     corner &&
     Math.abs(pointer.x - (handleRight ? right : rect.x)) <= RESIZE_ZONE_PX &&
-    Math.abs(pointer.y - (block === "end" ? bottom : rect.y)) <=
-      RESIZE_ZONE_PX;
+    Math.abs(pointer.y - (block === "end" ? bottom : rect.y)) <= RESIZE_ZONE_PX;
   if (inCorner) return "resize";
 
   // The block-start sheet's resize pill sits at top-center, so its move
@@ -173,7 +174,7 @@ export function anchor(args: {
  * ------------------------------------------------------------------ */
 
 /** One driven size dimension of a resize gesture. */
-export interface AxisPlan {
+interface AxisPlan {
   /** The channel keys this dimension writes. */
   size: "w" | "h";
   loc: "x" | "y";
@@ -198,15 +199,15 @@ export interface AxisPlan {
   pinBelow: boolean;
 }
 
-export interface GesturePlan {
+interface GesturePlan {
   kind: "move" | "resize";
   /** Driven size dimensions (resize only; move drives x/y directly). */
   axes: AxisPlan[];
   rect: Required<PlainBox>;
   constraint: Required<PlainBox>;
   center0: Point;
-  /** The edit physics for this gesture. */
-  session: Session;
+  /** The default feel this gesture's edit runs with. */
+  feel: Session;
 }
 
 /** Edge handles pass raw values below `lo` through `during` — the
@@ -221,9 +222,6 @@ class EdgeSession extends Session {
     return value < bounds[0] ? value : resist(value, bounds[0], bounds[1]);
   }
 }
-
-const edgeSession = new EdgeSession();
-const freeSession = new Session();
 
 function edgeAxis(
   axis: "block" | "inline",
@@ -268,9 +266,9 @@ function edgeAxis(
  * Builds the plan for an engaged gesture: which size dimensions the
  * pointer drives (edge word = one, corner grip = two; asymmetric — the
  * corner's width alone decides dismissal, its height is a free clamp)
- * and the physics session the edit runs with.
+ * and the default feel the edit runs with.
  */
-export function planGesture(
+function planGesture(
   kind: "block" | "inline" | "resize" | "move",
   parsed: { block: "start" | "end" | null; inline: "start" | "end" | null },
   rect: Required<PlainBox>,
@@ -282,7 +280,14 @@ export function planGesture(
     y: rect.y + rect.h / 2,
   };
   if (kind === "move") {
-    return { kind: "move", axes: [], rect, constraint, center0, session: freeSession };
+    return {
+      kind: "move",
+      axes: [],
+      rect,
+      constraint,
+      center0,
+      feel: new Session(),
+    };
   }
   if (kind === "resize") {
     const block = parsed.block!;
@@ -302,21 +307,35 @@ export function planGesture(
       rect,
       constraint,
       center0,
-      session: freeSession,
+      feel: new Session(),
       axes: [
         {
-          size: "w", loc: "x", offset: "dx", pointer: "x",
+          size: "w",
+          loc: "x",
+          offset: "dx",
+          pointer: "x",
           startSize: rect.w,
-          sign: signX, anchorSign: signX, docked: false,
-          lo: MIN_RESIZE_W, hi: maxW,
-          dismisses: true, pinBelow: false,
+          sign: signX,
+          anchorSign: signX,
+          docked: false,
+          lo: MIN_RESIZE_W,
+          hi: maxW,
+          dismisses: true,
+          pinBelow: false,
         },
         {
-          size: "h", loc: "y", offset: "dy", pointer: "y",
+          size: "h",
+          loc: "y",
+          offset: "dy",
+          pointer: "y",
           startSize: rect.h,
-          sign: signY, anchorSign: signY, docked: false,
-          lo: MIN_RESIZE_H, hi: maxH,
-          dismisses: false, pinBelow: false,
+          sign: signY,
+          anchorSign: signY,
+          docked: false,
+          lo: MIN_RESIZE_H,
+          hi: maxH,
+          dismisses: false,
+          pinBelow: false,
         },
       ],
     };
@@ -328,14 +347,14 @@ export function planGesture(
     rect,
     constraint,
     center0,
-    session: edgeSession,
+    feel: new EdgeSession(),
     axes: [edgeAxis(axis, side, rect, constraint, dir)],
   };
 }
 
 /** The raw driven values for a pointer delta — sizes for a resize (the
- * coupling and physics apply downstream), the box top-left for a move. */
-export function targetsAt(plan: GesturePlan, delta: Point): Partial<PlainBox> {
+ * coupling and feel apply downstream), the box top-left for a move. */
+function targetsAt(plan: GesturePlan, delta: Point): Partial<PlainBox> {
   if (plan.kind === "move") {
     return { x: plan.rect.x + delta.x, y: plan.rect.y + delta.y };
   }
@@ -347,11 +366,11 @@ export function targetsAt(plan: GesturePlan, delta: Point): Partial<PlainBox> {
 }
 
 /* ------------------------------------------------------------------ *
- * Dismissal predicates (preset policy, applied before release).       *
+ * Dismissal predicates (gesture policy, applied before release).      *
  * ------------------------------------------------------------------ */
 
 /** A shrink-projected flick past a dismissing axis's minimum. */
-export function shouldDismissResize(
+function shouldDismissResize(
   plan: GesturePlan,
   delta: Point,
   velocity: Point,
@@ -369,7 +388,7 @@ export function shouldDismissResize(
 }
 
 /** Whether a flicked move's projected center leaves the constraint. */
-export function projectedOutOfBounds(
+function projectedOutOfBounds(
   rect: Required<PlainBox>,
   velocity: Point,
   constraint: Required<PlainBox>,
@@ -382,4 +401,186 @@ export function projectedOutOfBounds(
     py < constraint.y ||
     py > constraint.y + constraint.h
   );
+}
+
+/* ------------------------------------------------------------------ *
+ * The gesture session — an engaged pointer's edit.                    *
+ * ------------------------------------------------------------------ */
+
+/** Render intent for one live gesture frame. `width`/`height` pin the
+ * element inline (instant); `x`/`y` are location-channel values
+ * (channel space, px); `dx`/`dy` are the transient deltas — a number
+ * writes, `null` clears. */
+export interface GestureRender {
+  width?: number;
+  height?: number;
+  x?: number;
+  y?: number;
+  dx?: number | null;
+  dy?: number | null;
+}
+
+/**
+ * The markup gesture AS a session — one engaged pointer's edit. Owns
+ * the plan (which dimensions the pointer drives and their rooms), the
+ * translation from pointer deltas to raw targets (`move`), the render
+ * mapping the overlay applies (`render`/`place`), and the dismissal
+ * verdict (`shouldDismiss`). The FEEL delegates to the gesture's
+ * default (edge slide / free resize) or the custom session supplied by
+ * `Overlay.gestureSession()` — its `during`/`rest` run inside this
+ * episode.
+ */
+export class GestureSession extends Session {
+  readonly kind: "move" | "resize";
+  readonly #plan: GesturePlan;
+  readonly #feel: Session;
+
+  constructor(plan: GesturePlan, custom?: Session) {
+    super();
+    this.kind = plan.kind;
+    this.#plan = plan;
+    this.#feel = custom ?? plan.feel;
+  }
+
+  override during(
+    value: number,
+    axis: Axis,
+    bounds: readonly [number, number],
+  ): number {
+    return this.#feel.during(value, axis, bounds);
+  }
+
+  override rest(
+    value: number,
+    velocity: number,
+    axis: Axis,
+    bounds: readonly [number, number],
+  ): number | null {
+    return this.#feel.rest(value, velocity, axis, bounds);
+  }
+
+  /** Raw driven values for a pointer delta — sizes for a resize, the
+   * box top-left for a move. */
+  move(delta: Point): Partial<PlainBox> {
+    return targetsAt(this.#plan, delta);
+  }
+
+  /** The gesture's room for a driven size dimension — `undefined` for
+   * anything the plan doesn't drive. */
+  roomFor(axis: Axis): [number, number] | undefined {
+    if (this.#plan.kind !== "resize" || (axis !== "w" && axis !== "h")) {
+      return undefined;
+    }
+    const a = this.#plan.axes.find((a) => a.size === axis);
+    return a ? [a.lo, a.hi] : undefined;
+  }
+
+  /** Live render mapping: sizes pin inline; the opposite edge couples
+   * through the location channels; overshoot past the room — and the
+   * below-minimum dismiss preview — ride the unclamped deltas (the
+   * committed channels are CSS-clamped, so rubber must live on the
+   * delta layer). A move rides the deltas entirely. */
+  render(box: Partial<PlainBox>): GestureRender {
+    const plan = this.#plan;
+    const out: GestureRender = {};
+    if (plan.kind === "move") {
+      if (box.x !== undefined) out.dx = box.x - plan.rect.x;
+      if (box.y !== undefined) out.dy = box.y - plan.rect.y;
+      return out;
+    }
+    for (const a of plan.axes) {
+      const v = box[a.size];
+      if (v === undefined) continue;
+      let size: number;
+      let slide: number | null;
+      if (v > a.hi) {
+        // Past the room the box cannot grow — the size pins and the
+        // resisted overshoot translates the whole surface instead.
+        size = a.hi;
+        slide = a.sign * (v - a.hi);
+      } else if (v < a.lo && a.pinBelow) {
+        size = a.lo;
+        slide = -a.sign * (a.lo - Math.max(v, 0));
+      } else {
+        size = v;
+        slide = null;
+      }
+      if (a.size === "w") out.width = size;
+      else out.height = size;
+      const loc = anchor({
+        axis: a.size,
+        center0: plan.center0,
+        constraint: plan.constraint,
+        anchorSign: a.anchorSign,
+        startSize: a.startSize,
+        size,
+        docked: a.docked,
+      });
+      if (loc !== null) out[a.loc] = loc;
+      out[a.offset] = slide;
+    }
+    return out;
+  }
+
+  /** Committed locations for the rested sizes — pins the opposite edge
+   * exactly like the live drag. Empty for a move. */
+  place(box: Partial<PlainBox>): { x?: number; y?: number } {
+    const out: { x?: number; y?: number } = {};
+    if (this.#plan.kind !== "resize") return out;
+    for (const a of this.#plan.axes) {
+      const size = box[a.size];
+      if (size === undefined) continue;
+      const loc = anchor({
+        axis: a.size,
+        center0: this.#plan.center0,
+        constraint: this.#plan.constraint,
+        anchorSign: a.anchorSign,
+        startSize: a.startSize,
+        size,
+        docked: a.docked,
+      });
+      if (loc !== null) out[a.loc] = loc;
+    }
+    return out;
+  }
+
+  /** Dismissal policy, applied before release: a flicked move whose
+   * projected center leaves the constraint, or a shrink-projected
+   * flick past a dismissing axis's minimum. */
+  shouldDismiss(
+    rect: Required<PlainBox>,
+    delta: Point,
+    velocity: Point,
+  ): boolean {
+    if (this.#plan.kind === "move") {
+      return projectedOutOfBounds(rect, velocity, this.#plan.constraint);
+    }
+    return shouldDismissResize(this.#plan, delta, velocity, 0.5);
+  }
+}
+
+/**
+ * The gesture layer's single entry: reads the markup contract off the
+ * element, hit-tests the engagement zones, and returns the engaged
+ * gesture as a session ready for `begin()` — or `undefined` when the
+ * element has no gesture markup or the pointer missed every zone.
+ * `custom` supplies a replacement feel once the gesture kind is known
+ * (the `Overlay.gestureSession()` hook).
+ */
+export function engageGesture(
+  el: HTMLElement,
+  pointer: Point,
+  custom?: (kind: "move" | "resize") => Session | undefined,
+): GestureSession | undefined {
+  const resize = el.getAttribute("data-resize") ?? "";
+  const draggable = el.hasAttribute("data-draggable");
+  if (!resize && !draggable) return undefined;
+  const parsed = parseResize(resize);
+  const r = el.getBoundingClientRect();
+  const rect = { x: r.left, y: r.top, w: r.width, h: r.height };
+  const dir = getComputedStyle(el).direction === "rtl" ? -1 : 1;
+  const kind = detectEngagement({ ...parsed, draggable, rect, pointer, dir });
+  if (!kind) return undefined;
+  const plan = planGesture(kind, parsed, rect, resolveConstraint(el), dir);
+  return new GestureSession(plan, custom?.(plan.kind));
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { anchor, detectEngagement, edgeSetup, parseResize } from "./preset.ts";
+import { anchor, detectEngagement, edgeSetup, parseResize } from "./gesture.ts";
 import type { PlainBox } from "./box.ts";
 import { resist } from "./session.ts";
 

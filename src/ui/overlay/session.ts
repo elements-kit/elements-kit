@@ -1,22 +1,25 @@
-import type { Axis } from "./box.ts";
+import type { Axis, PlainBox } from "./box.ts";
 
 /**
- * Edit physics — a STATELESS policy, reusable across edits and across
- * boxes (define one "feel", drive five sheets with it). The box owns
- * the edit's state (snapshot, velocity, active flag); the session only
- * answers two questions per axis:
+ * A session IS one edit — a bounded episode over a box. Constructed
+ * fresh per edit (they're free), handed to `begin()`, spent at
+ * release/cancel; reusing a spent session throws. The session owns the
+ * episode's state: the entry snapshot and per-axis velocity tracking.
+ *
+ * Subclasses define the edit's FEEL by overriding two hooks:
  *
  *   during(value)          where does the live value render? (rubber)
  *   rest(value, velocity)  where does it land on release? (`null` =
  *                          the edit wanted out — a dismiss flick)
  *
- * `Session` is the base implementation — rubber past the bounds while
- * dragging, clamp into them at rest. `SnapSession` snaps to detent
- * stops. Custom physics — magnetic edges, grids, whatever — subclass
- * and override the two hooks.
+ * `Session` is the base feel — rubber past the bounds while dragging,
+ * clamp into them at rest. `SnapSession` snaps to detent stops. Custom
+ * feels — magnetic edges, grids, whatever — subclass and override the
+ * two hooks. The episode plumbing (`start`/`track`/`end`/`abort`) is
+ * driven by `Editable` and is not an override surface.
  *
  * The pure math below is the ONE physics implementation — the markup
- * gesture preset (preset.ts) runs on the same functions.
+ * gesture layer runs on the same functions.
  */
 
 /** Rubber-band resistance past a bound. */
@@ -81,7 +84,68 @@ export function closestDetent(
   return best;
 }
 
+/** Per-axis tracking of the episode. */
+interface EditAxis {
+  value: number;
+  lastTime: number;
+  velocity: number;
+  driven: boolean;
+}
+
 export class Session {
+  #snapshot: Required<PlainBox> | undefined;
+  #axes: Partial<Record<Axis, EditAxis>> = {};
+  #spent = false;
+
+  /** Bind to an edit: record the entry snapshot. Driven by
+   * `Editable.begin()`; throws on reuse — a session is one edit. */
+  start(snapshot: Required<PlainBox>): void {
+    if (this.#spent || this.#snapshot) {
+      throw new Error("session already used — construct one per edit");
+    }
+    this.#snapshot = snapshot;
+  }
+
+  /** Velocity-track a driven axis and return its live (`during`) value.
+   * Driven by `Editable.set()`. */
+  track(axis: Axis, raw: number, bounds: readonly [number, number]): number {
+    const now = performance.now();
+    const prev = this.#axes[axis];
+    const velocity =
+      prev && now > prev.lastTime
+        ? (raw - prev.value) / (now - prev.lastTime)
+        : (prev?.velocity ?? 0);
+    this.#axes[axis] = { value: raw, lastTime: now, velocity, driven: true };
+    return this.during(raw, axis, bounds);
+  }
+
+  /** Rest every driven axis (velocity-projected via `rest`). Any axis
+   * resting `null` means "should dismiss" — the whole edit rests `null`.
+   * Spends the session. Driven by `Editable.release()`. */
+  end(
+    boundsFor: (axis: Axis) => readonly [number, number],
+  ): Partial<PlainBox> | null {
+    const rested: Partial<PlainBox> = {};
+    for (const axis of Object.keys(this.#axes) as Axis[]) {
+      const state = this.#axes[axis];
+      if (!state?.driven) continue;
+      const r = this.rest(state.value, state.velocity, axis, boundsFor(axis));
+      if (r === null) return null;
+      rested[axis] = r;
+    }
+    this.#spent = true;
+    return rested;
+  }
+
+  /** Abort the edit: spend the session, hand back the entry snapshot
+   * for the box to restore. Driven by `Editable.cancel()`. */
+  abort(): Required<PlainBox> | undefined {
+    const snapshot = this.#snapshot;
+    this.#snapshot = undefined;
+    this.#spent = true;
+    return snapshot;
+  }
+
   /** Soft range the live value moves in freely — rubber past it.
    * Subclasses narrow it (e.g. to the outermost stops). */
   protected bounds(
@@ -120,8 +184,7 @@ export class Session {
  *
  * @example
  * ```ts
- * const sheetFeel = new SnapSession([0.25, 0.6, 0.9]);
- * grip.onpointerdown = () => o.begin(sheetFeel);
+ * grip.onpointerdown = () => o.begin(new SnapSession([0.25, 0.6, 0.9]));
  * ```
  */
 export class SnapSession extends Session {

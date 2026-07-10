@@ -13,17 +13,7 @@ import {
   INSTANT_TRANSITIONS,
   resolveConstraint,
 } from "./constraint.ts";
-import {
-  anchor as coupleEdge,
-  detectEngagement,
-  type GesturePlan,
-  parseResize,
-  planGesture,
-  type Point,
-  projectedOutOfBounds,
-  shouldDismissResize,
-  targetsAt,
-} from "./preset.ts";
+import { engageGesture, type GestureSession, type Point } from "./gesture.ts";
 import type { Session } from "./session.ts";
 
 export interface OverlayOptions {
@@ -56,10 +46,10 @@ const CHANNEL = {
  * The surface — a `Box` over the `.x-overlay` element's geometry
  * channels. The constructor takes only SPATIAL options (what the
  * overlay is): an initial box, an anchor to follow, a region to stay
- * inside. Physics are per-edit (`begin(new SnapSession(stops))`); the
- * markup gestures (`data-resize` / `data-draggable`) are the built-in
- * preset — pointer plumbing that drives this SAME edit lifecycle
- * (free physics, flick-to-dismiss when `dismissible`).
+ * inside. The feel is per-edit (`begin(new SnapSession(stops))`); the
+ * markup gestures (`data-resize` / `data-draggable`) are built in —
+ * pointer plumbing whose `GestureSession`s drive this SAME edit
+ * lifecycle (free feel, flick-to-dismiss when `dismissible`).
  *
  * `set()` speaks viewport coordinates and converts to channel space
  * internally (the channels hold the box CENTER relative to the
@@ -89,9 +79,9 @@ export class Overlay extends Box {
   readonly #el: HTMLElement;
   readonly #dismissible: boolean;
   #editing = false;
-  /** The active markup gesture's plan — preset edits render differently
-   * (inline sizes, dx/dy deltas, edge coupling) from plain edits. */
-  #gesture: GesturePlan | undefined;
+  /** The active markup gesture — its edits render differently (inline
+   * sizes, dx/dy deltas, edge coupling) from plain edits. */
+  #gesture: GestureSession | undefined;
   /** Channel strings at edit start — cancel restores them VERBATIM (a
    * `60svh` stays `60svh`). */
   #engaged: Record<keyof typeof CHANNEL, string> | undefined;
@@ -126,7 +116,7 @@ export class Overlay extends Box {
       });
     }
 
-    // The markup gesture preset: one pointer drive. With an anchor, the
+    // The markup gestures: one pointer drive. With an anchor, the
     // move gesture drives the ANCHOR's edit (the tear contract); without
     // one, it drives THIS box's edits through the zone plans.
     this.#wireGestures(opts.anchor);
@@ -145,15 +135,10 @@ export class Overlay extends Box {
     return resolveConstraint(this.#el);
   }
 
-  /** A preset resize is bounded by its plan's rooms (from the ANCHORED
-   * edge to the constraint), not the whole constraint span. */
+  /** A markup resize is bounded by the gesture's rooms (from the
+   * ANCHORED edge to the constraint), not the whole constraint span. */
   protected override editBounds(axis: Axis): [number, number] {
-    const plan = this.#gesture;
-    if (plan?.kind === "resize" && (axis === "w" || axis === "h")) {
-      const a = plan.axes.find((a) => a.size === axis);
-      if (a) return [a.lo, a.hi];
-    }
-    return super.editBounds(axis);
+    return this.#gesture?.roomFor(axis) ?? super.editBounds(axis);
   }
 
   /** Viewport box → the element. In-edit writes render live (inline
@@ -187,56 +172,25 @@ export class Overlay extends Box {
     if (box.h !== undefined) el.style.setProperty(CHANNEL.h, `${box.h}px`);
   }
 
-  /** Markup-gesture edit: live sizes render INLINE (instant, no
-   * transition); the opposite edge is pinned through the location
-   * channels; overshoot past the room — and the below-minimum dismiss
-   * preview — ride the unclamped `--overlay-dx/-dy` (the committed
-   * channels are CSS-clamped, so rubber must live on the delta layer).
-   * A move rides the deltas entirely. */
+  /** Markup-gesture edit: apply the session's render intent — live
+   * sizes INLINE (instant, no transition), coupled locations on the
+   * channels, overshoot/dismiss-preview on the unclamped
+   * `--overlay-dx/-dy` deltas. The math lives in `GestureSession`. */
   #syncGesture(box: Partial<PlainBox>): void {
     const el = this.#el;
-    const plan = this.#gesture!;
     el.style.transition = "none";
-    if (plan.kind === "move") {
-      if (box.x !== undefined)
-        el.style.setProperty("--overlay-dx", `${box.x - plan.rect.x}px`);
-      if (box.y !== undefined)
-        el.style.setProperty("--overlay-dy", `${box.y - plan.rect.y}px`);
-      return;
-    }
-    for (const a of plan.axes) {
-      const v = box[a.size];
+    const r = this.#gesture!.render(box);
+    if (r.width !== undefined) el.style.width = `${r.width}px`;
+    if (r.height !== undefined) el.style.height = `${r.height}px`;
+    if (r.x !== undefined) el.style.setProperty(CHANNEL.x, `${r.x}px`);
+    if (r.y !== undefined) el.style.setProperty(CHANNEL.y, `${r.y}px`);
+    for (const [name, v] of [
+      ["--overlay-dx", r.dx],
+      ["--overlay-dy", r.dy],
+    ] as const) {
       if (v === undefined) continue;
-      let size: number;
-      let slide: number | null;
-      if (v > a.hi) {
-        // Past the room the box cannot grow — the size pins and the
-        // resisted overshoot translates the whole surface instead.
-        size = a.hi;
-        slide = a.sign * (v - a.hi);
-      } else if (v < a.lo && a.pinBelow) {
-        size = a.lo;
-        slide = -a.sign * (a.lo - Math.max(v, 0));
-      } else {
-        size = v;
-        slide = null;
-      }
-      if (a.size === "w") el.style.width = `${size}px`;
-      else el.style.height = `${size}px`;
-      const loc = coupleEdge({
-        axis: a.size,
-        center0: plan.center0,
-        constraint: plan.constraint,
-        anchorSign: a.anchorSign,
-        startSize: a.startSize,
-        size,
-        docked: a.docked,
-      });
-      if (loc !== null)
-        el.style.setProperty(CHANNEL[a.loc], `${loc}px`);
-      const offsetName = a.offset === "dx" ? "--overlay-dx" : "--overlay-dy";
-      if (slide === null) el.style.removeProperty(offsetName);
-      else el.style.setProperty(offsetName, `${slide}px`);
+      if (v === null) el.style.removeProperty(name);
+      else el.style.setProperty(name, `${v}px`);
     }
   }
 
@@ -253,24 +207,12 @@ export class Overlay extends Box {
     el.style.removeProperty("-webkit-user-select");
     if (box.w !== undefined) el.style.setProperty(CHANNEL.w, `${box.w}px`);
     if (box.h !== undefined) el.style.setProperty(CHANNEL.h, `${box.h}px`);
-    const plan = this.#gesture;
-    if (plan?.kind === "resize") {
+    const gesture = this.#gesture;
+    if (gesture?.kind === "resize") {
       // The rested sizes pin the opposite edge exactly like the live drag.
-      for (const a of plan.axes) {
-        const size = box[a.size];
-        if (size === undefined) continue;
-        const loc = coupleEdge({
-          axis: a.size,
-          center0: plan.center0,
-          constraint: plan.constraint,
-          anchorSign: a.anchorSign,
-          startSize: a.startSize,
-          size,
-          docked: a.docked,
-        });
-        if (loc !== null)
-          el.style.setProperty(CHANNEL[a.loc], `${loc}px`);
-      }
+      const loc = gesture.place(box);
+      if (loc.x !== undefined) el.style.setProperty(CHANNEL.x, `${loc.x}px`);
+      if (loc.y !== undefined) el.style.setProperty(CHANNEL.y, `${loc.y}px`);
     } else {
       this.#locChannels(box);
     }
@@ -321,7 +263,7 @@ export class Overlay extends Box {
     }
   }
 
-  // --- the markup gesture preset ------------------------------------------
+  // --- the markup gestures --------------------------------------------------
 
   /** Common engagement guards: interactive descendants keep their
    * clicks; scrolled content keeps its scroll-back gesture. */
@@ -339,11 +281,11 @@ export class Overlay extends Box {
     return false;
   }
 
-  /** The physics the built-in markup handles run their edits with —
-   * override in a subclass to change the feel (e.g. return a
-   * `SnapSession` so a sheet's pill snaps to detents). Return
-   * `undefined` (the default) for the built-in feel (free resize /
-   * edge slide). */
+  /** The feel the built-in markup handles run their edits with —
+   * override in a subclass to change it (e.g. return a `SnapSession`
+   * so a sheet's pill snaps to detents; construct it fresh — a session
+   * is one edit). Return `undefined` (the default) for the built-in
+   * feel (free resize / edge slide). */
   protected gestureSession(kind: "move" | "resize"): Session | undefined {
     void kind;
     return undefined;
@@ -363,15 +305,13 @@ export class Overlay extends Box {
     this.#close();
   }
 
-  /** The built-in handles: pointer plumbing driving THIS box's edit
-   * lifecycle — zones from the markup attributes, physics from the
-   * plan's `Session`, dismissal as preset policy. */
   /** The built-in handles — ONE pointer drive for both modes. With an
    * anchor bound, `data-draggable` drags the ANCHOR through its edit
    * API (the tear contract; the overlay follows through the engine);
-   * otherwise the zones plan drives THIS box's edits. Shared: the
-   * engagement guards, capture, user-select suppression, and the
-   * touch-scroll block. */
+   * otherwise `engageGesture` turns the pointerdown into a
+   * `GestureSession` driving THIS box's edit. Shared: the engagement
+   * guards, capture, user-select suppression, and the touch-scroll
+   * block. */
   #wireGestures(anchor?: Anchor): void {
     const el = this.#el;
     type Drag =
@@ -402,24 +342,15 @@ export class Overlay extends Box {
           origin: { x: anchor.x(), y: anchor.y() },
         };
       } else {
-        const resize = el.getAttribute("data-resize") ?? "";
-        const draggable = el.hasAttribute("data-draggable");
-        if (!resize && !draggable) return;
         if (this.#guarded(event)) return;
-        const parsed = parseResize(resize);
-        const constraint = resolveConstraint(el);
-        const rect = this.read();
-        const dir = getComputedStyle(el).direction === "rtl" ? -1 : 1;
-        const kind = detectEngagement({
-          ...parsed,
-          draggable,
-          rect,
-          pointer: { x: event.clientX, y: event.clientY },
-          dir,
-        });
-        if (!kind) return;
-        this.#gesture = planGesture(kind, parsed, rect, constraint, dir);
-        this.begin(this.gestureSession(this.#gesture.kind) ?? this.#gesture.session);
+        const session = engageGesture(
+          el,
+          { x: event.clientX, y: event.clientY },
+          (kind) => this.gestureSession(kind),
+        );
+        if (!session) return;
+        this.#gesture = session;
+        this.begin(session);
         const c = { x: event.clientX, y: event.clientY };
         drag = {
           kind: "self",
@@ -459,7 +390,7 @@ export class Overlay extends Box {
       drag.prev = c;
       drag.lastTime = event.timeStamp;
       this.set(
-        targetsAt(this.#gesture!, {
+        this.#gesture!.move({
           x: c.x - drag.start.x,
           y: c.y - drag.start.y,
         }),
@@ -480,16 +411,14 @@ export class Overlay extends Box {
         anchor!.release();
         return;
       }
-      const plan = this.#gesture!;
+      const session = this.#gesture!;
       const delta = {
         x: event.clientX - ended.start.x,
         y: event.clientY - ended.start.y,
       };
       const dismiss =
         this.#dismissible &&
-        (plan.kind === "move"
-          ? projectedOutOfBounds(this.read(), ended.velocity, plan.constraint)
-          : shouldDismissResize(plan, delta, ended.velocity, 0.5));
+        session.shouldDismiss(this.read(), delta, ended.velocity);
       if (dismiss) {
         this.#dismiss();
       } else if (this.release() === null && this.#dismissible) {

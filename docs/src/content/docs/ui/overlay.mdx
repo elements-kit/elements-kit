@@ -149,19 +149,17 @@ A region — an element (observed), a box (plain numbers make it *editable*: `c.
 
 ### Edits — custom handles with physics
 
-Every box has an edit lifecycle: `begin(session?)` snapshots it, `set()` writes live through the session's physics (rubber at the bounds), `release()` rests it — velocity-projected by the session — and returns the rested box, or `null` for a dismiss flick (what dismissal *means* is your call). A session is stateless: define a feel once, reuse it everywhere. `Session` is the base (rubber + clamp); `SnapSession(stops)` rests on detents.
+Every box has an edit lifecycle, and the session **is** the edit: `begin(session?)` binds a fresh one (it snapshots the box and velocity-tracks), `set()` writes live through the session's feel (rubber at the bounds), `release()` rests it — velocity-projected — and returns the rested box, or `null` for a dismiss flick (what dismissal *means* is your call). A session is one edit — construct it at `begin`; reusing a spent one throws. `Session` is the base feel (rubber + clamp); `SnapSession(stops)` rests on detents.
 
 ```ts
 import { SnapSession } from "elements-kit/ui/overlay";
 
-const sheetFeel = new SnapSession([0.25, 0.6, 0.9]);
-
-grip.onpointerdown = () => o.begin(sheetFeel);
+grip.onpointerdown = () => o.begin(new SnapSession([0.25, 0.6, 0.9]));
 grip.onpointermove = (e) => o.set({ h: innerHeight - e.clientY });
 grip.onpointerup   = () => o.release() ?? panel.close();
 ```
 
-Outside an edit, `set()` is a plain committed write (it morphs). Custom physics — grids, magnetic edges — subclass `Session` and override `during`/`rest`.
+Outside an edit, `set()` is a plain committed write (it morphs). Custom feels — grids, magnetic edges — subclass `Session` and override `during`/`rest`.
 
 ## Browser support
 
