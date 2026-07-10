@@ -17,9 +17,9 @@ import { PROJECTION_MS, resist, Session } from "./session.ts";
  */
 
 /** Corner grip: square engagement zone at the handle corner. */
-export const RESIZE_ZONE_PX = 28;
+const RESIZE_ZONE_PX = 28;
 /** Draggable: top strip that engages the x/y move. */
-export const MOVE_ZONE_PX = 28;
+const MOVE_ZONE_PX = 28;
 /** Corner grip: minimum width / height. */
 const MIN_RESIZE_W = 240;
 const MIN_RESIZE_H = 160;
@@ -149,7 +149,7 @@ export function edgeSetup(args: {
  * corner resizes.
  */
 export function anchor(args: {
-  axis: "width" | "height";
+  axis: "w" | "h";
   center0: Point;
   constraint: Required<PlainBox>;
   anchorSign: number;
@@ -160,8 +160,8 @@ export function anchor(args: {
   const { axis, center0, constraint, anchorSign, startSize, size, docked } =
     args;
   if (docked) return null;
-  const origin = axis === "width" ? constraint.x : constraint.y;
-  const c0 = axis === "width" ? center0.x : center0.y;
+  const origin = axis === "w" ? constraint.x : constraint.y;
+  const c0 = axis === "w" ? center0.x : center0.y;
   return c0 - origin + (anchorSign * (size - startSize)) / 2;
 }
 
@@ -177,7 +177,6 @@ export interface AxisPlan {
   offset: "dx" | "dy";
   /** Pointer axis driving it. */
   pointer: keyof Point;
-  axisName: "width" | "height";
   startSize: number;
   /** Growth sign (handle grows toward the pointer) + anchoring. */
   sign: number;
@@ -251,7 +250,6 @@ function edgeAxis(
     loc: width ? "x" : "y",
     offset: width ? "dx" : "dy",
     pointer: width ? "x" : "y",
-    axisName: width ? "width" : "height",
     startSize: width ? rect.w : rect.h,
     sign,
     anchorSign,
@@ -304,14 +302,14 @@ export function planGesture(
       session: freeSession,
       axes: [
         {
-          size: "w", loc: "x", offset: "dx", pointer: "x", axisName: "width",
+          size: "w", loc: "x", offset: "dx", pointer: "x",
           startSize: rect.w,
           sign: signX, anchorSign: signX, docked: false,
           lo: MIN_RESIZE_W, hi: maxW,
           dismisses: true, pinBelow: false,
         },
         {
-          size: "h", loc: "y", offset: "dy", pointer: "y", axisName: "height",
+          size: "h", loc: "y", offset: "dy", pointer: "y",
           startSize: rect.h,
           sign: signY, anchorSign: signY, docked: false,
           lo: MIN_RESIZE_H, hi: maxH,

@@ -20,7 +20,7 @@ describe("anchor (the single both-sides anchoring primitive)", () => {
     // size 300→400, anchorSign -1 → center moves up 50 → opposite edge pinned.
     expect(
       anchor({
-        axis: "height",
+        axis: "h",
         center0: { x: 0, y: 384 },
         constraint: CONSTRAINT,
         anchorSign: -1,
@@ -34,7 +34,7 @@ describe("anchor (the single both-sides anchoring primitive)", () => {
   it("returns null when docked (CSS clamp holds the edge)", () => {
     expect(
       anchor({
-        axis: "height",
+        axis: "h",
         center0: { x: 0, y: 384 },
         constraint: CONSTRAINT,
         anchorSign: -1,

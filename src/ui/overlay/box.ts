@@ -37,7 +37,7 @@ export type PlainBox = { x: number; y: number; w?: number; h?: number };
 /** The channel axes every box value moves along. */
 export type Axis = "x" | "y" | "w" | "h";
 
-export const AXES: readonly Axis[] = ["x", "y", "w", "h"];
+const AXES: readonly Axis[] = ["x", "y", "w", "h"];
 
 /** Resolve a possibly-reactive field. */
 export const readValue = (v: Reactive<number> | undefined): number =>

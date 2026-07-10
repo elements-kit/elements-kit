@@ -10,6 +10,7 @@ import {
 import {
   applyConstraint,
   Constraint,
+  INSTANT_TRANSITIONS,
   resolveConstraint,
 } from "./constraint.ts";
 import {
@@ -39,11 +40,6 @@ export interface OverlayOptions {
    * `true`. */
   dismissible?: boolean;
 }
-
-/** While an edit drives the box, geometry writes must land instantly —
- * but ONLY geometry. Enter/exit (opacity, scale) and close (display)
- * keep transitioning. */
-const EDIT_TRANSITIONS = "opacity, scale, display";
 
 /** Interactive descendants a drag must not swallow the click of. */
 const INTERACTIVE =
@@ -228,7 +224,7 @@ export class Overlay extends Box {
       if (a.size === "w") el.style.width = `${size}px`;
       else el.style.height = `${size}px`;
       const loc = coupleEdge({
-        axis: a.axisName,
+        axis: a.size,
         center0: plan.center0,
         constraint: plan.constraint,
         anchorSign: a.anchorSign,
@@ -264,7 +260,7 @@ export class Overlay extends Box {
         const size = box[a.size];
         if (size === undefined) continue;
         const loc = coupleEdge({
-          axis: a.axisName,
+          axis: a.size,
           center0: plan.center0,
           constraint: plan.constraint,
           anchorSign: a.anchorSign,
@@ -301,7 +297,7 @@ export class Overlay extends Box {
       w: get(CHANNEL.w),
       h: get(CHANNEL.h),
     };
-    this.#el.style.setProperty("transition-property", EDIT_TRANSITIONS);
+    this.#el.style.setProperty("transition-property", INSTANT_TRANSITIONS);
   }
 
   protected override editEnd(): void {
@@ -345,10 +341,12 @@ export class Overlay extends Box {
 
   /** The physics the built-in markup handles run their edits with —
    * override in a subclass to change the feel (e.g. return a
-   * `SnapSession` so a sheet's pill snaps to detents). Default: the
-   * plan's own (free resize / edge slide). */
-  protected gestureSession(plan: GesturePlan): Session {
-    return plan.session;
+   * `SnapSession` so a sheet's pill snaps to detents). Return
+   * `undefined` (the default) for the built-in feel (free resize /
+   * edge slide). */
+  protected gestureSession(kind: "move" | "resize"): Session | undefined {
+    void kind;
+    return undefined;
   }
 
   #close(): void {
@@ -421,7 +419,7 @@ export class Overlay extends Box {
         });
         if (!kind) return;
         this.#gesture = planGesture(kind, parsed, rect, constraint, dir);
-        this.begin(this.gestureSession(this.#gesture));
+        this.begin(this.gestureSession(this.#gesture.kind) ?? this.#gesture.session);
         const c = { x: event.clientX, y: event.clientY };
         drag = {
           kind: "self",

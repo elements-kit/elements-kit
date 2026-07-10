@@ -20,7 +20,7 @@ import type { Axis } from "./box.ts";
  */
 
 /** Rubber-band resistance past a bound. */
-export const RESISTANCE = 3;
+const RESISTANCE = 3;
 
 /** How far (ms) a release velocity is projected when picking a rest. */
 export const PROJECTION_MS = 160;

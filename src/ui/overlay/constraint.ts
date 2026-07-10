@@ -122,6 +122,12 @@ export function applyConstraint(
   return { dispose };
 }
 
+/** While JS drives geometry, its writes must land instantly — but ONLY
+ * geometry. Enter/exit (opacity, scale) and close (display) keep
+ * transitioning, so `@starting-style` still plays. Shared by the anchor
+ * engines and the overlay's edit lifecycle. */
+export const INSTANT_TRANSITIONS = "opacity, scale, display";
+
 /**
  * Resolves a custom property holding a length to pixels. Plain `px` values
  * parse directly; anything else (`svh` / `calc()` / fractions of the

@@ -15,7 +15,11 @@ import {
   type PlainBox,
   readValue,
 } from "./box.ts";
-import { resolveConstraint, resolveVarPx } from "./constraint.ts";
+import {
+  INSTANT_TRANSITIONS,
+  resolveConstraint,
+  resolveVarPx,
+} from "./constraint.ts";
 
 /**
  * The anchor — a tracked box the overlay attaches to; one of the
@@ -118,11 +122,6 @@ const chainSupport = (): boolean => {
   chainMeasured ??= probeChain();
   return chainMeasured;
 };
-
-/** While the Floating UI loop tracks, geometry writes must land
- * instantly — but ONLY geometry. Enter/exit (opacity, scale) and
- * close (display) keep transitioning, so `@starting-style` still plays. */
-const TRACKING_TRANSITIONS = "opacity, scale, display";
 
 let anchorNames = 0;
 
@@ -432,6 +431,22 @@ export class Anchor extends Box {
       }
     };
 
+    /** Seed the location channels from the rendered rect — the starting
+     * point for a morph, or the resting place when a binding releases. */
+    const seed = () => {
+      const rect = overlay.getBoundingClientRect();
+      if (rect.width === 0) return;
+      const c = resolveConstraint(overlay);
+      overlay.style.setProperty(
+        "--overlay-x",
+        `${rect.left + rect.width / 2 - c.x}px`,
+      );
+      overlay.style.setProperty(
+        "--overlay-y",
+        `${rect.top + rect.height / 2 - c.y}px`,
+      );
+    };
+
     const stampPlacedHint = () => {
       const style = getComputedStyle(overlay);
       const hint = areaToPlacement(
@@ -455,18 +470,7 @@ export class Anchor extends Box {
         // the rendered rect (inert while the native block still applies,
         // pixel-identical when the attribute drops) — releasing a binding
         // must not snap the box to the centered default.
-        const rect = overlay.getBoundingClientRect();
-        if (isOpen() && rect.width > 0) {
-          const c = resolveConstraint(overlay);
-          overlay.style.setProperty(
-            "--overlay-x",
-            `${rect.left + rect.width / 2 - c.x}px`,
-          );
-          overlay.style.setProperty(
-            "--overlay-y",
-            `${rect.top + rect.height / 2 - c.y}px`,
-          );
-        }
+        if (isOpen()) seed();
         overlay.style.removeProperty("position-anchor");
         overlay.removeAttribute("data-anchor");
         el.style.removeProperty("anchor-name");
@@ -549,7 +553,7 @@ export class Anchor extends Box {
       const suppress = () =>
         overlay.style.setProperty(
           "transition-property",
-          TRACKING_TRANSITIONS,
+          INSTANT_TRANSITIONS,
         );
       const release = () =>
         overlay.style.removeProperty("transition-property");
@@ -566,18 +570,7 @@ export class Anchor extends Box {
         const instant = !morphIn;
         morphIn = false;
         if (instant) suppress();
-        else if (!overlay.style.getPropertyValue("--overlay-x")) {
-          const rect = overlay.getBoundingClientRect();
-          const c = resolveConstraint(overlay);
-          overlay.style.setProperty(
-            "--overlay-x",
-            `${rect.left + rect.width / 2 - c.x}px`,
-          );
-          overlay.style.setProperty(
-            "--overlay-y",
-            `${rect.top + rect.height / 2 - c.y}px`,
-          );
-        }
+        else if (!overlay.style.getPropertyValue("--overlay-x")) seed();
         let pending = instant;
         stop = autoUpdate(el, overlay, () =>
           update().then(() => {
