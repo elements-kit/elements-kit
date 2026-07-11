@@ -2,10 +2,11 @@ import type { Meta, StoryObj } from "@storybook/html-vite";
 import { effect } from "elements-kit/signals";
 import "@/utilities/dom-lifecycle.ts";
 import "../card/card.css";
+import "./handle.css";
 import { ElementBox } from "./box.ts";
 import { HANDLES, rubber, snap, spring } from "./gestures.ts";
 import { Motion } from "./motion.ts";
-import { anchor_length, Side, place, SIDES } from "./anchor.ts";
+import { Side, place, SIDES } from "./anchor.ts";
 
 /**
  * overlay_next playground — exercises the ONE working primitive so far:
@@ -22,9 +23,25 @@ import { anchor_length, Side, place, SIDES } from "./anchor.ts";
  * Drag the chip — the panel follows with zero imperative repositioning code.
  */
 
+// A .x-handle's data-placement — position, cursor, shape (edge → pill,
+// corner → L-grip), and the resize role, all from one value.
+const PLACEMENTS = [
+  "none",
+  "block-start",
+  "block-end",
+  "inline-start",
+  "inline-end",
+  "start-start",
+  "start-end",
+  "end-start",
+  "end-end",
+] as const;
+type Placement = (typeof PLACEMENTS)[number];
+
 interface Args {
   side: Side;
   gap: number;
+  handle: Placement;
 }
 
 // Detent grid the chip settles onto (top-left viewport coords).
@@ -40,6 +57,22 @@ const SIZES_W = [120, 180, 240, 300];
 const SIZES_H = [44, 72, 100, 128];
 const clampW = rubber(MIN_W, MAX_W, 220);
 const clampH = rubber(MIN_H, MAX_H, 120);
+
+// data-placement → the resize coefficients it drives (position AND role: a
+// bottom-end grip resizes the bottom + inline-end).
+const PLACEMENT: Record<
+  Exclude<Placement, "none">,
+  (typeof HANDLES)[keyof typeof HANDLES]
+> = {
+  "inline-end": HANDLES.e,
+  "inline-start": HANDLES.w,
+  "block-end": HANDLES.s,
+  "block-start": HANDLES.n,
+  "end-end": HANDLES.se,
+  "end-start": HANDLES.sw,
+  "start-end": HANDLES.ne,
+  "start-start": HANDLES.nw,
+};
 
 let uid = 0;
 
@@ -57,8 +90,13 @@ const meta = {
       control: { type: "range", min: 0, max: 48, step: 2 },
       description: "px between anchor and panel",
     },
+    handle: {
+      control: "select",
+      options: [...PLACEMENTS],
+      description: "resize handle placement (edge → pill, corner → L-grip)",
+    },
   },
-  args: { side: "bottom", gap: 8 },
+  args: { side: "bottom", gap: 8, handle: "end-end" },
   render: (args) => {
     const id = `on-${uid++}`;
 
@@ -156,22 +194,23 @@ const meta = {
             anchorEl.addEventListener("pointerup", up);
             anchorEl.addEventListener("pointercancel", up);
 
-            // Resize the OVERLAY from its SE corner — same Motion pipeline on
-            // the w/h channels. Size renders as scale (--sx/--sy) and blurs
-            // during the drag (iPad-style); apply() reflows crisp on settle.
-            const seEl = root.querySelector(`#${id}-se`) as HTMLElement;
+            // Resize the OVERLAY from a real .x-handle child — a genuine event
+            // target (no pseudo hit-testing). data-placement picks the
+            // coefficients; same Motion pipeline on w/h. Size renders as scale
+            // (--sx/--sy) and blurs during the drag; apply() reflows on settle.
             // Blur the content, NOT the card — filter on a backdrop-filtered
             // element isolates it and blanks its surface.
+            if (args.handle === "none") return; // no handle → no resize to wire
             const contentEl = root.querySelector(
               `#${id}-content`,
             ) as HTMLElement;
-            const G = HANDLES.se; // { w: 1, h: 1 } — top-left stays fixed
+            const handleEl = root.querySelector(`#${id}-handle`) as HTMLElement;
+            const G = PLACEMENT[args.handle]; // placement drives the coefficients
             let rw: Motion;
             let rh: Motion;
             let rabort: undefined | (() => void);
-            seEl.addEventListener("pointerdown", (e) => {
-              e.stopPropagation(); // resize the panel, don't bubble
-              seEl.setPointerCapture(e.pointerId);
+            handleEl.addEventListener("pointerdown", (e) => {
+              handleEl.setPointerCapture(e.pointerId);
               stopAll();
               overlay.displacement.apply();
               rw = new Motion(e.clientX);
@@ -195,14 +234,14 @@ const meta = {
                 overlay.displacement.h = h - overlay.transform.h;
               });
             });
-            seEl.addEventListener("pointermove", (e) => {
-              if (!seEl.hasPointerCapture(e.pointerId)) return;
+            handleEl.addEventListener("pointermove", (e) => {
+              if (!handleEl.hasPointerCapture(e.pointerId)) return;
               rw.value = e.clientX;
               rh.value = e.clientY;
             });
             const rup = (e: PointerEvent) => {
               try {
-                seEl.releasePointerCapture(e.pointerId);
+                handleEl.releasePointerCapture(e.pointerId);
               } catch {}
               rabort?.();
 
@@ -236,8 +275,8 @@ const meta = {
                 done,
               );
             };
-            seEl.addEventListener("pointerup", rup);
-            seEl.addEventListener("pointercancel", rup);
+            handleEl.addEventListener("pointerup", rup);
+            handleEl.addEventListener("pointercancel", rup);
           }}
         />
 
@@ -255,31 +294,41 @@ const meta = {
           anchor
         </div>
 
-        {/* The overlay — an ElementBox positioned from --x / --y. */}
+        {/* The overlay is a FRAME, not the card — exactly overlay.css's
+            `.x-overlay > .x-card` split. The card clips its own content
+            (overflow:hidden + rounded corners); the .x-handle is a SIBLING of
+            the card, so the clip can't chop the corner L-grip. The frame is
+            passive (pointer-events:none); only the handle is a pointer target.
+            ElementBox drives the frame's --w/--h; the card fills it. */}
         <div
           id={`${id}-panel`}
-          class:unset
-          class:x-card
-          data-variant="elevated"
-          data-size="3"
           style="position: fixed; margin: 0; pointer-events: none;"
         >
-          {/* Content wrapper — the blur goes HERE, not on the card. Applying
-              filter to the card would isolate it and kill its backdrop-filter
-              surface (frosted-glass material), rendering the panel invisible. */}
-          <div id={`${id}-content`}>
-            <strong>Overlay panel</strong>
-            <p style="margin: 4px 0 0; font: 13px system-ui; color: #666;">
-              Positioned by <code>overlay.x = anchor.length(...)</code> inside
-              one effect. Resize from the corner.
-            </p>
-          </div>
-          {/* SE resize handle — drives the overlay's w/h. pointer-events:auto
-              re-enables it under the panel's pointer-events:none. */}
           <div
-            id={`${id}-se`}
-            style="position: absolute; right: 4px; bottom: 4px; width: 14px; height: 14px; border-radius: 3px; background: white; border: 2px solid #7c3aed; cursor: se-resize; touch-action: none; pointer-events: auto;"
-          />
+            class:unset
+            class:x-card
+            data-variant="elevated"
+            data-size="3"
+            style="width: 100%; height: 100%; margin: 0;"
+          >
+            {/* Content wrapper — the blur goes HERE, not on the card. Applying
+                filter to the card would isolate it and kill its backdrop-filter
+                surface (frosted-glass material), rendering the panel invisible. */}
+            <div id={`${id}-content`}>
+              <strong>Overlay panel</strong>
+              <p style="margin: 4px 0 0; font: 13px system-ui; color: #666;">
+                Positioned by <code>overlay.x = anchor.length(...)</code> inside
+                one effect. Resize from the corner.
+              </p>
+            </div>
+          </div>
+          {args.handle !== "none" && (
+            <div
+              id={`${id}-handle`}
+              class:x-handle
+              data-placement={args.handle}
+            />
+          )}
         </div>
       </div>
     );
