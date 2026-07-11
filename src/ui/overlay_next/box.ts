@@ -14,7 +14,7 @@ export interface IDirection {
   readonly direction: "ltr" | "rtl";
 }
 
-export class Box implements IBox {
+export class BaseBox implements IBox {
   @reactive() x: number;
   @reactive() y: number;
   @reactive() w: number;
@@ -28,11 +28,11 @@ export class Box implements IBox {
   }
 }
 
-export class TransformableBox implements IBox, Transformable {
-  readonly transform: Box;
+export class Box implements IBox, Transformable {
+  readonly transform: BaseBox;
   readonly displacement: Displacement;
 
-  constructor(transform = new Box(0, 0, 0, 0)) {
+  constructor(transform = new BaseBox(0, 0, 0, 0)) {
     this.transform = transform;
     this.displacement = new Displacement(this);
   }
@@ -66,10 +66,10 @@ export class TransformableBox implements IBox, Transformable {
   }
 }
 
-class Displacement extends Box {
-  readonly box: TransformableBox;
+class Displacement extends BaseBox {
+  readonly box: Box;
 
-  constructor(box: TransformableBox) {
+  constructor(box: Box) {
     super(0, 0, 0, 0);
     this.box = box;
   }
@@ -109,12 +109,12 @@ export class WindowBox implements IBox, IDirection {
 
 export const WINDOW_BOX = new WindowBox();
 
-export class ElementBox extends TransformableBox implements IDirection {
+export class ElementBox extends Box implements IDirection {
   readonly element: HTMLElement;
 
   constructor(element: HTMLElement) {
     const rect = element.getBoundingClientRect();
-    super(new Box(rect.left, rect.top, rect.width, rect.height));
+    super(new BaseBox(rect.left, rect.top, rect.width, rect.height));
     this.element = element;
 
     element.style.setProperty("top", "0");
