@@ -1,9 +1,15 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { computed, signal } from "@/signals/index.ts";
-import { AnchorBox } from "./anchor.ts";
-import type { IBox } from "./box.ts";
+import { anchor_length } from "./anchor.ts";
+import type { BlockSide, InlineSide, Inset } from "./anchor.ts";
+import type { IBox, IDirection } from "./box.ts";
 
-const anchorAt = (box: IBox): AnchorBox => new AnchorBox(box);
+/** Bind a box to the `anchor()` utility so the specs read `a.length(...)` —
+ * the same surface `Anchorable` boxes expose. */
+const anchorAt = (box: IBox & Partial<IDirection>) => ({
+  length: (inset: Inset, side: BlockSide | InlineSide | number) =>
+    anchor_length(box, inset, side),
+});
 
 // rect: left 100, top 200, right 140, bottom 220, center (120, 210)
 const RECT = { x: 100, y: 200, w: 40, h: 20 };
@@ -26,7 +32,7 @@ async function pageRtl(): Promise<void> {
   await new Promise((r) => setTimeout(r)); // observer microtask
 }
 
-describe("AnchorBox.length — physical sides", () => {
+describe("length() — physical sides", () => {
   it("resolves the four edges", () => {
     const a = anchorAt(RECT);
     expect(a.length("top", "top")).toBe(200);
@@ -48,7 +54,7 @@ describe("AnchorBox.length — physical sides", () => {
   });
 });
 
-describe("AnchorBox.length — inside / outside", () => {
+describe("length() — inside / outside", () => {
   it("inside is the inset's own side", () => {
     const a = anchorAt(RECT);
     expect(a.length("top", "inside")).toBe(200); // top: anchor(inside) → top
@@ -80,7 +86,7 @@ describe("AnchorBox.length — inside / outside", () => {
   });
 });
 
-describe("AnchorBox.length — fractions", () => {
+describe("length() — fractions", () => {
   it("a fraction measures from the start edge", () => {
     const a = anchorAt(RECT);
     expect(a.length("top", 0.25)).toBe(205);
@@ -103,7 +109,7 @@ describe("AnchorBox.length — fractions", () => {
   });
 });
 
-describe("AnchorBox.length — logical sides", () => {
+describe("length() — logical sides", () => {
   it("start/end follow the containing block's direction (the page, by default)", async () => {
     const a = anchorAt(RECT);
     expect(a.length("left", "start")).toBe(100);
@@ -128,7 +134,7 @@ describe("AnchorBox.length — logical sides", () => {
   });
 });
 
-describe("AnchorBox.length — logical insets", () => {
+describe("length() — logical insets", () => {
   it("block longhands are fixed in horizontal writing modes", () => {
     const a = anchorAt(RECT);
     // inset-block-start ≡ top, inset-block-end ≡ bottom — even in RTL.
@@ -157,7 +163,7 @@ describe("AnchorBox.length — logical insets", () => {
   });
 });
 
-describe("AnchorBox — delegation", () => {
+describe("anchorLength — reactivity", () => {
   it("tracks a reactive anchor box inside a computed", () => {
     const x = signal(100);
     const a = anchorAt({
@@ -174,13 +180,14 @@ describe("AnchorBox — delegation", () => {
     expect(line()).toBe(340);
   });
 
-  it("setters write through to the anchor box", () => {
+  it("reads the box's live geometry on each call", () => {
     const box = { ...RECT };
     const a = anchorAt(box);
-    a.x = 300;
-    a.h = 50;
-    expect(box.x).toBe(300);
-    expect(box.h).toBe(50);
+    expect(a.length("top", "bottom")).toBe(220);
+    expect(a.length("left", "left")).toBe(100);
+    box.x = 300;
+    box.h = 50;
+    expect(a.length("left", "left")).toBe(300);
     expect(a.length("top", "bottom")).toBe(250);
   });
 });

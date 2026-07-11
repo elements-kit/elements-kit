@@ -28,31 +28,14 @@ export class Box implements IBox {
   }
 }
 
-export class WindowBox implements IBox, IDirection {
-  get x() {
-    return 0;
-  }
-  get y() {
-    return 0;
-  }
-  get w() {
-    return windowSize.width();
-  }
-  get h() {
-    return windowSize.height();
-  }
-
-  get direction() {
-    return direction();
-  }
-}
-
-export const WINDOW_BOX = new WindowBox();
-
-export class ElementBox implements IBox, IDirection, Transformable {
-  readonly element: HTMLElement;
+export class TransformableBox implements IBox, Transformable {
   readonly transform: Box;
   readonly displacement: Displacement;
+
+  constructor(transform = new Box(0, 0, 0, 0)) {
+    this.transform = transform;
+    this.displacement = new Displacement(this);
+  }
 
   get x() {
     return this.transform.x + this.displacement.x;
@@ -81,14 +64,58 @@ export class ElementBox implements IBox, IDirection, Transformable {
   set h(value: number) {
     this.transform.h = value;
   }
+}
+
+class Displacement extends Box {
+  readonly box: TransformableBox;
+
+  constructor(box: TransformableBox) {
+    super(0, 0, 0, 0);
+    this.box = box;
+  }
+
+  /** Fold each live delta into its committed base, then zero the delta. The
+   * visual geometry is unchanged (get = base + delta), so there's no jump. */
+  apply() {
+    this.box.x = this.box.transform.x + this.x;
+    this.box.y = this.box.transform.y + this.y;
+    this.box.w = this.box.transform.w + this.w;
+    this.box.h = this.box.transform.h + this.h;
+    this.x = 0;
+    this.y = 0;
+    this.w = 0;
+    this.h = 0;
+  }
+}
+
+export class WindowBox implements IBox, IDirection {
+  get x() {
+    return 0;
+  }
+  get y() {
+    return 0;
+  }
+  get w() {
+    return windowSize.width();
+  }
+  get h() {
+    return windowSize.height();
+  }
+
+  get direction() {
+    return direction();
+  }
+}
+
+export const WINDOW_BOX = new WindowBox();
+
+export class ElementBox extends TransformableBox implements IDirection {
+  readonly element: HTMLElement;
 
   constructor(element: HTMLElement) {
-    this.element = element;
-    // Seed the base from the element's measured geometry, so an unsized box
-    // keeps its natural size — a 0 width would collapse `width: var(--w)`.
     const rect = element.getBoundingClientRect();
-    this.transform = new Box(rect.left, rect.top, rect.width, rect.height);
-    this.displacement = new Displacement(this);
+    super(new Box(rect.left, rect.top, rect.width, rect.height));
+    this.element = element;
 
     element.style.setProperty("top", "0");
     element.style.setProperty("left", "0");
@@ -110,7 +137,22 @@ export class ElementBox implements IBox, IDirection, Transformable {
         this.element.style.setProperty("--w", `${this.transform.w}px`);
         this.element.style.setProperty("--h", `${this.transform.h}px`);
       });
+      effect(() => {
+        this.element.style.setProperty("--dx", `${this.displacement.x}px`);
+        this.element.style.setProperty("--dy", `${this.displacement.y}px`);
+        this.element.style.setProperty("--dw", `${this.displacement.w}px`);
+        this.#scale("--sx", this.transform.w, this.displacement.w); // live scale — CSS can't divide
+        this.element.style.setProperty("--dh", `${this.displacement.h}px`);
+        this.#scale("--sy", this.transform.h, this.displacement.h);
+      });
     });
+  }
+
+  #scale(name: string, base: number, delta: number): void {
+    this.element.style.setProperty(
+      name,
+      base ? `${(base + delta) / base}` : "1",
+    );
   }
 
   /** The element's computed direction, read at call time. */
@@ -121,61 +163,9 @@ export class ElementBox implements IBox, IDirection, Transformable {
   dispose: () => void;
   [Symbol.dispose]() {
     this.dispose();
-    this.displacement[Symbol.dispose]();
   }
-}
-
-export interface IDisplacement extends IBox {
-  apply(): void;
 }
 
 export interface Transformable {
-  displacement: IDisplacement;
-}
-
-class Displacement extends Box implements IDisplacement {
-  readonly box: ElementBox;
-
-  constructor(box: ElementBox) {
-    super(0, 0, 0, 0);
-    this.box = box;
-
-    [, this.dispose] = scope(() => {
-      effect(() => {
-        this.box.element.style.setProperty("--dx", `${this.x}px`);
-        this.box.element.style.setProperty("--dy", `${this.y}px`);
-        this.box.element.style.setProperty("--dw", `${this.w}px`);
-        this.#scale("--sx", this.box.transform.w, this.w); // live scale — CSS can't divide
-        this.box.element.style.setProperty("--dh", `${this.h}px`);
-        this.#scale("--sy", this.box.transform.h, this.h);
-      });
-    });
-  }
-
-  /** Live size delta as a scale ratio: (base + delta) / base. Computed here
-   * because CSS calc can't divide a length by a length. */
-  #scale(name: string, base: number, delta: number): void {
-    this.box.element.style.setProperty(
-      name,
-      base ? `${(base + delta) / base}` : "1",
-    );
-  }
-
-  /** Fold each live delta into its committed base, then zero the delta. The
-   * visual geometry is unchanged (get = base + delta), so there's no jump. */
-  apply() {
-    this.box.x = this.box.transform.x + this.x;
-    this.box.y = this.box.transform.y + this.y;
-    this.box.w = this.box.transform.w + this.w;
-    this.box.h = this.box.transform.h + this.h;
-    this.x = 0;
-    this.y = 0;
-    this.w = 0;
-    this.h = 0;
-  }
-
-  dispose: () => void;
-  [Symbol.dispose]() {
-    this.dispose();
-  }
+  displacement: Displacement;
 }

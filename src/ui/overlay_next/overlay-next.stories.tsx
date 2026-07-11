@@ -2,23 +2,23 @@ import type { Meta, StoryObj } from "@storybook/html-vite";
 import { effect } from "elements-kit/signals";
 import "@/utilities/dom-lifecycle.ts";
 import "../card/card.css";
-import { AnchorBox } from "./anchor.ts";
 import { ElementBox } from "./box.ts";
 import { Motion } from "./motion.ts";
+import { anchor_length } from "./anchor.ts";
 
 /**
  * overlay_next playground — exercises the ONE working primitive so far:
- * reactive `AnchorBox.length()` positioning. There is no `Overlay`
- * wiring yet, so this story wires it by hand, which is exactly the point
- * — it shows how little glue the box vocabulary needs:
+ * reactive `box.length()` positioning (every `ElementBox` is `Anchorable`).
+ * There is no `Overlay` wiring yet, so this story wires it by hand, which
+ * is exactly the point — it shows how little glue the box vocabulary needs:
  *
  *   overlay.y = anchor.length("top", "bottom") + gap   // top: anchor(bottom)
  *   overlay.x = anchor.length("left", "center") - w/2  // centered
  *
- * The anchor is a reactive `Box` (not an element): dragging the chip
- * writes `anchor.x/.y`, the `effect` re-derives the placement, and the
- * `ElementBox` mirrors it onto the panel's `--x`/`--y` channels. Drag the
- * chip — the panel follows with zero imperative repositioning code.
+ * The anchor is an `ElementBox`: dragging the chip writes its displacement,
+ * the `effect` re-derives the placement from `anchor.length(...)`, and the
+ * overlay `ElementBox` mirrors it onto the panel's `--x`/`--y` channels.
+ * Drag the chip — the panel follows with zero imperative repositioning code.
  */
 
 const SIDES = ["bottom", "top", "right", "left"] as const;
@@ -32,27 +32,27 @@ interface Args {
 /** The whole positioning engine: the anchor vocabulary → a viewport box.
  * Reads reactive fields (anchor lines, overlay size), so calling it in an
  * `effect` re-runs whenever the anchor moves or the panel resizes. */
-function place(side: Side, a: AnchorBox, o: ElementBox, gap: number) {
+function place(side: Side, a: ElementBox, o: ElementBox, gap: number) {
   switch (side) {
     case "bottom":
       return {
-        x: a.length("left", "center") - o.w / 2,
-        y: a.length("top", "bottom") + gap,
+        x: anchor_length(a, "left", "center") - o.w / 2,
+        y: anchor_length(a, "top", "bottom") + gap,
       };
     case "top":
       return {
-        x: a.length("left", "center") - o.w / 2,
-        y: a.length("top", "top") - gap - o.h,
+        x: anchor_length(a, "left", "center") - o.w / 2,
+        y: anchor_length(a, "top", "top") - gap - o.h,
       };
     case "right":
       return {
-        x: a.length("left", "right") + gap,
-        y: a.length("top", "center") - o.h / 2,
+        x: anchor_length(a, "left", "right") + gap,
+        y: anchor_length(a, "top", "center") - o.h / 2,
       };
     case "left":
       return {
-        x: a.length("left", "left") - gap - o.w,
-        y: a.length("top", "center") - o.h / 2,
+        x: anchor_length(a, "left", "left") - gap - o.w,
+        y: anchor_length(a, "top", "center") - o.h / 2,
       };
   }
 }
@@ -86,12 +86,12 @@ const meta = {
             const anchorEl = root.querySelector(`#${id}-chip`) as HTMLElement;
             const panel = root.querySelector(`#${id}-panel`) as HTMLElement;
 
-            const a = new AnchorBox(new ElementBox(anchorEl));
+            const a = new ElementBox(anchorEl);
             const overlay = new ElementBox(panel);
-            a.box.x = 240; // initial chip box
-            a.box.y = 220;
-            a.box.w = 140;
-            a.box.h = 44;
+            a.x = 240; // initial chip box
+            a.y = 220;
+            a.w = 140;
+            a.h = 44;
             overlay.w = 240; // panel width channel
 
             // THE positioning engine — one effect over the box vocabulary.
@@ -114,8 +114,8 @@ const meta = {
               mx = new Motion(e.clientX); // accumulates the pointer deltas from 0
               my = new Motion(e.clientY);
               abort = effect(() => {
-                a.box.displacement.x = mx.displacement; // ACCUMULATED delta → --dx transform
-                a.box.displacement.y = my.displacement;
+                a.displacement.x = mx.displacement; // ACCUMULATED delta → --dx transform
+                a.displacement.y = my.displacement;
               });
               anchorEl.style.cursor = "grabbing";
             });
@@ -129,7 +129,7 @@ const meta = {
               try {
                 anchorEl.releasePointerCapture(e.pointerId);
               } catch {}
-              a.box.displacement.apply();
+              a.displacement.apply();
               abort?.();
             };
             anchorEl.addEventListener("pointerup", up);
@@ -139,7 +139,7 @@ const meta = {
 
         <span style="position: absolute; top: 12px; left: 12px; font: 13px system-ui; color: #666; max-width: 320px;">
           Drag the blue chip — the panel tracks it via{" "}
-          <code>AnchorBox.length()</code>. Change <b>side</b>/<b>gap</b> in
+          <code>anchor.length()</code>. Change <b>side</b>/<b>gap</b> in
           Controls.
         </span>
 
