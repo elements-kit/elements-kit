@@ -14,6 +14,12 @@ export interface IDirection {
   readonly direction: "ltr" | "rtl";
 }
 
+/** Assign to a size channel (`box.h = AUTO`) to hand it back to content sizing
+ * (CSS `auto`) instead of a pinned number: the channel is left unset, the
+ * getter measures the element on read, and a resize freezes it on grab.
+ * Position channels are always driven. */
+export const AUTO = NaN;
+
 export class BaseBox implements IBox {
   @reactive() x: number;
   @reactive() y: number;
@@ -74,13 +80,20 @@ class Displacement extends BaseBox {
     this.box = box;
   }
 
-  /** Fold each live delta into its committed base, then zero the delta. The
-   * visual geometry is unchanged (get = base + delta), so there's no jump. */
+  /** Fold each live delta into its committed base, then zero the delta. A
+   * numeric fold on the raw base, so an AUTO axis with no delta stays auto
+   * (`NaN + 0 = NaN`) — a position drag never pins size. Freezing an auto axis
+   * to its measured size is a resize concern (see `Resizable`). The visual
+   * geometry is unchanged (get = base + delta), so there's no jump. */
   apply() {
     this.box.x = this.box.transform.x + this.x;
     this.box.y = this.box.transform.y + this.y;
     this.box.w = this.box.transform.w + this.w;
     this.box.h = this.box.transform.h + this.h;
+    this.clear();
+  }
+
+  clear() {
     this.x = 0;
     this.y = 0;
     this.w = 0;
@@ -114,6 +127,10 @@ export class ElementBox extends Box implements IDirection {
 
   constructor(element: HTMLElement) {
     const rect = element.getBoundingClientRect();
+    // Capture the element's current geometry — position AND size — so the box
+    // persists it (an anchor keeps its measured w/h). Assign `AUTO` to a size
+    // channel to hand it back to content sizing (`var(--w, auto)`); the getter
+    // then measures on read and a resize freezes it on grab.
     super(new BaseBox(rect.left, rect.top, rect.width, rect.height));
     this.element = element;
 
@@ -134,8 +151,8 @@ export class ElementBox extends Box implements IDirection {
       effect(() => {
         this.element.style.setProperty("--x", `${this.transform.x}px`);
         this.element.style.setProperty("--y", `${this.transform.y}px`);
-        this.element.style.setProperty("--w", `${this.transform.w}px`);
-        this.element.style.setProperty("--h", `${this.transform.h}px`);
+        this.#project("--w", this.transform.w); // NaN (auto) → unset → width:auto
+        this.#project("--h", this.transform.h);
       });
       effect(() => {
         this.element.style.setProperty("--dx", `${this.displacement.x}px`);
@@ -153,6 +170,33 @@ export class ElementBox extends Box implements IDirection {
       name,
       base ? `${(base + delta) / base}` : "1",
     );
+  }
+
+  /** Write a size channel, or unset it when the axis is AUTO (NaN) so the
+   * element falls back to content sizing (`var(--w, auto)`). */
+  #project(name: string, value: number): void {
+    if (Number.isNaN(value)) this.element.style.removeProperty(name);
+    else this.element.style.setProperty(name, `${value}px`);
+  }
+
+  /** An AUTO size (NaN base) resolves to the element's laid-out border-box —
+   * `offsetWidth/Height`, which (unlike `getBoundingClientRect`) ignore the
+   * live resize `scale`, so the base read is the true content size. */
+  get w(): number {
+    const base = this.transform.w;
+    const resolved = Number.isNaN(base) ? this.element.offsetWidth : base;
+    return resolved + this.displacement.w;
+  }
+  set w(value: number) {
+    this.transform.w = value;
+  }
+  get h(): number {
+    const base = this.transform.h;
+    const resolved = Number.isNaN(base) ? this.element.offsetHeight : base;
+    return resolved + this.displacement.h;
+  }
+  set h(value: number) {
+    this.transform.h = value;
   }
 
   /** The element's computed direction, read at call time. */

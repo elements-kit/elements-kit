@@ -1,13 +1,20 @@
 /**
- * Gesture modifiers over `Motion` — the layer between raw physics
- * (value/velocity/displacement) and the box renderer. Pure number math, no DOM.
+ * Gestures over `Motion` — two layers:
  *
- * - Pure shapers (`rubber`, `detent`): stateless, run in the projection.
- * - The settle (`snap` + `spring`): the one time-driven piece.
+ * - Pure shapers (`rubber`, `detent`, `snap`, `spring`, `HANDLES`): stateless
+ *   number math, no DOM — run in the box projection or the settle.
+ * - Gesture binders (`Draggable`, `Resizable`): wire pointer events on an
+ *   element to a reactive `ElementBox`, driving its `displacement` live and
+ *   settling to a detent on release. The one DOM-touching, stateful piece.
  *
- * `apply` isn't here — it's the box's geometry fold. Gestures decide the delta;
- * the box commits it. Velocities are `Motion`'s px/ms throughout.
+ * `apply` isn't a shaper — it's the box's geometry fold. Gestures decide the
+ * delta; the box commits it. Velocities are `Motion`'s px/ms throughout.
  */
+
+import { effect } from "@/signals";
+import { scope } from "@/signals/scope";
+import { ElementBox } from "./box";
+import { Motion } from "./motion";
 
 /** A pure display-time shaper: raw scalar → constrained scalar. */
 export type Modifier = (value: number) => number;
@@ -147,4 +154,227 @@ export function spring(
   }
 
   return () => cancelAnimationFrame(frame);
+}
+
+// ── gesture binders ───────────────────────────────────────────────────────
+
+/**
+ * The shared pointer→box machine: capture the pointer, accumulate its motion,
+ * drive the box's live `displacement` through {@link drive} every frame, and on
+ * release hand each moved channel to {@link settle} (snap to a detent, spring
+ * the leftover to 0). Re-grabbing mid-settle cancels the springs and folds the
+ * leftover into the base first, so there is never a jump. Subclasses choose
+ * which channels move and how.
+ *
+ * `on` defaults to the box's own element but may differ — the resize handle
+ * captures the pointer while the OVERLAY box is what actually resizes.
+ */
+abstract class PointerGesture {
+  protected motion?: { x: Motion; y: Motion };
+  readonly #on: HTMLElement;
+  readonly #settle = new Set<() => void>();
+  readonly #disposables = new Set<() => void>();
+
+  #live?: () => void;
+
+  constructor(
+    protected readonly box: ElementBox,
+    on: HTMLElement = box.element,
+  ) {
+    this.#on = on;
+    on.addEventListener("pointerdown", this.#down);
+    on.addEventListener("pointermove", this.#move);
+    on.addEventListener("pointerup", this.#up);
+    on.addEventListener("pointercancel", this.#cancel);
+    this.#disposables.add(() => {
+      on.removeEventListener("pointerdown", this.#down);
+      on.removeEventListener("pointermove", this.#move);
+      on.removeEventListener("pointerup", this.#up);
+      on.removeEventListener("pointercancel", this.#cancel);
+    });
+  }
+
+  #down = (e: PointerEvent) => {
+    this.#on.setPointerCapture(e.pointerId);
+    this.#stopSettle(); // cancel any settle in progress …
+    this.box.displacement.apply(); // … and fold its leftover into base — no jump
+    this.motion = { x: new Motion(e.clientX), y: new Motion(e.clientY) };
+    this.onStart?.();
+    const [, stop] = scope(() => {
+      effect(() => {
+        if (!this.motion) return;
+        this.drive(this.motion.x.displacement, this.motion.y.displacement);
+      });
+    });
+    this.#live = stop;
+  };
+
+  #move = (e: PointerEvent) => {
+    if (!this.motion || !this.#on.hasPointerCapture(e.pointerId)) return;
+    this.motion.x.value = e.clientX; // feed the per-frame delta; Motion sums it
+    this.motion.y.value = e.clientY;
+  };
+
+  #up = (e: PointerEvent) => {
+    if (!this.motion) return;
+    try {
+      this.#on.releasePointerCapture(e.pointerId);
+    } catch {}
+    this.#live?.(); // stop the live projection before settling
+    this.release(this.motion.x.velocity, this.motion.y.velocity);
+    this.motion = undefined;
+  };
+
+  #cancel = () => {
+    this.#live?.();
+    this.motion = undefined;
+    this.box.displacement.clear();
+  };
+
+  /**
+   * Commit-up-front settle for one channel: the base jumps to the snapped
+   * detent NOW (so `place()` reflows against the final value), the delta holds
+   * the leftover pixels, then springs to 0 — the fold is implicit (the delta
+   * reaches 0 at the already-committed target). {@link onSettle} fires once
+   * every channel has come to rest.
+   */
+  protected settle(
+    k: "x" | "y" | "w" | "h",
+    detents: number[],
+    velocity: number,
+  ) {
+    const o = this.box[k]; // current visual (base + delta)
+    const t = snap(o, velocity, detents);
+    this.box[k] = t; // base ← detent
+    this.box.displacement[k] = o - t; // delta ← leftover (no visual change)
+    let stop!: () => void;
+    stop = spring(
+      this.box.displacement[k],
+      0,
+      (d) => (this.box.displacement[k] = d),
+      { velocity },
+      () => {
+        this.#settle.delete(stop);
+        if (this.#settle.size === 0) this.onSettle?.();
+      },
+    );
+    this.#settle.add(stop);
+  }
+
+  #stopSettle() {
+    this.#settle.forEach((s) => s());
+    this.#settle.clear();
+  }
+
+  /** Map the pointer's accumulated (dx, dy) onto the box's live displacement. */
+  protected abstract drive(dx: number, dy: number): void;
+  /** Snap + spring each driven channel from its release velocity. */
+  protected abstract release(vx: number, vy: number): void;
+  /** Optional side effects — e.g. blur on start, clear once every axis rests. */
+  protected onStart?(): void;
+  protected onSettle?(): void;
+
+  dispose() {
+    this.#stopSettle();
+    this.#live?.();
+    this.#disposables.forEach((d) => d());
+    this.#disposables.clear();
+  }
+  [Symbol.dispose]() {
+    this.dispose();
+  }
+}
+
+/** Drag a box's position; release snaps x/y to their detent grids. */
+export class Draggable extends PointerGesture {
+  readonly #detents: { x: number[]; y: number[] };
+
+  constructor(
+    box: ElementBox,
+    detents: { x: number[]; y: number[] },
+    on?: HTMLElement,
+  ) {
+    super(box, on);
+    this.#detents = detents;
+  }
+
+  protected drive(dx: number, dy: number) {
+    this.box.displacement.x = dx; // pointer delta → origin, 1:1
+    this.box.displacement.y = dy;
+  }
+
+  protected release(vx: number, vy: number) {
+    this.settle("x", this.#detents.x, vx);
+    this.settle("y", this.#detents.y, vy);
+  }
+}
+
+export interface ResizeConfig {
+  /** Size detents to settle onto, per axis. */
+  detents: { w: number[]; h: number[] };
+  /** Elastic bounds applied live during the drag, per axis. */
+  clamp: { w: Modifier; h: Modifier };
+  /** Gain per axis — 2 on the axis `place()` centers (both edges move, so the
+   * grabbed corner tracks the pointer only at 2×), 1 otherwise. Default 1. */
+  gain?: { w: number; h: number };
+  /** Blur the content on start; clear it once both axes settle. */
+  onStart?(): void;
+  onSettle?(): void;
+}
+
+/**
+ * Resize a box from a handle: the pointer delta maps onto w/h through the
+ * {@link Handle} coefficients (× gain), rubber-clamped to the size bounds. The
+ * live delta renders as `scale` (ElementBox's --sx/--sy); release snaps to a
+ * size detent and springs the scale back to 1. Listens on `on` (the handle),
+ * resizes `box` (the overlay) — two different elements.
+ */
+export class Resizable extends PointerGesture {
+  readonly #handle: Handle;
+  readonly #cfg: ResizeConfig;
+
+  constructor(
+    box: ElementBox,
+    handle: Handle,
+    on: HTMLElement,
+    cfg: ResizeConfig,
+  ) {
+    super(box, on);
+    this.#handle = handle;
+    this.#cfg = cfg;
+  }
+
+  #gain() {
+    return { w: this.#cfg.gain?.w ?? 1, h: this.#cfg.gain?.h ?? 1 };
+  }
+
+  protected onStart() {
+    // Freeze an AUTO axis to its measured content size before growing from it —
+    // only the axes this handle drives. The measuring getter reads the size,
+    // the setter pins it as the base; the resize then commits a detent on
+    // release. (A driven axis is already a number, so this is a no-op there.)
+    const { w, h } = this.box;
+    if (this.#handle.w) this.box.w = w;
+    if (this.#handle.h) this.box.h = h;
+    this.#cfg.onStart?.();
+  }
+  protected onSettle() {
+    this.#cfg.onSettle?.();
+  }
+
+  protected drive(dx: number, dy: number) {
+    const g = this.#gain();
+    const base = this.box.transform;
+    const w = this.#cfg.clamp.w(base.w + g.w * this.#handle.w * dx);
+    const h = this.#cfg.clamp.h(base.h + g.h * this.#handle.h * dy);
+    this.box.displacement.w = w - base.w; // → --sx scale
+    this.box.displacement.h = h - base.h;
+  }
+
+  protected release(vx: number, vy: number) {
+    const g = this.#gain();
+    // The size changed at gain·coefficient× the pointer speed — settle on that.
+    this.settle("w", this.#cfg.detents.w, g.w * this.#handle.w * vx);
+    this.settle("h", this.#cfg.detents.h, g.h * this.#handle.h * vy);
+  }
 }
