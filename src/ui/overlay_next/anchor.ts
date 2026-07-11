@@ -1,4 +1,5 @@
-import type { IBox, IDirection } from "./box.ts";
+import { effect, MaybeReactive, resolve } from "@/signals/index.ts";
+import type { ElementBox, IBox, IDirection } from "./box.ts";
 
 /**
  * The anchor-side vocabulary of the CSS `anchor()` function,
@@ -149,4 +150,55 @@ function resolveInset(inset: Inset): PhysicalInset {
     default:
       return inset;
   }
+}
+
+export const SIDES = ["bottom", "top", "right", "left"] as const;
+export type Side = (typeof SIDES)[number];
+
+/** The whole positioning engine: the anchor vocabulary → a viewport box.
+ * Reads reactive fields (anchor lines, overlay size), so calling it in an
+ * `effect` re-runs whenever the anchor moves or the panel resizes. */
+export function computePlacement(
+  self: ElementBox,
+  anchor: ElementBox,
+  side: Side,
+  gap: number,
+) {
+  switch (side) {
+    case "bottom":
+      return {
+        x: anchor_length(anchor, "left", "center") - self.w / 2,
+        y: anchor_length(anchor, "top", "bottom") + gap,
+      };
+    case "top":
+      return {
+        x: anchor_length(anchor, "left", "center") - self.w / 2,
+        y: anchor_length(anchor, "top", "top") - gap - self.h,
+      };
+    case "right":
+      return {
+        x: anchor_length(anchor, "left", "right") + gap,
+        y: anchor_length(anchor, "top", "center") - self.h / 2,
+      };
+    case "left":
+      return {
+        x: anchor_length(anchor, "left", "left") - gap - self.w,
+        y: anchor_length(anchor, "top", "center") - self.h / 2,
+      };
+  }
+}
+
+export function place(
+  self: ElementBox,
+  anchor: ElementBox,
+  _side: MaybeReactive<Side>,
+  _gap: MaybeReactive<number>,
+): () => void {
+  return effect(() => {
+    const side = resolve(_side);
+    const gap = resolve(_gap);
+    const { x, y } = computePlacement(self, anchor, side, gap);
+    self.x = x;
+    self.y = y;
+  });
 }

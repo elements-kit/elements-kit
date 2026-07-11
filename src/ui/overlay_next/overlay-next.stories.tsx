@@ -3,8 +3,9 @@ import { effect } from "elements-kit/signals";
 import "@/utilities/dom-lifecycle.ts";
 import "../card/card.css";
 import { ElementBox } from "./box.ts";
+import { HANDLES, rubber, snap, spring } from "./gestures.ts";
 import { Motion } from "./motion.ts";
-import { anchor_length } from "./anchor.ts";
+import { anchor_length, Side, place, SIDES } from "./anchor.ts";
 
 /**
  * overlay_next playground — exercises the ONE working primitive so far:
@@ -21,41 +22,24 @@ import { anchor_length } from "./anchor.ts";
  * Drag the chip — the panel follows with zero imperative repositioning code.
  */
 
-const SIDES = ["bottom", "top", "right", "left"] as const;
-type Side = (typeof SIDES)[number];
-
 interface Args {
   side: Side;
   gap: number;
 }
 
-/** The whole positioning engine: the anchor vocabulary → a viewport box.
- * Reads reactive fields (anchor lines, overlay size), so calling it in an
- * `effect` re-runs whenever the anchor moves or the panel resizes. */
-function place(side: Side, a: ElementBox, o: ElementBox, gap: number) {
-  switch (side) {
-    case "bottom":
-      return {
-        x: anchor_length(a, "left", "center") - o.w / 2,
-        y: anchor_length(a, "top", "bottom") + gap,
-      };
-    case "top":
-      return {
-        x: anchor_length(a, "left", "center") - o.w / 2,
-        y: anchor_length(a, "top", "top") - gap - o.h,
-      };
-    case "right":
-      return {
-        x: anchor_length(a, "left", "right") + gap,
-        y: anchor_length(a, "top", "center") - o.h / 2,
-      };
-    case "left":
-      return {
-        x: anchor_length(a, "left", "left") - gap - o.w,
-        y: anchor_length(a, "top", "center") - o.h / 2,
-      };
-  }
-}
+// Detent grid the chip settles onto (top-left viewport coords).
+const COLS = [120, 340, 560, 780];
+const ROWS = [140, 300, 460, 620];
+
+// Resize: elastic bounds during the drag, detents to settle onto.
+const MIN_W = 100;
+const MAX_W = 320;
+const MIN_H = 36;
+const MAX_H = 140;
+const SIZES_W = [120, 180, 240, 300];
+const SIZES_H = [44, 72, 100, 128];
+const clampW = rubber(MIN_W, MAX_W, 220);
+const clampH = rubber(MIN_H, MAX_H, 120);
 
 let uid = 0;
 
@@ -83,39 +67,48 @@ const meta = {
         <dom-lifecycle
           onConnect={(self) => {
             const root = self.parentElement as HTMLElement;
-            const anchorEl = root.querySelector(`#${id}-chip`) as HTMLElement;
-            const panel = root.querySelector(`#${id}-panel`) as HTMLElement;
 
-            const a = new ElementBox(anchorEl);
+            // Anchor
+            const anchorEl = root.querySelector(`#${id}-chip`) as HTMLElement;
+            const anchor = new ElementBox(anchorEl);
+            anchor.x = 240; // initial chip box
+            anchor.y = 220;
+            anchor.w = 140;
+            anchor.h = 44;
+
+            // Overlay
+            const panel = root.querySelector(`#${id}-panel`) as HTMLElement;
             const overlay = new ElementBox(panel);
-            a.x = 240; // initial chip box
-            a.y = 220;
-            a.w = 140;
-            a.h = 44;
             overlay.w = 240; // panel width channel
 
-            // THE positioning engine — one effect over the box vocabulary.
-            // Storybook re-renders (fresh onConnect) on every control change,
-            // so reading args here is enough; the effect re-runs on drag.
-            effect(() => {
-              const { x, y } = place(args.side, a, overlay, args.gap);
-              overlay.x = x; // ElementBox writes --x / --y
-              overlay.y = y;
-              panel.dataset.side = args.side;
-            });
+            place(overlay, anchor, args.side, args.gap);
 
             // Drag the chip → move the anchor Box → the panel follows.
             // Two 1-D Motions (x, y) until Motion goes multi-dimensional.
             let mx: Motion;
             let my: Motion;
             let abort: undefined | (() => void);
+            // In-flight settle springs (position + size). Any gesture start
+            // cancels them all and folds the leftover delta into base.
+            let stopX: undefined | (() => void);
+            let stopY: undefined | (() => void);
+            let stopW: undefined | (() => void);
+            let stopH: undefined | (() => void);
+            const stopAll = () => {
+              stopX?.();
+              stopY?.();
+              stopW?.();
+              stopH?.();
+            };
             anchorEl.addEventListener("pointerdown", (e) => {
               anchorEl.setPointerCapture(e.pointerId);
+              stopAll(); // cancel any settle in progress …
+              anchor.displacement.apply(); // … and fold its delta into base — no jump
               mx = new Motion(e.clientX); // accumulates the pointer deltas from 0
               my = new Motion(e.clientY);
               abort = effect(() => {
-                a.displacement.x = mx.displacement; // ACCUMULATED delta → --dx transform
-                a.displacement.y = my.displacement;
+                anchor.displacement.x = mx.displacement; // ACCUMULATED delta → --dx transform
+                anchor.displacement.y = my.displacement;
               });
               anchorEl.style.cursor = "grabbing";
             });
@@ -129,11 +122,122 @@ const meta = {
               try {
                 anchorEl.releasePointerCapture(e.pointerId);
               } catch {}
-              a.displacement.apply();
-              abort?.();
+              abort?.(); // stop the live drag projection first
+
+              // Snap each axis to its nearest detent, projecting the fling.
+              // Commit-up-front: base jumps to the detent so place() settles
+              // now; the delta holds the pixels, then springs to 0 — the
+              // apply() is implicit (delta reaches 0, already at target).
+              const ox = anchor.x;
+              const oy = anchor.y;
+              const tx = snap(ox, mx.velocity, COLS);
+              const ty = snap(oy, my.velocity, ROWS);
+              anchor.x = tx;
+              anchor.y = ty;
+              anchor.displacement.x = ox - tx;
+              anchor.displacement.y = oy - ty;
+              stopX = spring(
+                anchor.displacement.x,
+                0,
+                (d) => (anchor.displacement.x = d),
+                {
+                  velocity: mx.velocity,
+                },
+              );
+              stopY = spring(
+                anchor.displacement.y,
+                0,
+                (d) => (anchor.displacement.y = d),
+                {
+                  velocity: my.velocity,
+                },
+              );
             };
             anchorEl.addEventListener("pointerup", up);
             anchorEl.addEventListener("pointercancel", up);
+
+            // Resize the OVERLAY from its SE corner — same Motion pipeline on
+            // the w/h channels. Size renders as scale (--sx/--sy) and blurs
+            // during the drag (iPad-style); apply() reflows crisp on settle.
+            const seEl = root.querySelector(`#${id}-se`) as HTMLElement;
+            // Blur the content, NOT the card — filter on a backdrop-filtered
+            // element isolates it and blanks its surface.
+            const contentEl = root.querySelector(
+              `#${id}-content`,
+            ) as HTMLElement;
+            const G = HANDLES.se; // { w: 1, h: 1 } — top-left stays fixed
+            let rw: Motion;
+            let rh: Motion;
+            let rabort: undefined | (() => void);
+            seEl.addEventListener("pointerdown", (e) => {
+              e.stopPropagation(); // resize the panel, don't bubble
+              seEl.setPointerCapture(e.pointerId);
+              stopAll();
+              overlay.displacement.apply();
+              rw = new Motion(e.clientX);
+              rh = new Motion(e.clientY);
+              contentEl.style.filter = "blur(1px)"; // mask the scale distortion
+              // place() centers the overlay on one axis, so that axis moves
+              // BOTH edges — the corner tracks the pointer only if the size
+              // changes at 2× there. bottom/top center X; left/right center Y.
+              const centeredX = args.side === "bottom" || args.side === "top";
+              const gainW = centeredX ? 2 : 1;
+              const gainH = centeredX ? 1 : 2;
+              rabort = effect(() => {
+                // base + gain·coefficient·delta, resisted past the size bounds
+                const w = clampW(
+                  overlay.transform.w + gainW * G.w * rw.displacement,
+                );
+                const h = clampH(
+                  overlay.transform.h + gainH * G.h * rh.displacement,
+                );
+                overlay.displacement.w = w - overlay.transform.w; // → --sx scale
+                overlay.displacement.h = h - overlay.transform.h;
+              });
+            });
+            seEl.addEventListener("pointermove", (e) => {
+              if (!seEl.hasPointerCapture(e.pointerId)) return;
+              rw.value = e.clientX;
+              rh.value = e.clientY;
+            });
+            const rup = (e: PointerEvent) => {
+              try {
+                seEl.releasePointerCapture(e.pointerId);
+              } catch {}
+              rabort?.();
+
+              // Commit-up-front: base ← snapped size (--w/--h reflow crisp NOW),
+              // scale holds the preview, then springs to 1. Blur clears once
+              // both axes settle. place() re-centers the panel as w/h change.
+              const ow = overlay.w;
+              const oh = overlay.h;
+              const tw = snap(ow, rw.velocity, SIZES_W);
+              const th = snap(oh, rh.velocity, SIZES_H);
+              overlay.w = tw;
+              overlay.h = th;
+              overlay.displacement.w = ow - tw;
+              overlay.displacement.h = oh - th;
+              let left = 2;
+              const done = () => {
+                if (--left === 0) contentEl.style.filter = "";
+              };
+              stopW = spring(
+                overlay.displacement.w,
+                0,
+                (d) => (overlay.displacement.w = d),
+                { velocity: rw.velocity },
+                done,
+              );
+              stopH = spring(
+                overlay.displacement.h,
+                0,
+                (d) => (overlay.displacement.h = d),
+                { velocity: rh.velocity },
+                done,
+              );
+            };
+            seEl.addEventListener("pointerup", rup);
+            seEl.addEventListener("pointercancel", rup);
           }}
         />
 
@@ -160,11 +264,22 @@ const meta = {
           data-size="3"
           style="position: fixed; margin: 0; pointer-events: none;"
         >
-          <strong>Overlay panel</strong>
-          <p style="margin: 4px 0 0; font: 13px system-ui; color: #666;">
-            Positioned by <code>overlay.x = a.length(...)</code> inside one
-            effect. No imperative repositioning.
-          </p>
+          {/* Content wrapper — the blur goes HERE, not on the card. Applying
+              filter to the card would isolate it and kill its backdrop-filter
+              surface (frosted-glass material), rendering the panel invisible. */}
+          <div id={`${id}-content`}>
+            <strong>Overlay panel</strong>
+            <p style="margin: 4px 0 0; font: 13px system-ui; color: #666;">
+              Positioned by <code>overlay.x = anchor.length(...)</code> inside
+              one effect. Resize from the corner.
+            </p>
+          </div>
+          {/* SE resize handle — drives the overlay's w/h. pointer-events:auto
+              re-enables it under the panel's pointer-events:none. */}
+          <div
+            id={`${id}-se`}
+            style="position: absolute; right: 4px; bottom: 4px; width: 14px; height: 14px; border-radius: 3px; background: white; border: 2px solid #7c3aed; cursor: se-resize; touch-action: none; pointer-events: auto;"
+          />
         </div>
       </div>
     );
