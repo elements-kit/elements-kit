@@ -3,25 +3,21 @@ import { resolveConstraint } from "./constraint.ts";
 import { PROJECTION_MS, resist, Session } from "./session.ts";
 
 /**
- * The gesture layer — the markup contract (`data-resize` /
- * `data-draggable`) turned into sessions. `engageGesture(el, pointer)`
- * is the whole interface: it reads the attributes, hit-tests the
- * engagement zones, and returns a `GestureSession` — the engaged
- * gesture AS an edit — or `undefined` when the pointer missed. The
- * `Overlay` owns only the plumbing around it: pointer listeners on its
- * element, applying the session's render intent to its channels, and
- * open/close.
+ * The gesture layer — a pressed `.x-handle` turned into a session.
+ * `engageGesture(frame, handle)` is the whole interface: it reads the
+ * handle's `data-placement`, and returns a `GestureSession` — the engaged
+ * gesture AS an edit — or `undefined` when the placement names no gesture.
+ * There is no zone hit-testing: the handle IS the hit-target, so its
+ * placement alone names the gesture. The `Overlay` owns the plumbing
+ * around it: pointer listeners delegating off its `.x-handle` children,
+ * applying the session's render intent to its channels, and open/close.
  *
  * In box space every gesture is the same idea — some edges follow the
- * pointer, the rest stay pinned: an edge word drives one size dimension
- * (the opposite edge pinned by a location shift), a corner grip two,
- * `data-draggable` moves all four edges together (a translate).
+ * pointer, the rest stay pinned: an edge placement drives one size
+ * dimension (the opposite edge pinned by a location shift), a corner grip
+ * two, `move` moves all four edges together (a translate).
  */
 
-/** Corner grip: square engagement zone at the handle corner. */
-const RESIZE_ZONE_PX = 28;
-/** Draggable: top strip that engages the x/y move. */
-const MOVE_ZONE_PX = 28;
 /** Resize minimums — corner grips and edge handles alike: a drawer
  * can't be dragged narrower than MIN_RESIZE_W, a sheet shorter than
  * MIN_RESIZE_H (below them the drag slides toward dismissal instead of
@@ -35,11 +31,11 @@ export interface Point {
 }
 
 /* ------------------------------------------------------------------ *
- * Dispatch — the markup vocabulary and the engagement zones.          *
+ * Dispatch — the handle placement vocabulary.                         *
  * ------------------------------------------------------------------ */
 
 /**
- * The block / inline handle sides a `data-resize` value encodes. Edges
+ * The block / inline handle sides a `data-placement` value encodes. Edges
  * name one axis (`block-start`, `inline-end` → the other side `null`);
  * corners name both as a `start`/`end` pair, block side first
  * (`end-end`, `start-end`).
@@ -64,43 +60,18 @@ export function parseResize(resize: string): {
 }
 
 /**
- * Which gesture a pointerdown engages, by zone priority: corner grip →
- * move strip → whole-surface edge drag. Returns `null` when the pointer
- * misses every zone.
+ * The gesture kind a handle's `data-placement` names: `move` → the window
+ * translate; a corner pair → the free two-axis resize; a single edge word
+ * → its one-axis edge resize; anything else → `null` (not a gesture).
  */
-export function detectEngagement(args: {
-  block: "start" | "end" | null;
-  inline: "start" | "end" | null;
-  draggable: boolean;
-  rect: Required<PlainBox>;
-  pointer: Point;
-  dir: 1 | -1;
-}): "resize" | "move" | "block" | "inline" | null {
-  const { block, inline, draggable, rect, pointer, dir } = args;
-  const right = rect.x + rect.w;
-  const bottom = rect.y + rect.h;
-  const corner = block !== null && inline !== null;
-  const handleRight = (inline === "end") === (dir === 1);
-  const inCorner =
-    corner &&
-    Math.abs(pointer.x - (handleRight ? right : rect.x)) <= RESIZE_ZONE_PX &&
-    Math.abs(pointer.y - (block === "end" ? bottom : rect.y)) <= RESIZE_ZONE_PX;
-  if (inCorner) return "resize";
-
-  // The block-start sheet's resize pill sits at top-center, so its move
-  // engages only from the top-start corner (the drag dot), leaving the
-  // pill free to resize.
-  const topCenterResize = block === "start" && inline === null;
-  const inMoveZone =
-    draggable &&
-    pointer.y - rect.y >= 0 &&
-    pointer.y - rect.y <= MOVE_ZONE_PX &&
-    (!topCenterResize ||
-      Math.abs(pointer.x - (dir === 1 ? rect.x : right)) <= MOVE_ZONE_PX);
-  if (inMoveZone) return "move";
-
-  if (block !== null && inline === null) return "block";
-  if (inline !== null && block === null) return "inline";
+export function placementKind(
+  placement: string,
+): "move" | "resize" | "block" | "inline" | null {
+  if (placement === "move") return "move";
+  const { block, inline } = parseResize(placement);
+  if (block !== null && inline !== null) return "resize";
+  if (block !== null) return "block";
+  if (inline !== null) return "inline";
   return null;
 }
 
@@ -560,27 +531,26 @@ export class GestureSession extends Session {
 }
 
 /**
- * The gesture layer's single entry: reads the markup contract off the
- * element, hit-tests the engagement zones, and returns the engaged
+ * The gesture layer's single entry: reads the pressed handle's
+ * `data-placement`, measures the FRAME it drives, and returns the engaged
  * gesture as a session ready for `begin()` — or `undefined` when the
- * element has no gesture markup or the pointer missed every zone.
- * `custom` supplies a replacement feel once the gesture kind is known
- * (the `Overlay.gestureSession()` hook).
+ * placement names no gesture. The handle is the hit-target, so its
+ * placement alone names the gesture (no zone hit-testing). `custom`
+ * supplies a replacement feel once the gesture kind is known (the
+ * `Overlay.gestureSession()` hook).
  */
 export function engageGesture(
-  el: HTMLElement,
-  pointer: Point,
+  frame: HTMLElement,
+  handle: HTMLElement,
   custom?: (kind: "move" | "resize") => Session | undefined,
 ): GestureSession | undefined {
-  const resize = el.getAttribute("data-resize") ?? "";
-  const draggable = el.hasAttribute("data-draggable");
-  if (!resize && !draggable) return undefined;
-  const parsed = parseResize(resize);
-  const r = el.getBoundingClientRect();
-  const rect = { x: r.left, y: r.top, w: r.width, h: r.height };
-  const dir = getComputedStyle(el).direction === "rtl" ? -1 : 1;
-  const kind = detectEngagement({ ...parsed, draggable, rect, pointer, dir });
+  const placement = handle.getAttribute("data-placement") ?? "";
+  const kind = placementKind(placement);
   if (!kind) return undefined;
-  const plan = planGesture(kind, parsed, rect, resolveConstraint(el), dir);
+  const parsed = parseResize(placement);
+  const r = frame.getBoundingClientRect();
+  const rect = { x: r.left, y: r.top, w: r.width, h: r.height };
+  const dir = getComputedStyle(frame).direction === "rtl" ? -1 : 1;
+  const plan = planGesture(kind, parsed, rect, resolveConstraint(frame), dir);
   return new GestureSession(plan, custom?.(plan.kind));
 }

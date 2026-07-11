@@ -483,9 +483,12 @@ describe("Anchor (Floating UI engine)", () => {
     trigger.remove();
   });
 
-  it("data-draggable drags the anchor through its edit (tear contract)", async () => {
+  it("a move handle drags the anchor through its edit (tear contract)", async () => {
     const { overlay: el, trigger } = createAnchored();
-    el.setAttribute("data-draggable", "");
+    const move = document.createElement("div");
+    move.className = "x-handle";
+    move.setAttribute("data-placement", "move");
+    el.appendChild(move);
     const anchor = new Anchor(trigger);
     new Overlay(el, { anchor });
     const a = anchorEl();
@@ -494,8 +497,8 @@ describe("Anchor (Floating UI engine)", () => {
          width: 20, height: 20, toJSON: () => ({}) }) as DOMRect;
     await vi.waitFor(() => expect(a.hasAttribute("data-follow")).toBe(true));
 
-    // Dragging the OVERLAY moves the anchor element (the handle contract).
-    el.dispatchEvent(
+    // Dragging the move handle moves the anchor element (the tear contract).
+    move.dispatchEvent(
       new PointerEvent("pointerdown", {
         clientX: 10, clientY: 10, button: 0, bubbles: true,
       }),
@@ -519,19 +522,21 @@ describe("Anchor (Floating UI engine)", () => {
     trigger.remove();
   });
 
-  it("an anchored drag from scrolled content does not engage", async () => {
+  it("a drag from non-handle content does not engage", async () => {
     const { overlay: el, trigger } = createAnchored();
-    el.setAttribute("data-draggable", "");
+    const move = document.createElement("div");
+    move.className = "x-handle";
+    move.setAttribute("data-placement", "move");
+    el.appendChild(move);
     const scroller = document.createElement("div");
-    Object.defineProperty(scroller, "scrollTop", { value: 40 });
     el.appendChild(scroller);
     const anchor = new Anchor(trigger);
     new Overlay(el, { anchor });
     const a = anchorEl();
     await vi.waitFor(() => expect(a.hasAttribute("data-follow")).toBe(true));
 
-    // A pointer starting inside scrolled content keeps its scroll-back
-    // gesture — the drag must not tear the pin.
+    // A pointer starting off the move handle (here, card content) does not
+    // engage — the drag must not tear the pin.
     scroller.dispatchEvent(
       new PointerEvent("pointerdown", {
         clientX: 10, clientY: 10, button: 0, bubbles: true,

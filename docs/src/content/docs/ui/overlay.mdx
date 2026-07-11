@@ -39,10 +39,14 @@ import { Anchor, Constraint, Overlay, SnapSession } from "elements-kit/ui/overla
 A `<dialog>` with `unset x-overlay`, wrapping a plain [card](/ui/card). How you open it decides the modality — there is no attribute for it.
 
 ```html
-<dialog class="unset x-overlay" data-resize="end-end" data-draggable>
+<dialog class="unset x-overlay">
   <div class="x-card" data-variant="elevated">Hello.</div>
+  <div class="x-handle" data-placement="move"></div>
+  <div class="x-handle" data-placement="end-end"></div>
 </dialog>
 ```
+
+Gesture affordances are `.x-handle` children — direct siblings of the card, each carrying a `data-placement` that both paints the grip and is its pointer hit-target.
 
 | Opened via | Modality |
 | --- | --- |
@@ -63,18 +67,20 @@ The frame positions its **center** at a point inside a constraint rect, clamped 
 
 Changing any channel on an open overlay morphs it — every value is an interpolable length. The recipes are just points in this space:
 
+Each recipe's resize grip is an `.x-handle` child (omitted below for brevity — e.g. `<div class="x-handle" data-placement="block-start"></div>` inside the bottom sheet):
+
 ```html
 <!-- bottom sheet -->
-<dialog class="unset x-overlay" data-resize="block-start"
+<dialog class="unset x-overlay"
         style="--overlay-y: 9999px; --overlay-h: 60svh;
                --overlay-w: var(--overlay-constraint-width)">
 
 <!-- right drawer -->
-<dialog class="unset x-overlay" data-resize="inline-start"
+<dialog class="unset x-overlay"
         style="--overlay-x: 9999px; --overlay-h: var(--overlay-constraint-height)">
 
 <!-- corner panel -->
-<dialog class="unset x-overlay" popover="manual" data-resize="start-start"
+<dialog class="unset x-overlay" popover="manual"
         style="--overlay-x: 9999px; --overlay-y: 9999px; --overlay-h: 60svh">
 ```
 
@@ -105,7 +111,7 @@ Constructors assume a scope: wrap wiring in [`effectScope`](/scopes) (or a compo
 
 ### `new Overlay(el, options?)`
 
-The surface. Options are what the overlay *is*: `box` (initial geometry), `anchor` (attach to a tracked box), `within` (confine to a region), `dismissible` (may the markup gestures flick it closed). The markup gestures — `data-resize` / `data-draggable` — wire automatically: edge drags, corner grips, window moves, flick-to-dismiss (free resize; snapping is a custom-handle edit, below).
+The surface. Options are what the overlay *is*: `box` (initial geometry), `anchor` (attach to a tracked box), `within` (confine to a region), `dismissible` (may the markup gestures flick it closed). The markup gestures wire automatically by delegating off the frame's `.x-handle` children: edge drags, corner grips, window moves, flick-to-dismiss (free resize; snapping is a custom-handle edit, below).
 
 ```ts
 import { Constraint, Overlay } from "elements-kit/ui/overlay";
@@ -116,14 +122,15 @@ const o = new Overlay(panel, { within: c });
 o.set(c.constrain({ x: 80, y: 120 })); // clamp, then place — morphs via CSS
 ```
 
-| `data-resize` | Handle |
+| `.x-handle` `data-placement` | Gesture |
 | --- | --- |
 | `block-start` / `block-end` | Height drag from that edge (sheets) |
 | `inline-start` / `inline-end` | Width drag (drawers) |
 | `end-end`, `start-start`, … | Corner grip, block side first (windows) |
+| `move` | Window move from a top-center grab pill |
 
 :::note[Anchored overlays drag their anchor]
-With an `anchor` bound, `data-draggable` moves the *anchor* (the tear contract) instead of the channels — the panel tears off its trigger and reopening re-pins.
+With an `anchor` bound, the `move` handle moves the *anchor* (the tear contract) instead of the channels — the panel tears off its trigger and reopening re-pins.
 :::
 
 ### `new Anchor(target?, opts?)`

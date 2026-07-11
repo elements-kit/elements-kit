@@ -1,9 +1,55 @@
+/*
+ * Overlay gesture handles — the visible, grabbable affordances.
+ *
+ * `.x-overlay` is an invisible frame around a card; each `.x-handle` is a
+ * direct child SIBLING of the card (so the card's clip can't chop the grip)
+ * that both PAINTS a gesture affordance and IS its pointer hit-target. A
+ * single `data-placement` names the gesture and positions the handle — it is
+ * the whole vocabulary (there is no `data-resize` / `data-draggable`):
+ *
+ *   block-start | block-end      horizontal pill, edge height resize
+ *   inline-start | inline-end     vertical pill, edge width resize
+ *   start-start | start-end |     corner L-grip, free x/y resize
+ *   end-start | end-end           (block side first, inline second)
+ *   move                          top-center grab pill, window move / tear-off
+ *
+ * The gesture engine (overlay.ts / gesture.ts) engages the gesture the pressed
+ * handle's `data-placement` names — no zone hit-testing. overlay.css keys the
+ * enter/exit slide and deck effect off the same child via
+ * `:has(> .x-handle[data-placement=…])`.
+ */
+
 .x-handle {
   box-sizing: border-box;
   position: absolute;
   z-index: 1;
   pointer-events: auto;
   touch-action: none;
+}
+
+/* The painted grip stays small; a centered, transparent ::before enlarges
+ * the pointer hit-target to a comfortable minimum on the thin axis (the pill
+ * is ~4px, the target ~32px). `mask` on the corner grip clips its PAINTING,
+ * not hit-testing, so one rule covers every placement. */
+.x-handle::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  width: max(100%, var(--space-6));
+  height: max(100%, var(--space-6));
+}
+
+/* Move grab pill — top-center. */
+.x-handle:where([data-placement="move"]) {
+  top: var(--space-2);
+  inset-inline: 0;
+  margin-inline: auto;
+  width: var(--space-8);
+  height: var(--space-1);
+  border-radius: max(var(--radius-1), var(--radius-pill));
+  background-color: var(--neutral-a8);
 }
 
 .x-handle:where([data-placement^="block-"]) {
@@ -106,14 +152,11 @@
 }
 
 @media (forced-colors: active) {
-  /*  carries the resize affordances (pills paint a background,
-   * the corner grip a border); ::after the move pill (background). */
+  /* Pills paint a background, the corner grip a border — one rule covers
+   * every placement (a background on the borderless corner grip, and a
+   * border on the background pills, are both harmless). */
   .x-handle:where([data-placement]) {
     background-color: ButtonText;
     border-color: ButtonText;
-  }
-
-  .x-handle:where([data-draggable])::after {
-    background-color: ButtonText;
   }
 }

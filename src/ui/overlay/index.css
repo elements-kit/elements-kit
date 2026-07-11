@@ -18,10 +18,12 @@
  *   sheet is `--overlay-w: var(--overlay-constraint-width)` — nothing
  *   spans edges automatically. Both are capped at the constraint rect.
  *
- *   RESIZE — `data-resize`: the side the resize handle sits on. Edge
+ *   RESIZE / MOVE — `.x-handle` children (see handle.css): a
+ *   `data-placement` names the gesture and positions the grip. Edge
  *   words `block-start | block-end | inline-start | inline-end`; a
  *   corner grip is a `start`/`end` pair, block side first (`end-end`,
- *   `start-end`, …). Drives the gesture, affordance, and enter/exit
+ *   `start-end`, …); `move` is the window-move grab pill. The pressed
+ *   handle drives the gesture and its placement picks the enter/exit
  *   slide (index.ts / overlay.css). Resize *steps* are a JS concern —
  *   the gesture's `resize` strategy writes the rested size to
  *   `--overlay-w` / `--overlay-h`.

@@ -1,31 +1,33 @@
+@import "./handle.css";
+
 /*
- * Overlay presentation — backdrop, surface, affordances, enter/exit.
+ * Overlay presentation — backdrop, surface, enter/exit.
  *
  * Companion to index.css (REQUIRED, imported BEFORE this file), which
  * owns the geometry: the constraint rect, the `--overlay-x`/`-y`
  * location point, and the `--overlay-w`/`-h` size channels. This file
- * paints everything around that geometry.
+ * paints everything around that geometry. Gesture affordances (the
+ * `.x-handle` grips) live in handle.css, @imported above.
  *
  * `.x-overlay` is an invisible frame around a card: the visible surface
  * is its required direct child — a plain `.x-card` (any variant). The
- * frame's own pseudos paint the gesture affordances (grabber pills,
- * corner grip), shown whenever `data-resize` / `data-draggable` is set.
+ * gesture affordances are further direct children — `.x-handle` elements
+ * carrying `data-placement` (see handle.css) that both paint the grip and
+ * ARE its pointer hit-target.
  *
  * Three orthogonal primitives:
  *
  *   LOCATION — `--overlay-x` / `--overlay-y`, a point in the constraint
  *   rect (unset = centered; saturated values dock flush to the edges).
  *
- *   RESIZE — `data-resize`, the side the resize handle sits on:
+ *   RESIZE / MOVE — `.x-handle` children, one `data-placement` each:
  *     block-start | block-end     horizontal grabber, height drag
  *     inline-start | inline-end   vertical grabber, width drag
  *     start-start | start-end |   corner grip, free x/y resize
  *     end-start | end-end         (block side first, inline second)
- *   The handle side also picks the enter/exit slide (a handle implies
- *   the opposite edge is docked); no attribute → fade + settle.
- *
- *   DRAGGABLE — `data-draggable` (boolean), the x/y window move from
- *   the top strip.
+ *     move                        top-center grab pill, x/y window move
+ *   An edge handle also picks the enter/exit slide (it implies the
+ *   opposite edge is docked); no edge handle → fade + settle.
  *
  *   ANCHOR — `data-anchor="element"`, element-relative placement for
  *   popovers (menus, tooltips, pickers). The zero-JS recipe uses the
@@ -34,7 +36,7 @@
  *   (index.css ANCHORED MODE). The JS class is `new Anchor(trigger)`
  *   (bound via `new Overlay(el, { anchor })`) — it gives the overlay an
  *   anchor ELEMENT it follows for life; the anchor tracks the trigger
- *   until something moves it (an edit or a `data-draggable` drag moves
+ *   until something moves it (an edit or a `move`-handle drag moves
  *   the ANCHOR — the tear contract — so tear-off is a composition, not
  *   a mode; the overlay itself never changes state). `--overlay-area`
  *   picks the side, `--overlay-gap` the distance.
@@ -47,22 +49,25 @@
  * Markup contracts:
  *
  *   Bottom sheet (modal):
- *     <dialog class="unset x-overlay" data-resize="block-start"
+ *     <dialog class="unset x-overlay"
  *             style="--overlay-y: 9999px; --overlay-h: 60svh;
  *                    --overlay-w: var(--overlay-constraint-width)">
  *       <div class="x-card" data-variant="elevated">…</div>
+ *       <div class="x-handle" data-placement="block-start"></div>
  *     </dialog>
  *
  *   Centered window (all geometry defaults):
- *     <dialog class="unset x-overlay" data-resize="end-end" data-draggable>
+ *     <dialog class="unset x-overlay">
  *       <div class="x-card" data-variant="elevated">…</div>
+ *       <div class="x-handle" data-placement="move"></div>
+ *       <div class="x-handle" data-placement="end-end"></div>
  *     </dialog>
  *
  *   Persistent corner panel, background interactive:
  *     <dialog class="unset x-overlay" popover="manual" id="panel"
- *             data-resize="block-start"
  *             style="--overlay-x: 9999px; --overlay-y: 9999px; --overlay-h: 60svh">
  *       <div class="x-card" data-variant="elevated">…</div>
+ *       <div class="x-handle" data-placement="block-start"></div>
  *     </dialog>
  *     <button popovertarget="panel">Toggle panel</button>
  *
@@ -78,9 +83,9 @@
  * interpolable lengths.
  *
  * API:
- *   data-resize        handle side, see vocabulary above (no default);
- *                      also shows the resize affordance
- *   data-draggable     boolean — x/y move gesture + move affordance
+ *   .x-handle          gesture affordance + hit-target — a direct child of
+ *                      the frame, `data-placement` naming the gesture (see
+ *                      the RESIZE / MOVE vocabulary above and handle.css)
  *   data-anchor        "element" — anchored placement (see ANCHOR above);
  *                      static wiring marker, stamped by anchor() or
  *                      authored for the zero-JS recipe — never toggled
@@ -122,11 +127,11 @@
  * (a region it stays inside) — readable getters, one `set()` setter,
  * and an edit lifecycle (`begin`/`set`/`release`/`cancel`) whose physics
  * come from a `Session` (`SnapSession` for detents). `new Overlay(el)`
- * wires the markup preset (`data-resize` / `data-draggable` on free
- * overlays): edge handles drag the size along their axis
- * (flick-to-dismiss); corner grips resize like a desktop window;
- * `data-draggable` moves the window from the top strip — or, with an
- * anchor bound, moves the ANCHOR (tear-off).
+ * wires the markup preset by delegating off the frame's `.x-handle`
+ * children: edge handles drag the size along their axis
+ * (flick-to-dismiss); corner grips resize like a desktop window; a `move`
+ * handle moves the window — or, with an anchor bound, moves the ANCHOR
+ * (tear-off).
  */
 
 .x-overlay {
@@ -189,216 +194,9 @@
 
 /***************************************************************************************************
  *                                                                                                 *
- * GESTURE AFFORDANCES                                                                             *
- *                                                                                                 *
- * Painted on the frame so the card's pseudos stay untouched, and shown                            *
- * whenever the matching `data-resize` / `data-draggable` is set.                                  *
- * Resizing owns                                                                                   *
- * `::before` (the edge pills sit ON the `data-resize` handle side; the                            *
- * corner grip at the corner-word corner — `data-resize` is a single                               *
- * value, so these never collide), dragging owns `::after`. Splitting the                          *
- * two pseudos lets a draggable + resizable overlay show both at once.                             *
- *                                                                                                 *
- * The drag handle's shape depends on the resize: most overlays get a                              *
- * small card-radius dot at the top-start corner (clear of the edge                                *
- * resize pills; for start-start, whose grip owns top-start, the dot                               *
- * shifts to top-end). The bottom-corner windows (end-*) instead keep a                            *
- * top-center pill so the default end-end window stays movable.                                    *
- *                                                                                                 *
- ***************************************************************************************************/
-
-/* Shared pseudo scaffolding — resize on ::before, drag on ::after. Gated
- * on the gesture attributes so a plain overlay paints no affordance. */
-.x-overlay:where([data-resize], [data-draggable])::before,
-.x-overlay:where([data-resize], [data-draggable])::after {
-  content: "";
-  position: absolute;
-  z-index: 1;
-  pointer-events: none;
-}
-
-/* Drag dot — a small square with the card's corner radius at the
- * top-start corner, for every draggable overlay except the corner
- * windows that keep the top-center pill (end-*). Clear of the edge
- * resize pills; logical insets mirror it to top-end in RTL.
- * (`--overlay-grip-radius` is the same card-radius token the corner grip
- * uses; the frame can't see the card's own --card-border-radius.) */
-.x-overlay:where(
-    [data-draggable]:not([data-resize^="end-"])
-  )::after {
-  inset-block-start: var(--space-2);
-  inset-inline-start: var(--space-2);
-  width: var(--space-3);
-  height: var(--space-3);
-  border-radius: var(--overlay-grip-radius, var(--radius-5));
-  background-color: var(--neutral-a8);
-}
-
-/* start-start's grip already owns the top-start corner — move its drag
- * dot to the top-end corner so the two don't overlap. */
-.x-overlay:where(
-    [data-draggable][data-resize="start-start"]
-  )::after {
-  inset-inline-start: auto;
-  inset-inline-end: var(--space-2);
-}
-
-/* Drag pill — corner-resize windows keep a top-center pill so the
- * default end-end window stays movable. */
-.x-overlay:where(
-    [data-draggable][data-resize^="end-"]
-  )::after {
-  top: var(--space-2);
-  inset-inline: 0;
-  margin-inline: auto;
-  width: var(--space-8);
-  height: var(--space-1);
-  border-radius: max(var(--radius-1), var(--radius-pill));
-  background-color: var(--neutral-a8);
-}
-
-/* Horizontal resize pill — block edge (height drag). */
-.x-overlay:where([data-resize^="block-"])::before {
-  inset-inline: 0;
-  margin-inline: auto;
-  width: var(--space-8);
-  height: var(--space-1);
-  border-radius: max(var(--radius-1), var(--radius-pill));
-  background-color: var(--neutral-a8);
-}
-
-.x-overlay:where([data-resize="block-start"])::before {
-  top: var(--space-2);
-}
-
-.x-overlay:where([data-resize="block-end"])::before {
-  bottom: var(--space-2);
-}
-
-/* Vertical resize pill — inline edge (width drag). Logical insets mirror
- * in RTL for free. */
-.x-overlay:where([data-resize^="inline-"])::before {
-  inset-block: 0;
-  margin-block: auto;
-  width: var(--space-1);
-  height: var(--space-8);
-  border-radius: max(var(--radius-1), var(--radius-pill));
-  background-color: var(--neutral-a8);
-}
-
-.x-overlay:where([data-resize="inline-start"])::before {
-  inset-inline-start: var(--space-2);
-}
-
-.x-overlay:where([data-resize="inline-end"])::before {
-  inset-inline-end: var(--space-2);
-}
-
-/* Corner resize grip — corner data-resize (a start/end pair), at the
- * handle corner. The grip hugs the corner: a quarter arc concentric with
- * the card radius (square when the radius scale collapses) plus short
- * tails with pill caps. The paint is a border box with ALL four sides
- * inked — the tip corner squares are solid, no miter shows — and
- * `border-bottom-right-radius` draws the curve; the mask is a pure
- * stencil (strips + arc quadrant + cap dots, no radius-dependent
- * gradient stops), so it is robust at every radius and scale. The base
- * paint is drawn for the bottom-right; --_gx/--_gy mirror it to the
- * other corners (and in RTL). */
-.x-overlay:where(
-    [data-resize^="start-"],
-    [data-resize^="end-"]
-  )::before {
-  /* Outer arc radius: card corner radius − the inset gap below. */
-  --_grip-r: max(
-    calc(var(--overlay-grip-radius, var(--radius-5)) - var(--space-1)),
-    0px
-  );
-  /* Cap diameter: stroke-width pills, collapsing to square tips when the
-   * radius scale collapses (square card → square handle). */
-  --_cap: min(var(--space-1), calc(var(--_grip-r) * 9999));
-  --_gx: 1;
-  --_gy: 1;
-  content: "";
-  position: absolute;
-  z-index: 1;
-  pointer-events: none;
-  width: max(calc(var(--_grip-r) + var(--space-1)), calc(var(--space-1) * 3));
-  height: max(calc(var(--_grip-r) + var(--space-1)), calc(var(--space-1) * 3));
-  border: var(--space-1) solid var(--neutral-a8);
-  border-bottom-right-radius: var(--_grip-r);
-  transform: scale(var(--_gx), var(--_gy));
-  mask:
-    /* tails, cut flat at the cap centers (full length when capless) */
-    linear-gradient(#000, #000) right 0 top calc(var(--_cap) / 2) /
-      var(--space-1) calc(100% - var(--_cap) / 2) no-repeat,
-    linear-gradient(#000, #000) left calc(var(--_cap) / 2) bottom 0 /
-      calc(100% - var(--_cap) / 2) var(--space-1) no-repeat,
-    /* arc quadrant — the border's own curve shows through */
-    linear-gradient(#000, #000) 100% 100% / var(--_grip-r) var(--_grip-r)
-      no-repeat,
-    /* round caps, centered on the flat cuts over solid border ink */
-    radial-gradient(
-        circle closest-side,
-        #000 calc(100% - 0.5px),
-        transparent
-      )
-      right 0 top 0 / var(--_cap) var(--_cap) no-repeat,
-    radial-gradient(
-        circle closest-side,
-        #000 calc(100% - 0.5px),
-        transparent
-      )
-      left 0 bottom 0 / var(--_cap) var(--_cap) no-repeat;
-}
-
-/* Corner position + mirroring. Logical insets place the grip; the paint
- * and mask are physical, so --_gx flips when the grip lands on a
- * physical left corner (inline-start in LTR, inline-end in RTL) and
- * --_gy when it lands on a top corner. The inline side is the second
- * word (start-END / end-END = inline-end), the block side the first. */
-.x-overlay:where(
-    [data-resize="start-end"],
-    [data-resize="end-end"]
-  )::before {
-  inset-inline-end: var(--space-1);
-}
-
-.x-overlay:where(
-    [data-resize="start-start"],
-    [data-resize="end-start"]
-  )::before {
-  inset-inline-start: var(--space-1);
-  --_gx: -1;
-}
-
-.x-overlay:where([data-resize^="end-"])::before {
-  bottom: var(--space-1);
-}
-
-.x-overlay:where([data-resize^="start-"])::before {
-  top: var(--space-1);
-  --_gy: -1;
-}
-
-.x-overlay:where(
-    [data-resize="start-end"],
-    [data-resize="end-end"]
-  ):where(:dir(rtl))::before {
-  --_gx: -1;
-}
-
-.x-overlay:where(
-    [data-resize="start-start"],
-    [data-resize="end-start"]
-  ):where(:dir(rtl))::before {
-  --_gx: 1;
-}
-
-/***************************************************************************************************
- *                                                                                                 *
  * ARROW — the anchored caret (.x-overlay-arrow)                                                   *
  *                                                                                                 *
- * A real element (both frame pseudos belong to the affordances), found                            *
+ * A real element (the affordances are their own .x-handle children),           *
  * or injected by `anchor(…, { arrow })`. A rotated square behind the                              *
  * card (z-index: -1 — only the protruding half shows, the card ring                               *
  * stays clean) on the edge facing the anchor; `data-placed` names the                             *
@@ -472,11 +270,15 @@
     transition-behavior: allow-discrete;
   }
 
-  /* windows (no handle, or a corner grip) — fade + settle */
+  /* windows (no edge handle — none, a corner grip, or move-only) —
+   * fade + settle */
   .x-overlay:where(
-    :not([data-resize]),
-    [data-resize^="start-"],
-    [data-resize^="end-"]
+    :not(
+      :has(
+        > .x-handle[data-placement^="block-"],
+        > .x-handle[data-placement^="inline-"]
+      )
+    )
   ) {
     opacity: 0;
     scale: 0.97;
@@ -509,7 +311,7 @@
   }
 
   /* block-start handle (bottom-docked sheet) — slide from below */
-  .x-overlay:where([data-resize="block-start"]) {
+  .x-overlay:where(:has(> .x-handle[data-placement="block-start"])) {
     --_ey: 100%;
 
     &:where([open], :popover-open) {
@@ -522,7 +324,7 @@
   }
 
   /* block-end handle (top-docked sheet) — slide from above */
-  .x-overlay:where([data-resize="block-end"]) {
+  .x-overlay:where(:has(> .x-handle[data-placement="block-end"])) {
     --_ey: -100%;
 
     &:where([open], :popover-open) {
@@ -536,7 +338,7 @@
 
   /* inline-start handle (end-docked drawer) — slide past the inline-end
    * edge (mirrored in RTL) */
-  .x-overlay:where([data-resize="inline-start"]) {
+  .x-overlay:where(:has(> .x-handle[data-placement="inline-start"])) {
     --_ex: 100%;
 
     &:where([open], :popover-open) {
@@ -562,7 +364,7 @@
 
   /* inline-end handle (start-docked drawer) — slide past the
    * inline-start edge (mirrored in RTL) */
-  .x-overlay:where([data-resize="inline-end"]) {
+  .x-overlay:where(:has(> .x-handle[data-placement="inline-end"])) {
     --_ex: -100%;
 
     &:where([open], :popover-open) {
@@ -638,7 +440,10 @@
     );
   }
 
-  :root:has(.x-overlay[data-resize="block-start"][open]) [data-overlay-deck] {
+  :root:has(
+      .x-overlay[open]:has(> .x-handle[data-placement="block-start"])
+    )
+    [data-overlay-deck] {
     scale: 0.96;
     translate: 0 var(--space-2);
     border-radius: var(--radius-4);
@@ -660,21 +465,4 @@
   }
 }
 
-/***************************************************************************************************
- *                                                                                                 *
- * FORCED COLORS                                                                                   *
- *                                                                                                 *
- ***************************************************************************************************/
-
-@media (forced-colors: active) {
-  /* ::before carries the resize affordances (pills paint a background,
-   * the corner grip a border); ::after the move pill (background). */
-  .x-overlay:where([data-resize])::before {
-    background-color: ButtonText;
-    border-color: ButtonText;
-  }
-
-  .x-overlay:where([data-draggable])::after {
-    background-color: ButtonText;
-  }
-}
+/* Forced-colors affordances (pills / corner grip) live in handle.css. */

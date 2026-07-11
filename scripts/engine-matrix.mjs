@@ -63,7 +63,11 @@ async function drive(name, executablePath) {
       const a = document.querySelector(".x-overlay-anchor");
       const engine = panel.getAttribute("data-anchor") ?? "channel";
       const opts = (x, y) => ({ clientX: x, clientY: y, button: 0, bubbles: true, pointerId: 1 });
-      panel.dispatchEvent(new PointerEvent("pointerdown", opts(300, 300)));
+      // Tear-off engages from the move handle (its data-placement="move");
+      // the pointer events carry explicit coords, so the drag delta is
+      // unchanged from pressing the frame.
+      const move = panel.querySelector('.x-handle[data-placement="move"]');
+      move.dispatchEvent(new PointerEvent("pointerdown", opts(300, 300)));
       panel.dispatchEvent(new PointerEvent("pointermove", opts(420, 380)));
       panel.dispatchEvent(new PointerEvent("pointerup", opts(420, 380)));
       await new Promise((r) => setTimeout(r, 100));

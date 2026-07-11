@@ -31,10 +31,6 @@ export interface OverlayOptions {
   dismissible?: boolean;
 }
 
-/** Interactive descendants a drag must not swallow the click of. */
-const INTERACTIVE =
-  "button, a, label, input, select, textarea, [contenteditable]";
-
 const CHANNEL = {
   x: "--overlay-x",
   y: "--overlay-y",
@@ -47,15 +43,16 @@ const CHANNEL = {
  * channels. The constructor takes only SPATIAL options (what the
  * overlay is): an initial box, an anchor to follow, a region to stay
  * inside. The feel is per-edit (`begin(new SnapSession(stops))`); the
- * markup gestures (`data-resize` / `data-draggable`) are built in —
- * pointer plumbing whose `GestureSession`s drive this SAME edit
- * lifecycle (free feel, flick-to-dismiss when `dismissible`).
+ * markup gestures (`.x-handle` children) are built in — pointer
+ * plumbing that delegates off the handles and whose `GestureSession`s
+ * drive this SAME edit lifecycle (free feel, flick-to-dismiss when
+ * `dismissible`).
  *
  * `set()` speaks viewport coordinates and converts to channel space
  * internally (the channels hold the box CENTER relative to the
  * constraint origin); CSS renders and animates the writes — JS never
- * touches `translate`/`top`/`left`. With an anchor bound, the markup
- * move gesture (`data-draggable`) drives the ANCHOR through its own
+ * touches `translate`/`top`/`left`. With an anchor bound, the move
+ * handle (`data-placement="move"`) drives the ANCHOR through its own
  * edit API — the tear contract — instead of the channels.
  *
  * Registers its cleanup with the current scope (`onCleanup`) and also
@@ -265,20 +262,15 @@ export class Overlay extends Box {
 
   // --- the markup gestures --------------------------------------------------
 
-  /** Common engagement guards: interactive descendants keep their
-   * clicks; scrolled content keeps its scroll-back gesture. */
-  #guarded(event: PointerEvent): boolean {
-    const el = this.#el;
-    const target = event.target as Element | null;
-    if (target?.closest(INTERACTIVE)) return true;
-    for (
-      let node = target;
-      node !== null && node !== el;
-      node = node.parentElement
-    ) {
-      if (node.scrollTop > 0) return true;
-    }
-    return false;
+  /** The `.x-handle` a pointerdown engages: a DIRECT child of this frame
+   * (so a nested overlay's handle stays the nested overlay's), or `null`
+   * when the press landed off every handle (card body, interactive
+   * descendant, scrolled content — all keep their own behavior). */
+  #handleFor(event: PointerEvent): HTMLElement | null {
+    const handle = (event.target as Element | null)?.closest<HTMLElement>(
+      ".x-handle",
+    );
+    return handle && handle.parentElement === this.#el ? handle : null;
   }
 
   /** The feel the built-in markup handles run their edits with —
@@ -305,12 +297,12 @@ export class Overlay extends Box {
     this.#close();
   }
 
-  /** The built-in handles — ONE pointer drive for both modes. With an
-   * anchor bound, `data-draggable` drags the ANCHOR through its edit
-   * API (the tear contract; the overlay follows through the engine);
-   * otherwise `engageGesture` turns the pointerdown into a
-   * `GestureSession` driving THIS box's edit. Shared: the engagement
-   * guards, capture, user-select suppression, and the touch-scroll
+  /** The built-in handles — ONE pointer drive for both modes, delegating
+   * off the frame's `.x-handle` children. With an anchor bound, the move
+   * handle drags the ANCHOR through its edit API (the tear contract; the
+   * overlay follows through the engine); otherwise `engageGesture` turns
+   * the handle press into a `GestureSession` driving THIS box's edit.
+   * Shared: capture, user-select suppression, and the touch-scroll
    * block. */
   #wireGestures(anchor?: Anchor): void {
     const el = this.#el;
@@ -332,9 +324,12 @@ export class Overlay extends Box {
 
     const onDown = (event: PointerEvent) => {
       if (drag || event.button !== 0) return;
+      const handle = this.#handleFor(event);
+      if (!handle) return;
       if (anchor) {
-        if (!el.hasAttribute("data-draggable")) return;
-        if (this.#guarded(event)) return;
+        // Only the move handle tears the anchor off; resize handles have
+        // no meaning for an anchored popover.
+        if (handle.getAttribute("data-placement") !== "move") return;
         anchor.begin();
         drag = {
           kind: "anchor",
@@ -342,11 +337,8 @@ export class Overlay extends Box {
           origin: { x: anchor.x(), y: anchor.y() },
         };
       } else {
-        if (this.#guarded(event)) return;
-        const session = engageGesture(
-          el,
-          { x: event.clientX, y: event.clientY },
-          (kind) => this.gestureSession(kind),
+        const session = engageGesture(el, handle, (kind) =>
+          this.gestureSession(kind),
         );
         if (!session) return;
         this.#gesture = session;

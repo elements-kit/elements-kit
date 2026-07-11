@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { anchor, detectEngagement, edgeSetup, parseResize } from "./gesture.ts";
+import { anchor, edgeSetup, parseResize, placementKind } from "./gesture.ts";
 import type { PlainBox } from "./box.ts";
 import { resist } from "./session.ts";
 
@@ -67,74 +67,20 @@ describe("parseResize", () => {
   });
 });
 
-describe("detectEngagement", () => {
-  const rect = box(100, 100, 480, 300); // right 580, bottom 400
-
-  it("prioritises the corner grip", () => {
-    expect(
-      detectEngagement({
-        block: "end",
-        inline: "end",
-        draggable: true,
-        rect,
-        pointer: { x: 575, y: 395 },
-        dir: 1,
-      }),
-    ).toBe("resize");
+describe("placementKind", () => {
+  it("names the gesture a handle's placement drives", () => {
+    expect(placementKind("move")).toBe("move");
+    expect(placementKind("end-end")).toBe("resize");
+    expect(placementKind("start-start")).toBe("resize");
+    expect(placementKind("block-start")).toBe("block");
+    expect(placementKind("block-end")).toBe("block");
+    expect(placementKind("inline-start")).toBe("inline");
+    expect(placementKind("inline-end")).toBe("inline");
   });
 
-  it("engages the move strip for a plain draggable", () => {
-    expect(
-      detectEngagement({
-        block: null,
-        inline: null,
-        draggable: true,
-        rect,
-        pointer: { x: 300, y: 110 },
-        dir: 1,
-      }),
-    ).toBe("move");
-  });
-
-  it("carves the top-center pill out of a block-start move zone", () => {
-    const args = {
-      block: "start" as const,
-      inline: null,
-      draggable: true,
-      rect,
-      dir: 1 as const,
-    };
-    // top-center press → resize (the pill), not move
-    expect(detectEngagement({ ...args, pointer: { x: 300, y: 110 } })).toBe(
-      "block",
-    );
-    // top-start corner (the drag dot) → move
-    expect(detectEngagement({ ...args, pointer: { x: 110, y: 110 } })).toBe(
-      "move",
-    );
-  });
-
-  it("falls through to the edge, then null", () => {
-    expect(
-      detectEngagement({
-        block: "start",
-        inline: null,
-        draggable: false,
-        rect,
-        pointer: { x: 300, y: 200 },
-        dir: 1,
-      }),
-    ).toBe("block");
-    expect(
-      detectEngagement({
-        block: "end",
-        inline: "end", // a corner, but pointer is in the middle & not draggable
-        draggable: false,
-        rect,
-        pointer: { x: 300, y: 200 },
-        dir: 1,
-      }),
-    ).toBeNull();
+  it("returns null for a non-gesture placement", () => {
+    expect(placementKind("")).toBeNull();
+    expect(placementKind("nonsense")).toBeNull();
   });
 });
 

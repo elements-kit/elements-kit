@@ -45,6 +45,41 @@ function channelStyle(args: Pick<Args, "x" | "y" | "w" | "h">): string {
     .join("; ");
 }
 
+/** The gesture affordances as authored `.x-handle` children (siblings of
+ * the card): a resize grip for `resize`, a move grab pill when `move`. */
+function Handles(resize: string, move: boolean) {
+  return (
+    <>
+      {resize && resize !== "none" && (
+        <div class:x-handle data-placement={resize} />
+      )}
+      {move && <div class:x-handle data-placement="move" />}
+    </>
+  );
+}
+
+function makeHandle(placement: string): HTMLDivElement {
+  const h = document.createElement("div");
+  h.className = "x-handle";
+  h.dataset.placement = placement;
+  return h;
+}
+
+/** Swap the RESIZE handle (leaves any move handle intact) — the imperative
+ * counterpart of {@link Handles} for the morph stories. */
+function setResizeHandle(el: Element, placement: string): void {
+  el
+    .querySelectorAll(':scope > .x-handle:not([data-placement="move"])')
+    .forEach((h) => h.remove());
+  if (placement && placement !== "none") el.appendChild(makeHandle(placement));
+}
+
+/** Add or remove the move grab handle. */
+function setMoveHandle(el: Element, on: boolean): void {
+  el.querySelector(':scope > .x-handle[data-placement="move"]')?.remove();
+  if (on) el.appendChild(makeHandle("move"));
+}
+
 const meta = {
   title: "UI/Overlay",
   // Not production ready — surfaces an "Experimental" sidebar badge + a canvas
@@ -55,11 +90,11 @@ const meta = {
       control: "select",
       options: [...RESIZES],
       description:
-        "data-resize — the side the resize handle sits on; a start/end pair (block first) for a corner grip",
+        "the resize .x-handle's data-placement — the side the grip sits on; a start/end pair (block first) for a corner grip",
     },
     draggable: {
       control: "boolean",
-      description: "data-draggable — x/y move gesture from the top strip",
+      description: "adds a move .x-handle — x/y window move from a grab pill",
     },
     x: {
       control: "text",
@@ -123,8 +158,6 @@ const meta = {
           class:unset
           class:x-overlay
           popover={args.modal ? undefined : "auto"}
-          data-resize={args.resize === "none" ? undefined : args.resize}
-          data-draggable={args.draggable ? "" : undefined}
           style={channelStyle(args)}
         >
           {/* Auto-open + gestures on mount; the onConnect effectScope
@@ -160,6 +193,7 @@ const meta = {
               Close
             </button>
           </div>
+          {Handles(args.resize, args.draggable)}
         </dialog>
       </>
     );
@@ -174,8 +208,8 @@ export const Window: Story = {};
 
 /**
  * Bottom sheet with SNAPPING — the markup gestures drive the drag (the
- * `data-resize="block-start"` pill affordance is overlay.css's
- * `::before`), and a one-line `Overlay` subclass swaps the gesture
+ * `block-start` `.x-handle` is both the pill affordance and its
+ * hit-target), and a one-line `Overlay` subclass swaps the gesture
  * physics: `gestureSession()` returns a `SnapSession`, so the height
  * rests on 25 / 60 / 90% of the constraint, velocity-projected; a flick
  * past the smallest stop dismisses.
@@ -215,7 +249,6 @@ export const BottomSheet: Story = {
           class:unset
           class:x-overlay
           popover="auto"
-          data-resize="block-start"
           style="--overlay-y: 9999px; --overlay-h: 60svh; --overlay-w: var(--overlay-constraint-width)"
         >
           <dom-lifecycle
@@ -231,6 +264,7 @@ export const BottomSheet: Story = {
               viewport. Flick down past the smallest stop to dismiss.
             </p>
           </div>
+          <div class:x-handle data-placement="block-start" />
         </dialog>
       </>
     );
@@ -326,8 +360,7 @@ function applyCell(el: HTMLDialogElement | null | undefined, cell: Cell) {
     if (value) el.style.setProperty(name, value);
     else el.style.removeProperty(name);
   }
-  if (cell.resize) el.setAttribute("data-resize", cell.resize);
-  else el.removeAttribute("data-resize");
+  setResizeHandle(el, cell.resize);
 }
 
 /** The grid cell matching an authored shape, or `""` (no arrow lit). */
@@ -394,11 +427,11 @@ export const Morph: Story = {
           class:unset
           class:x-overlay
           popover="manual"
-          data-resize={CENTER.resize}
         >
           <dom-lifecycle
             onConnect={(self) => {
               const el = self.parentElement as HTMLDialogElement;
+              setResizeHandle(el, CENTER.resize);
               if (args.gestures) new Overlay(el);
               el.showPopover();
             }}
@@ -562,7 +595,7 @@ export const Anchored: StoryObj<AnchoredArgs> = {
 };
 
 /**
- * Tear-off: `new Overlay(el, { anchor })` + `data-draggable` — the panel follows its
+ * Tear-off: `new Overlay(el, { anchor })` + a move `.x-handle` — the panel follows its
  * trigger until you drag it (the pointer moves the ANCHOR, the panel
  * follows; the overlay never changes state). The drag rubber-bands at
  * the viewport edges; reopening re-pins to the trigger.
@@ -589,7 +622,6 @@ export const TearOff: StoryObj<Args> = {
           class:unset
           class:x-overlay
           popover="manual"
-          data-draggable
           style="--overlay-w: 280px"
         >
           <dom-lifecycle
@@ -604,7 +636,7 @@ export const TearOff: StoryObj<Args> = {
           <div class:unset class:x-card data-variant="elevated" data-size="3">
             <strong>Tear-off</strong>
             <p>
-              Anchored to its trigger — drag this card anywhere (the drag
+              Anchored to its trigger — drag the grab pill anywhere (the drag
               moves the anchor). Close and reopen to re-pin.
             </p>
             <button
@@ -617,6 +649,7 @@ export const TearOff: StoryObj<Args> = {
               Close
             </button>
           </div>
+          <div class:x-handle data-placement="move" />
         </dialog>
       </>
     );
@@ -878,13 +911,13 @@ export const Constrained: Story = {
           class:unset
           class:x-overlay
           popover="manual"
-          data-resize={args.resize === "none" ? undefined : args.resize}
-          data-draggable={args.draggable ? "" : undefined}
           style={channelStyle(args)}
         >
           <dom-lifecycle
             onConnect={(self) => {
               const el = self.parentElement as HTMLDialogElement;
+              setResizeHandle(el, args.resize);
+              setMoveHandle(el, args.draggable);
               new Overlay(el, { within: container()! });
               el.showPopover();
             }}
@@ -951,8 +984,7 @@ export const MorphGallery: StoryObj<Args> = {
       stop?.();
       stop = null;
       for (const name of CHANNELS) el.style.removeProperty(name);
-      el.removeAttribute("data-resize");
-      el.removeAttribute("data-draggable");
+      el.querySelectorAll(":scope > .x-handle").forEach((h) => h.remove());
     };
     const setChannels = (el: HTMLDialogElement, channels: Record<string, string>) => {
       for (const [name, value] of Object.entries(channels))
@@ -970,22 +1002,22 @@ export const MorphGallery: StoryObj<Args> = {
       },
       Sheet: (el) => {
         setChannels(el, { "--overlay-y": "9999px", "--overlay-w": "var(--overlay-constraint-width)", "--overlay-h": "45svh" });
-        el.setAttribute("data-resize", "block-start");
+        setResizeHandle(el, "block-start");
         stop = effectScope(() => void new Overlay(el));
       },
       Drawer: (el) => {
         setChannels(el, { "--overlay-x": "9999px", "--overlay-w": "320px", "--overlay-h": "var(--overlay-constraint-height)" });
-        el.setAttribute("data-resize", "inline-start");
+        setResizeHandle(el, "inline-start");
         stop = effectScope(() => void new Overlay(el));
       },
       Window: (el) => {
-        el.setAttribute("data-resize", "end-end");
-        el.setAttribute("data-draggable", "");
+        setResizeHandle(el, "end-end");
+        setMoveHandle(el, true);
         stop = effectScope(() => void new Overlay(el));
       },
       Corner: (el) => {
         setChannels(el, { "--overlay-x": "9999px", "--overlay-y": "9999px", "--overlay-w": "300px", "--overlay-h": "40svh" });
-        el.setAttribute("data-resize", "start-start");
+        setResizeHandle(el, "start-start");
         stop = effectScope(() => void new Overlay(el));
       },
     };

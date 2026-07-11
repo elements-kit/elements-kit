@@ -8,48 +8,73 @@ function createOverlay(attrs?: {
 }): HTMLDialogElement {
   const el = document.createElement("dialog");
   el.className = "unset x-overlay";
-  if (attrs?.resize !== undefined)
-    el.setAttribute("data-resize", attrs.resize);
-  if (attrs?.draggable) el.setAttribute("data-draggable", "");
   const card = document.createElement("div");
   card.className = "x-card";
   card.setAttribute("data-variant", "elevated");
   el.appendChild(card);
+  // Gesture affordances are authored `.x-handle` children (siblings of the
+  // card), each carrying the `data-placement` its gesture engages from.
+  if (attrs?.resize !== undefined) el.appendChild(handle(attrs.resize));
+  if (attrs?.draggable) el.appendChild(handle("move"));
   document.body.appendChild(el);
   return el;
 }
 
-function drag(el: HTMLElement, fromY: number, toY: number) {
-  el.dispatchEvent(
+/** A `.x-handle` element with the given `data-placement`. */
+function handle(placement: string): HTMLElement {
+  const h = document.createElement("div");
+  h.className = "x-handle";
+  h.setAttribute("data-placement", placement);
+  return h;
+}
+
+/** The frame's resize handle (the one that isn't the move grip). */
+function grip(el: HTMLElement): HTMLElement {
+  return el.querySelector<HTMLElement>(
+    ':scope > .x-handle:not([data-placement="move"])',
+  )!;
+}
+
+/** The frame's move grab handle. */
+function mover(el: HTMLElement): HTMLElement {
+  return el.querySelector<HTMLElement>(
+    ':scope > .x-handle[data-placement="move"]',
+  )!;
+}
+
+// The drag helpers press a HANDLE (engagement now requires the pointerdown
+// to land on a `.x-handle`); pointermove bubbles to the frame's listener.
+function drag(h: HTMLElement, fromY: number, toY: number) {
+  h.dispatchEvent(
     new PointerEvent("pointerdown", { clientY: fromY, bubbles: true }),
   );
-  el.dispatchEvent(
+  h.dispatchEvent(
     new PointerEvent("pointermove", { clientY: toY, bubbles: true }),
   );
 }
 
-function dragX(el: HTMLElement, fromX: number, toX: number) {
-  el.dispatchEvent(
+function dragX(h: HTMLElement, fromX: number, toX: number) {
+  h.dispatchEvent(
     new PointerEvent("pointerdown", { clientX: fromX, bubbles: true }),
   );
-  el.dispatchEvent(
+  h.dispatchEvent(
     new PointerEvent("pointermove", { clientX: toX, bubbles: true }),
   );
 }
 
 function drag2D(
-  el: HTMLElement,
+  h: HTMLElement,
   from: { x: number; y: number },
   to: { x: number; y: number },
 ) {
-  el.dispatchEvent(
+  h.dispatchEvent(
     new PointerEvent("pointerdown", {
       clientX: from.x,
       clientY: from.y,
       bubbles: true,
     }),
   );
-  el.dispatchEvent(
+  h.dispatchEvent(
     new PointerEvent("pointermove", {
       clientX: to.x,
       clientY: to.y,
@@ -117,13 +142,10 @@ describe("x-overlay markup contract", () => {
     el.remove();
   });
 
-  it("round-trips the gesture attributes", () => {
-    const el = createOverlay({
-      resize: "end-end",
-      draggable: true,
-    });
-    expect(el.getAttribute("data-resize")).toBe("end-end");
-    expect(el.hasAttribute("data-draggable")).toBe(true);
+  it("carries the gesture affordances as .x-handle children", () => {
+    const el = createOverlay({ resize: "end-end", draggable: true });
+    expect(grip(el).getAttribute("data-placement")).toBe("end-end");
+    expect(mover(el).getAttribute("data-placement")).toBe("move");
     el.remove();
   });
 
@@ -190,9 +212,9 @@ describe("Overlay", () => {
     el.remove();
   });
 
-  it("engages by data-resize: height on block edges, width on inline", () => {
-    // No gesture attributes, or a corner grip away from its zone
-    // (rect-bound at zero) — no whole-surface engagement.
+  it("engages by handle placement: height on block edges, width on inline", () => {
+    // Pressing the card BODY (not a handle) never engages — no handle, or a
+    // corner grip present but the press lands off it.
     for (const attrs of [
       undefined,
       { resize: "end-end" },
@@ -200,7 +222,7 @@ describe("Overlay", () => {
     ]) {
       const el = createOverlay(attrs);
       const gestures = new Overlay(el);
-      drag(el, 100, 300);
+      drag(el, 100, 300); // press the frame body, not a handle
       expect(el.style.height, attrs?.resize).toBe("");
       expect(el.style.transition, attrs?.resize).toBe("");
       gestures.dispose();
@@ -209,7 +231,7 @@ describe("Overlay", () => {
     for (const resize of ["block-start", "block-end"]) {
       const el = createOverlay({ resize });
       const gestures = new Overlay(el);
-      drag(el, 100, 300);
+      drag(grip(el), 100, 300);
       expect(el.style.height, resize).not.toBe("");
       expect(el.style.width, resize).toBe("");
       gestures.dispose();
@@ -218,7 +240,7 @@ describe("Overlay", () => {
     for (const resize of ["inline-start", "inline-end"]) {
       const el = createOverlay({ resize });
       const gestures = new Overlay(el);
-      dragX(el, 100, 300);
+      dragX(grip(el), 100, 300);
       expect(el.style.width, resize).not.toBe("");
       expect(el.style.height, resize).toBe("");
       gestures.dispose();
@@ -267,7 +289,7 @@ describe("Overlay", () => {
     const gestures = new Overlay(el, {
       anchor: anchor as unknown as import("./anchor.ts").Anchor,
     });
-    drag(el, 100, 300);
+    drag(grip(el), 100, 300); // a resize handle is inert on an anchored overlay
     expect(el.style.height).toBe("");
     gestures.dispose();
     el.remove();
@@ -281,7 +303,7 @@ describe("Overlay", () => {
     const down = createOverlay({ resize: "block-end" });
     mockWindowRect(down);
     const downGestures = new Overlay(down);
-    drag(down, 100, 300);
+    drag(grip(down), 100, 300);
     expect(parseFloat(down.style.height)).toBeGreaterThan(0);
     downGestures.dispose();
     down.remove();
@@ -290,7 +312,7 @@ describe("Overlay", () => {
     const up = createOverlay({ resize: "block-start" });
     mockWindowRect(up);
     const upGestures = new Overlay(up);
-    drag(up, 300, 100);
+    drag(grip(up), 300, 100);
     expect(parseFloat(up.style.height)).toBeGreaterThan(0);
     upGestures.dispose();
     up.remove();
@@ -301,7 +323,7 @@ describe("Overlay", () => {
     const gestures = new Overlay(el);
     // Dragging down shrinks a bottom sheet below its smallest detent
     // (0px in happy-dom) — the slide-away channel engages.
-    drag(el, 100, 400);
+    drag(grip(el), 100, 400);
     expect(el.style.getPropertyValue("--overlay-dy")).not.toBe("");
     expect(el.style.translate ?? "").toBe("");
 
@@ -317,7 +339,7 @@ describe("Overlay", () => {
     const dialog = createOverlay({ resize: "block-start" });
     dialog.showModal();
     const dialogGestures = new Overlay(dialog);
-    drag(dialog, 100, 900);
+    drag(grip(dialog), 100, 900);
     dialog.dispatchEvent(
       new PointerEvent("pointerup", { clientY: 900, bubbles: true }),
     );
@@ -327,13 +349,13 @@ describe("Overlay", () => {
 
     const popover = document.createElement("div");
     popover.className = "unset x-overlay";
-    popover.setAttribute("data-resize", "block-start");
+    popover.appendChild(handle("block-start"));
     document.body.appendChild(popover);
     const hidePopover = vi.fn();
     (popover as unknown as { hidePopover: () => void }).hidePopover =
       hidePopover;
     const popGestures = new Overlay(popover);
-    drag(popover, 100, 900);
+    drag(grip(popover), 100, 900);
     popover.dispatchEvent(
       new PointerEvent("pointerup", { clientY: 900, bubbles: true }),
     );
@@ -360,7 +382,7 @@ describe("Overlay", () => {
 
     // Grow from 300 toward 350 (slowly — settle the velocity), release:
     // nearest stop is 340.
-    drag(el, 150, 100);
+    drag(grip(el), 150, 100);
     el.dispatchEvent(
       new PointerEvent("pointermove", { clientY: 100, bubbles: true }),
     );
@@ -377,7 +399,7 @@ describe("Overlay", () => {
     const gestures = new Overlay(el);
     gestures.dispose();
 
-    drag(el, 100, 400);
+    drag(grip(el), 100, 400);
     expect(el.style.height).toBe("");
     el.remove();
   });
@@ -393,7 +415,7 @@ describe("Overlay", () => {
   it("suppresses text selection while dragging, restores at rest", () => {
     const el = createOverlay({ resize: "block-start" });
     const gestures = new Overlay(el);
-    drag(el, 100, 300);
+    drag(grip(el), 100, 300);
     expect(el.style.userSelect).toBe("none");
     pointerUp(el, { y: 300 });
     expect(el.style.userSelect).toBe("");
@@ -409,7 +431,7 @@ describe("drawer gestures (single inline handle)", () => {
     const startDocked = createOverlay({ resize: "inline-end" });
     mockWindowRect(startDocked);
     const startGestures = new Overlay(startDocked);
-    dragX(startDocked, 100, 300);
+    dragX(grip(startDocked), 100, 300);
     expect(parseFloat(startDocked.style.width)).toBeGreaterThan(0);
     startGestures.dispose();
     startDocked.remove();
@@ -418,7 +440,7 @@ describe("drawer gestures (single inline handle)", () => {
     const endDocked = createOverlay({ resize: "inline-start" });
     mockWindowRect(endDocked);
     const endGestures = new Overlay(endDocked);
-    dragX(endDocked, 300, 100);
+    dragX(grip(endDocked), 300, 100);
     expect(parseFloat(endDocked.style.width)).toBeGreaterThan(0);
     endGestures.dispose();
     endDocked.remove();
@@ -429,7 +451,7 @@ describe("drawer gestures (single inline handle)", () => {
     rtl.style.direction = "rtl";
     mockWindowRect(rtl);
     const rtlGestures = new Overlay(rtl);
-    dragX(rtl, 100, 300);
+    dragX(grip(rtl), 100, 300);
     expect(parseFloat(rtl.style.width)).toBeGreaterThan(0);
     rtlGestures.dispose();
     rtl.remove();
@@ -440,7 +462,7 @@ describe("drawer gestures (single inline handle)", () => {
     // smallest detent (0px in happy-dom) — the slide-away channel engages.
     const el = createOverlay({ resize: "inline-start" });
     const gestures = new Overlay(el);
-    dragX(el, 300, 400);
+    dragX(grip(el), 300, 400);
     expect(el.style.getPropertyValue("--overlay-dx")).not.toBe("");
     expect(el.style.translate ?? "").toBe("");
     gestures.dispose();
@@ -451,7 +473,7 @@ describe("drawer gestures (single inline handle)", () => {
     const dialog = createOverlay({ resize: "inline-start" });
     dialog.showModal();
     const gestures = new Overlay(dialog);
-    dragX(dialog, 100, 900); // far toward the docked edge → shrink → dismiss
+    dragX(grip(dialog), 100, 900); // far toward the docked edge → shrink → dismiss
     pointerUp(dialog, { x: 900 });
     expect(dialog.open).toBe(false);
     gestures.dispose();
@@ -479,7 +501,7 @@ describe("drawer gestures (single inline handle)", () => {
     const floating = createOverlay({ resize: "inline-end" });
     setRect(floating, 200, 300); // center x 350
     const g1 = new Overlay(floating, { dismissible: false });
-    dragX(floating, 250, 310); // grow width by 60 → size 360 (within bounds)
+    dragX(grip(floating), 250, 310); // grow width by 60 → size 360 (within bounds)
     // x = centerX0 − cl + signX·(size − startSize)/2 = 350 + (360 − 300)/2
     expect(floating.style.getPropertyValue("--overlay-x")).toBe("380px");
     g1.dispose();
@@ -489,14 +511,14 @@ describe("drawer gestures (single inline handle)", () => {
     const docked = createOverlay({ resize: "inline-end" });
     setRect(docked, 0, 300);
     const g2 = new Overlay(docked, { dismissible: false });
-    dragX(docked, 250, 310);
+    dragX(grip(docked), 250, 310);
     expect(docked.style.getPropertyValue("--overlay-x")).toBe("");
     g2.dispose();
     docked.remove();
   });
 });
 
-describe("window move (data-draggable)", () => {
+describe("window move (move handle)", () => {
   it("rides --overlay-dx/-dy while dragging, persists --overlay-x/-y", () => {
     const el = createOverlay({ draggable: true });
     mockWindowRect(el);
@@ -504,7 +526,7 @@ describe("window move (data-draggable)", () => {
 
     // Top strip (rect.top = 100): engage and track 1:1 — the live delta
     // rides the transient channels; the persisted point is untouched.
-    drag2D(el, { x: 340, y: 110 }, { x: 390, y: 180 });
+    drag2D(mover(el), { x: 340, y: 110 }, { x: 390, y: 180 });
     expect(el.style.getPropertyValue("--overlay-dx")).toBe("50px");
     expect(el.style.getPropertyValue("--overlay-dy")).toBe("70px");
     expect(el.style.getPropertyValue("--overlay-x")).toBe("");
@@ -520,7 +542,7 @@ describe("window move (data-draggable)", () => {
     expect(el.style.userSelect).toBe("");
 
     // A second move composes onto the rendered center, not the channels.
-    drag2D(el, { x: 340, y: 110 }, { x: 330, y: 100 });
+    drag2D(mover(el), { x: 340, y: 110 }, { x: 330, y: 100 });
     pointerUp(el, { x: 330, y: 100 });
     expect(el.style.getPropertyValue("--overlay-x")).toBe("330px");
     expect(el.style.getPropertyValue("--overlay-y")).toBe("240px");
@@ -535,7 +557,7 @@ describe("window move (data-draggable)", () => {
     el.showModal();
     const gestures = new Overlay(el);
 
-    drag2D(el, { x: 340, y: 110 }, { x: -400, y: 110 });
+    drag2D(mover(el), { x: 340, y: 110 }, { x: -400, y: 110 });
     // The window followed the pointer off the left edge — rebind the rect
     // to where it now sits before releasing.
     bindRect(el, -640, 100);
@@ -553,7 +575,7 @@ describe("window move (data-draggable)", () => {
 
     // Center floor is 240 (half the 480 width); raw center 40 overshoots
     // by 200, resisted ÷3 → ≈173, riding the transient dx.
-    drag2D(el, { x: 340, y: 110 }, { x: 40, y: 110 });
+    drag2D(mover(el), { x: 340, y: 110 }, { x: 40, y: 110 });
     const dx = parseFloat(el.style.getPropertyValue("--overlay-dx"));
     expect(dx).toBeLessThan(-100);
     expect(dx).toBeGreaterThan(-300);
@@ -568,7 +590,7 @@ describe("window move (data-draggable)", () => {
     el.showModal();
     const gestures = new Overlay(el, { dismissible: false });
 
-    drag2D(el, { x: 340, y: 110 }, { x: -400, y: 110 });
+    drag2D(mover(el), { x: 340, y: 110 }, { x: -400, y: 110 });
     pointerUp(el, { x: -400, y: 110 });
     expect(el.open).toBe(true);
     // Clamped to the constraint: the center floor is half the width.
@@ -592,7 +614,7 @@ describe("window move (data-draggable)", () => {
     el.style.setProperty("--overlay-x", "99px");
 
     // Fling off the constraint → dismiss.
-    drag2D(el, { x: 340, y: 110 }, { x: -400, y: 110 });
+    drag2D(mover(el), { x: 340, y: 110 }, { x: -400, y: 110 });
     bindRect(el, -640, 100);
     pointerUp(el, { x: -400, y: 110 });
 
@@ -609,9 +631,9 @@ describe("window move (data-draggable)", () => {
     mockWindowRect(el);
     const gestures = new Overlay(el, { dismissible: false });
 
-    drag2D(el, { x: 340, y: 110 }, { x: 390, y: 160 });
+    drag2D(mover(el), { x: 340, y: 110 }, { x: 390, y: 160 });
     pointerUp(el, { x: 390, y: 160 }); // persisted (390, 300)
-    drag2D(el, { x: 340, y: 110 }, { x: 600, y: 400 });
+    drag2D(mover(el), { x: 340, y: 110 }, { x: 600, y: 400 });
     el.dispatchEvent(new PointerEvent("pointercancel", { bubbles: true }));
     expect(el.style.getPropertyValue("--overlay-x")).toBe("390px");
     expect(el.style.getPropertyValue("--overlay-y")).toBe("300px");
@@ -622,17 +644,17 @@ describe("window move (data-draggable)", () => {
   });
 });
 
-describe("block-start sheet + draggable (resize handle owns the top)", () => {
-  // The resize pill sits at top-center; the drag dot at the top-start
-  // corner. Pressing the pill must resize (height), not move.
-  it("resizes from the top-center pill, not move", () => {
+describe("block-start sheet + move handle (two discrete handles)", () => {
+  // A resizable + movable sheet carries two `.x-handle` children — a
+  // block-start resize pill and a move grip. Each engages its own gesture;
+  // there is no zone disambiguation.
+  it("resizes from the block-start handle, not move", () => {
     const el = createOverlay({ resize: "block-start", draggable: true });
-    mockWindowRect(el); // rect (100,100) 480×300 → top strip y 100–128
+    mockWindowRect(el); // rect (100,100) 480×300
     const gestures = new Overlay(el, { dismissible: false });
 
-    // Top-center (x 340) is the resize pill, outside the top-start move
-    // zone → block (height) resize, no move channels written.
-    drag2D(el, { x: 340, y: 110 }, { x: 340, y: 260 });
+    // Pressing the resize handle → block (height) resize, no move channels.
+    drag2D(grip(el), { x: 340, y: 110 }, { x: 340, y: 260 });
     expect(el.style.height).not.toBe("");
     expect(el.style.getPropertyValue("--overlay-dx")).toBe("");
     expect(el.style.getPropertyValue("--overlay-x")).toBe("");
@@ -641,13 +663,13 @@ describe("block-start sheet + draggable (resize handle owns the top)", () => {
     el.remove();
   });
 
-  it("moves from the top-start dot corner", () => {
+  it("moves from the move handle", () => {
     const el = createOverlay({ resize: "block-start", draggable: true });
     mockWindowRect(el);
     const gestures = new Overlay(el, { dismissible: false });
 
-    // Top-start corner (near rect.left = 100) is the drag dot → move.
-    drag2D(el, { x: 110, y: 110 }, { x: 160, y: 170 });
+    // Pressing the move handle → x/y move, no resize.
+    drag2D(mover(el), { x: 110, y: 110 }, { x: 160, y: 170 });
     expect(el.style.getPropertyValue("--overlay-dx")).toBe("50px");
     expect(el.style.getPropertyValue("--overlay-dy")).toBe("60px");
     expect(el.style.height).toBe("");
@@ -676,7 +698,7 @@ describe("block-start sheet + draggable (resize handle owns the top)", () => {
     const floating = createOverlay({ resize: "block-start" });
     setRect(floating, 300, 200); // center y 400, bottom 500
     const g1 = new Overlay(floating, { dismissible: false });
-    drag(floating, 350, 250); // grow upward → size 300; bottom pinned
+    drag(grip(floating), 350, 250); // grow upward → size 300; bottom pinned
     // y = centerY0 − ct + signY·(size − startSize)/2 = 400 + (−1)(300−200)/2
     expect(floating.style.getPropertyValue("--overlay-y")).toBe("350px");
     g1.dispose();
@@ -686,7 +708,7 @@ describe("block-start sheet + draggable (resize handle owns the top)", () => {
     const docked = createOverlay({ resize: "block-start" });
     setRect(docked, 568, 200); // bottom 768 = constraint bottom
     const g2 = new Overlay(docked, { dismissible: false });
-    drag(docked, 600, 500);
+    drag(grip(docked), 600, 500);
     expect(docked.style.getPropertyValue("--overlay-y")).toBe("");
     g2.dispose();
     docked.remove();
@@ -776,15 +798,15 @@ describe("Constraint", () => {
   });
 });
 
-describe("corner resize (start/end pair data-resize)", () => {
+describe("corner resize (start/end pair handle)", () => {
   const WINDOW = { resize: "end-end", draggable: true };
 
-  it("engages only at the corner grip or the top strip", () => {
+  it("engages only from the corner grip handle, not the card body", () => {
     const el = createOverlay(WINDOW);
     mockWindowRect(el);
     const gestures = new Overlay(el);
 
-    // Mid-card and bottom-center presses do nothing.
+    // Card-body presses (not on a handle) do nothing.
     for (const from of [
       { x: 300, y: 250 },
       { x: 340, y: 395 },
@@ -796,7 +818,7 @@ describe("corner resize (start/end pair data-resize)", () => {
 
     // Corner press resizes — 1:1, the opposite (top inline-start) corner
     // stays anchored: the location point shifts by half the growth.
-    drag2D(el, { x: 570, y: 390 }, { x: 620, y: 440 });
+    drag2D(grip(el), { x: 570, y: 390 }, { x: 620, y: 440 });
     // Live size renders inline (instant); position to the channels.
     expect(el.style.width).toBe("530px");
     expect(el.style.height).toBe("350px");
@@ -825,7 +847,7 @@ describe("corner resize (start/end pair data-resize)", () => {
     // max width 924 (the window can never outgrow the rect). Past the room the
     // size pins at 924 and the resisted overshoot rides --overlay-dx, so the
     // whole surface translates past the edge instead of shoving the left edge.
-    drag2D(el, { x: 570, y: 390 }, { x: 1600, y: 390 });
+    drag2D(grip(el), { x: 570, y: 390 }, { x: 1600, y: 390 });
     expect(parseFloat(el.style.width)).toBe(924); // pinned at the room
     const slide = parseFloat(el.style.getPropertyValue("--overlay-dx"));
     const overshoot = 480 + (1600 - 570) - 924; // target width past the room
@@ -846,7 +868,7 @@ describe("corner resize (start/end pair data-resize)", () => {
     el.showModal();
     const gestures = new Overlay(el);
 
-    drag2D(el, { x: 570, y: 390 }, { x: 200, y: 200 });
+    drag2D(grip(el), { x: 570, y: 390 }, { x: 200, y: 200 });
     pointerUp(el, { x: 200, y: 200 });
     expect(el.open).toBe(false);
 
@@ -860,12 +882,12 @@ describe("corner resize (start/end pair data-resize)", () => {
     const gestures = new Overlay(el, { dismissible: false });
 
     // Move the window +50/+50…
-    drag2D(el, { x: 340, y: 110 }, { x: 390, y: 160 });
+    drag2D(mover(el), { x: 340, y: 110 }, { x: 390, y: 160 });
     pointerUp(el, { x: 390, y: 160 });
     expect(el.style.getPropertyValue("--overlay-x")).toBe("390px");
     // …the rect now renders at (150, 150); resize from its corner.
     bindRect(el, 150, 150);
-    drag2D(el, { x: 620, y: 440 }, { x: 670, y: 490 });
+    drag2D(grip(el), { x: 620, y: 440 }, { x: 670, y: 490 });
     pointerUp(el, { x: 670, y: 490 });
 
     expect(el.style.getPropertyValue("--overlay-w")).toBe("530px");
@@ -888,7 +910,7 @@ describe("corner resize (start/end pair data-resize)", () => {
     const gestures = new Overlay(el, { dismissible: false });
 
     // Center floor = 50 + 240 = 290 → rect-relative point 240.
-    drag2D(el, { x: 340, y: 110 }, { x: -400, y: 110 });
+    drag2D(mover(el), { x: 340, y: 110 }, { x: -400, y: 110 });
     pointerUp(el, { x: -400, y: 110 });
     expect(el.style.getPropertyValue("--overlay-x")).toBe("240px");
 
@@ -904,7 +926,7 @@ describe("corner resize (start/end pair data-resize)", () => {
 
     // The end-end (block-end inline-end) corner is physically
     // bottom-left: (100, 400). Dragging left grows; anchor is top-right.
-    drag2D(el, { x: 110, y: 390 }, { x: 60, y: 440 });
+    drag2D(grip(el), { x: 110, y: 390 }, { x: 60, y: 440 });
     expect(el.style.width).toBe("530px"); // live size inline
     expect(el.style.height).toBe("350px");
     expect(el.style.getPropertyValue("--overlay-x")).toBe("315px");
@@ -919,10 +941,10 @@ describe("corner resize (start/end pair data-resize)", () => {
     const gestures = new Overlay(el, { dismissible: false });
 
     // Seed a persisted size/location with a completed resize…
-    drag2D(el, { x: 570, y: 390 }, { x: 620, y: 440 });
+    drag2D(grip(el), { x: 570, y: 390 }, { x: 620, y: 440 });
     pointerUp(el, { x: 620, y: 440 });
     // …then cancel a second one mid-drag.
-    drag2D(el, { x: 570, y: 390 }, { x: 700, y: 500 });
+    drag2D(grip(el), { x: 570, y: 390 }, { x: 700, y: 500 });
     el.dispatchEvent(new PointerEvent("pointercancel", { bubbles: true }));
     expect(el.style.getPropertyValue("--overlay-w")).toBe("530px");
     expect(el.style.getPropertyValue("--overlay-h")).toBe("350px");

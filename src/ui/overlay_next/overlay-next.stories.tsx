@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/html-vite";
 import { effect } from "elements-kit/signals";
 import "@/utilities/dom-lifecycle.ts";
 import "../card/card.css";
-import "./handle.css";
+import "../overlay/handle.css";
 import { AUTO, ElementBox, WINDOW_BOX } from "./box.ts";
 import { Draggable, HANDLES, rubber, Resizable } from "./gestures.ts";
 import { place, Side, SIDES } from "./anchor.ts";
