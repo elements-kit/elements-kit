@@ -1,6 +1,5 @@
-import { Computed, computed, reactive, signal, Signal } from "@/signals";
+import { reactive, signal, Signal } from "@/signals";
 import { direction } from "@/utilities/direction";
-import { createElementRect } from "@/utilities/element-rect";
 import { windowSize } from "@/utilities/window-size.ts";
 
 export interface IBox {
@@ -60,14 +59,12 @@ export const WINDOW_BOX = new WindowBox();
 export class ElementBox implements IBox, IDirection, Transformable {
   readonly element: HTMLElement;
   readonly transform: Transform;
-  #rect: Computed<ReturnType<typeof createElementRect>>;
-  // Driven position — signal-backed so reads reflect writes and are
-  // reactive (the ResizeObserver rect can't see translate/position writes).
+  // Driven geometry — signal-backed so reads reflect writes and are
+  // reactive (a measured rect can't see translate/position writes anyway).
   #x: Signal<number>;
   #y: Signal<number>;
-  // Pending size deltas — flushed as a scale ratio by applyTransform.
-  #dw = 0;
-  #dh = 0;
+  #w: Signal<number>;
+  #h: Signal<number>;
 
   /** The element's computed direction, read at call time. */
   get direction(): "ltr" | "rtl" {
@@ -92,16 +89,18 @@ export class ElementBox implements IBox, IDirection, Transformable {
   }
 
   get w() {
-    return this.#rect().width();
+    return this.#w();
   }
   set w(value: number) {
+    this.#w(value);
     this.element.style.setProperty("--w", `${value}px`);
   }
 
   get h() {
-    return this.#rect().height();
+    return this.#h();
   }
   set h(value: number) {
+    this.#h(value);
     this.element.style.setProperty("--h", `${value}px`);
   }
 
@@ -111,6 +110,8 @@ export class ElementBox implements IBox, IDirection, Transformable {
     const rect = element.getBoundingClientRect();
     this.#x = signal(rect.left);
     this.#y = signal(rect.top);
+    this.#w = signal(rect.width);
+    this.#h = signal(rect.height);
 
     element.style.setProperty("translate", "var(--x, 0px) var(--y, 0px)");
     element.style.setProperty(
@@ -120,8 +121,6 @@ export class ElementBox implements IBox, IDirection, Transformable {
     element.style.setProperty("transform-origin", "top left");
     element.style.setProperty("width", "var(--w, auto)");
     element.style.setProperty("height", "var(--h, auto)");
-
-    this.#rect = computed(() => createElementRect(this.element));
   }
 }
 
@@ -149,12 +148,23 @@ class Transform implements ITransform {
   }
   set w(value: number) {
     this.box.element.style.setProperty("--dw", `${value}px`);
+    this.#scale("--sx", this.box.w, value); // live scale — CSS can't divide
   }
   get h() {
     return this.#read("--dh");
   }
   set h(value: number) {
     this.box.element.style.setProperty("--dh", `${value}px`);
+    this.#scale("--sy", this.box.h, value);
+  }
+
+  /** Live size delta as a scale ratio: (base + delta) / base. Computed here
+   * because CSS calc can't divide a length by a length. */
+  #scale(name: string, base: number, delta: number): void {
+    this.box.element.style.setProperty(
+      name,
+      base ? `${(base + delta) / base}` : "1",
+    );
   }
 
   /** Read a delta channel back from the element's inline style — no
