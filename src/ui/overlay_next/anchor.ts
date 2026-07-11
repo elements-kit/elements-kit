@@ -1,4 +1,4 @@
-import type { IBox, IDirection } from "./box.ts";
+import type { ElementBox, IBox, IDirection, Transformable } from "./box.ts";
 
 /**
  * The anchor-side vocabulary of the CSS `anchor()` function,
@@ -57,39 +57,15 @@ export type Inset =
   | "inset-inline-start"
   | "inset-inline-end";
 
-export class AnchorBox implements IBox, IDirection {
-  #anchor: IBox & Partial<IDirection>;
+export class AnchorBox implements IDirection, Transformable {
+  readonly box: IBox & Transformable & Partial<IDirection>;
 
-  get x() {
-    return this.#anchor.x;
-  }
-  set x(value: number) {
-    this.#anchor.x = value;
+  constructor(anchor: IBox & Transformable & Partial<IDirection>) {
+    this.box = anchor;
   }
 
-  get y() {
-    return this.#anchor.y;
-  }
-  set y(value: number) {
-    this.#anchor.y = value;
-  }
-
-  get w() {
-    return this.#anchor.w;
-  }
-  set w(value: number) {
-    this.#anchor.w = value;
-  }
-
-  get h() {
-    return this.#anchor.h;
-  }
-  set h(value: number) {
-    this.#anchor.h = value;
-  }
-
-  constructor(anchor: IBox & Partial<IDirection>) {
-    this.#anchor = anchor;
+  get transform() {
+    return this.box.transform;
   }
 
   /**
@@ -122,8 +98,8 @@ export class AnchorBox implements IBox, IDirection {
   length(inset: Inset, side: BlockSide | InlineSide | number): number {
     const physical = resolveInset(inset);
     const block = physical === "top" || physical === "bottom";
-    const lo = block ? this.y : this.x;
-    const size = block ? this.h : this.w;
+    const lo = block ? this.box.y : this.box.x;
+    const size = block ? this.box.h : this.box.w;
     return lo + this.#fraction(block, physical, side) * size;
   }
 
@@ -162,7 +138,7 @@ export class AnchorBox implements IBox, IDirection {
    * `IDirection` box (chains compose). */
   get direction(): "ltr" | "rtl" {
     return (
-      this.#anchor.direction ??
+      this.box.direction ??
       (getComputedStyle(document.documentElement).direction as "ltr" | "rtl")
     );
   }
