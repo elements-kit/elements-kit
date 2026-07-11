@@ -64,8 +64,8 @@ export class AnchorBox implements IDirection, Transformable {
     this.box = anchor;
   }
 
-  get transform() {
-    return this.box.transform;
+  get displacement() {
+    return this.box.displacement;
   }
 
   /**

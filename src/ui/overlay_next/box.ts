@@ -1,4 +1,5 @@
-import { reactive, signal, Signal } from "@/signals";
+import { effect, reactive } from "@/signals";
+import { scope } from "@/signals/scope";
 import { direction } from "@/utilities/direction";
 import { windowSize } from "@/utilities/window-size.ts";
 
@@ -7,14 +8,6 @@ export interface IBox {
   y: number;
   w: number;
   h: number;
-}
-
-export interface ITransform extends IBox {
-  apply(): void;
-}
-
-export interface Transformable {
-  transform: ITransform;
 }
 
 export interface IDirection {
@@ -58,61 +51,47 @@ export const WINDOW_BOX = new WindowBox();
 
 export class ElementBox implements IBox, IDirection, Transformable {
   readonly element: HTMLElement;
-  readonly transform: Transform;
-  // Driven geometry — signal-backed so reads reflect writes and are
-  // reactive (a measured rect can't see translate/position writes anyway).
-  #x: Signal<number>;
-  #y: Signal<number>;
-  #w: Signal<number>;
-  #h: Signal<number>;
-
-  /** The element's computed direction, read at call time. */
-  get direction(): "ltr" | "rtl" {
-    return getComputedStyle(this.element).direction === "rtl" ? "rtl" : "ltr";
-  }
+  readonly transform: Box;
+  readonly displacement: Displacement;
 
   get x() {
-    return this.#x();
+    return this.transform.x + this.displacement.x;
   }
-
   set x(value: number) {
-    this.#x(value);
-    this.element.style.setProperty("--x", `${value}px`);
+    this.transform.x = value;
   }
 
   get y() {
-    return this.#y();
+    return this.transform.y + this.displacement.y;
   }
   set y(value: number) {
-    this.#y(value);
-    this.element.style.setProperty("--y", `${value}px`);
+    this.transform.y = value;
   }
 
   get w() {
-    return this.#w();
+    return this.transform.w + this.displacement.w;
   }
   set w(value: number) {
-    this.#w(value);
-    this.element.style.setProperty("--w", `${value}px`);
+    this.transform.w = value;
   }
 
   get h() {
-    return this.#h();
+    return this.transform.h + this.displacement.h;
   }
   set h(value: number) {
-    this.#h(value);
-    this.element.style.setProperty("--h", `${value}px`);
+    this.transform.h = value;
   }
 
   constructor(element: HTMLElement) {
     this.element = element;
-    this.transform = new Transform(this);
+    // Seed the base from the element's measured geometry, so an unsized box
+    // keeps its natural size — a 0 width would collapse `width: var(--w)`.
     const rect = element.getBoundingClientRect();
-    this.#x = signal(rect.left);
-    this.#y = signal(rect.top);
-    this.#w = signal(rect.width);
-    this.#h = signal(rect.height);
+    this.transform = new Box(rect.left, rect.top, rect.width, rect.height);
+    this.displacement = new Displacement(this);
 
+    element.style.setProperty("top", "0");
+    element.style.setProperty("left", "0");
     element.style.setProperty("translate", "var(--x, 0px) var(--y, 0px)");
     element.style.setProperty(
       "transform",
@@ -121,41 +100,56 @@ export class ElementBox implements IBox, IDirection, Transformable {
     element.style.setProperty("transform-origin", "top left");
     element.style.setProperty("width", "var(--w, auto)");
     element.style.setProperty("height", "var(--h, auto)");
+
+    // Project the reactive base into its CSS channels — needs `effect`, or
+    // the scope body runs once and never re-projects on a baseX change.
+    [, this.dispose] = scope(() => {
+      effect(() => {
+        this.element.style.setProperty("--x", `${this.transform.x}px`);
+        this.element.style.setProperty("--y", `${this.transform.y}px`);
+        this.element.style.setProperty("--w", `${this.transform.w}px`);
+        this.element.style.setProperty("--h", `${this.transform.h}px`);
+      });
+    });
+  }
+
+  /** The element's computed direction, read at call time. */
+  get direction(): "ltr" | "rtl" {
+    return getComputedStyle(this.element).direction === "rtl" ? "rtl" : "ltr";
+  }
+
+  dispose: () => void;
+  [Symbol.dispose]() {
+    this.dispose();
+    this.displacement[Symbol.dispose]();
   }
 }
 
-class Transform implements ITransform {
+export interface IDisplacement extends IBox {
+  apply(): void;
+}
+
+export interface Transformable {
+  displacement: IDisplacement;
+}
+
+class Displacement extends Box implements IDisplacement {
   readonly box: ElementBox;
 
-  constructor(element: ElementBox) {
-    this.box = element;
-  }
+  constructor(box: ElementBox) {
+    super(0, 0, 0, 0);
+    this.box = box;
 
-  get x() {
-    return this.#read("--dx");
-  }
-  set x(value: number) {
-    this.box.element.style.setProperty("--dx", `${value}px`);
-  }
-  get y() {
-    return this.#read("--dy");
-  }
-  set y(value: number) {
-    this.box.element.style.setProperty("--dy", `${value}px`);
-  }
-  get w() {
-    return this.#read("--dw");
-  }
-  set w(value: number) {
-    this.box.element.style.setProperty("--dw", `${value}px`);
-    this.#scale("--sx", this.box.w, value); // live scale — CSS can't divide
-  }
-  get h() {
-    return this.#read("--dh");
-  }
-  set h(value: number) {
-    this.box.element.style.setProperty("--dh", `${value}px`);
-    this.#scale("--sy", this.box.h, value);
+    [, this.dispose] = scope(() => {
+      effect(() => {
+        this.box.element.style.setProperty("--dx", `${this.x}px`);
+        this.box.element.style.setProperty("--dy", `${this.y}px`);
+        this.box.element.style.setProperty("--dw", `${this.w}px`);
+        this.#scale("--sx", this.box.transform.w, this.w); // live scale — CSS can't divide
+        this.box.element.style.setProperty("--dh", `${this.h}px`);
+        this.#scale("--sy", this.box.transform.h, this.h);
+      });
+    });
   }
 
   /** Live size delta as a scale ratio: (base + delta) / base. Computed here
@@ -167,20 +161,21 @@ class Transform implements ITransform {
     );
   }
 
-  /** Read a delta channel back from the element's inline style — no
-   * getComputedStyle recalc; an unset channel reads 0. */
-  #read(name: string): number {
-    return parseFloat(this.box.element.style.getPropertyValue(name)) || 0;
-  }
-
+  /** Fold each live delta into its committed base, then zero the delta. The
+   * visual geometry is unchanged (get = base + delta), so there's no jump. */
   apply() {
-    this.box.x += this.x;
-    this.box.y += this.y;
-    this.box.w += this.w;
-    this.box.h += this.h;
+    this.box.x = this.box.transform.x + this.x;
+    this.box.y = this.box.transform.y + this.y;
+    this.box.w = this.box.transform.w + this.w;
+    this.box.h = this.box.transform.h + this.h;
     this.x = 0;
     this.y = 0;
     this.w = 0;
     this.h = 0;
+  }
+
+  dispose: () => void;
+  [Symbol.dispose]() {
+    this.dispose();
   }
 }

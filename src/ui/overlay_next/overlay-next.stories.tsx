@@ -114,8 +114,8 @@ const meta = {
               mx = new Motion(e.clientX); // accumulates the pointer deltas from 0
               my = new Motion(e.clientY);
               abort = effect(() => {
-                a.box.transform.x = mx.displacement; // ACCUMULATED delta → --dx transform
-                a.box.transform.y = my.displacement;
+                a.box.displacement.x = mx.displacement; // ACCUMULATED delta → --dx transform
+                a.box.displacement.y = my.displacement;
               });
               anchorEl.style.cursor = "grabbing";
             });
@@ -129,7 +129,7 @@ const meta = {
               try {
                 anchorEl.releasePointerCapture(e.pointerId);
               } catch {}
-              a.box.transform.apply();
+              a.box.displacement.apply();
               abort?.();
             };
             anchorEl.addEventListener("pointerup", up);
@@ -158,7 +158,7 @@ const meta = {
           class:x-card
           data-variant="elevated"
           data-size="3"
-          style="position: fixed; left: var(--x, 0px); top: var(--y, 0px); margin: 0; width: 240px; pointer-events: none;"
+          style="position: fixed; margin: 0; pointer-events: none;"
         >
           <strong>Overlay panel</strong>
           <p style="margin: 4px 0 0; font: 13px system-ui; color: #666;">
