@@ -1,111 +1,113 @@
-import { onCleanup } from "@/signals/index.ts";
-import type { Anchor } from "./anchor.ts";
+import { effect, onCleanup, signal, type Signal } from "@/signals/index.ts";
+import { Anchor, position_area } from "./anchor.ts";
+import { Constraint, resolveVarPx } from "./constraint.ts";
 import {
-  type Axis,
-  Box,
+  AUTO,
   type BoxLike,
+  ElementBox,
   type PlainBox,
   readValue,
-} from "./box.ts";
+} from "./element-box.ts";
 import {
-  applyConstraint,
-  Constraint,
-  INSTANT_TRANSITIONS,
-  resolveConstraint,
-} from "./constraint.ts";
-import { engageGesture, type GestureSession, type Point } from "./gesture.ts";
-import type { Session } from "./session.ts";
+  Draggable,
+  type Handle,
+  HANDLES,
+  Resizable,
+  rubber,
+} from "./gestures.ts";
 
 export interface OverlayOptions {
-  /** Initial geometry, written to the channels (one-shot). */
+  /** Initial geometry (one-shot, clamped to the constraint). */
   box?: BoxLike;
-  /** A tracked box to attach to — the overlay follows it for life.
-   * Type-only coupling: `@floating-ui/dom` ships only where `Anchor`
-   * is constructed. */
+  /** A tracked box to follow — anchored placement (`position_area`). */
   anchor?: Anchor;
-  /** Confine to a region: syncs the `--overlay-constraint-*` channels
-   * every location clamp and gesture bound derives from. */
+  /** Confine to a region — the clamp/dock authority and flip boundary. */
   within?: Element | BoxLike | Constraint;
-  /** Surface trait: may the markup gestures flick-dismiss it. Default
-   * `true`. */
+  /** May a flick dismiss the overlay. Default `true`. */
   dismissible?: boolean;
 }
 
-const CHANNEL = {
-  x: "--overlay-x",
-  y: "--overlay-y",
-  w: "--overlay-w",
-  h: "--overlay-h",
-} as const;
+/** A resize handle's `data-placement` → the compass {@link Handle}. */
+const HANDLE_FOR: Record<string, Handle> = {
+  "block-start": HANDLES.n,
+  "block-end": HANDLES.s,
+  "inline-start": HANDLES.w,
+  "inline-end": HANDLES.e,
+  "start-start": HANDLES.nw,
+  "start-end": HANDLES.ne,
+  "end-start": HANDLES.sw,
+  "end-end": HANDLES.se,
+};
+
+/** Default width when the overlay authors no size — the old `--overlay-width`. */
+const DEFAULT_WIDTH = 480;
+
+/** Resize floor — a small minimum so a panel can't collapse to nothing; kept
+ * below typical panel sizes so a grab never rubber-jumps the size. */
+const MIN_W = 48;
+const MIN_H = 48;
+
+/** How far a flick projects (ms of velocity carry) for the dismiss test. */
+const PROJECTION_MS = 100;
 
 /**
- * The surface — a `Box` over the `.x-overlay` element's geometry
- * channels. The constructor takes only SPATIAL options (what the
- * overlay is): an initial box, an anchor to follow, a region to stay
- * inside. The feel is per-edit (`begin(new SnapSession(stops))`); the
- * markup gestures (`.x-handle` children) are built in — pointer
- * plumbing that delegates off the handles and whose `GestureSession`s
- * drive this SAME edit lifecycle (free feel, flick-to-dismiss when
- * `dismissible`).
- *
- * `set()` speaks viewport coordinates and converts to channel space
- * internally (the channels hold the box CENTER relative to the
- * constraint origin); CSS renders and animates the writes — JS never
- * touches `translate`/`top`/`left`. With an anchor bound, the move
- * handle (`data-placement="move"`) drives the ANCHOR through its own
- * edit API — the tear contract — instead of the channels.
- *
- * Registers its cleanup with the current scope (`onCleanup`) and also
- * exposes it as `dispose` / `Symbol.dispose`.
+ * The surface — an `ElementBox` over the `.x-overlay` element. Position is
+ * `translate` (base `--x/--y` + drag `--dx/--dy` + slide `--_ex/--_ey`), size
+ * the real `--w/--h`; CSS transitions morph committed writes. The constructor
+ * takes only SPATIAL options: an initial box, an anchor to follow, a region to
+ * stay inside. Markup gestures (`.x-handle` children) wire `Draggable`/
+ * `Resizable`; a `move` handle moves the window (or tears off an anchored one).
  *
  * @example
  * ```ts
- * import { Constraint, Overlay, SnapSession } from "elements-kit/ui/overlay";
- *
  * const c = new Constraint(container);
  * const o = new Overlay(el, { within: c });
- * o.set(c.constrain({ x: 80, y: 120 }));
- *
- * // custom handle with physics:
- * grip.onpointerdown = () => o.begin(new SnapSession([0.25, 0.6, 0.9]));
- * grip.onpointermove = (e) => o.set({ y: e.clientY });
- * grip.onpointerup   = () => o.release() ?? el.close();
+ * o.set({ x: 80, y: 120 });   // clamped, morphs via CSS
+ * o.dock("bottom");           // flush to the constraint's bottom edge
  * ```
  */
-export class Overlay extends Box {
-  readonly #el: HTMLElement;
+export class Overlay extends ElementBox {
   readonly #dismissible: boolean;
-  #editing = false;
-  /** The active markup gesture — its edits render differently (inline
-   * sizes, dx/dy deltas, edge coupling) from plain edits. */
-  #gesture: GestureSession | undefined;
-  /** Channel strings at edit start — cancel restores them VERBATIM (a
-   * `60svh` stays `60svh`). */
-  #engaged: Record<keyof typeof CHANNEL, string> | undefined;
-  #suppressEmit = false;
+  readonly #constraint: Constraint;
+  /** Tear-off follow-gate — false while a torn anchored overlay is free. */
+  readonly #pinned: Signal<boolean> = signal(true);
   readonly #disposers: Array<() => void> = [];
+  /** Per-handle gesture teardown — cleared and rebuilt when handles change. */
+  readonly #gestureDisposers: Array<() => void> = [];
 
   constructor(el: HTMLElement, opts: OverlayOptions = {}) {
-    super();
-    this.#el = el;
+    super(el);
+    // ElementBox.dispose is a FIELD (not a method) — wrap it to also tear down
+    // the overlay's own disposers (`[Symbol.dispose]` calls `this.dispose`).
+    const inherited = this.dispose;
+    this.dispose = () => {
+      for (const dispose of this.#disposers.splice(0)) dispose();
+      inherited();
+    };
     this.#dismissible = opts.dismissible ?? true;
+    this.#constraint =
+      opts.within instanceof Constraint
+        ? opts.within
+        : new Constraint(opts.within);
 
-    // Constraint FIRST — anchor.bind reads the channels to pick its
-    // engine (an explicit constraint forces the boundary-aware one).
-    if (opts.within) {
-      const region =
-        opts.within instanceof Constraint
-          ? opts.within
-          : new Constraint(opts.within);
-      this.#disposers.push(applyConstraint(el, region).dispose);
+    // Default to content sizing so the getters measure live (the box is often
+    // constructed while closed, where the captured rect is 0).
+    this.w = AUTO;
+    this.h = AUTO;
+
+    // Honor an authored size channel (`--overlay-w: 260px`) — the size intent
+    // that the ElementBox model otherwise ignores.
+    const styles = getComputedStyle(el);
+    if (styles.getPropertyValue("--overlay-w").trim()) {
+      this.set({ w: resolveVarPx(el, "--overlay-w", "width") });
     }
-
-    if (opts.anchor)
-      this.#disposers.push(opts.anchor.bind(el, opts.within !== undefined));
+    if (styles.getPropertyValue("--overlay-h").trim()) {
+      this.set({ h: resolveVarPx(el, "--overlay-h", "height") });
+    }
 
     if (opts.box) {
       const b = opts.box;
-      this.write({
+      this.set({
         x: readValue(b.x),
         y: readValue(b.y),
         ...(b.w !== undefined ? { w: readValue(b.w) } : {}),
@@ -113,351 +115,259 @@ export class Overlay extends Box {
       });
     }
 
-    // The markup gestures: one pointer drive. With an anchor, the
-    // move gesture drives the ANCHOR's edit (the tear contract); without
-    // one, it drives THIS box's edits through the zone plans.
-    this.#wireGestures(opts.anchor);
+    // Default width when nothing authored one (no `--overlay-w`, no `box.w`) —
+    // else a content-auto width stretches the overlay across the viewport.
+    // Height stays content-auto (fit to the card). Anchored menus can still
+    // author `--overlay-w` (e.g. `anchor-size`) to override.
+    if (Number.isNaN(this.transform.w)) this.set({ w: DEFAULT_WIDTH });
 
+    if (opts.anchor) {
+      const area =
+        getComputedStyle(el).getPropertyValue("--overlay-area").trim() ||
+        "block-end";
+      const gap = resolveVarPx(el, "--overlay-gap", "width", "var(--space-2, 8px)");
+      this.#disposers.push(
+        position_area(this, opts.anchor, area, gap, this.#constraint, this.#pinned),
+      );
+      this.#disposers.push(() => opts.anchor?.dispose());
+    }
+
+    this.#wireHandles(!!opts.anchor);
+    // Re-wire when `.x-handle` children are swapped at runtime (morph stories).
+    const handleObs = new MutationObserver((muts) => {
+      const touched = muts.some((m) =>
+        [...m.addedNodes, ...m.removedNodes].some(
+          (n) => n instanceof HTMLElement && n.classList.contains("x-handle"),
+        ),
+      );
+      if (touched) this.#wireHandles(!!opts.anchor);
+    });
+    handleObs.observe(el, { childList: true });
+    this.#disposers.push(() => handleObs.disconnect());
+    this.#disposers.push(() => this.#placeStop?.());
+    this.#disposers.push(() => {
+      for (const dispose of this.#gestureDisposers.splice(0)) dispose();
+    });
+    if (opts.anchor) {
+      // Re-pin a torn-off anchored overlay when it CLOSES — clear the drag and
+      // resume following the anchor, so it's already home before the next open.
+      this.#onToggle(undefined, () => {
+        this.displacement.clear();
+        this.#pinned(true);
+      });
+    } else if (!opts.box || opts.box.x === undefined) {
+      // A free overlay with no authored position centers when shown (measured
+      // then — the box model positions by top-left, so centering needs the size).
+      this.#onToggle(() => this.center());
+    }
     onCleanup(() => this.dispose());
   }
 
-  // --- Box plumbing -----------------------------------------------------
-
-  protected read(): Required<PlainBox> {
-    const r = this.#el.getBoundingClientRect();
-    return { x: r.left, y: r.top, w: r.width, h: r.height };
-  }
-
-  protected override region(): Required<PlainBox> {
-    return resolveConstraint(this.#el);
-  }
-
-  /** A markup resize is bounded by the gesture's rooms (from the
-   * ANCHORED edge to the constraint), not the whole constraint span. */
-  protected override editBounds(axis: Axis): [number, number] {
-    return this.#gesture?.roomFor(axis) ?? super.editBounds(axis);
-  }
-
-  /** Viewport box → the element. In-edit writes render live (inline
-   * sizes / transient deltas, transitions off); committed writes land
-   * on the channels (animated, `resizechange` for sizes). */
-  protected write(box: Partial<PlainBox>): void {
-    if (this.#editing && this.#gesture) this.#syncGesture(box);
-    else if (this.#editing) this.#syncEdit(box);
-    else this.#commit(box);
-  }
-
-  /** Viewport x/y → channel space (the channels hold the box CENTER
-   * relative to the constraint origin). */
-  #locChannels(box: Partial<PlainBox>): void {
-    const el = this.#el;
-    const c = resolveConstraint(el);
-    const current = this.read();
-    const w = box.w ?? current.w;
-    const h = box.h ?? current.h;
-    if (box.x !== undefined)
-      el.style.setProperty(CHANNEL.x, `${box.x + w / 2 - c.x}px`);
-    if (box.y !== undefined)
-      el.style.setProperty(CHANNEL.y, `${box.y + h / 2 - c.y}px`);
-  }
-
-  /** Plain (custom-handle) edit: live channel writes, converted. */
-  #syncEdit(box: Partial<PlainBox>): void {
-    const el = this.#el;
-    this.#locChannels(box);
-    if (box.w !== undefined) el.style.setProperty(CHANNEL.w, `${box.w}px`);
-    if (box.h !== undefined) el.style.setProperty(CHANNEL.h, `${box.h}px`);
-  }
-
-  /** Markup-gesture edit: apply the session's render intent — live
-   * sizes INLINE (instant, no transition), coupled locations on the
-   * channels, overshoot/dismiss-preview on the unclamped
-   * `--overlay-dx/-dy` deltas. The math lives in `GestureSession`. */
-  #syncGesture(box: Partial<PlainBox>): void {
-    const el = this.#el;
-    el.style.transition = "none";
-    const r = this.#gesture!.render(box);
-    if (r.width !== undefined) el.style.width = `${r.width}px`;
-    if (r.height !== undefined) el.style.height = `${r.height}px`;
-    if (r.x !== undefined) el.style.setProperty(CHANNEL.x, `${r.x}px`);
-    if (r.y !== undefined) el.style.setProperty(CHANNEL.y, `${r.y}px`);
-    for (const [name, v] of [
-      ["--overlay-dx", r.dx],
-      ["--overlay-dy", r.dy],
-    ] as const) {
-      if (v === undefined) continue;
-      if (v === null) el.style.removeProperty(name);
-      else el.style.setProperty(name, `${v}px`);
-    }
-  }
-
-  /** Persist a box to the channels: drag scaffolding off, values on
-   * (animated by CSS), `resizechange` for sizes. */
-  #commit(box: Partial<PlainBox>): void {
-    const el = this.#el;
-    el.style.removeProperty("height");
-    el.style.removeProperty("width");
-    el.style.removeProperty("--overlay-dy");
-    el.style.removeProperty("--overlay-dx");
-    el.style.removeProperty("transition");
-    el.style.removeProperty("user-select");
-    el.style.removeProperty("-webkit-user-select");
-    if (box.w !== undefined) el.style.setProperty(CHANNEL.w, `${box.w}px`);
-    if (box.h !== undefined) el.style.setProperty(CHANNEL.h, `${box.h}px`);
-    const gesture = this.#gesture;
-    if (gesture?.kind === "resize") {
-      // The rested sizes pin the opposite edge exactly like the live drag.
-      const loc = gesture.place(box);
-      if (loc.x !== undefined) el.style.setProperty(CHANNEL.x, `${loc.x}px`);
-      if (loc.y !== undefined) el.style.setProperty(CHANNEL.y, `${loc.y}px`);
-    } else {
-      this.#locChannels(box);
-    }
-    if ((box.w !== undefined || box.h !== undefined) && !this.#suppressEmit) {
-      el.dispatchEvent(
-        new CustomEvent("resizechange", {
-          bubbles: true,
-          composed: true,
-          detail: {
-            width: el.style.getPropertyValue(CHANNEL.w) || undefined,
-            height: el.style.getPropertyValue(CHANNEL.h) || undefined,
-          },
-        }),
-      );
-    }
-  }
-
-  protected override editStart(): void {
-    this.#editing = true;
-    const get = (name: string) => this.#el.style.getPropertyValue(name);
-    this.#engaged = {
-      x: get(CHANNEL.x),
-      y: get(CHANNEL.y),
-      w: get(CHANNEL.w),
-      h: get(CHANNEL.h),
+  /** The box's size for placement — the explicit base when set, else the
+   * element's FRESH rendered size (not the ResizeObserver signal, which lags a
+   * frame behind a just-opened or just-resized box). */
+  #size(): { w: number; h: number } {
+    const rect = this.element.getBoundingClientRect();
+    return {
+      w: Number.isNaN(this.transform.w) ? rect.width : this.transform.w,
+      h: Number.isNaN(this.transform.h) ? rect.height : this.transform.h,
     };
-    this.#el.style.setProperty("transition-property", INSTANT_TRANSITIONS);
   }
 
-  protected override editEnd(): void {
-    this.#editing = false;
-    this.#el.style.removeProperty("transition-property");
+  /** Center the box in its constraint (so a modal lands dead-center). */
+  center(): void {
+    const r = this.#constraint;
+    const { w, h } = this.#size();
+    this.set({ x: r.x + (r.w - w) / 2, y: r.y + (r.h - h) / 2 });
   }
 
-  /** Abort restores the channels VERBATIM as they were at `begin()` — a
-   * prior persisted gesture, or the author's `60svh`, survives intact. */
-  override cancel(): void {
-    const engaged = this.#engaged;
-    this.#suppressEmit = true;
-    super.cancel();
-    this.#suppressEmit = false;
-    if (engaged) {
-      for (const k of ["x", "y", "w", "h"] as const) {
-        if (engaged[k]) this.#el.style.setProperty(CHANNEL[k], engaged[k]);
-        else this.#el.style.removeProperty(CHANNEL[k]);
-      }
-      this.#engaged = undefined;
-    }
-  }
-
-  // --- the markup gestures --------------------------------------------------
-
-  /** The `.x-handle` a pointerdown engages: a DIRECT child of this frame
-   * (so a nested overlay's handle stays the nested overlay's), or `null`
-   * when the press landed off every handle (card body, interactive
-   * descendant, scrolled content — all keep their own behavior). */
-  #handleFor(event: PointerEvent): HTMLElement | null {
-    const handle = (event.target as Element | null)?.closest<HTMLElement>(
-      ".x-handle",
+  /** Run `onOpen`/`onClose` on the overlay's open↔closed transitions (via the
+   * popover `toggle` event and the `[open]` attribute). `onOpen` also fires now
+   * if already open. */
+  #onToggle(onOpen?: () => void, onClose?: () => void): void {
+    const el = this.element;
+    const isOpen = () =>
+      (el instanceof HTMLDialogElement && el.open) ||
+      el.matches?.(":popover-open");
+    let was = isOpen();
+    if (was) onOpen?.();
+    const fire = (open: boolean) => {
+      if (open === was) return;
+      was = open;
+      (open ? onOpen : onClose)?.();
+    };
+    const onToggle = (e: Event) => fire((e as ToggleEvent).newState === "open");
+    const obs = new MutationObserver(() =>
+      fire(el instanceof HTMLDialogElement ? el.open : isOpen()),
     );
-    return handle && handle.parentElement === this.#el ? handle : null;
+    el.addEventListener("toggle", onToggle);
+    obs.observe(el, { attributes: true, attributeFilter: ["open"] });
+    this.#disposers.push(() => {
+      el.removeEventListener("toggle", onToggle);
+      obs.disconnect();
+    });
   }
 
-  /** The feel the built-in markup handles run their edits with —
-   * override in a subclass to change it (e.g. return a `SnapSession`
-   * so a sheet's pill snaps to detents; construct it fresh — a session
-   * is one edit). Return `undefined` (the default) for the built-in
-   * feel (free resize / edge slide). */
-  protected gestureSession(kind: "move" | "resize"): Session | undefined {
-    void kind;
-    return undefined;
+  /** Committed write, clamped to the constraint — morphs via CSS. */
+  set(box: Partial<PlainBox>): void {
+    const c = this.#constraint.constrain({
+      x: box.x ?? this.x,
+      y: box.y ?? this.y,
+      w: box.w ?? this.w,
+      h: box.h ?? this.h,
+    });
+    if (box.x !== undefined) this.x = c.x;
+    if (box.y !== undefined) this.y = c.y;
+    if (box.w !== undefined) this.w = c.w;
+    if (box.h !== undefined) this.h = c.h;
+  }
+
+  /** Dock flush against one or more constraint edges (the JS docking that
+   * replaces the retired `--overlay-y: 9999px` CSS clamp). One-shot — for a
+   * box that MORPHS size, use {@link place} so the flush edge tracks the
+   * animating size. */
+  dock(...sides: ("top" | "bottom" | "left" | "right")[]): void {
+    const { w, h } = this.#size();
+    const d = this.#constraint.dock({ x: this.x, y: this.y, w, h }, ...sides);
+    this.x = d.x;
+    this.y = d.y;
+  }
+
+  /** REACTIVELY center the box, then flush the given edges — reads the box's
+   * (reactive) size and constraint, so a docked/centered box stays anchored as
+   * it morphs. Replaces the one-shot `center` + `dock` for the morph recipes,
+   * where a single mid-transition measurement lands the box off its edge. */
+  place(...sides: ("top" | "bottom" | "left" | "right")[]): void {
+    this.#placeStop?.();
+    this.#placeStop = effect(() => {
+      const r = this.#constraint;
+      // BASE size (no live drag delta) — re-docks on a settled size change, not
+      // during a resize gesture (which would fight its edge-coupling).
+      const w = this.measuredW;
+      const h = this.measuredH;
+      let x = r.x + (r.w - w) / 2;
+      let y = r.y + (r.h - h) / 2;
+      if (sides.includes("left")) x = r.x;
+      if (sides.includes("right")) x = r.x + r.w - w;
+      if (sides.includes("top")) y = r.y;
+      if (sides.includes("bottom")) y = r.y + r.h - h;
+      this.x = x;
+      this.y = y;
+    });
+  }
+  #placeStop?: () => void;
+
+  #handles(): HTMLElement[] {
+    const out: HTMLElement[] = [];
+    for (const child of this.element.children) {
+      if (child instanceof HTMLElement && child.classList.contains("x-handle")) {
+        out.push(child);
+      }
+    }
+    return out;
   }
 
   #close(): void {
-    const el = this.#el;
+    const el = this.element;
     if (el instanceof HTMLDialogElement && el.open) el.close();
     else (el as { hidePopover?: () => void }).hidePopover?.();
   }
 
-  /** Restore the engage channels and close — a dismissing gesture
-   * reverts ITS changes (an author morph survives), then the overlay
-   * leaves. */
-  #dismiss(): void {
-    this.cancel();
-    this.#close();
-  }
-
-  /** The built-in handles — ONE pointer drive for both modes, delegating
-   * off the frame's `.x-handle` children. With an anchor bound, the move
-   * handle drags the ANCHOR through its edit API (the tear contract; the
-   * overlay follows through the engine); otherwise `engageGesture` turns
-   * the handle press into a `GestureSession` driving THIS box's edit.
-   * Shared: capture, user-select suppression, and the touch-scroll
-   * block. */
-  #wireGestures(anchor?: Anchor): void {
-    const el = this.#el;
-    type Drag =
-      | {
-          kind: "self";
-          start: Point;
-          prev: Point;
-          lastTime: number;
-          velocity: Point;
+  /** Wire each `.x-handle` child to its gesture. A `move` handle drags the
+   * window (unpinning a torn anchored overlay); a placement handle resizes,
+   * clamped to `[min, constraint]` with edge-coupling and — when
+   * `dismissible` — a flick past the minimum dismisses. Re-runnable: disposes
+   * the previous wiring first, so handles swapped in at runtime (the morph
+   * stories) get gestured. */
+  #wireHandles(anchored: boolean): void {
+    for (const dispose of this.#gestureDisposers.splice(0)) dispose();
+    const overlay = this;
+    for (const handle of this.#handles()) {
+      const placement = handle.getAttribute("data-placement") ?? "";
+      if (placement === "move") {
+        if (anchored) {
+          handle.addEventListener("pointerdown", () => this.#pinned(false));
         }
-      | { kind: "anchor"; down: Point; origin: { x: number; y: number } };
-    let drag: Drag | null = null;
-
-    const clearSelection = () => {
-      el.style.removeProperty("user-select");
-      el.style.removeProperty("-webkit-user-select");
-    };
-
-    const onDown = (event: PointerEvent) => {
-      if (drag || event.button !== 0) return;
-      const handle = this.#handleFor(event);
-      if (!handle) return;
-      if (anchor) {
-        // Only the move handle tears the anchor off; resize handles have
-        // no meaning for an anchored popover.
-        if (handle.getAttribute("data-placement") !== "move") return;
-        anchor.begin();
-        drag = {
-          kind: "anchor",
-          down: { x: event.clientX, y: event.clientY },
-          origin: { x: anchor.x(), y: anchor.y() },
-        };
+        const move = new (class extends Draggable {
+          protected override release(vx: number, vy: number): void {
+            if (overlay.#dismissesMove(vx, vy)) {
+              this.box.displacement.clear();
+              overlay.#close();
+              return;
+            }
+            super.release(vx, vy); // fold the drag into the base…
+            overlay.set({ x: overlay.x, y: overlay.y }); // …then clamp inside
+          }
+        })(this, undefined, handle);
+        this.#gestureDisposers.push(() => move.dispose());
       } else {
-        const session = engageGesture(el, handle, (kind) =>
-          this.gestureSession(kind),
-        );
-        if (!session) return;
-        this.#gesture = session;
-        this.begin(session);
-        const c = { x: event.clientX, y: event.clientY };
-        drag = {
-          kind: "self",
-          start: { ...c },
-          prev: { ...c },
-          lastTime: event.timeStamp,
-          velocity: { x: 0, y: 0 },
-        };
-      }
-      el.style.userSelect = "none";
-      el.style.setProperty("-webkit-user-select", "none");
-      try {
-        el.setPointerCapture(event.pointerId);
-      } catch {
-        // No active pointer with that id (synthetic events) — the drag
-        // still tracks through the listeners.
-      }
-    };
-
-    const onMove = (event: PointerEvent) => {
-      if (!drag) return;
-      if (drag.kind === "anchor") {
-        anchor!.set({
-          x: drag.origin.x + (event.clientX - drag.down.x),
-          y: drag.origin.y + (event.clientY - drag.down.y),
+        const compass = HANDLE_FOR[placement];
+        if (!compass) continue;
+        const cw = this.#constraint.w;
+        const ch = this.#constraint.h;
+        // Per-handle minimum size (`data-min="280"`) — the resize floor and the
+        // flick-dismiss threshold; defaults to a small floor.
+        const authored = handle.dataset.min ? Number(handle.dataset.min) : NaN;
+        const minW = Number.isNaN(authored) ? MIN_W : authored;
+        const minH = Number.isNaN(authored) ? MIN_H : authored;
+        const resize = new (class extends Resizable {
+          protected override release(vx: number, vy: number): void {
+            // Dismiss only on a shrink-FLICK — a fast release whose velocity
+            // projects the driven size past half its min. A slow drag settles
+            // at the min (rubber), it does NOT close.
+            const FLICK = 0.5; // px/ms — below this, never dismiss
+            const w =
+              compass.w && Math.abs(vx) > FLICK
+                ? overlay.w + compass.w * vx * PROJECTION_MS
+                : Infinity;
+            const h =
+              compass.h && Math.abs(vy) > FLICK
+                ? overlay.h + compass.h * vy * PROJECTION_MS
+                : Infinity;
+            if (overlay.#dismissible && (w < minW / 2 || h < minH / 2)) {
+              overlay.#close();
+              return;
+            }
+            super.release(vx, vy);
+          }
+        })(this, compass, handle, {
+          detents: this.#detentsFor(handle, compass),
+          clamp: {
+            w: compass.w ? rubber(minW, cw, cw) : (v) => v,
+            h: compass.h ? rubber(minH, ch, ch) : (v) => v,
+          },
         });
-        return;
+        this.#gestureDisposers.push(() => resize.dispose());
       }
-      const c = { x: event.clientX, y: event.clientY };
-      const dt = event.timeStamp - drag.lastTime;
-      if (dt > 0) {
-        drag.velocity = {
-          x: (c.x - drag.prev.x) / dt,
-          y: (c.y - drag.prev.y) / dt,
-        };
-      }
-      drag.prev = c;
-      drag.lastTime = event.timeStamp;
-      this.set(
-        this.#gesture!.move({
-          x: c.x - drag.start.x,
-          y: c.y - drag.start.y,
-        }),
-      );
-    };
-
-    const onUp = (event: PointerEvent) => {
-      if (!drag) return;
-      const ended = drag;
-      drag = null;
-      try {
-        el.releasePointerCapture(event.pointerId);
-      } catch {
-        // Was never captured — nothing to release.
-      }
-      if (ended.kind === "anchor") {
-        clearSelection();
-        anchor!.release();
-        return;
-      }
-      const session = this.#gesture!;
-      const delta = {
-        x: event.clientX - ended.start.x,
-        y: event.clientY - ended.start.y,
-      };
-      const dismiss =
-        this.#dismissible &&
-        session.shouldDismiss(this.read(), delta, ended.velocity);
-      if (dismiss) {
-        this.#dismiss();
-      } else if (this.release() === null && this.#dismissible) {
-        // The session itself rested null (e.g. a SnapSession flick past
-        // its smallest stop) — the edit already restored the snapshot;
-        // honor the dismiss signal.
-        this.#close();
-      }
-      this.#gesture = undefined;
-    };
-
-    const onCancel = () => {
-      if (!drag) return;
-      const ended = drag;
-      drag = null;
-      if (ended.kind === "anchor") {
-        clearSelection();
-        anchor!.cancel();
-        return;
-      }
-      this.cancel();
-      this.#gesture = undefined;
-    };
-
-    const blockScroll = (event: TouchEvent) => {
-      if (drag) event.preventDefault();
-    };
-
-    el.addEventListener("pointerdown", onDown);
-    el.addEventListener("pointermove", onMove);
-    el.addEventListener("pointerup", onUp);
-    el.addEventListener("pointercancel", onCancel);
-    el.addEventListener("touchmove", blockScroll, { passive: false });
-    this.#disposers.push(() => {
-      el.removeEventListener("pointerdown", onDown);
-      el.removeEventListener("pointermove", onMove);
-      el.removeEventListener("pointerup", onUp);
-      el.removeEventListener("pointercancel", onCancel);
-      el.removeEventListener("touchmove", blockScroll);
-    });
+    }
   }
 
-  dispose(): void {
-    for (const dispose of this.#disposers.splice(0)) dispose();
+  /** Snap detents for a resize handle from its `data-detents` — space-separated
+   * fractions of the constraint axis (`"0.25 0.6 0.9"` → 25/60/90%). Absent →
+   * empty (free resize). Applied to the axis/axes the handle drives. */
+  #detentsFor(
+    handle: HTMLElement,
+    compass: Handle,
+  ): { w: number[]; h: number[] } {
+    const raw = handle.dataset.detents;
+    if (!raw) return { w: [], h: [] };
+    const fracs = raw
+      .split(/\s+/)
+      .map(Number)
+      .filter((n) => !Number.isNaN(n));
+    const r = this.#constraint;
+    return {
+      w: compass.w ? fracs.map((f) => f * r.w) : [],
+      h: compass.h ? fracs.map((f) => f * r.h) : [],
+    };
   }
 
-  [Symbol.dispose](): void {
-    this.dispose();
+  /** A flicked move whose projected center leaves the constraint dismisses. */
+  #dismissesMove(vx: number, vy: number): boolean {
+    if (!this.#dismissible) return false;
+    const cx = this.x + this.w / 2 + vx * PROJECTION_MS;
+    const cy = this.y + this.h / 2 + vy * PROJECTION_MS;
+    const r = this.#constraint;
+    return cx < r.x || cx > r.x + r.w || cy < r.y || cy > r.y + r.h;
   }
 }

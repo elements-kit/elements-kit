@@ -1,41 +1,38 @@
-import { effect, onCleanup, signal } from "@/signals/index.ts";
+import { onCleanup, signal, type Signal } from "@/signals/index.ts";
 import { createElementRect } from "@/utilities/element-rect.ts";
 import {
-  Box,
   type BoxLike,
+  type IBox,
   isReactiveBox,
   type PlainBox,
   readBox,
-} from "./box.ts";
-import { clamp } from "./session.ts";
+  WINDOW_BOX,
+} from "./element-box.ts";
+
+function clamp(value: number, lo: number, hi: number): number {
+  return hi < lo ? lo : Math.min(Math.max(value, lo), hi);
+}
 
 /**
- * The constraint — a region the overlay stays inside; one of the
- * spatial classes (with the anchor and the overlay itself). Built from
- * an element (observed), a `BoxLike` (reactive getters pass through; a
- * plain box becomes an OWNED, editable region — spotlights, split
- * panes), or nothing (the live viewport).
+ * The constraint — a region the overlay stays inside, as a reactive `IBox`
+ * (viewport top-left getters), so it drops straight into a gesture bound or a
+ * `position_area` boundary. Built from an element (observed), a `BoxLike`
+ * (reactive getters pass through; a plain box becomes an OWNED, editable
+ * region), or nothing (the live viewport).
  *
- * `constrain()` is the pure clamp every composition builds on:
- * `overlay.set(c.constrain(box))`. Applying a constraint to an overlay
- * (syncing the `--overlay-constraint-*` channels every location clamp
- * and gesture bound derives from) is `applyConstraint` — internal,
- * reached through the `within` option.
+ * `constrain()` is the pure clamp every composition builds on
+ * (`overlay.set(c.constrain(box))`); `dock()` is a saturated clamp for
+ * flush-to-edge placement — the JS replacement for the retired zero-JS CSS
+ * center-clamp docking.
  */
-export class Constraint extends Box {
-  #read: () => Required<PlainBox>;
+export class Constraint implements IBox {
+  #read: () => IBox;
   /** The owned region when built from a plain box — editable. */
-  #owned: ReturnType<typeof signal<Required<PlainBox>>> | undefined;
+  #owned: Signal<IBox> | undefined;
 
   constructor(source?: Element | BoxLike) {
-    super();
     if (source === undefined) {
-      this.#read = () => ({
-        x: 0,
-        y: 0,
-        w: window.innerWidth,
-        h: window.innerHeight,
-      });
+      this.#read = () => WINDOW_BOX;
     } else if (source instanceof Element) {
       const rect = createElementRect(source);
       onCleanup(() => rect[Symbol.dispose]());
@@ -54,11 +51,21 @@ export class Constraint extends Box {
     }
   }
 
-  protected read(): Required<PlainBox> {
-    return this.#read();
+  get x(): number {
+    return this.#read().x;
+  }
+  get y(): number {
+    return this.#read().y;
+  }
+  get w(): number {
+    return this.#read().w;
+  }
+  get h(): number {
+    return this.#read().h;
   }
 
-  protected write(box: Partial<PlainBox>): void {
+  /** Edit an owned (plain-box) region — re-clamps everything inside. */
+  set(box: Partial<IBox>): void {
     const owned = this.#owned;
     if (!owned) {
       throw new Error(
@@ -70,8 +77,8 @@ export class Constraint extends Box {
 
   /** Pure clamp: the box forced inside the region — size capped to the
    * region, position clamped so the box can't leave it. */
-  constrain(box: PlainBox): Required<PlainBox> {
-    const r = this.read();
+  constrain(box: PlainBox): IBox {
+    const r = this.#read();
     const w = Math.min(box.w ?? 0, r.w);
     const h = Math.min(box.h ?? 0, r.h);
     return {
@@ -81,51 +88,27 @@ export class Constraint extends Box {
       h,
     };
   }
-}
 
-/**
- * Applies a constraint to an overlay by syncing its region into the
- * `--overlay-constraint-top/-left/-width/-height` channels (declared in
- * index.css with viewport defaults) — the overlay re-clamps reactively
- * whenever the region changes. Internal: reached through the `within`
- * option on `Overlay` (and the flip boundary in `Anchor.bind`).
- *
- * Caveat: an element-backed region observes size changes
- * (`ResizeObserver`) — a container that moves without resizing (e.g.
- * page scroll) does not retrigger the sync.
- */
-export function applyConstraint(
-  overlay: HTMLElement,
-  within: Element | BoxLike | Constraint,
-): { dispose(): void } {
-  const region =
-    within instanceof Constraint ? within : new Constraint(within);
-  const stop = effect(() => {
-    overlay.style.setProperty("--overlay-constraint-top", `${region.y()}px`);
-    overlay.style.setProperty("--overlay-constraint-left", `${region.x()}px`);
-    overlay.style.setProperty("--overlay-constraint-width", `${region.w()}px`);
-    overlay.style.setProperty(
-      "--overlay-constraint-height",
-      `${region.h()}px`,
-    );
-  });
-
-  const dispose = () => {
-    stop();
-    overlay.style.removeProperty("--overlay-constraint-top");
-    overlay.style.removeProperty("--overlay-constraint-left");
-    overlay.style.removeProperty("--overlay-constraint-width");
-    overlay.style.removeProperty("--overlay-constraint-height");
-  };
-  onCleanup(dispose);
-
-  return { dispose };
+  /** Dock the box flush against one or more region edges — the JS
+   * replacement for the old zero-JS CSS translate-clamp (`--overlay-y:
+   * 9999px`). A saturated `constrain()`: `±Infinity` on an axis clamps to
+   * its far/near edge, so `dock(box, "bottom")` sits flush at the bottom,
+   * `dock(box, "bottom", "right")` in the corner — reactively. */
+  dock(box: PlainBox, ...sides: ("top" | "bottom" | "left" | "right")[]): IBox {
+    const docked: PlainBox = { ...box };
+    for (const side of sides) {
+      if (side === "top") docked.y = -Infinity;
+      else if (side === "bottom") docked.y = Infinity;
+      else if (side === "left") docked.x = -Infinity;
+      else if (side === "right") docked.x = Infinity;
+    }
+    return this.constrain(docked);
+  }
 }
 
 /** While JS drives geometry, its writes must land instantly — but ONLY
  * geometry. Enter/exit (opacity, scale) and close (display) keep
- * transitioning, so `@starting-style` still plays. Shared by the anchor
- * engines and the overlay's edit lifecycle. */
+ * transitioning, so `@starting-style` still plays. */
 export const INSTANT_TRANSITIONS = "opacity, scale, display";
 
 /**
@@ -150,15 +133,4 @@ export function resolveVarPx(
   const px = probe.getBoundingClientRect()[axis];
   probe.remove();
   return px;
-}
-
-/** Resolves the constraint region every gesture bound derives from —
- * the one box vocabulary (`x`/`y` = the region's viewport top-left). */
-export function resolveConstraint(overlay: HTMLElement): Required<PlainBox> {
-  return {
-    y: resolveVarPx(overlay, "--overlay-constraint-top", "height"),
-    x: resolveVarPx(overlay, "--overlay-constraint-left", "width"),
-    w: resolveVarPx(overlay, "--overlay-constraint-width", "width"),
-    h: resolveVarPx(overlay, "--overlay-constraint-height", "height"),
-  };
 }

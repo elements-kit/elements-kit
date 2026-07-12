@@ -1,641 +1,161 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { Anchor, Constraint, Overlay } from "./index.ts";
-import { areaToPlacement } from "./anchor.ts";
+import { describe, expect, it } from "vitest";
+import { signal } from "@/signals/index.ts";
+import {
+  Anchor,
+  anchor_length,
+  type Area,
+  placeArea,
+  placeAxis,
+  position_area,
+  resolveArea,
+  shift,
+  tryFallbacks,
+} from "./anchor.ts";
+import { ElementBox, type IBox } from "./element-box.ts";
 
-const floating = vi.hoisted(() => {
-  const stop = vi.fn();
-  const autoUpdate = vi.fn(
-    (_reference: unknown, _floating: unknown, update: () => void) => {
-      update();
-      return stop;
-    },
-  );
-  const computePosition = vi.fn(() =>
-    Promise.resolve({
-      x: 200,
-      y: 300,
-      placement: "bottom",
-      middlewareData: {} as Record<string, unknown>,
-    }),
-  );
-  const flip = vi.fn(() => "flip");
-  const shift = vi.fn(() => "shift");
-  const arrow = vi.fn(() => "arrow");
-  return { stop, autoUpdate, computePosition, flip, shift, arrow };
-});
+const HUGE: IBox = { x: 0, y: 0, w: 10000, h: 10000 };
 
-vi.mock("@floating-ui/dom", () => ({
-  autoUpdate: floating.autoUpdate,
-  computePosition: floating.computePosition,
-  offset: (px: number) => px,
-  flip: floating.flip,
-  shift: floating.shift,
-  arrow: floating.arrow,
-}));
-
-function createAnchored(open = true): {
-  overlay: HTMLDialogElement;
-  trigger: HTMLButtonElement;
-} {
-  const el = document.createElement("dialog");
-  el.className = "unset x-overlay";
-  if (open) el.setAttribute("open", "");
-  // Constraint in plain px (the vw/vh defaults resolve to 0 in happy-dom)
-  // and a bound rect — 480×300, so the center offset is (240, 150).
-  el.style.setProperty("--overlay-constraint-top", "0px");
-  el.style.setProperty("--overlay-constraint-left", "0px");
-  el.style.setProperty("--overlay-constraint-width", "1024px");
-  el.style.setProperty("--overlay-constraint-height", "768px");
+/** An `ElementBox` over a rect-mocked div (happy-dom has no layout). */
+function box(w: number, h: number, x = 0, y = 0): ElementBox {
+  const el = document.createElement("div");
   el.getBoundingClientRect = () =>
-    ({ x: 100, y: 100, left: 100, top: 100, right: 580, bottom: 400,
-       width: 480, height: 300, toJSON: () => ({}) }) as DOMRect;
-  // Layout size (used for the center conversion — transform-immune).
-  Object.defineProperty(el, "offsetWidth", { value: 480 });
-  Object.defineProperty(el, "offsetHeight", { value: 300 });
+    ({
+      x, y, left: x, top: y, right: x + w, bottom: y + h,
+      width: w, height: h, toJSON: () => ({}),
+    }) as DOMRect;
   document.body.appendChild(el);
-  const trigger = document.createElement("button");
-  document.body.appendChild(trigger);
-  return { overlay: el, trigger };
+  return new ElementBox(el);
 }
 
-/** The proxy element an Anchor creates (no element return anymore). */
-const anchorEl = (): HTMLElement =>
-  document.querySelector<HTMLElement>(".x-overlay-anchor")!;
-
-beforeEach(() => {
-  floating.stop.mockClear();
-  floating.autoUpdate.mockClear();
-  floating.computePosition.mockClear();
-  floating.flip.mockClear();
-  floating.shift.mockClear();
-  floating.arrow.mockClear();
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-  document
-    .querySelectorAll(".x-overlay-anchor")
-    .forEach((el) => el.remove());
-});
-
-describe("areaToPlacement", () => {
-  it("maps the main sides (physical inline resolved by dir)", () => {
-    expect(areaToPlacement("block-end")).toBe("bottom");
-    expect(areaToPlacement("block-start")).toBe("top");
-    expect(areaToPlacement("inline-end")).toBe("right");
-    expect(areaToPlacement("inline-start")).toBe("left");
-    expect(areaToPlacement("inline-end", true)).toBe("left");
-    expect(areaToPlacement("inline-start", true)).toBe("right");
-  });
-
-  it("maps span tokens to the opposite alignment, order-insensitive", () => {
-    // Spanning toward an edge leaves the box flush with the opposite one.
-    expect(areaToPlacement("block-end span-inline-end")).toBe("bottom-start");
-    expect(areaToPlacement("block-end span-inline-start")).toBe("bottom-end");
-    expect(areaToPlacement("span-block-start inline-end")).toBe("right-end");
-    expect(areaToPlacement("span-block-end inline-start")).toBe("left-start");
-  });
-
-  it("falls back to bottom (the block-end default)", () => {
-    expect(areaToPlacement("")).toBe("bottom");
-    expect(areaToPlacement("nonsense")).toBe("bottom");
+describe("anchor_length", () => {
+  const rect: IBox = { x: 100, y: 200, w: 40, h: 20 };
+  it("resolves physical edges and centers", () => {
+    expect(anchor_length(rect, "top", "top")).toBe(200);
+    expect(anchor_length(rect, "top", "bottom")).toBe(220);
+    expect(anchor_length(rect, "left", "left")).toBe(100);
+    expect(anchor_length(rect, "left", "right")).toBe(140);
+    expect(anchor_length(rect, "top", "center")).toBe(210);
   });
 });
 
-/**
- * The engine support matrix — `Anchor.bind` reads `CSS.supports` at
- * bind time, so every browser tier is simulable by stubbing it:
- *   full     — Chrome-class: placement + chain (native engine)
- *   none     — Safari-class / below the gate (channel engine)
- *   no-chain — Firefox 151-class: placement parses but `anchor()`
- *              insets don't chain (native placement, JS rect copy)
- * The invariants below must hold in EVERY tier; engine-specific
- * behavior lives in the dedicated describes further down.
- */
-const SUPPORT_PROFILES = [
-  { name: "full support (native)", supports: () => true },
-  { name: "no support (channel)", supports: () => false },
-  {
-    name: "placement without chain (Firefox 151)",
-    supports: (q: string) =>
-      !q.startsWith("top: anchor") && !q.startsWith("width: anchor-size"),
-  },
-] as const;
-
-describe.each(SUPPORT_PROFILES)("engine invariants — $name", ({ supports }) => {
-  beforeEach(() => {
-    vi.stubGlobal("CSS", { supports });
+describe("resolveArea — the position-area grid", () => {
+  it("spans the other axis for an axis-specific keyword", () => {
+    expect(resolveArea("bottom")).toEqual({ block: "end", inline: "span-all" });
+    expect(resolveArea("inline-end")).toEqual({ block: "span-all", inline: "end" });
   });
-
-  it("an element target is followed and re-pins on a fresh open", async () => {
-    const { overlay: el, trigger } = createAnchored();
-    const anchor = new Anchor(trigger);
-    new Overlay(el, { anchor });
-    const a = anchorEl();
-    expect(a.hasAttribute("data-follow")).toBe(true);
-
-    // Tear, close, reopen — the pin must come back in every tier.
-    a.removeAttribute("data-follow");
-    el.removeAttribute("open");
-    el.setAttribute("open", "");
-    await vi.waitFor(() => expect(a.hasAttribute("data-follow")).toBe(true));
-
-    anchor.dispose();
-    el.remove();
-    trigger.remove();
+  it("applies an ambiguous keyword to both axes", () => {
+    expect(resolveArea("center")).toEqual({ block: "center", inline: "center" });
+    expect(resolveArea("start")).toEqual({ block: "start", inline: "start" });
   });
-
-  it("a reactive target always uses the channel engine (flips must morph)", () => {
-    const { overlay: el, trigger } = createAnchored();
-    const anchor = new Anchor(() => trigger);
-    new Overlay(el, { anchor });
-
-    expect(el.getAttribute("data-anchor")).toBeNull();
-    expect(
-      floating.autoUpdate.mock.calls.filter((c) => c[1] === el),
-    ).toHaveLength(1);
-
-    anchor.dispose();
-    el.remove();
-    trigger.remove();
-  });
-
-  it("dispose removes the proxy and every stamped attribute", () => {
-    const { overlay: el, trigger } = createAnchored();
-    const anchor = new Anchor(trigger);
-    new Overlay(el, { anchor });
-    anchor.dispose();
-
-    expect(document.querySelector(".x-overlay-anchor")).toBeNull();
-    expect(trigger.style.getPropertyValue("anchor-name")).toBe("");
-
-    el.remove();
-    trigger.remove();
-  });
-});
-
-describe("Anchor (native engine)", () => {
-  beforeEach(() => {
-    vi.stubGlobal("CSS", { supports: () => true });
-  });
-
-  it("creates the anchor element, chained overlay ← anchor ← trigger", () => {
-    const { overlay: el, trigger } = createAnchored();
-    const anchor = new Anchor(trigger);
-    const o = new Overlay(el, { anchor });
-    const a = anchorEl();
-
-    expect(a.className).toBe("x-overlay-anchor");
-    expect(el.getAttribute("data-anchor")).toBe("element");
-    expect(el.getAttribute("data-placed")).toBe("bottom"); // area hint
-    // overlay → anchor element
-    const proxyName = a.style.getPropertyValue("anchor-name");
-    expect(proxyName).toMatch(/^--overlay-anchor-\d+$/);
-    expect(el.style.getPropertyValue("position-anchor")).toBe(proxyName);
-    // anchor element → trigger (the follow pin)
-    expect(a.hasAttribute("data-follow")).toBe(true);
-    const followName = trigger.style.getPropertyValue("anchor-name");
-    expect(followName).toMatch(/^--overlay-follow-\d+$/);
-    expect(a.style.getPropertyValue("position-anchor")).toBe(followName);
-    // zero JS while following; the CSS glide transition stays live
-    expect(floating.autoUpdate).not.toHaveBeenCalled();
-    expect(a.style.transitionProperty).toBe("");
-
-    o.dispose();
-    anchor.dispose();
-    el.remove();
-    trigger.remove();
-  });
-
-  it("a reactive target getter re-pins to the new element (nav glide)", async () => {
-    const { overlay: el, trigger } = createAnchored();
-    const second = document.createElement("button");
-    document.body.appendChild(second);
-    const { signal } = await import("@/signals/index.ts");
-    const target = signal<Element>(trigger);
-
-    const anchor = new Anchor(() => target());
-    new Overlay(el, { anchor });
-    const a = anchorEl();
-    expect(trigger.style.getPropertyValue("anchor-name")).toMatch(
-      /^--overlay-follow-\d+$/,
-    );
-
-    target(second);
-    await vi.waitFor(() => {
-      // Same position-anchor name migrates — the proxy glides via CSS.
-      expect(trigger.style.getPropertyValue("anchor-name")).toBe("");
-      expect(second.style.getPropertyValue("anchor-name")).toBe(
-        a.style.getPropertyValue("position-anchor"),
-      );
+  it("assigns two keywords + span tokens", () => {
+    expect(resolveArea("top left")).toEqual({ block: "start", inline: "start" });
+    expect(resolveArea("block-end span-inline-end")).toEqual({
+      block: "end", inline: "span-end",
     });
-    expect(a.hasAttribute("data-follow")).toBe(true);
-
-    anchor.dispose();
-    el.remove();
-    trigger.remove();
-    second.remove();
   });
-
-  it("a reactive target forces the channel engine (flips morph, never jump)", async () => {
-    // Native placement cannot INTERPOLATE a side flip — a signal-driven
-    // re-pin gliding the proxy would flip position-area mid-flight (a
-    // visible jump). Reactive targets therefore use the channel engine,
-    // which resolves placement once at the destination and morphs.
-    const { overlay: el, trigger } = createAnchored();
-    const anchor = new Anchor(() => trigger);
-    new Overlay(el, { anchor });
-
-    expect(el.getAttribute("data-anchor")).toBeNull();
-    expect(
-      floating.autoUpdate.mock.calls.filter((c) => c[1] === el),
-    ).toHaveLength(1); // the channel loop runs (overlay is open)
-
-    anchor.dispose();
-    el.remove();
-    trigger.remove();
-  });
-
-  it("re-pins a torn-off anchor on a fresh open", async () => {
-    const { overlay: el, trigger } = createAnchored();
-    const anchor = new Anchor(trigger);
-    new Overlay(el, { anchor });
-    const a = anchorEl();
-
-    // An edit tears the pin (the data-follow contract).
-    a.removeAttribute("data-follow");
-    a.style.left = "600px";
-    a.style.top = "400px";
-
-    el.removeAttribute("open");
-    el.setAttribute("open", "");
-    await vi.waitFor(() => {
-      expect(a.hasAttribute("data-follow")).toBe(true);
-      expect(a.style.left).toBe("");
+  it("flips inline logical sides in RTL, never physical/block", () => {
+    expect(resolveArea("inline-start", "rtl")).toEqual({
+      block: "span-all", inline: "end",
     });
+    expect(resolveArea("left", "rtl")).toEqual({
+      block: "span-all", inline: "start",
+    });
+  });
+  it("falls back to bottom-center for unknown/empty", () => {
+    expect(resolveArea("")).toEqual({ block: "end", inline: "center" });
+  });
+});
 
-    anchor.dispose();
-    el.remove();
-    trigger.remove();
+describe("placeAxis / placeArea", () => {
+  it("insets outward regions, centers span/center, flushes spans", () => {
+    expect(placeAxis(100, 140, 20, "start", 8)).toBe(72);
+    expect(placeAxis(100, 140, 20, "end", 8)).toBe(148);
+    expect(placeAxis(100, 140, 20, "center", 8)).toBe(110);
+    expect(placeAxis(100, 140, 20, "span-start", 8)).toBe(120);
+    expect(placeAxis(100, 140, 20, "span-end", 8)).toBe(100);
+  });
+  it("places a box below-and-centered for bottom", () => {
+    const self: IBox = { x: 0, y: 0, w: 200, h: 120 };
+    const anchor: IBox = { x: 300, y: 260, w: 120, h: 40 };
+    expect(placeArea(self, anchor, resolveArea("bottom"), 8)).toEqual({
+      x: 260, y: 308,
+    });
+  });
+});
+
+describe("tryFallbacks / shift", () => {
+  const self: IBox = { x: 0, y: 0, w: 100, h: 100 };
+  const anchor: IBox = { x: 400, y: 300, w: 40, h: 40 };
+  const pref: Area = { block: "end", inline: "center" };
+  it("keeps the preferred area when it fits, flips when it overflows", () => {
+    expect(tryFallbacks(self, anchor, pref, 0, HUGE)).toEqual(pref);
+    expect(tryFallbacks(self, anchor, pref, 0, { x: 0, y: 0, w: 1000, h: 360 })).toEqual({
+      block: "start", inline: "center",
+    });
+  });
+  it("clamps a box back inside the boundary", () => {
+    expect(shift({ x: -20, y: 50 }, self, HUGE)).toEqual({ x: 0, y: 50 });
+  });
+});
+
+describe("position_area — the reactive writer", () => {
+  it("writes the placed coordinate to self.x/y", () => {
+    const overlay = box(200, 120);
+    const anchor: IBox = { x: 300, y: 260, w: 120, h: 40 };
+    const stop = position_area(overlay, anchor, "bottom", 8, HUGE);
+    expect(overlay.x).toBe(260);
+    expect(overlay.y).toBe(308);
+    stop();
+    overlay.dispose();
   });
 
-  it("set() tears the pin and places the box (size kept when omitted)", () => {
-    const { overlay: el, trigger } = createAnchored();
-    const anchor = new Anchor(trigger);
-    new Overlay(el, { anchor });
-    const a = anchorEl();
-    a.getBoundingClientRect = () =>
-      ({ x: 100, y: 100, left: 100, top: 100, right: 120, bottom: 130,
+  it("re-places when the anchor moves (reactive follow)", () => {
+    const overlay = box(200, 120);
+    const ax = signal(300);
+    const anchor: IBox = { get x() { return ax(); }, y: 260, w: 120, h: 40 };
+    const stop = position_area(overlay, anchor, "bottom", 0, HUGE);
+    expect(overlay.x).toBe(260);
+    ax(500);
+    expect(overlay.x).toBe(460);
+    stop();
+    overlay.dispose();
+  });
+
+  it("the pinned gate holds the box's own base as the fallback", () => {
+    const overlay = box(200, 120);
+    const anchor: IBox = { x: 300, y: 260, w: 120, h: 40 };
+    const pinned = signal(false);
+    overlay.x = 999;
+    overlay.y = 888;
+    const stop = position_area(overlay, anchor, "bottom", 8, HUGE, pinned);
+    expect(overlay.x).toBe(999); // unpinned → no follow
+    pinned(true);
+    expect(overlay.x).toBe(260); // re-pinned → snaps to the anchor
+    stop();
+    overlay.dispose();
+  });
+});
+
+describe("Anchor", () => {
+  it("wraps a plain box as an IBox", () => {
+    const a = new Anchor({ x: 10, y: 20, w: 30, h: 40 });
+    expect([a.x, a.y, a.w, a.h]).toEqual([10, 20, 30, 40]);
+  });
+
+  it("a dot box (no w/h) reads zero size", () => {
+    const a = new Anchor({ x: 5, y: 6 });
+    expect([a.w, a.h]).toEqual([0, 0]);
+  });
+
+  it("tracks an element's live rect", () => {
+    const el = document.createElement("div");
+    el.getBoundingClientRect = () =>
+      ({ x: 7, y: 8, left: 7, top: 8, right: 27, bottom: 38,
          width: 20, height: 30, toJSON: () => ({}) }) as DOMRect;
-    expect(a.hasAttribute("data-follow")).toBe(true);
-
-    anchor.set({ x: 400, y: 500 });
-    expect(a.hasAttribute("data-follow")).toBe(false);
-    expect(a.style.getPropertyValue("position-anchor")).toBe("");
-    expect(a.style.left).toBe("400px");
-    expect(a.style.top).toBe("500px");
-    // Frozen at the current size — no w/h in the write.
-    expect(a.style.width).toBe("20px");
-    expect(a.style.height).toBe("30px");
-
-    anchor.dispose();
+    document.body.appendChild(el);
+    const a = new Anchor(el);
+    expect([a.x, a.y, a.w, a.h]).toEqual([7, 8, 20, 30]);
+    a.dispose();
     el.remove();
-    trigger.remove();
-  });
-
-  it("releasing the binding leaves the overlay where it was", async () => {
-    const { overlay: el, trigger } = createAnchored();
-    const { effectScope } = await import("@/signals/index.ts");
-    const stop = effectScope(() => {
-      new Overlay(el, { anchor: new Anchor(trigger) });
-    });
-
-    stop();
-    // Seeded from the rendered rect: center (340, 250) − origin (0, 0).
-    expect(el.style.getPropertyValue("--overlay-x")).toBe("340px");
-    expect(el.style.getPropertyValue("--overlay-y")).toBe("250px");
-    expect(el.getAttribute("data-anchor")).toBeNull();
-    expect(document.querySelector(".x-overlay-anchor")).toBeNull();
-
-    el.remove();
-    trigger.remove();
-  });
-});
-
-describe("Anchor (Floating UI engine)", () => {
-  beforeEach(() => {
-    vi.stubGlobal("CSS", { supports: () => false });
-  });
-
-  it("writes the box center into the location channels while open", async () => {
-    const { overlay: el, trigger } = createAnchored();
-    const anchor = new Anchor(trigger);
-    new Overlay(el, { anchor });
-    const a = anchorEl();
-
-    // Overlay loop runs against the anchor element…
-    expect(floating.autoUpdate).toHaveBeenCalledWith(
-      a,
-      el,
-      expect.any(Function),
-    );
-    // …and the follow sync pins the anchor element to the trigger.
-    expect(floating.autoUpdate).toHaveBeenCalledWith(
-      trigger,
-      a,
-      expect.any(Function),
-    );
-    // JS-driven proxy: the CSS glide transition must not ease its writes
-    // (the overlay's channel morph provides the glide below the gate).
-    expect(a.style.transitionProperty).toBe("none");
-    await vi.waitFor(() => {
-      // computePosition's (200, 300) top-left + (240, 150) half-box.
-      expect(el.style.getPropertyValue("--overlay-x")).toBe("440px");
-      expect(el.style.getPropertyValue("--overlay-y")).toBe("450px");
-    });
-    expect(floating.computePosition).toHaveBeenCalledWith(
-      a,
-      el,
-      expect.objectContaining({ strategy: "fixed", placement: "bottom" }),
-    );
-    // The initial positioning write is instant; geometry transitions
-    // re-enable after it (Base UI's data-instant semantics).
-    await vi.waitFor(() => expect(el.style.transitionProperty).toBe(""));
-
-    anchor.dispose();
-    el.remove();
-    trigger.remove();
-  });
-
-  it("starts and stops the loop with the open state", async () => {
-    const { overlay: el, trigger } = createAnchored(false);
-    const anchor = new Anchor(trigger);
-    new Overlay(el, { anchor });
-    const overlayLoop = floating.autoUpdate.mock.calls.filter(
-      (c) => c[1] === el,
-    );
-    expect(overlayLoop).toHaveLength(0);
-
-    el.setAttribute("open", "");
-    await vi.waitFor(() =>
-      expect(
-        floating.autoUpdate.mock.calls.filter((c) => c[1] === el),
-      ).toHaveLength(1),
-    );
-
-    el.removeAttribute("open");
-    await vi.waitFor(() => expect(floating.stop).toHaveBeenCalled());
-    expect(el.style.transitionProperty).toBe("");
-
-    anchor.dispose();
-    el.remove();
-    trigger.remove();
-  });
-
-  it("releasing the binding keeps the location channels", async () => {
-    const { overlay: el, trigger } = createAnchored();
-    const { effectScope } = await import("@/signals/index.ts");
-    const stop = effectScope(() => {
-      new Overlay(el, { anchor: new Anchor(trigger) });
-    });
-    await vi.waitFor(() =>
-      expect(el.style.getPropertyValue("--overlay-x")).toBe("440px"),
-    );
-
-    stop();
-    expect(el.style.getPropertyValue("--overlay-x")).toBe("440px");
-    expect(el.getAttribute("data-placed")).toBeNull();
-    expect(document.querySelector(".x-overlay-anchor")).toBeNull();
-
-    el.remove();
-    trigger.remove();
-  });
-
-  it("re-anchoring an already-placed overlay morphs in (no instant write)", async () => {
-    const { overlay: el, trigger } = createAnchored();
-    el.style.setProperty("--overlay-x", "300px");
-    el.style.setProperty("--overlay-y", "300px");
-
-    const anchor = new Anchor(trigger);
-    new Overlay(el, { anchor });
-    // Open + already placed → the first write animates (recipe switch).
-    expect(el.style.transitionProperty).toBe("");
-    await vi.waitFor(() =>
-      expect(el.style.getPropertyValue("--overlay-x")).toBe("440px"),
-    );
-    expect(el.style.transitionProperty).toBe("");
-
-    anchor.dispose();
-    el.remove();
-    trigger.remove();
-  });
-
-  it("an edit repositions instantly (geometry suppressed until release)", async () => {
-    const { overlay: el, trigger } = createAnchored();
-    const anchor = new Anchor(trigger);
-    new Overlay(el, { anchor });
-    const a = anchorEl();
-    a.getBoundingClientRect = () =>
-      ({ x: 100, y: 100, left: 100, top: 100, right: 120, bottom: 120,
-         width: 20, height: 20, toJSON: () => ({}) }) as DOMRect;
-    await vi.waitFor(() => expect(floating.computePosition).toHaveBeenCalled());
-    const calls = floating.computePosition.mock.calls.length;
-
-    anchor.begin();
-    anchor.set({ x: 101, y: 102 });
-    // Tracking the finger: geometry transitions off, enter/exit kept.
-    expect(el.style.transitionProperty).toBe("opacity, scale, display");
-    await vi.waitFor(() =>
-      expect(floating.computePosition.mock.calls.length).toBeGreaterThan(
-        calls,
-      ),
-    );
-    anchor.release();
-    expect(el.style.transitionProperty).toBe("");
-
-    anchor.dispose();
-    el.remove();
-    trigger.remove();
-  });
-
-  it("within bounds the flip/shift (and forces this engine)", async () => {
-    vi.stubGlobal("CSS", { supports: () => true }); // native available…
-    const { overlay: el, trigger } = createAnchored();
-    const anchor = new Anchor(trigger);
-    // …but within forces the boundary-aware engine.
-    new Overlay(el, {
-      anchor,
-      within: new Constraint({ x: 10, y: 5, w: 500, h: 400 }),
-    });
-
-    await vi.waitFor(() => {
-      expect(floating.flip).toHaveBeenCalledWith({
-        boundary: { x: 10, y: 5, width: 500, height: 400 },
-      });
-      expect(floating.shift).toHaveBeenCalledWith({
-        boundary: { x: 10, y: 5, width: 500, height: 400 },
-      });
-    });
-    expect(el.style.getPropertyValue("position-anchor")).toBe("");
-
-    anchor.dispose();
-    el.remove();
-    trigger.remove();
-  });
-
-  it("a move handle drags the anchor through its edit (tear contract)", async () => {
-    const { overlay: el, trigger } = createAnchored();
-    const move = document.createElement("div");
-    move.className = "x-handle";
-    move.setAttribute("data-placement", "move");
-    el.appendChild(move);
-    const anchor = new Anchor(trigger);
-    new Overlay(el, { anchor });
-    const a = anchorEl();
-    a.getBoundingClientRect = () =>
-      ({ x: 100, y: 100, left: 100, top: 100, right: 120, bottom: 120,
-         width: 20, height: 20, toJSON: () => ({}) }) as DOMRect;
-    await vi.waitFor(() => expect(a.hasAttribute("data-follow")).toBe(true));
-
-    // Dragging the move handle moves the anchor element (the tear contract).
-    move.dispatchEvent(
-      new PointerEvent("pointerdown", {
-        clientX: 10, clientY: 10, button: 0, bubbles: true,
-      }),
-    );
-    el.dispatchEvent(
-      new PointerEvent("pointermove", {
-        clientX: 60, clientY: 40, bubbles: true,
-      }),
-    );
-    expect(a.hasAttribute("data-follow")).toBe(false);
-    expect(a.style.left).toBe("150px");
-    expect(a.style.top).toBe("130px");
-    el.dispatchEvent(
-      new PointerEvent("pointerup", {
-        clientX: 60, clientY: 40, bubbles: true,
-      }),
-    );
-
-    anchor.dispose();
-    el.remove();
-    trigger.remove();
-  });
-
-  it("a drag from non-handle content does not engage", async () => {
-    const { overlay: el, trigger } = createAnchored();
-    const move = document.createElement("div");
-    move.className = "x-handle";
-    move.setAttribute("data-placement", "move");
-    el.appendChild(move);
-    const scroller = document.createElement("div");
-    el.appendChild(scroller);
-    const anchor = new Anchor(trigger);
-    new Overlay(el, { anchor });
-    const a = anchorEl();
-    await vi.waitFor(() => expect(a.hasAttribute("data-follow")).toBe(true));
-
-    // A pointer starting off the move handle (here, card content) does not
-    // engage — the drag must not tear the pin.
-    scroller.dispatchEvent(
-      new PointerEvent("pointerdown", {
-        clientX: 10, clientY: 10, button: 0, bubbles: true,
-      }),
-    );
-    el.dispatchEvent(
-      new PointerEvent("pointermove", {
-        clientX: 60, clientY: 40, bubbles: true,
-      }),
-    );
-    expect(a.hasAttribute("data-follow")).toBe(true);
-
-    anchor.dispose();
-    el.remove();
-    trigger.remove();
-  });
-
-  it("a dot target pins one-shot at a zero-size box", () => {
-    const { overlay: el, trigger } = createAnchored();
-    trigger.remove();
-    const anchor = new Anchor({ x: 320, y: 240 });
-    new Overlay(el, { anchor });
-    const a = anchorEl();
-
-    expect(a.style.left).toBe("320px");
-    expect(a.style.top).toBe("240px");
-    expect(a.style.width).toBe("0px");
-    expect(a.style.height).toBe("0px");
-    expect(a.hasAttribute("data-follow")).toBe(false); // one-shot
-
-    anchor.dispose();
-    el.remove();
-  });
-
-  it("a reactive box re-places the anchor until torn", async () => {
-    const { overlay: el, trigger } = createAnchored();
-    trigger.remove();
-    const { signal } = await import("@/signals/index.ts");
-    const mx = signal(100);
-    const anchor = new Anchor({ x: () => mx(), y: 50 });
-    new Overlay(el, { anchor });
-    const a = anchorEl();
-
-    expect(a.hasAttribute("data-follow")).toBe(true); // reactive pin holds
-    expect(a.style.left).toBe("100px");
-    mx(260);
-    await vi.waitFor(() => expect(a.style.left).toBe("260px"));
-
-    // Tearing (an edit) stops the effect.
-    anchor.set({ x: 10, y: 10 });
-    mx(999);
-    await new Promise((r) => setTimeout(r, 10));
-    expect(a.style.left).toBe("10px");
-
-    anchor.dispose();
-    el.remove();
-  });
-
-  it("composes with constrain(): set lands clamped", () => {
-    const { overlay: el, trigger } = createAnchored();
-    const anchor = new Anchor(trigger);
-    new Overlay(el, { anchor });
-    const a = anchorEl();
-    a.getBoundingClientRect = () =>
-      ({ x: 0, y: 0, left: 0, top: 0, right: 20, bottom: 20,
-         width: 20, height: 20, toJSON: () => ({}) }) as DOMRect;
-
-    const c = new Constraint({ x: 0, y: 0, w: 300, h: 300 });
-    anchor.set(c.constrain({ x: 900, y: 900, w: 20, h: 20 }));
-    expect(a.style.left).toBe("280px");
-    expect(a.style.top).toBe("280px");
-
-    anchor.dispose();
-    el.remove();
-    trigger.remove();
-  });
-
-  it("arrow injects the caret, feeds the middleware, writes channels", async () => {
-    const { overlay: el, trigger } = createAnchored();
-    floating.computePosition.mockResolvedValueOnce({
-      x: 200,
-      y: 300,
-      placement: "top",
-      middlewareData: { arrow: { x: 120 } },
-    });
-    const anchor = new Anchor(trigger, { arrow: 12 });
-    new Overlay(el, { anchor });
-
-    const caret = el.querySelector(":scope > .x-overlay-arrow");
-    expect(caret).not.toBeNull();
-    expect(floating.arrow).toHaveBeenCalledWith({ element: caret });
-    expect(el.style.getPropertyValue("--overlay-arrow-size")).toBe("12px");
-    await vi.waitFor(() => {
-      expect(el.getAttribute("data-placed")).toBe("top");
-      expect(el.style.getPropertyValue("--overlay-arrow-x")).toBe("120px");
-    });
-
-    anchor.dispose();
-    el.remove();
-    trigger.remove();
   });
 });

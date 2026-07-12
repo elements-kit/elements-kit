@@ -6,7 +6,7 @@ import "../button/button.css";
 import "../toggle/toggle.css";
 import "./index.css";
 import "./overlay.css";
-import { Anchor, Overlay, SnapSession } from "./index.ts";
+import { AUTO, Anchor, Overlay } from "./index.ts";
 
 const RESIZES = [
   "none",
@@ -78,6 +78,20 @@ function setResizeHandle(el: Element, placement: string): void {
 function setMoveHandle(el: Element, on: boolean): void {
   el.querySelector(':scope > .x-handle[data-placement="move"]')?.remove();
   if (on) el.appendChild(makeHandle("move"));
+}
+
+/** Dock/size an overlay to its edge NOW (before it's shown), so the CSS enter
+ * animation slides in from the settled docked position rather than racing a
+ * toggle-time JS write (which starts the slide from the origin). `box:{x:0}`
+ * suppresses the auto-center; the sheet/drawer sizes are explicit, so no
+ * measurement (which would need the box visible) is required. */
+function dockOnOpen(
+  el: HTMLDialogElement,
+  geo: (o: Overlay, vw: number, vh: number) => void,
+): Overlay {
+  const o = new Overlay(el, { box: { x: 0, y: 0 } });
+  geo(o, globalThis.innerWidth, globalThis.innerHeight);
+  return o;
 }
 
 const meta = {
@@ -228,11 +242,6 @@ export const BottomSheet: Story = {
   args: { resize: "none", draggable: false, modal: false, gestures: false },
   render: () => {
     const id = `overlay-story-${uid++}`;
-    class SheetOverlay extends Overlay {
-      protected override gestureSession() {
-        return new SnapSession([0.25, 0.6, 0.9]);
-      }
-    }
     return (
       <>
         <button
@@ -244,17 +253,14 @@ export const BottomSheet: Story = {
         >
           Open sheet
         </button>
-        <dialog
-          id={id}
-          class:unset
-          class:x-overlay
-          popover="auto"
-          style="--overlay-y: 9999px; --overlay-h: 60svh; --overlay-w: var(--overlay-constraint-width)"
-        >
+        <dialog id={id} class:unset class:x-overlay popover="auto">
           <dom-lifecycle
             onConnect={(self) => {
               const el = self.parentElement as HTMLDialogElement;
-              new SheetOverlay(el);
+              dockOnOpen(el, (o, vw, vh) => {
+                o.set({ x: 0, w: vw, h: Math.round(vh * 0.6) });
+                o.dock("bottom");
+              });
             }}
           />
           <div class:unset class:x-card data-variant="elevated" data-size="3">
@@ -264,46 +270,107 @@ export const BottomSheet: Story = {
               viewport. Flick down past the smallest stop to dismiss.
             </p>
           </div>
-          <div class:x-handle data-placement="block-start" />
+          <div class:x-handle data-placement="block-start" data-detents="0.25 0.6 0.9" />
         </dialog>
       </>
     );
   },
 };
 
-export const TopSheet: Story = {
-  args: {
-    resize: "block-end",
-    draggable: false,
-    y: "-9999px",
-    w: "var(--overlay-constraint-width)",
-    h: "60svh",
-  },
-};
+const OFF_CONTROLS = {
+  resize: { control: false },
+  draggable: { control: false },
+  x: { control: false },
+  y: { control: false },
+  w: { control: false },
+  h: { control: false },
+  modal: { control: false },
+  gestures: { control: false },
+} as const;
 
-/** Right drawer: docked at the inline end, width drag from the inner
- * handle. */
-export const Drawer: Story = {
-  args: {
-    resize: "inline-start",
-    draggable: false,
-    x: "9999px",
-    w: "480px",
-    h: "var(--overlay-constraint-height)",
-  },
-};
+/** A docked/sized overlay with a single resize handle — JS geometry via
+ * `dockOnOpen` (o.set + o.dock), the new replacement for channel authoring. */
+function sheetStory(
+  title: string,
+  body: string,
+  placement: string,
+  popover: "auto" | "manual",
+  geo: (o: Overlay, vw: number, vh: number) => void,
+  min?: number,
+): Story {
+  return {
+    argTypes: OFF_CONTROLS,
+    args: { resize: "none", draggable: false, modal: false, gestures: false },
+    render: () => {
+      const id = `overlay-story-${uid++}`;
+      return (
+        <>
+          <button
+            class:unset
+            class:x-button
+            data-variant="solid"
+            data-size="2"
+            popovertarget={id}
+          >
+            Open
+          </button>
+          <dialog id={id} class:unset class:x-overlay popover={popover}>
+            <dom-lifecycle
+              onConnect={(self) => {
+                const el = self.parentElement as HTMLDialogElement;
+                dockOnOpen(el, geo);
+              }}
+            />
+            <div class:unset class:x-card data-variant="elevated" data-size="3">
+              <strong>{title}</strong>
+              <p>{body}</p>
+            </div>
+            <div
+              class:x-handle
+              data-placement={placement}
+              data-min={min ? String(min) : undefined}
+            />
+          </dialog>
+        </>
+      );
+    },
+  };
+}
 
-/** Floating panel docked at the bottom-right corner — saturated x/y, a
- * corner grip facing inward (top-left), persistent popover. */
-export const CornerPanel: Story = {
-  args: {
-    resize: "start-start",
-    x: "9999px",
-    y: "9999px",
-    h: "60svh",
-    modal: false,
+export const TopSheet = sheetStory(
+  "Top sheet",
+  "Drag the bottom pill — grows from the top (min height 200).",
+  "block-end",
+  "auto",
+  (o, vw, vh) => {
+    o.set({ x: 0, w: vw, h: Math.round(vh * 0.6) });
+    o.dock("top");
   },
-};
+  200,
+);
+
+export const Drawer = sheetStory(
+  "Drawer",
+  "Drag the inner pill — resizes the width (min width 280).",
+  "inline-start",
+  "auto",
+  (o, _vw, vh) => {
+    o.set({ w: 420, h: vh, y: 0 });
+    o.dock("right");
+  },
+  280,
+);
+
+export const CornerPanel = sheetStory(
+  "Corner panel",
+  "Grip faces inward — the docked corner stays put.",
+  "start-start",
+  "manual",
+  (o, _vw, vh) => {
+    o.set({ w: 300, h: Math.round(vh * 0.6) });
+    o.dock("bottom", "right");
+  },
+);
 
 const FULL_W = "var(--overlay-constraint-width)";
 const FULL_H = "var(--overlay-constraint-height)";
@@ -345,22 +412,23 @@ const GRID: Cell[] = [
 const CENTER = GRID[4];
 
 /**
- * Applies a grid cell's full recipe to the live overlay element. Writes
- * are imperative — a reactive `style` attribute would replace the whole
- * attribute and wipe the constraint vars / gesture-persisted channels.
+ * Applies a grid cell's full recipe to the live overlay via the new box API:
+ * size to full (capped by the constraint) or content-auto, then center and
+ * dock the saturated axes. Replaces the old `--overlay-*` channel writes.
  */
-function applyCell(el: HTMLDialogElement | null | undefined, cell: Cell) {
-  if (!el) return;
-  for (const [name, value] of [
-    ["--overlay-x", cell.x],
-    ["--overlay-y", cell.y],
-    ["--overlay-w", cell.w],
-    ["--overlay-h", cell.h],
-  ] as const) {
-    if (value) el.style.setProperty(name, value);
-    else el.style.removeProperty(name);
-  }
-  setResizeHandle(el, cell.resize);
+function applyCell(o: Overlay | null | undefined, cell: Cell) {
+  if (!o) return;
+  setResizeHandle(o.element, cell.resize);
+  // Full extent (Infinity → capped to the constraint by `set`) or content-auto.
+  o.set({ w: cell.w ? Infinity : AUTO, h: cell.h ? Infinity : AUTO });
+  // Reactive center + dock — stays flush as the size morphs (a one-shot
+  // measurement lands mid-transition, missing the edge).
+  const sides: ("top" | "bottom" | "left" | "right")[] = [];
+  if (cell.x === "9999px") sides.push("right");
+  else if (cell.x === "-9999px") sides.push("left");
+  if (cell.y === "9999px") sides.push("bottom");
+  else if (cell.y === "-9999px") sides.push("top");
+  o.place(...sides);
 }
 
 /** The grid cell matching an authored shape, or `""` (no arrow lit). */
@@ -402,13 +470,14 @@ export const Morph: Story = {
     h: { control: false },
   },
   args: { modal: false, draggable: false },
-  render: (args) => {
+  render: () => {
     const id = `overlay-story-${uid++}`;
     const panel = signal<HTMLDialogElement | null>();
+    const overlay = signal<Overlay | null>(null);
     const selected = signal(CENTER.label);
     const moveTo = (cell: Cell) => {
       selected(cell.label);
-      applyCell(panel(), cell);
+      applyCell(overlay(), cell);
     };
     return (
       <>
@@ -432,8 +501,10 @@ export const Morph: Story = {
             onConnect={(self) => {
               const el = self.parentElement as HTMLDialogElement;
               setResizeHandle(el, CENTER.resize);
-              if (args.gestures) new Overlay(el);
+              const o = new Overlay(el);
+              overlay(o);
               el.showPopover();
+              applyCell(o, CENTER);
             }}
           />
           <div class:unset class:x-card data-variant="elevated" data-size="3">
@@ -564,10 +635,7 @@ export const Anchored: StoryObj<AnchoredArgs> = {
             onConnect={(self) => {
               const el = self.parentElement as HTMLDialogElement;
               new Overlay(el, {
-                anchor: new Anchor(
-                  () => target() ?? undefined,
-                  args.arrow ? { arrow: true } : undefined,
-                ),
+                anchor: new Anchor(() => target() ?? undefined),
               });
             }}
           />
@@ -696,7 +764,7 @@ export const AnchoredWithin: StoryObj<AnchoredArgs> = {
           data-variant="solid"
           data-size="2"
           popovertarget={id}
-          style="position: fixed; bottom: 64px; right: 64px"
+          style="position: fixed; top: 132px; left: 96px"
         >
           Open near the corner
         </button>
@@ -713,7 +781,6 @@ export const AnchoredWithin: StoryObj<AnchoredArgs> = {
               new Overlay(el, {
                 anchor: new Anchor(
                   document.querySelector(`[popovertarget="${id}"]`)!,
-                  { arrow: args.arrow },
                 ),
                 within: container()!,
               });
@@ -839,7 +906,7 @@ export const AnimatedPopover: StoryObj<Args> = {
           <dom-lifecycle
             onConnect={(self) => {
               const el = self.parentElement as HTMLDialogElement;
-              new Overlay(el, { anchor: new Anchor(() => target() ?? undefined, { arrow: true }) });
+              new Overlay(el, { anchor: new Anchor(() => target() ?? undefined) });
             }}
           />
           <div class:unset class:x-card data-variant="elevated" data-size="3">
@@ -885,10 +952,11 @@ export const Constrained: Story = {
     const id = `overlay-story-${uid++}`;
     const panel = signal<HTMLDialogElement | null>();
     const container = signal<HTMLElement | null>();
+    const overlay = signal<Overlay | null>(null);
     const selected = signal(matchCell(args));
     const moveTo = (cell: Cell) => {
       selected(cell.label);
-      applyCell(panel(), cell);
+      applyCell(overlay(), cell);
     };
     return (
       <>
@@ -911,15 +979,16 @@ export const Constrained: Story = {
           class:unset
           class:x-overlay
           popover="manual"
-          style={channelStyle(args)}
         >
           <dom-lifecycle
             onConnect={(self) => {
               const el = self.parentElement as HTMLDialogElement;
               setResizeHandle(el, args.resize);
               setMoveHandle(el, args.draggable);
-              new Overlay(el, { within: container()! });
+              const o = new Overlay(el, { within: container()! });
+              overlay(o);
               el.showPopover();
+              applyCell(o, matchCell(args) ? GRID.find((c) => c.label === matchCell(args))! : CENTER);
             }}
           />
           <div class:unset class:x-card data-variant="elevated" data-size="3">
@@ -979,7 +1048,9 @@ export const MorphGallery: StoryObj<Args> = {
     const selected = signal("Window");
     let stop: (() => void) | null = null;
 
-    const CHANNELS = ["--overlay-x", "--overlay-y", "--overlay-w", "--overlay-h", "--overlay-area"];
+    // Clear the ElementBox geometry channels too, so the next recipe starts
+    // from a clean slate instead of inheriting the previous shape.
+    const CHANNELS = ["--overlay-area", "--x", "--y", "--w", "--h", "--dx", "--dy"];
     const reset = (el: HTMLDialogElement) => {
       stop?.();
       stop = null;
@@ -991,34 +1062,51 @@ export const MorphGallery: StoryObj<Args> = {
         el.style.setProperty(name, value);
     };
 
+    const vw = () => globalThis.innerWidth;
+    const vh = () => globalThis.innerHeight;
     const recipes: Record<string, (el: HTMLDialogElement, trigger: Element) => void> = {
       Menu: (el, trigger) => {
         setChannels(el, { "--overlay-area": "block-end span-inline-end", "--overlay-w": "220px" });
-        stop = effectScope(() => void new Overlay(el, { anchor: new Anchor(trigger, { arrow: true }) }));
+        stop = effectScope(() => void new Overlay(el, { anchor: new Anchor(trigger) }));
       },
       Popover: (el, trigger) => {
         setChannels(el, { "--overlay-area": "block-end", "--overlay-w": "300px" });
-        stop = effectScope(() => void new Overlay(el, { anchor: new Anchor(trigger, { arrow: true }) }));
+        stop = effectScope(() => void new Overlay(el, { anchor: new Anchor(trigger) }));
       },
       Sheet: (el) => {
-        setChannels(el, { "--overlay-y": "9999px", "--overlay-w": "var(--overlay-constraint-width)", "--overlay-h": "45svh" });
         setResizeHandle(el, "block-start");
-        stop = effectScope(() => void new Overlay(el));
+        el.querySelector('.x-handle[data-placement="block-start"]')
+          ?.setAttribute("data-detents", "0.25 0.45 0.9");
+        stop = effectScope(() => {
+          const o = new Overlay(el, { box: { x: 0, y: 0 } });
+          o.set({ w: vw(), h: Math.round(vh() * 0.45) });
+          o.place("bottom");
+        });
       },
       Drawer: (el) => {
-        setChannels(el, { "--overlay-x": "9999px", "--overlay-w": "320px", "--overlay-h": "var(--overlay-constraint-height)" });
         setResizeHandle(el, "inline-start");
-        stop = effectScope(() => void new Overlay(el));
+        stop = effectScope(() => {
+          const o = new Overlay(el, { box: { x: 0, y: 0 } });
+          o.set({ w: 320, h: vh() });
+          o.place("right");
+        });
       },
       Window: (el) => {
         setResizeHandle(el, "end-end");
         setMoveHandle(el, true);
-        stop = effectScope(() => void new Overlay(el));
+        stop = effectScope(() => {
+          const o = new Overlay(el, { box: { x: 0, y: 0 } });
+          o.set({ w: 480, h: 360 });
+          o.center(); // one-shot — centered at open, then draggable
+        });
       },
       Corner: (el) => {
-        setChannels(el, { "--overlay-x": "9999px", "--overlay-y": "9999px", "--overlay-w": "300px", "--overlay-h": "40svh" });
         setResizeHandle(el, "start-start");
-        stop = effectScope(() => void new Overlay(el));
+        stop = effectScope(() => {
+          const o = new Overlay(el, { box: { x: 0, y: 0 } });
+          o.set({ w: 300, h: Math.round(vh() * 0.4) });
+          o.place("bottom", "right");
+        });
       },
     };
 
@@ -1031,9 +1119,13 @@ export const MorphGallery: StoryObj<Args> = {
       reset(el);
       if (name === "Modal") {
         // Modality is an opening mode, not geometry — it can't morph.
-        // Re-enter the top layer as a modal; Close returns to popover.
+        // Re-enter the top layer as a modal, centered.
         el.hidePopover();
         el.showModal();
+        stop = effectScope(() => {
+          const o = new Overlay(el);
+          o.center();
+        });
         return;
       }
       if (!el.matches(":popover-open")) {

@@ -194,62 +194,6 @@
 
 /***************************************************************************************************
  *                                                                                                 *
- * ARROW — the anchored caret (.x-overlay-arrow)                                                   *
- *                                                                                                 *
- * A real element (the affordances are their own .x-handle children),           *
- * or injected by `anchor(…, { arrow })`. A rotated square behind the                              *
- * card (z-index: -1 — only the protruding half shows, the card ring                               *
- * stays clean) on the edge facing the anchor; `data-placed` names the                             *
- * settled side and `--overlay-arrow-x/-y` the cross-axis position                                 *
- * (written per reposition by anchor.ts).                                                          *
- *                                                                                                 *
- ***************************************************************************************************/
-
-.x-overlay > .x-overlay-arrow {
-  display: none;
-}
-
-.x-overlay:where([data-placed]) > .x-overlay-arrow {
-  --_as: var(--overlay-arrow-size, 10px);
-
-  display: block;
-  position: absolute;
-  z-index: -1;
-  width: var(--_as);
-  height: var(--_as);
-  rotate: 45deg;
-  background-color: var(--color-material, var(--color-surface));
-  box-shadow: 0 0 0 0.5px var(--neutral-a3);
-  /* The caret glides along the edge when the popup re-anchors. */
-  transition:
-    top var(--overlay-duration, 300ms)
-      var(--overlay-easing, cubic-bezier(0.32, 0.72, 0, 1)),
-    left var(--overlay-duration, 300ms)
-      var(--overlay-easing, cubic-bezier(0.32, 0.72, 0, 1));
-}
-
-.x-overlay:where([data-placed="bottom"]) > .x-overlay-arrow {
-  top: calc(var(--_as) / -2);
-  left: var(--overlay-arrow-x, calc(50% - var(--_as) / 2));
-}
-
-.x-overlay:where([data-placed="top"]) > .x-overlay-arrow {
-  bottom: calc(var(--_as) / -2);
-  left: var(--overlay-arrow-x, calc(50% - var(--_as) / 2));
-}
-
-.x-overlay:where([data-placed="right"]) > .x-overlay-arrow {
-  left: calc(var(--_as) / -2);
-  top: var(--overlay-arrow-y, calc(50% - var(--_as) / 2));
-}
-
-.x-overlay:where([data-placed="left"]) > .x-overlay-arrow {
-  right: calc(var(--_as) / -2);
-  top: var(--overlay-arrow-y, calc(50% - var(--_as) / 2));
-}
-
-/***************************************************************************************************
- *                                                                                                 *
  * ENTER / EXIT — Tier 2 (@starting-style + allow-discrete)                                        *
  *                                                                                                 *
  * The handle side implies the docked edge (a block-start handle means                             *
@@ -264,7 +208,7 @@
 @supports (transition-behavior: allow-discrete) {
   .x-overlay {
     transition-property:
-      top, left, translate, transform, width, height, opacity, scale, display;
+      translate, width, height, opacity, scale, display;
     transition-duration: var(--overlay-duration);
     transition-timing-function: var(--overlay-easing);
     transition-behavior: allow-discrete;
@@ -410,8 +354,7 @@
   @supports (overlay: auto) {
     .x-overlay {
       transition-property:
-        top, left, translate, transform, width, height, opacity, scale,
-        display, overlay;
+        translate, width, height, opacity, scale, display, overlay;
     }
     .x-overlay::backdrop {
       transition-property: opacity, display, overlay;

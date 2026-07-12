@@ -1,34 +1,64 @@
 /**
- * `elements-kit/ui/overlay` — the JS for `.x-overlay`. A class hierarchy
- * rooted at the box:
+ * `elements-kit/ui/overlay` — the JS for `.x-overlay`, on the reactive box
+ * model:
  *
- *   Editable → Box       readable geometry (x/y/w/h getters) + the edit
- *                        lifecycle (begin / set / release / cancel)
- *     ├─ Overlay         the surface — channels, markup gestures
- *     ├─ Anchor          a tracked box the overlay attaches to
- *     └─ Constraint      a region it stays inside (+ `constrain` clamp)
- *   Session              edit physics, stateless — the base is rubber +
- *                        clamp; `SnapSession(stops)` rests on detents;
- *                        subclass `during`/`rest` for custom
+ *   ElementBox           viewport-box geometry projected to CSS (`--x/--y`
+ *                        translate, real `--w/--h` size), base + drag
+ *                        `displacement`
+ *     └─ Overlay         the surface — constrain/dock, markup gestures, anchor
+ *   Constraint           a region the overlay stays inside (`constrain`/`dock`)
+ *   Anchor               a tracked box the overlay follows (`position_area`)
+ *   Draggable/Resizable  pointer→box gestures on the `.x-handle` children
  *
- * Constructors are spatial-only (box / anchor / within); physics are
- * per-edit (`begin(new SnapSession(stops))`); handles are the caller's
- * own pointer code driving the setters. Geometry itself is pure CSS
- * (index.css / overlay.css) driven by the `--overlay-*` channels — JS
- * only writes channels or moves the anchor. Behaviors attach to the
- * spatial objects, never to the overlay's state: dragging moves the
- * anchor, constraints clamp through the channels — the overlay has no
- * modes, so nothing can mode-switch.
+ * Geometry is pure CSS (index.css / overlay.css) driven by the box's channels;
+ * JS only writes them. Docking, flip/shift, and gesture bounds are JS
+ * (`Constraint`, `position_area`).
  */
 
-export { Anchor, type AnchorOptions, type AnchorTarget } from "./anchor.ts";
 export {
+  Anchor,
+  type AnchorTarget,
+  anchor_length,
+  type Area,
+  type AxisRegion,
+  type BlockSide,
+  computePlacement,
+  type InlineSide,
+  type Inset,
+  type PhysicalInset,
+  place,
+  placeArea,
+  placeAxis,
+  position_area,
+  resolveArea,
+  shift,
+  type Side,
+  SIDES,
+  tryFallbacks,
+} from "./anchor.ts";
+export { Constraint, INSTANT_TRANSITIONS } from "./constraint.ts";
+export {
+  AUTO,
   type Axis,
-  Box,
   type BoxLike,
-  Editable,
+  Box,
+  ElementBox,
+  type IBox,
+  type IDirection,
   type PlainBox,
-} from "./box.ts";
-export { Constraint } from "./constraint.ts";
+  WINDOW_BOX,
+} from "./element-box.ts";
+export {
+  compose,
+  detent,
+  Draggable,
+  type Handle,
+  HANDLES,
+  type Modifier,
+  nearest,
+  Resizable,
+  type ResizeConfig,
+  rubber,
+  snap,
+} from "./gestures.ts";
 export { Overlay, type OverlayOptions } from "./overlay.ts";
-export { Session, SnapSession } from "./session.ts";

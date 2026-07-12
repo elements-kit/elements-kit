@@ -1,4 +1,5 @@
 import { transform } from "esbuild";
+import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
 import { resolve } from "path";
 
@@ -47,12 +48,39 @@ export default defineConfig({
     },
   },
   test: {
-    environment: "happy-dom",
-    exclude: [
-      "**/node_modules/**",
-      "**/dist/**",
-      "**/playground/**",
-      "**/docs/**",
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "unit",
+          environment: "happy-dom",
+          include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+          exclude: [
+            "**/node_modules/**",
+            "**/dist/**",
+            "**/playground/**",
+            "**/docs/**",
+            "**/*.browser.test.ts",
+          ],
+        },
+      },
+      {
+        // Real-browser interaction/visual tests (Playwright + Chromium): true
+        // layout, gestures, top layer — where the overlay's geometry lives.
+        extends: true,
+        test: {
+          name: "browser",
+          include: ["src/**/*.browser.test.ts"],
+          browser: {
+            enabled: true,
+            provider: playwright(),
+            headless: true,
+            instances: [
+              { browser: "chromium", viewport: { width: 1280, height: 900 } },
+            ],
+          },
+        },
+      },
     ],
   },
 });
