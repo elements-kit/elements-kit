@@ -1,4 +1,5 @@
 import { effect, MaybeReactive, resolve } from "@/signals/index.ts";
+import { WINDOW_BOX } from "./box.ts";
 import type { ElementBox, IBox, IDirection } from "./box.ts";
 
 /**
@@ -198,6 +199,329 @@ export function place(
     const side = resolve(_side);
     const gap = resolve(_gap);
     const { x, y } = computePlacement(self, anchor, side, gap);
+    self.x = x;
+    self.y = y;
+  });
+}
+
+/* ================================================================== *
+ * position-area — a reactive reimplementation of the CSS property.    *
+ *                                                                      *
+ * The anchor's four edges, extended, tile the plane into a 3×3 grid;   *
+ * a `position-area` value names the region the box sits in. Unlike     *
+ * `place()` (four sides, cross-axis centered) this is the full grid    *
+ * vocabulary, plus position-try (flip) fallbacks and a shift-clamp     *
+ * against a boundary rect — the JS equivalent of `position-area` +     *
+ * `position-try-fallbacks` + Floating UI's `shift({ boundary })`.      *
+ * ================================================================== */
+
+/**
+ * One axis of a `position-area`, as a PHYSICAL (coordinate-space) region —
+ * direction is resolved away at parse time:
+ *   start      the tile before the anchor (top / left)
+ *   end        the tile after it (bottom / right)
+ *   center     over the anchor
+ *   span-start the two-tile span flush to the anchor's END edge
+ *   span-end   the two-tile span flush to the anchor's START edge
+ *   span-all   all three tiles (centered, free to shift)
+ */
+export type AxisRegion =
+  | "start"
+  | "center"
+  | "end"
+  | "span-start"
+  | "span-end"
+  | "span-all";
+
+/** A resolved `position-area` value — one physical region per axis. */
+export interface Area {
+  block: AxisRegion;
+  inline: AxisRegion;
+}
+
+interface Keyword {
+  axis: "block" | "inline" | "ambiguous";
+  region: AxisRegion;
+  /** A physical keyword (`left`/`right`/…) never flips with direction. */
+  physical: boolean;
+  /** Resolves against the element's OWN direction (`self-*`). */
+  self: boolean;
+}
+
+const B = (region: AxisRegion, physical = false): Keyword => ({
+  axis: "block",
+  region,
+  physical,
+  self: false,
+});
+const I = (region: AxisRegion, physical = false): Keyword => ({
+  axis: "inline",
+  region,
+  physical,
+  self: false,
+});
+const A = (region: AxisRegion, self = false): Keyword => ({
+  axis: "ambiguous",
+  region,
+  physical: false,
+  self,
+});
+
+/** The full `position-area` keyword grammar → axis + physical region. */
+const KEYWORDS: Record<string, Keyword> = {
+  // physical
+  top: B("start", true),
+  bottom: B("end", true),
+  "span-top": B("span-start", true),
+  "span-bottom": B("span-end", true),
+  left: I("start", true),
+  right: I("end", true),
+  "span-left": I("span-start", true),
+  "span-right": I("span-end", true),
+  // neutral (either axis, no direction)
+  center: { axis: "ambiguous", region: "center", physical: true, self: false },
+  "span-all": {
+    axis: "ambiguous",
+    region: "span-all",
+    physical: true,
+    self: false,
+  },
+  // logical — block
+  "block-start": B("start"),
+  "block-end": B("end"),
+  "span-block-start": B("span-start"),
+  "span-block-end": B("span-end"),
+  "y-start": B("start"),
+  "y-end": B("end"),
+  "span-y-start": B("span-start"),
+  "span-y-end": B("span-end"),
+  // logical — inline
+  "inline-start": I("start"),
+  "inline-end": I("end"),
+  "span-inline-start": I("span-start"),
+  "span-inline-end": I("span-end"),
+  "x-start": I("start"),
+  "x-end": I("end"),
+  "span-x-start": I("span-start"),
+  "span-x-end": I("span-end"),
+  // logical — ambiguous (both axes)
+  start: A("start"),
+  end: A("end"),
+  "span-start": A("span-start"),
+  "span-end": A("span-end"),
+  "self-start": A("start", true),
+  "self-end": A("end", true),
+  "span-self-start": A("span-start", true),
+  "span-self-end": A("span-end", true),
+};
+
+const SPAN_ALL = KEYWORDS["span-all"];
+
+function flipRegion(r: AxisRegion): AxisRegion {
+  return r === "start"
+    ? "end"
+    : r === "end"
+      ? "start"
+      : r === "span-start"
+        ? "span-end"
+        : r === "span-end"
+          ? "span-start"
+          : r;
+}
+
+/** Resolve a keyword to a physical region: block never flips (horizontal
+ * writing modes), inline flips in RTL unless the keyword is physical. */
+function toPhysical(
+  kw: Keyword,
+  axis: "block" | "inline",
+  dir: "ltr" | "rtl",
+  selfDir: "ltr" | "rtl",
+): AxisRegion {
+  const r = kw.region;
+  if (r === "center" || r === "span-all" || axis === "block" || kw.physical) {
+    return r;
+  }
+  return (kw.self ? selfDir : dir) === "rtl" ? flipRegion(r) : r;
+}
+
+/**
+ * Parse a `position-area` value into a physical {@link Area}. Accepts one or
+ * two keywords, order-independent; an axis-specific single keyword spans the
+ * other axis (`top` ≡ `top span-all`), an ambiguous one applies to both
+ * (`start` ≡ `start start`). Unknown/empty → the CSS default `block-end`
+ * (bottom, centered).
+ */
+export function resolveArea(
+  area: string,
+  dir: "ltr" | "rtl" = "ltr",
+  selfDir: "ltr" | "rtl" = dir,
+): Area {
+  const kws = area
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((t) => KEYWORDS[t])
+    .filter(Boolean) as Keyword[];
+
+  let block: Keyword | undefined;
+  let inline: Keyword | undefined;
+
+  if (kws.length === 1) {
+    const k = kws[0];
+    if (k.axis === "block") (block = k), (inline = SPAN_ALL);
+    else if (k.axis === "inline") (inline = k), (block = SPAN_ALL);
+    else (block = k), (inline = k); // ambiguous → both axes
+  } else if (kws.length === 2) {
+    for (const k of kws) {
+      if (k.axis === "block") block = k;
+      else if (k.axis === "inline") inline = k;
+    }
+    const ambs = kws.filter((k) => k.axis === "ambiguous");
+    if (!block && !inline) (block = ambs[0]), (inline = ambs[1] ?? ambs[0]);
+    else if (!block) block = ambs[0];
+    else if (!inline) inline = ambs[0];
+  }
+
+  return {
+    block: block ? toPhysical(block, "block", dir, selfDir) : "end",
+    inline: inline ? toPhysical(inline, "inline", dir, selfDir) : "center",
+  };
+}
+
+/**
+ * A region → the box's start coordinate on one axis. `[lo, hi]` is the
+ * anchor's extent; `gap` insets the two OUTWARD regions (`start`/`end`) the
+ * way the native `margin` does — spanning/centered regions overlap the
+ * anchor, so they take no gap.
+ */
+export function placeAxis(
+  lo: number,
+  hi: number,
+  size: number,
+  region: AxisRegion,
+  gap = 0,
+): number {
+  switch (region) {
+    case "start":
+      return lo - size - gap;
+    case "end":
+      return hi + gap;
+    case "span-start":
+      return hi - size; // flush to the anchor's end edge
+    case "span-end":
+      return lo; // flush to the anchor's start edge
+    default: // center | span-all
+      return (lo + hi) / 2 - size / 2;
+  }
+}
+
+/** The box for an {@link Area}: `placeAxis` on each axis (inline → x, block
+ * → y), reading the anchor's live extent and the box's own size. */
+export function placeArea(
+  self: IBox,
+  anchor: IBox,
+  area: Area,
+  gap = 0,
+): { x: number; y: number } {
+  return {
+    x: placeAxis(anchor.x, anchor.x + anchor.w, self.w, area.inline, gap),
+    y: placeAxis(anchor.y, anchor.y + anchor.h, self.h, area.block, gap),
+  };
+}
+
+/** Total overflow of a `size` box at `pos` outside `boundary` (0 = fits). */
+function overflow(
+  pos: { x: number; y: number },
+  self: IBox,
+  boundary: IBox,
+): number {
+  return (
+    Math.max(0, boundary.x - pos.x) +
+    Math.max(0, boundary.y - pos.y) +
+    Math.max(0, pos.x + self.w - (boundary.x + boundary.w)) +
+    Math.max(0, pos.y + self.h - (boundary.y + boundary.h))
+  );
+}
+
+/**
+ * position-try: pick the placement that fits `boundary`. Candidates are the
+ * preferred area and its block/inline flips (native `position-try-fallbacks:
+ * flip-block, flip-inline`); the first fully inside wins, else the
+ * least-overflowing.
+ */
+export function tryFallbacks(
+  self: IBox,
+  anchor: IBox,
+  pref: Area,
+  gap: number,
+  boundary: IBox,
+): Area {
+  const candidates: Area[] = [
+    pref,
+    { block: flipRegion(pref.block), inline: pref.inline },
+    { block: pref.block, inline: flipRegion(pref.inline) },
+    { block: flipRegion(pref.block), inline: flipRegion(pref.inline) },
+  ];
+  let best = pref;
+  let least = Infinity;
+  for (const area of candidates) {
+    const over = overflow(placeArea(self, anchor, area, gap), self, boundary);
+    if (over === 0) return area;
+    if (over < least) (least = over), (best = area);
+  }
+  return best;
+}
+
+function clamp(value: number, lo: number, hi: number): number {
+  return hi < lo ? lo : Math.min(Math.max(value, lo), hi);
+}
+
+/** Shift the box's cross/main position to keep it inside `boundary` (the
+ * Floating UI `shift` — a continuous clamp, degrading to the leading edge
+ * when the box is larger than the boundary). */
+export function shift(
+  pos: { x: number; y: number },
+  self: IBox,
+  boundary: IBox,
+): { x: number; y: number } {
+  return {
+    x: clamp(pos.x, boundary.x, boundary.x + boundary.w - self.w),
+    y: clamp(pos.y, boundary.y, boundary.y + boundary.h - self.h),
+  };
+}
+
+/**
+ * Place `self` in a `position-area` region of `anchor`, reactively —
+ * resolving the area, flipping to fit `boundary` (position-try), then
+ * shifting to stay inside it. Writes `self.x`/`self.y`; returns the effect
+ * disposer, like {@link place}.
+ *
+ * `boundary` defaults to the reactive viewport (`WINDOW_BOX`); pass any box
+ * (e.g. an `ElementBox` container) for a `within`-style bound — it re-places
+ * when the boundary resizes.
+ *
+ * `pinned` is the tear-off follow-gate: while it holds (the default) the box
+ * follows the anchor; while false the effect no-ops, so the box's own base —
+ * wherever a drag left it — is the fallback position. Flipping it back
+ * re-pins. No proxy, no attribute: the box IS the state.
+ */
+export function position_area(
+  self: ElementBox,
+  anchor: IBox & Partial<IDirection>,
+  area: MaybeReactive<string>,
+  gap: MaybeReactive<number> = 0,
+  boundary: IBox = WINDOW_BOX,
+  pinned: MaybeReactive<boolean> = true,
+): () => void {
+  return effect(() => {
+    if (!resolve(pinned)) return;
+    const dir = rootDirection();
+    const pref = resolveArea(resolve(area), dir, self.direction ?? dir);
+    const g = resolve(gap);
+    const chosen = tryFallbacks(self, anchor, pref, g, boundary);
+    const { x, y } = shift(placeArea(self, anchor, chosen, g), self, boundary);
     self.x = x;
     self.y = y;
   });

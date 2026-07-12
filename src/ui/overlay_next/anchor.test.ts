@@ -1,8 +1,31 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { computed, signal } from "@/signals/index.ts";
-import { anchor_length } from "./anchor.ts";
-import type { BlockSide, InlineSide, Inset } from "./anchor.ts";
+import {
+  anchor_length,
+  placeArea,
+  placeAxis,
+  position_area,
+  resolveArea,
+  shift,
+  tryFallbacks,
+} from "./anchor.ts";
+import type { Area, BlockSide, InlineSide, Inset } from "./anchor.ts";
+import { ElementBox } from "./box.ts";
 import type { IBox, IDirection } from "./box.ts";
+
+/** An `ElementBox` over a rect-mocked div (happy-dom has no layout). */
+function overlayBox(w: number, h: number, x = 0, y = 0): ElementBox {
+  const el = document.createElement("div");
+  el.getBoundingClientRect = () =>
+    ({
+      x, y, left: x, top: y, right: x + w, bottom: y + h,
+      width: w, height: h, toJSON: () => ({}),
+    }) as DOMRect;
+  document.body.appendChild(el);
+  return new ElementBox(el);
+}
+
+const HUGE: IBox = { x: 0, y: 0, w: 10000, h: 10000 };
 
 /** Bind a box to the `anchor()` utility so the specs read `a.length(...)` —
  * the same surface `Anchorable` boxes expose. */
@@ -189,5 +212,210 @@ describe("anchorLength — reactivity", () => {
     box.h = 50;
     expect(a.length("left", "left")).toBe(300);
     expect(a.length("top", "bottom")).toBe(250);
+  });
+});
+
+describe("resolveArea — the position-area grid", () => {
+  it("spans the other axis for a single axis-specific keyword", () => {
+    expect(resolveArea("top")).toEqual({ block: "start", inline: "span-all" });
+    expect(resolveArea("bottom")).toEqual({ block: "end", inline: "span-all" });
+    expect(resolveArea("left")).toEqual({ block: "span-all", inline: "start" });
+    expect(resolveArea("right")).toEqual({ block: "span-all", inline: "end" });
+    expect(resolveArea("inline-end")).toEqual({
+      block: "span-all",
+      inline: "end",
+    });
+  });
+
+  it("applies a single ambiguous keyword to both axes", () => {
+    expect(resolveArea("center")).toEqual({
+      block: "center",
+      inline: "center",
+    });
+    expect(resolveArea("start")).toEqual({ block: "start", inline: "start" });
+    expect(resolveArea("end")).toEqual({ block: "end", inline: "end" });
+    expect(resolveArea("span-all")).toEqual({
+      block: "span-all",
+      inline: "span-all",
+    });
+  });
+
+  it("assigns two keywords to their axes, order-independent", () => {
+    expect(resolveArea("top left")).toEqual({
+      block: "start",
+      inline: "start",
+    });
+    expect(resolveArea("left top")).toEqual({
+      block: "start",
+      inline: "start",
+    });
+    expect(resolveArea("bottom right")).toEqual({
+      block: "end",
+      inline: "end",
+    });
+  });
+
+  it("maps span tokens (physical + logical)", () => {
+    expect(resolveArea("top span-left")).toEqual({
+      block: "start",
+      inline: "span-start",
+    });
+    // production's `--overlay-area` example
+    expect(resolveArea("block-end span-inline-end")).toEqual({
+      block: "end",
+      inline: "span-end",
+    });
+  });
+
+  it("flips inline logical sides in RTL, never physical or block", () => {
+    expect(resolveArea("inline-start", "rtl")).toEqual({
+      block: "span-all",
+      inline: "end",
+    });
+    expect(resolveArea("left", "rtl")).toEqual({
+      block: "span-all",
+      inline: "start", // physical — never flips
+    });
+    expect(resolveArea("start", "rtl")).toEqual({
+      block: "start", // block never flips
+      inline: "end", // inline flips
+    });
+  });
+
+  it("self-* resolves against the element's own direction", () => {
+    expect(resolveArea("self-start", "ltr", "rtl")).toEqual({
+      block: "start",
+      inline: "end",
+    });
+  });
+
+  it("falls back to bottom-center for unknown/empty", () => {
+    expect(resolveArea("")).toEqual({ block: "end", inline: "center" });
+    expect(resolveArea("nonsense")).toEqual({ block: "end", inline: "center" });
+  });
+});
+
+describe("placeAxis — region → coordinate", () => {
+  // anchor extent [100, 140], box size 20
+  it("insets the outward regions by the gap", () => {
+    expect(placeAxis(100, 140, 20, "start", 8)).toBe(72); // 100 − 20 − 8
+    expect(placeAxis(100, 140, 20, "end", 8)).toBe(148); // 140 + 8
+  });
+
+  it("centers over the anchor for center / span-all (no gap)", () => {
+    expect(placeAxis(100, 140, 20, "center", 8)).toBe(110);
+    expect(placeAxis(100, 140, 20, "span-all", 8)).toBe(110);
+  });
+
+  it("flushes spans to the opposite anchor edge", () => {
+    expect(placeAxis(100, 140, 20, "span-start", 8)).toBe(120); // flush end
+    expect(placeAxis(100, 140, 20, "span-end", 8)).toBe(100); // flush start
+  });
+});
+
+describe("placeArea", () => {
+  it("places a box below-and-centered for bottom", () => {
+    const self: IBox = { x: 0, y: 0, w: 200, h: 120 };
+    const anchor: IBox = { x: 300, y: 260, w: 120, h: 40 };
+    expect(placeArea(self, anchor, resolveArea("bottom"), 8)).toEqual({
+      x: 260, // (300+420)/2 − 100
+      y: 308, // 300 + 8
+    });
+  });
+});
+
+describe("tryFallbacks — position-try", () => {
+  const self: IBox = { x: 0, y: 0, w: 100, h: 100 };
+  const anchor: IBox = { x: 400, y: 300, w: 40, h: 40 };
+  const pref: Area = { block: "end", inline: "center" };
+
+  it("keeps the preferred area when it fits", () => {
+    expect(tryFallbacks(self, anchor, pref, 0, HUGE)).toEqual(pref);
+  });
+
+  it("flips the block axis when the preferred area overflows", () => {
+    // boundary too short below the anchor → bottom overflows → flip to top
+    const boundary: IBox = { x: 0, y: 0, w: 1000, h: 360 };
+    expect(tryFallbacks(self, anchor, pref, 0, boundary)).toEqual({
+      block: "start",
+      inline: "center",
+    });
+  });
+});
+
+describe("shift — boundary clamp", () => {
+  const self: IBox = { x: 0, y: 0, w: 100, h: 100 };
+
+  it("clamps a box back inside the boundary", () => {
+    expect(shift({ x: -20, y: 50 }, self, HUGE)).toEqual({ x: 0, y: 50 });
+    expect(shift({ x: 50, y: 50 }, self, { x: 0, y: 0, w: 120, h: 1000 })).toEqual({
+      x: 20, // 120 − 100
+      y: 50,
+    });
+  });
+
+  it("degrades to the leading edge when the box exceeds the boundary", () => {
+    expect(shift({ x: 40, y: 0 }, self, { x: 0, y: 0, w: 50, h: 1000 })).toEqual({
+      x: 0,
+      y: 0,
+    });
+  });
+});
+
+describe("position_area — the reactive writer", () => {
+  it("writes the placed coordinate to self.x/y", () => {
+    const overlay = overlayBox(200, 120);
+    const anchor: IBox = { x: 300, y: 260, w: 120, h: 40 };
+    const stop = position_area(overlay, anchor, "bottom", 8, HUGE);
+    expect(overlay.x).toBe(260);
+    expect(overlay.y).toBe(308);
+    stop();
+    overlay.dispose();
+  });
+
+  it("flips + shifts to stay inside the boundary", () => {
+    const overlay = overlayBox(100, 120);
+    const anchor: IBox = { x: 300, y: 260, w: 120, h: 40 };
+    // Short boundary below the anchor → "bottom" flips up to "top".
+    const boundary: IBox = { x: 0, y: 0, w: 1000, h: 320 };
+    const stop = position_area(overlay, anchor, "bottom", 8, boundary);
+    expect(overlay.y).toBe(132); // 260 − 120 − 8 (flipped above)
+    stop();
+    overlay.dispose();
+  });
+
+  it("re-places when the anchor moves (reactive follow)", () => {
+    const overlay = overlayBox(200, 120);
+    const ax = signal(300);
+    const anchor: IBox = {
+      get x() {
+        return ax();
+      },
+      y: 260, w: 120, h: 40,
+    };
+    const stop = position_area(overlay, anchor, "bottom", 0, HUGE);
+    expect(overlay.x).toBe(260); // (300+420)/2 − 100
+    ax(500); // anchor slides right
+    expect(overlay.x).toBe(460); // (500+620)/2 − 100
+    stop();
+    overlay.dispose();
+  });
+
+  it("the pinned gate holds the box's own base as the fallback", () => {
+    const overlay = overlayBox(200, 120);
+    const anchor: IBox = { x: 300, y: 260, w: 120, h: 40 };
+    const pinned = signal(false);
+    overlay.x = 999; // a torn/dropped position
+    overlay.y = 888;
+    const stop = position_area(overlay, anchor, "bottom", 8, HUGE, pinned);
+    // Unpinned → the writer no-ops, the base holds.
+    expect(overlay.x).toBe(999);
+    expect(overlay.y).toBe(888);
+    // Re-pin → snaps back to the anchor.
+    pinned(true);
+    expect(overlay.x).toBe(260);
+    expect(overlay.y).toBe(308);
+    stop();
+    overlay.dispose();
   });
 });

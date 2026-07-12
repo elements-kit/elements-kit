@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/html-vite";
-import { effect } from "elements-kit/signals";
+import { effect, signal } from "elements-kit/signals";
 import "@/utilities/dom-lifecycle.ts";
 import "../card/card.css";
 import "../overlay/handle.css";
 import { AUTO, ElementBox, WINDOW_BOX } from "./box.ts";
 import { Draggable, HANDLES, rubber, Resizable } from "./gestures.ts";
-import { place, Side, SIDES } from "./anchor.ts";
+import { place, position_area, Side, SIDES } from "./anchor.ts";
 
 /**
  * overlay_next playground — reproduces every `UI/Overlay` story on the
@@ -337,6 +337,92 @@ export const Anchored: StoryObj<AnchoredArgs> = {
           Drag the chip — the panel tracks it. Resize from the corner.
         </p>,
         args.handle,
+      ),
+    );
+  },
+};
+
+/* ─────────────────────────── position-area ────────────────────────────── */
+
+interface AreaArgs {
+  area: string;
+  gap: number;
+}
+
+/** The full CSS `position-area` grid via `position_area`, with position-try
+ * (flip) + shift against a dashed boundary, plus box-fallback tear-off: the
+ * `pinned` signal gates the follow — drag the panel to detach (it holds where
+ * dropped), "Re-pin" snaps it back to the anchor. */
+export const PositionArea: StoryObj<AreaArgs> = {
+  argTypes: {
+    area: {
+      control: "text",
+      description:
+        "CSS position-area token(s) — e.g. `bottom`, `top span-left`, `inline-end`, `center`",
+    },
+    gap: {
+      control: { type: "range", min: 0, max: 48, step: 2 },
+      description: "px between anchor and panel (outward regions only)",
+    },
+  },
+  args: { area: "bottom", gap: 8 },
+  render: (args) => {
+    const id = `on-${uid++}`;
+    const pinned = signal(true);
+    return Stage(
+      (root) => {
+        const boundaryEl = root.querySelector(`#${id}-bound`) as HTMLElement;
+        const boundary = new ElementBox(boundaryEl);
+
+        const anchorEl = root.querySelector(`#${id}-chip`) as HTMLElement;
+        const anchor = new ElementBox(anchorEl);
+        anchor.x = 300;
+        anchor.y = 260;
+
+        const panelEl = root.querySelector(`#${id}-panel`) as HTMLElement;
+        const overlay = new ElementBox(panelEl);
+        overlay.w = 200;
+        overlay.h = 120;
+
+        position_area(overlay, anchor, args.area, args.gap, boundary, pinned);
+
+        // Move the anchor chip — the panel flips/shifts to stay inside the
+        // dashed boundary as the chip nears an edge.
+        new Draggable(anchor, { x: COLS, y: ROWS });
+
+        // Tear-off: grabbing the panel unpins it; the free Draggable (no
+        // detents) folds the drag into the base, so it holds where dropped.
+        panelEl.addEventListener("pointerdown", () => pinned(false));
+        new Draggable(overlay);
+
+        const resetEl = root.querySelector(`#${id}-reset`) as HTMLElement;
+        resetEl.addEventListener("click", () => pinned(true));
+      },
+      <div
+        id={`${id}-bound`}
+        style="position: fixed; box-sizing: border-box; inset: 120px 80px 80px 80px; border: 2px dashed #94a3b8; border-radius: 12px;"
+      />,
+      <button
+        id={`${id}-reset`}
+        style="position: fixed; top: 80px; left: 80px; font: 600 12px system-ui; cursor: pointer;"
+      >
+        Re-pin
+      </button>,
+      <div
+        id={`${id}-chip`}
+        style="position: fixed; display: grid; place-items: center; box-sizing: border-box; width: 120px; height: 40px; background: #2563eb; color: white; border-radius: 8px; font: 600 13px system-ui; cursor: grab; touch-action: none; user-select: none; box-shadow: 0 2px 8px rgb(0 0 0 / 0.2);"
+      >
+        anchor
+      </div>,
+      Panel(
+        id,
+        "position-area",
+        <p style="margin: 4px 0 0; font: 13px system-ui; color: #666;">
+          Drag the anchor — the panel flips/shifts at the dashed boundary. Drag
+          the panel to tear it off; Re-pin snaps it back.
+        </p>,
+        undefined,
+        true,
       ),
     );
   },

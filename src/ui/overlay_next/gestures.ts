@@ -285,13 +285,15 @@ abstract class PointerGesture {
   }
 }
 
-/** Drag a box's position; release snaps x/y to their detent grids. */
+/** Drag a box's position; release snaps x/y to their detent grids, or — when
+ * `detents` is omitted — folds the drag into the base for a free move (no
+ * snap), the tear-off case. */
 export class Draggable extends PointerGesture {
-  readonly #detents: { x: number[]; y: number[] };
+  readonly #detents?: { x: number[]; y: number[] };
 
   constructor(
     box: ElementBox,
-    detents: { x: number[]; y: number[] },
+    detents?: { x: number[]; y: number[] },
     on?: HTMLElement,
   ) {
     super(box, on);
@@ -304,6 +306,10 @@ export class Draggable extends PointerGesture {
   }
 
   protected release(vx: number, vy: number) {
+    if (!this.#detents) {
+      this.box.displacement.apply(); // free move — fold the delta, no snap
+      return;
+    }
     this.settle("x", this.#detents.x, vx);
     this.settle("y", this.#detents.y, vy);
   }
