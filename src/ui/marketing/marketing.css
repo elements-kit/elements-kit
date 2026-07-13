@@ -35,18 +35,19 @@
 /*       UA margin reset (scoped)      */
 /* * * * * * * * * * * * * * * * * * * */
 
-.hero :is(h1, h2, h3, h4, h5, h6, p),
-.section-header :is(h1, h2, h3, h4, h5, h6, p),
-.section-heading,
-.section-paragraph,
-.river-content :is(h1, h2, h3, h4, h5, h6, p),
-.pillar :is(h1, h2, h3, h4, h5, h6, p, [data-heading], [data-paragraph]),
-.cta-banner :is(h1, h2, h3, h4, h5, h6, p),
-.testimonial :is(blockquote, figcaption, cite, p),
-.statistic :is(p, [data-leading], [data-heading], [data-description]) {
-  margin: 0;
+@layer unset {
+  .hero :is(h1, h2, h3, h4, h5, h6, p),
+  .section-header :is(h1, h2, h3, h4, h5, h6, p),
+  .section-heading,
+  .section-paragraph,
+  .river-content :is(h1, h2, h3, h4, h5, h6, p),
+  .pillar :is(h1, h2, h3, h4, h5, h6, p, [data-heading], [data-paragraph]),
+  .cta-banner :is(h1, h2, h3, h4, h5, h6, p),
+  .testimonial :is(blockquote, figcaption, cite, p),
+  .statistic :is(p, [data-leading], [data-heading], [data-description]) {
+    margin: 0;
+  }
 }
-
 /* * * * * * * * * * * * * * * * * * * */
 /*                Hero                 */
 /* * * * * * * * * * * * * * * * * * * */
