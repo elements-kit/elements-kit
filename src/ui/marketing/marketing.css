@@ -81,7 +81,7 @@
 @media (min-width: 64rem) {
   .hero .section-paragraph {
     font-size: var(--font-size-5);
-    line-height: var(--line-height-5);
+    line-height: var(--line-height-6);
   }
 }
 
