@@ -10,7 +10,6 @@ import type {
   ElementProps,
   MaybeReactiveProps,
   PropsOf,
-  InstanceProps,
   RawProps,
   Props,
   Require,
@@ -73,9 +72,9 @@ declare global {
   }
 }
 
-// ─ InstanceProps ────────────────────────────────────────────────────────────
+// ─ PropertiesOf ─────────────────────────────────────────────────────────────
 
-type TProps = InstanceProps<Toggle>;
+type TProps = PropertiesOf<Toggle>;
 type _PoI_Open = Assert<Equal<TProps["open"], boolean | undefined>>;
 type _PoI_OnToggle = Assert<
   Equal<TProps["onToggle"], ((v: boolean) => void) | undefined>
@@ -220,7 +219,7 @@ type _EV_OnReady = Assert<Extends<ReadyHandler, NonNullable<XP["on:ready"]>>>;
 // ─ ElementProps: slots ───────────────────────────────────────────────────────
 
 // Slot-backed props are plain instance fields now (`@slot()` accessor) —
-// their read type flows through InstanceProps like any other field.
+// their read type flows through PropertiesOf like any other field.
 type _SL_Header = Assert<Equal<XP["header"], Node | null | undefined>>;
 
 // ─ ElementProps: children ────────────────────────────────────────────────────
@@ -596,7 +595,7 @@ interface Probe extends HTMLElement {
   name: string;
   excited: boolean;
 }
-type _PI = InstanceProps<Probe>;
+type _PI = PropertiesOf<Probe>;
 type _PI_Excited = Assert<Equal<_PI["excited"], boolean | undefined>>;
 type _PI_Name = Assert<Equal<_PI["name"], string | undefined>>;
 

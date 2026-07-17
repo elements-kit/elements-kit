@@ -7,13 +7,9 @@ import type { Children } from "./children";
 // ─ Props (public user-facing helpers) ────────────────────────────────────────
 
 import type {
-  PublicPropKeys,
+  PropertiesOf,
   EventsOf as RawEventsOf,
 } from "../custom-elements";
-
-export type InstanceProps<I> = {
-  [K in PublicPropKeys<I> & string]?: I[K];
-};
 
 /**
  * Promote keys `K` of `P` to required; leave the rest unchanged.
@@ -78,9 +74,7 @@ export type ResolveProps<C, P, NN = NonNullable<P>> = [keyof NN] extends [never]
 
 // ─ Internal composition pieces ───────────────────────────────────────────────
 
-type InstancePropsOf<C> = InstanceProps<InstanceOf<C>>;
-
-type PropKeysOf<C> = keyof InstancePropsOf<C> & string;
+type PropKeysOf<C> = keyof PropertiesOf<C> & string;
 
 // Defaults to `{}` (not `never`) for classes without `[ATTRIBUTES]` — `never`
 // would poison downstream conditional types via distribution, collapsing the
@@ -109,7 +103,7 @@ type AttrsOf<C> =
     : {};
 
 type PropNamespacedOf<C> = {
-  [K in PropKeysOf<C> as `prop:${K}`]?: NonNullable<InstancePropsOf<C>[K]>;
+  [K in PropKeysOf<C> as `prop:${K}`]?: NonNullable<PropertiesOf<C>[K]>;
 };
 
 // Only `on:event` — the runtime attaches listeners solely through the `on:`
@@ -177,7 +171,7 @@ type BaseDOMAttrs = DomJSX.DOMAttributes<HTMLElement>;
  */
 export type ElementProps<C extends AnyElementCtor> = BaseDOMAttrs &
   AttrsOf<C> &
-  InstancePropsOf<C> &
+  PropertiesOf<C> &
   PropNamespacedOf<C> &
   JsxEventsOf<C> &
   ChildrenOf<C>;
@@ -229,14 +223,8 @@ export type ComponentProps<T extends JSX.ElementType | JSX.ElementClass> =
     ? P extends object
       ? RawProps<P>
       : {}
-    : InstanceProps<InstanceOf<T>>;
+    : PropertiesOf<T>;
 
 // ─ Constructor helper ─────────────────────────────────────────────────────────
 
 export type AnyElementCtor = abstract new (...args: any[]) => HTMLElement;
-
-/**
- * Instance type of a constructor; non-constructors pass through unchanged —
- * lets `PropsOf<> accept both `typeof Cls` and `Cls`.
- */
-type InstanceOf<C> = C extends abstract new (...args: any[]) => infer I ? I : C;
