@@ -136,11 +136,19 @@ slot.parent();    // the <section> element
 
 ### When do I need a `Slot`?
 
-| Component type | Slot needed? | How |
+The rule is about **who fills the slot**, not the component kind. Anything
+consumed through elements-kit JSX needs nothing special.
+
+| Filled by | Slot needed? | How |
 |---|---|---|
-| **Function component** | No | Use `{props.children}` / `{props.foo}` directly. The JSX runtime creates an internal `Slot` for any function-typed child and wires reactive replacement automatically. |
-| **Plain class component** (no `extends HTMLElement`) | No | Named slots are just properties — pass them as props, place `{this.foo}` in the template (`applyProps` assigns each one). Make them `@reactive` to update on reassignment. |
-| **Custom element**, driven from *outside* elements-kit | Yes | `@slot()` turns a property into a live region a React/Vue/vanilla consumer can fill and replace imperatively (`el.header = node`) with no elements-kit reactive context. |
+| **elements-kit JSX** (function, class, or custom element) | No | Slots are plain properties — pass them as props, place `{this.foo}` / `{props.foo}` in the template. elements-kit JSX assigns each prop; your render places it. Use `@reactive` to update on reassignment. |
+| **Imperative DOM code** (a vanilla script holding a `Node` and doing `el.foo = node`) | Yes (`@slot()`) | `@slot()` makes the property a live comment-marker region so imperative code can fill and *replace* content against the mounted DOM — no reactive context required. |
+
+Other JSX frameworks (React, Vue, Svelte) each have their own children model
+and don't hand DOM nodes to props, so they seldom fill slots directly. When
+they must, it's through their imperative escape hatch (a `ref` to the element,
+then `el.foo = node`) — the same path as vanilla, which is what `@slot()`
+serves.
 
 #### Function component — no `Slot` at all
 
@@ -165,10 +173,14 @@ function Card(props) {
 
 `{props.children}` and any function-typed prop flows through `mountChild`, which creates a `Slot` internally and updates in place when the source signal changes. The component doesn't see the slot — it just renders the prop.
 
-#### Custom element slots with `@slot()`
+#### Custom element slots for imperative consumers — `@slot()`
 
-`@slot()` declares a named slot as a property. Reading places the region;
-assigning fills it — from elements-kit JSX *or* any other framework.
+If your custom element is consumed through elements-kit JSX, you don't need
+`@slot()` — declare plain (or `@reactive`) properties and place them in your
+render, exactly like the class-component case above. Reach for `@slot()` only
+when **imperative DOM code** (a vanilla script, or another framework's
+`ref`-then-assign escape hatch) must fill and replace slots against the
+mounted element.
 
 ```tsx
 import { slot } from "elements-kit/slot";
@@ -190,7 +202,8 @@ class XCard extends HTMLElement {
 customElements.define("x-card", XCard);
 ```
 
-Fill from elements-kit JSX via plain named props:
+An elements-kit-JSX consumer fills it via plain named props (a plain field
+would work equally here):
 
 ```tsx
 <x-card header={<h2>My Title</h2>}>
@@ -198,8 +211,8 @@ Fill from elements-kit JSX via plain named props:
 </x-card>
 ```
 
-…or imperatively from anywhere — the swap lands directly in the live DOM,
-with no elements-kit reactive context:
+The payoff comes from imperative code with no elements-kit rendering — the
+swap lands directly in the live DOM, with no reactive context:
 
 ```ts
 const el = document.querySelector("x-card")!;

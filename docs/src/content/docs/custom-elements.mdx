@@ -390,12 +390,13 @@ Compose them however your host needs — see the [framework integration guides](
 
 ### Slots
 
-**Inside elements-kit JSX you don't need anything special.** A slot is just a
-property — pass it as a prop, place it in the template:
+**Inside elements-kit JSX, slots are just properties — no decorator needed.**
+This holds for both plain class components and custom elements: elements-kit
+JSX assigns each prop to the instance, and your `render()` places it.
 
 ```tsx
-class Card {
-  header!: JSX.Element;
+class Card extends HTMLElement {
+  header!: Children;
   children!: Children;
 
   render() {
@@ -411,16 +412,21 @@ class Card {
 // <Card header={<h1>Title</h1>}>body content…</Card>
 ```
 
-`applyProps` assigns each prop to the instance and `{this.header}` places it —
-no decorator involved. Make the field `@reactive` and read it as
-`{() => this.header}` if you want a *reassignment* to update live.
+`applyProps` sets `this.header = <h1>Title</h1>` and `{this.header}` places it.
+Make the field `@reactive` and read it as `{() => this.header}` if you want a
+*reassignment* to update live.
 
-#### `@slot()` — filling slots from outside elements-kit
+#### `@slot()` — filling slots from plain, imperative DOM
 
-`@slot()` earns its keep only at the framework boundary: it turns a property
-into a **live comment-marker region** that a consumer in React, Vue, Svelte,
-or vanilla JS can fill and *replace* imperatively — with no elements-kit
-reactive rendering in play.
+Everything above relies on elements-kit JSX doing the property assignment and
+your `render()` placing the value. Reach for `@slot()` when the element's slots
+are filled by **imperative DOM code** rather than elements-kit JSX — a vanilla
+script, a `document.createElement` builder, or any place you hold a DOM node
+and want it to appear (and later be swapped) inside the mounted element.
+
+`@slot()` turns the property into a **live comment-marker region**: assigning a
+node replaces the slot's content directly in the DOM, with no elements-kit
+reactive context.
 
 ```tsx
 import { slot } from "elements-kit/slot";
@@ -434,6 +440,7 @@ class XCard extends HTMLElement {
   }
 }
 
+// vanilla consumer — no elements-kit rendering, no framework:
 const el = document.querySelector("x-card")!;
 el.header = document.createElement("h1"); // fills the slot, in the live DOM
 el.header = "plain text";                 // native append() content
@@ -441,7 +448,13 @@ el.header = null;                         // clears it
 ```
 
 - **Reading places the region.** The getter yields the slot's comment-marker fragment — append it wherever the content should live. Any renderer that can append a fragment works. Reads are for *placement*, not inspection (a later read extracts the current content — the re-render semantic).
-- **Assigning fills it.** Native `append()` content — a `Node`, a string, or an array — from any framework or none; `null` clears. The swap happens directly in the DOM, so it works with **no effect, scope, or reactive context** — that's the whole reason `@slot()` exists. Assignments before the region is placed are buffered and flush on mount.
+- **Assigning fills it.** Native `append()` content — a `Node`, a string, or an array; `null` clears. The swap happens directly in the DOM, so it works with **no effect, scope, or reactive context** — that's the whole reason `@slot()` exists. Assignments before the region is placed are buffered and flush on mount.
+
+Other JSX frameworks (React, Vue, Svelte) each have their *own* children model
+and don't pass DOM nodes as props, so they rarely set slots this way directly.
+When they need to, they do it through the same imperative escape hatch — a
+`ref` (or equivalent) to the element, then `el.header = node`. `@slot()` is
+what makes that assignment update the live DOM.
 
 Rule of thumb: **all-elements-kit → plain (or `@reactive`) fields; slots driven from another framework → `@slot()`.** `PropertiesOf` types the key by its declared field type either way.
 
