@@ -7,14 +7,10 @@ import type { Children } from "./children";
 
 // ─ Props (public user-facing helpers) ────────────────────────────────────────
 
-/**
- * When the instance extends `HTMLElement`, drop the DOM surface so only the
- * user's own fields remain. Plain class components also drop `render` — it's
- * the internal rendering method, not a JSX prop.
- */
-type PublicPropKeys<I> = I extends HTMLElement
-  ? Exclude<keyof I, keyof HTMLElement | symbol>
-  : Exclude<keyof I, symbol | "render">;
+import type {
+  PublicPropKeys,
+  EventsOf as RawEventsOf,
+} from "../custom-elements";
 
 /**
  * Public instance fields of `I` — all optional. For `HTMLElement` subclasses
@@ -76,9 +72,7 @@ export type MaybeReactiveProps<P> = {
  * (= `{}`, accepting anything). A real `Props<P>` is never empty — its
  * `keyof` always contains the brand symbol.
  */
-export type ResolveProps<C, P, NN = NonNullable<P>> = [keyof NN] extends [
-  never,
-]
+export type ResolveProps<C, P, NN = NonNullable<P>> = [keyof NN] extends [never]
   ? C extends JSX.ElementType | JSX.ElementClass
     ? MaybeReactiveProps<PropsOf<C>>
     : {}
@@ -124,19 +118,15 @@ type PropNamespacedOf<C> = {
   [K in PropKeysOf<C> as `prop:${K}`]?: NonNullable<InstancePropsOf<C>[K]>;
 };
 
-type EventMapOf<C> = C extends { events: infer E } ? E : {};
-
 // Only `on:event` — the runtime attaches listeners solely through the `on:`
 // namespace (see applyProps); a camelCase `onEvent` key would silently fall
-// through to setAttribute, so it must not be typed as valid.
-type EventsOf<C> =
-  EventMapOf<C> extends infer E
-    ? E extends Record<string, Event>
-      ? {
-          [K in keyof E & string as `on:${K}`]?: (ev: E[K]) => void;
-        }
-      : {}
-    : {};
+// through to setAttribute, so it must not be typed as valid. Keys come from
+// the raw `EventsOf` extractor (custom-elements.ts).
+type JsxEventsOf<C> = {
+  [K in keyof RawEventsOf<C> & string as `on:${K}`]?: (
+    ev: RawEventsOf<C>[K],
+  ) => void;
+};
 
 type SlotKeys<I> = I extends { [SLOTS]: infer S }
   ? Extract<keyof S, string>
@@ -205,18 +195,19 @@ export type ElementProps<C extends AnyElementCtor> = BaseDOMAttrs &
   AttrsOf<C> &
   InstancePropsOf<C> &
   PropNamespacedOf<C> &
-  EventsOf<C> &
+  JsxEventsOf<C> &
   SlotsOf<C> &
   ChildrenOf<C>;
 
 /**
  * Props for any component — class or function.
  *
- * Branches by input shape:
- * - **Class constructor** (`typeof Cls`) → uses `InstanceProps<InstanceType<Cls>>`.
- * - **Function component** (`(props: P) => ...`) → uses the first parameter.
- * - **Class instance** (`Cls<T>`) → uses `InstanceProps<Cls<T>>` (useful when
- *   generics need to flow through — see the `For` example below).
+ * The combination of the two specialised helpers:
+ * - **Custom-element constructor** (`typeof Cls`, `Cls extends HTMLElement`)
+ *   → `ElementProps<Cls>` — the full JSX surface (attrs, `prop:*`, `on:*`,
+ *   `slot:*`, children).
+ * - **Everything else** (function component, class component ctor or
+ *   instance) → `ComponentProps<T>` — the raw prop shape.
  *
  * @template T — constructor, function, or instance.
  *
@@ -238,15 +229,27 @@ export type ElementProps<C extends AnyElementCtor> = BaseDOMAttrs &
  * //   ↑ { count?: number }
  * ```
  */
-export type PropsOf<T extends JSX.ElementType | JSX.ElementClass> = (T extends (
-  props: infer P,
-  ...rest: any[]
-) => any
-  ? P extends object
-    ? RawProps<P>
-    : {}
-  : InstanceProps<InstanceOf<T>>) &
-  SlotsOf<T>;
+export type PropsOf<
+  T extends JSX.ElementType | JSX.ElementClass | AnyElementCtor,
+> = T extends AnyElementCtor
+  ? ElementProps<T>
+  : T extends JSX.ElementType | JSX.ElementClass
+    ? ComponentProps<T>
+    : never;
+
+/**
+ * Raw props of a function or class COMPONENT (not a custom element):
+ * function components use the first parameter (`RawProps` unwraps a branded
+ * `Props<P>`); classes use their public instance fields. Slot fields add
+ * `slot:*` keys. The custom-element half of `PropsOf` is `ElementProps`.
+ */
+export type ComponentProps<T extends JSX.ElementType | JSX.ElementClass> =
+  (T extends (props: infer P, ...rest: any[]) => any
+    ? P extends object
+      ? RawProps<P>
+      : {}
+    : InstanceProps<InstanceOf<T>>) &
+    SlotsOf<T>;
 
 // ─ Constructor helper ─────────────────────────────────────────────────────────
 

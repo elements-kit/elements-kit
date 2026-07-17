@@ -9,7 +9,7 @@ Derive JSX prop types from your components — attributes, events, slots, childr
 
 | You have | Use |
 |---|---|
-| `HTMLElement` subclass, want the full JSX shape | [`ElementProps<typeof Cls>`](#elementpropsc) |
+| `HTMLElement` subclass, want the full JSX shape | [`PropsOf<typeof Cls>`](#custom-element-surface) |
 | Class component with public instance fields | [`PropsOf<Cls<T>>`](#propsofc) |
 | Class component with `constructor(props: P)` | `ConstructorParameters<typeof Cls>[0]` (built-in) |
 | Function component | [`PropsOf<typeof Fn>`](#propsofc) |
@@ -22,16 +22,16 @@ Derive JSX prop types from your components — attributes, events, slots, childr
 
 All type helpers are re-exported from `elements-kit/jsx-runtime`. `MaybeReactive` also lives in `elements-kit/signals`.
 
-## `ElementProps<C>`
+## Custom-element surface
 
-Raw JSX surface for a custom element. Composes attributes, flat properties, `prop:*`, events, slots, and children — **without** `MaybeReactive` wrapping. Use this when you need the underlying property/handler types directly (testing, manual property assignment, deriving sub-types).
+`PropsOf<typeof Cls>` on a custom-element class returns the full raw JSX surface: attributes, flat properties, `prop:*`, events, slots, and children — **without** `MaybeReactive` wrapping. Use this when you need the underlying property/handler types directly (testing, deriving sub-types).
 
 ```tsx twoslash
 // @noErrors
 import { attributes, ATTRIBUTES, type Attributes } from "elements-kit/attributes";
 import { reactive } from "elements-kit/signals";
 import { SLOTS, Slot } from "elements-kit/slot";
-import type { ElementProps } from "elements-kit/jsx-runtime";
+import type { PropsOf } from "elements-kit/jsx-runtime";
 
 @attributes
 class XRange extends HTMLElement {
@@ -44,7 +44,7 @@ class XRange extends HTMLElement {
   @reactive() min = 0;
 }
 
-type XRangeProps = ElementProps<typeof XRange>;
+type XRangeProps = PropsOf<typeof XRange>;
 // {
 //   min?: number;                                    // raw property type
 //   "prop:min"?: number;
@@ -56,7 +56,9 @@ type XRangeProps = ElementProps<typeof XRange>;
 
 Attribute keys that also appear on the instance are removed from the attribute slot, so the flat key carries the **property** type (e.g. `number`) rather than the handler's string type.
 
-At the JSX call site, the runtime widens every key of `ElementProps<C>` to value-or-getter, so parents may pass static values *or* signals/computed:
+For consuming a custom element **outside** elements-kit JSX (React, Svelte, Vue, vanilla DOM), use the framework-agnostic extractors from `elements-kit/custom-elements` instead — `PropertiesOf`, `AttributesOf`, `EventsOf` — see [Custom Elements](/custom-elements#using-your-element-outside-elements-kit).
+
+At the JSX call site, the runtime widens every key to value-or-getter, so parents may pass static values *or* signals/computed:
 
 ```tsx
 <x-range min={0} />              // static
@@ -67,12 +69,12 @@ At the JSX call site, the runtime widens every key of `ElementProps<C>` to value
 Plus the namespaced extras (`class:`, `style:`, `prop:`, `ref`) are layered on every intrinsic element via [src/jsx-runtime/properties.ts](https://github.com/wbettayeb/elements-kit/blob/main/src/jsx-runtime/properties.ts).
 
 :::note[Slot keys need `as const`]
-`{ label: new Slot(), footer: new Slot() }` without `as const` widens — the key literals are lost. Always trail with `as const` so `ElementProps` can synthesize `slot:${K}` entries.
+`{ label: new Slot(), footer: new Slot() }` without `as const` widens — the key literals are lost. Always trail with `as const` so `slot:${K}` entries can be synthesized.
 :::
 
 ## `PropsOf<C>`
 
-Unified helper. Works on class instances, class constructors, or function components. Does **not** synthesize attribute / event / slot surfaces — use `ElementProps` for those.
+Unified helper. Works on class instances, class constructors, function components, and custom-element constructors.
 
 ```ts twoslash
 import type { PropsOf } from "elements-kit/jsx-runtime";
@@ -94,9 +96,15 @@ type GreetingProps = PropsOf<typeof Greeting>;
 class Counter { count = 0; render() { return null; } }
 type CounterProps = PropsOf<typeof Counter>;
 // { count?: number }
+
+// 4. Custom-element constructor → the FULL JSX surface
+//    (attrs, prop:*, on:*,
+//     slot:*, children)
+class XRange extends HTMLElement { min = 0; }
+type XRangeProps = PropsOf<typeof XRange>;
 ```
 
-For `HTMLElement` subclasses, `PropsOf<C>` returns only the user's public fields (no DOM surface). For plain classes, it returns all own fields.
+For `HTMLElement` **instances**, `PropsOf<C>` returns only the user's public fields (no DOM surface); the **constructor** form returns the [full custom-element surface](#custom-element-surface) (attributes / events / slots). For plain classes, it returns all own fields.
 
 `PropsOf` accepts **components only** — a plain prop shape like `PropsOf<{ name: string }>` is a type error. It returns the **raw** shapes; the JSX call site widens each key to value-or-getter automatically. Note `PropsOf` makes every instance field optional (class fields carry initializers, so there is no requiredness signal to preserve).
 

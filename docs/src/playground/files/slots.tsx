@@ -24,7 +24,7 @@ class CardComponent {
       "
       >
         <header style="padding: 1rem; border-bottom: 1px solid #e2e8f0; background: #f7fafc">
-          {this.header.render("Untitled")}
+          {this.header.render(new Text("Untitled"))}
         </header>
         <main style="padding: 1rem">{this.children.render()}</main>
         <footer style="padding: 0.75rem 1rem; border-top: 1px solid #e2e8f0; display: flex; gap: 8px">

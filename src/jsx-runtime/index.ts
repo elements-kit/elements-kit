@@ -11,7 +11,6 @@ import { SvgNamespaceAttrs, WithJsxNamespaces } from "./properties";
 import { Children } from "./children";
 
 export type {
-  ElementProps,
   MaybeReactiveProps,
   PropsOf,
   RawProps,

@@ -1,4 +1,3 @@
-import { PrimitiveNodeType, resolveNode } from "./lib";
 import "./polyfill";
 
 /**
@@ -33,7 +32,7 @@ export class Slot {
    * it — the caller takes ownership of the returned nodes and is responsible for
    * their disposal.
    */
-  render(defaultContent?: PrimitiveNodeType) {
+  render(defaultContent?: Node): DocumentFragment {
     const fragment = document.createDocumentFragment();
     if (this.isMounted()) {
       const range = document.createRange();
@@ -47,7 +46,7 @@ export class Slot {
     fragment.appendChild(start);
     fragment.appendChild(end);
     // Use content buffered before mount, or the provided default.
-    const initialContent = this.#pending ?? resolveNode(defaultContent);
+    const initialContent = this.#pending ?? defaultContent;
     if (initialContent) fragment.insertBefore(initialContent, end);
     this.#pending = undefined;
     return fragment;

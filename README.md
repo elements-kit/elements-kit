@@ -66,7 +66,7 @@ Every feature is a separate subpath export — import only what you use.
 | `elements-kit/slot` | `Slot`, `Slots`, `SLOTS` symbol — comment-marker DOM regions |
 | `elements-kit/custom-elements` | `defineElement`, `CustomElementRegistry` |
 | `elements-kit/for` | `For` keyed-list component |
-| `elements-kit/jsx-runtime` | JSX factory + type helpers (`ElementProps`, `PropsOf`, `MaybeReactiveProps`, `RawProps`, `Props`, `Require`) — configure via `jsxImportSource` |
+| `elements-kit/jsx-runtime` | JSX factory + type helpers (`PropsOf`, `MaybeReactiveProps`, `RawProps`, `Props`, `Require`) — configure via `jsxImportSource` |
 | `elements-kit/server` | `renderToStream`, `renderToString` — streaming HTML rendering in any JS runtime (Node, edge/Workers), no DOM required *(experimental)* |
 | `elements-kit/hydrate` | `hydrate(container, () => <App/>)` — adopt server-rendered DOM and make it interactive *(experimental)* |
 | `elements-kit/await` | `Await` — loading boundary (Suspense equivalent); code splitting = `async` + dynamic import *(experimental)* |
@@ -416,8 +416,7 @@ A small set of type helpers derives JSX prop shapes from your components — no 
 
 | Helper | For |
 | ------ | --- |
-| `ElementProps<typeof Cls>` | `HTMLElement` subclass — full surface (attrs, events, slots, children) |
-| `PropsOf<C>` | Class instance, constructor, or function component — raw prop shape, unified |
+| `PropsOf<C>` | Unified — fn/class components give raw prop shapes; custom-element ctors give the full JSX surface (attrs, events, slots, children) |
 | `Props<P>` | Component-facing — every prop becomes a `Computed<T>` getter (what function components receive) |
 | `MaybeReactiveProps<P>` | Caller-facing — wrap every prop in `MaybeReactive` (e.g. a class component's constructor param) |
 | `RawProps<R>` | Recover the raw `P` from a branded `Props<P>` |
@@ -482,7 +481,7 @@ import { SLOTS, Slots } from "elements-kit/slot";
 class Card extends HTMLElement {
   [SLOTS] = Slots.new(["header", "footer"] as const);
 }
-// ElementProps<typeof Card> now includes `slot:header` / `slot:footer`
+// PropsOf<typeof Card> now includes `slot:header` / `slot:footer`
 ```
 
 For typed events, declare a `static events` map:
@@ -491,7 +490,7 @@ For typed events, declare a `static events` map:
 class XPicker extends HTMLElement {
   declare static events: { commit: CustomEvent<number> };
 }
-// ElementProps<typeof XPicker> now includes `on:commit`
+// PropsOf<typeof XPicker> now includes `on:commit`
 ```
 
 ## Roadmap

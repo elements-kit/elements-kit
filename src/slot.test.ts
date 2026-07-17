@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { Slot } from "./slot";
+import { resolveNode } from "./jsx-runtime/children";
 
 // ---------------------------------------------------------------------------
 // Slot — direct API tests
@@ -88,7 +89,7 @@ describe("Slot — render() lazily creates markers", () => {
   it("default content is used when no value buffered", () => {
     const s = new Slot();
     const host = document.createElement("div");
-    host.appendChild(s.render("fallback"));
+    host.appendChild(s.render(resolveNode("fallback")));
     expect(host.textContent).toBe("fallback");
   });
 
@@ -96,7 +97,7 @@ describe("Slot — render() lazily creates markers", () => {
     const s = new Slot();
     s.set(document.createTextNode("buffered"));
     const host = document.createElement("div");
-    host.appendChild(s.render("fallback"));
+    host.appendChild(s.render(document.createTextNode("fallback")));
     expect(host.textContent).toBe("buffered");
   });
 });

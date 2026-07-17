@@ -6,6 +6,7 @@ import { computed, signal, type MaybeReactive } from "../signals";
 import { For } from "../for";
 import type { JSX } from "./index";
 import type {
+  ComponentProps,
   ElementProps,
   MaybeReactiveProps,
   PropsOf,
@@ -16,6 +17,7 @@ import type {
   ResolveProps,
 } from "./infer";
 import type { Computed } from "../signals";
+import type { AttributesOf, EventsOf, PropertiesOf } from "../custom-elements";
 
 // ─ Type-level assertion helpers ───────────────────────────────────────────────
 
@@ -261,6 +263,17 @@ void _p_inst_onToggle;
 type _P_ForCtor = MaybeReactiveProps<PropsOf<typeof For<number>>>;
 type _P_ForInst = MaybeReactiveProps<PropsOf<For<number>>>;
 type _P_ForSame = Assert<Equal<_P_ForInst, _P_ForCtor>>;
+
+// PropsOf = ElementProps (custom-element ctors) ∪ ComponentProps (the rest).
+type _P_ElementCtor = Assert<
+  Equal<PropsOf<typeof XRange>, ElementProps<typeof XRange>>
+>;
+type _P_FnIsComponent = Assert<
+  Equal<PropsOf<typeof Greeting>, ComponentProps<typeof Greeting>>
+>;
+type _P_InstIsComponent = Assert<
+  Equal<PropsOf<For<number>>, ComponentProps<For<number>>>
+>;
 const _p_for_ctor: _P_ForCtor = { each: () => [1, 2] };
 void _p_for_ctor;
 
@@ -589,6 +602,45 @@ void _tag_create;
 
 type _JsxElement_NonNull = Assert<Equal<Extract<JSX.Element, null>, never>>;
 type _JsxElement_IsNode = Assert<Extends<JSX.Element, Node>>;
+
+// ─ Raw custom-element extractors (framework-agnostic, no JSX vocabulary) ─────
+// PropertiesOf / AttributesOf / EventsOf from elements-kit/custom-elements —
+// the surfaces host frameworks (React/Svelte/Vue/vanilla) consume directly.
+
+type _Raw_Props = Assert<
+  Equal<
+    PropertiesOf<typeof XRange>,
+    { min?: number; max?: number; value?: number }
+  >
+>;
+type _Raw_Attrs = Assert<
+  Equal<
+    AttributesOf<typeof XRange>,
+    { min?: string | null; max?: string | null; variant?: string | null }
+  >
+>;
+type _Raw_Events = Assert<
+  Equal<
+    EventsOf<typeof XRange>,
+    { commit: CustomEvent<void>; ready: CustomEvent<number> }
+  >
+>;
+
+// Slots-as-properties: an asymmetric accessor (get → Slot, set → Node).
+// PropertiesOf maps the Slot-read key to `Node` — the slot's write view.
+class XCard extends HTMLElement {
+  #header = new Slot();
+  get header(): Slot {
+    return this.#header;
+  }
+  set header(v: Node) {
+    this.#header.set(v);
+  }
+  count = 0;
+}
+type _Raw_SlotProp = Assert<
+  Equal<PropertiesOf<typeof XCard>, { header?: Node; count?: number }>
+>;
 
 // ─ Tiny runtime anchor so vitest picks the file up ───────────────────────────
 

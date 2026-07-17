@@ -354,6 +354,66 @@ The same pattern applies when registering with `customElements.define` directly 
 
 ---
 
+## Using your element outside elements-kit
+
+A custom element is a platform object — React, Svelte, Vue, Angular, or vanilla DOM can all consume it with zero elements-kit involvement. Three raw type helpers describe its surfaces, derived straight from the class:
+
+```ts
+import type {
+  PropertiesOf,
+  AttributesOf,
+  EventsOf,
+} from "elements-kit/custom-elements";
+
+type P = PropertiesOf<typeof XRange>; // { min?: number; value?: number }
+type A = AttributesOf<typeof XRange>; // { min?: string | null; variant?: string | null }
+type E = EventsOf<typeof XRange>;     // { commit: CustomEvent<number> }
+```
+
+| Helper | Shape | Consume via |
+|---|---|---|
+| `PropertiesOf<C>` | Public instance fields, `HTMLElement` surface dropped | property assignment / framework prop binding |
+| `AttributesOf<C>` | `static [ATTRIBUTES]` keys → `string \| null` | `setAttribute`, HTML markup |
+| `EventsOf<C>` | `static events` map, verbatim | `addEventListener`, framework event bindings |
+
+Typed listeners fall out of an `HTMLElementEventMap` augmentation:
+
+```ts
+declare global {
+  interface HTMLElementEventMap extends EventsOf<typeof XRange> {}
+}
+
+el.addEventListener("commit", (e) => e.detail); // e: CustomEvent<number>
+```
+
+Compose them however your host needs — see the [framework integration guides](/integrations/react) for per-framework augmentations.
+
+### Slots as properties
+
+To make slot content settable by plain assignment (`el.header = node` — the only slot API other frameworks can reach), pair the `Slot` with a getter/setter:
+
+```ts
+import { Slot } from "elements-kit/slot";
+
+class XCard extends HTMLElement {
+  #header = new Slot();
+  get header(): Slot {
+    return this.#header;
+  }
+  set header(v: Node) {
+    this.#header.set(v);
+  }
+}
+
+const el = document.querySelector("x-card")!;
+el.header = document.createElement("h1"); // fills the slot
+el.header = new Text("plain text");       // any Node
+```
+
+The getter returns the `Slot` (your `render()` keeps calling `this.header.render()`); the setter takes a `Node` — call `el.header.clear()` to empty it. `PropertiesOf` types the key as `Node`, and inside elements-kit JSX both `header={…}` and `slot:header={…}` keep working.
+
+---
+
 ## When NOT to use custom elements
 
 Custom elements are the right tool for **reusable, framework-agnostic UI**. They're the wrong tool when:
