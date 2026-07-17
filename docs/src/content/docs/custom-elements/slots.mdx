@@ -125,9 +125,9 @@ import { Slot } from "elements-kit/slot";
 const slot = new Slot();
 
 // Mounts the comment markers + optional default content
-const section = <section>{slot.render("Loading…")}</section>;
+const section = <section>{slot.get("Loading…")}</section>;
 
-// Later — replace content in place
+// Later — replace content in place (native `append()` content: Node/string/array)
 slot.set(<p>Content loaded!</p>);
 
 slot.isMounted(); // true
@@ -139,8 +139,8 @@ slot.parent();    // the <section> element
 | Component type | Slot needed? | How |
 |---|---|---|
 | **Function component** | No | Use `{props.children}` / `{props.foo}` directly. The JSX runtime creates an internal `Slot` for any function-typed child and wires reactive replacement automatically. |
-| **Plain class component** (no `extends HTMLElement`) | Optional | Direct `Slot` fields if you want imperative control (`this.body.set(node)`). For pure JSX flow, function components are simpler. |
-| **Custom element** (`extends HTMLElement`) | Yes | `[SLOTS] = { ... } as const` for collision-safe named slots. Plain instance fields collide with the inherited `HTMLElement` surface (`title`, `children`, `slot`, …). |
+| **Plain class component** (no `extends HTMLElement`) | No | Named slots are just properties — pass them as props, place `{this.foo}` in the template (`applyProps` assigns each one). Make them `@reactive` to update on reassignment. |
+| **Custom element**, driven from *outside* elements-kit | Yes | `@slot()` turns a property into a live region a React/Vue/vanilla consumer can fill and replace imperatively (`el.header = node`) with no elements-kit reactive context. |
 
 #### Function component — no `Slot` at all
 
@@ -165,32 +165,23 @@ function Card(props) {
 
 `{props.children}` and any function-typed prop flows through `mountChild`, which creates a `Slot` internally and updates in place when the source signal changes. The component doesn't see the slot — it just renders the prop.
 
-#### Custom element slots
+#### Custom element slots with `@slot()`
+
+`@slot()` declares a named slot as a property. Reading places the region;
+assigning fills it — from elements-kit JSX *or* any other framework.
 
 ```tsx
-import { Slot, SLOTS } from "elements-kit/slot";
-import { attributes } from "elements-kit/attributes";
+import { slot } from "elements-kit/slot";
 
-@attributes
 class XCard extends HTMLElement {
-  // Named slots — keys flow into JSX as `header`.
-
-  #header: new Slot()
-  set header(v: Node | null) {
-    this.#header.set(v);
-  }
-  get header() {
-    return this.#header.get();
-  }
-
-  // Default slot — surfaces as the JSX `children` prop.
-  children = new Slot();
+  @slot() header!: Node;   // named slot
+  @slot() children!: Node; // default slot — surfaces as the JSX `children` prop
 
   connectedCallback() {
     this.replaceChildren(
       <article>
-        <header>{this.#header.render("Untitled")}</header>
-        <main>{this.children.render()}</main>
+        <header>{this.header}</header>
+        <main>{this.children}</main>
       </article>,
     );
   }
@@ -199,17 +190,23 @@ class XCard extends HTMLElement {
 customElements.define("x-card", XCard);
 ```
 
-Consumer JSX — fill slots via plain named props:
+Fill from elements-kit JSX via plain named props:
 
 ```tsx
-<x-card
-  header={<h2>My Title</h2>}
->
+<x-card header={<h2>My Title</h2>}>
   <p>Main body content.</p>
 </x-card>
 ```
 
-The JSX runtime reads `header` and calls `slot.set(<h2>My Title</h2>)` on the matching `Slot` instance.
+…or imperatively from anywhere — the swap lands directly in the live DOM,
+with no elements-kit reactive context:
+
+```ts
+const el = document.querySelector("x-card")!;
+el.header = document.createElement("h2"); // Node
+el.header = "plain text";                 // native append() content
+el.header = null;                         // clears
+```
 
 ### Reactive slot content
 
@@ -237,8 +234,8 @@ title("Updated Title");
 | Browser-native projection | Yes | No (comment markers) |
 | Reactive content updates | Requires JS re-render | Yes — `slot.set()` |
 | No wrapper element | Yes | Yes |
-| Named slots | Yes (`name` attribute) | Yes (`[SLOTS] = { ... }`) |
-| TypeScript named slot prop | Via `IntrinsicElements` | Via `SlotProps<K>` |
+| Named slots | Yes (`name` attribute) | Yes (`@slot()` properties) |
+| TypeScript named slot prop | Via `IntrinsicElements` | The property's declared type (`PropertiesOf<C>`) |
 
 Choose native `<slot>` when you need style encapsulation or are building a reusable web component for external consumers. Choose ElementsKit `Slot` when you want reactive content swapping in a light DOM component without Shadow DOM overhead.
 

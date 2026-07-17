@@ -388,9 +388,39 @@ el.addEventListener("commit", (e) => e.detail); // e: CustomEvent<number>
 
 Compose them however your host needs — see the [framework integration guides](/integrations/react) for per-framework augmentations.
 
-### Slots as properties
+### Slots
 
-Declare a named slot with the `@slot()` decorator — the property IS the slot:
+**Inside elements-kit JSX you don't need anything special.** A slot is just a
+property — pass it as a prop, place it in the template:
+
+```tsx
+class Card {
+  header!: JSX.Element;
+  children!: Children;
+
+  render() {
+    return (
+      <article>
+        <header>{this.header}</header>
+        <main>{this.children}</main>
+      </article>
+    );
+  }
+}
+
+// <Card header={<h1>Title</h1>}>body content…</Card>
+```
+
+`applyProps` assigns each prop to the instance and `{this.header}` places it —
+no decorator involved. Make the field `@reactive` and read it as
+`{() => this.header}` if you want a *reassignment* to update live.
+
+#### `@slot()` — filling slots from outside elements-kit
+
+`@slot()` earns its keep only at the framework boundary: it turns a property
+into a **live comment-marker region** that a consumer in React, Vue, Svelte,
+or vanilla JS can fill and *replace* imperatively — with no elements-kit
+reactive rendering in play.
 
 ```tsx
 import { slot } from "elements-kit/slot";
@@ -400,22 +430,20 @@ class XCard extends HTMLElement {
 
   render() {
     return <article>{this.header}</article>;
-    // or, without elements-kit JSX: root.append(this.header)
+    // or, with no elements-kit JSX at all: root.append(this.header)
   }
 }
 
 const el = document.querySelector("x-card")!;
-el.header = document.createElement("h1"); // fills the slot
-el.header = new Text("plain text");       // any Node
+el.header = document.createElement("h1"); // fills the slot, in the live DOM
+el.header = "plain text";                 // native append() content
 el.header = null;                         // clears it
 ```
 
-Two rules:
+- **Reading places the region.** The getter yields the slot's comment-marker fragment — append it wherever the content should live. Any renderer that can append a fragment works. Reads are for *placement*, not inspection (a later read extracts the current content — the re-render semantic).
+- **Assigning fills it.** Native `append()` content — a `Node`, a string, or an array — from any framework or none; `null` clears. The swap happens directly in the DOM, so it works with **no effect, scope, or reactive context** — that's the whole reason `@slot()` exists. Assignments before the region is placed are buffered and flush on mount.
 
-- **Reading places the region.** The getter yields the slot's comment-marker fragment — append it wherever the content should live. Any renderer that can append a fragment works; no elements-kit JSX required. Reads are for *placement*, not inspection (a later read extracts the current content — the re-render semantic).
-- **Assigning fills it.** Any `Node`, from any framework or none; `null` clears. Assignments before the region is placed are buffered and flush on mount, so consumers can set content before the element first renders.
-
-`PropertiesOf` types the key by its declared field type (`Node`), and inside elements-kit JSX `header={…}` works as a plain prop — including reactive values (`header={computed(…)}` re-fills on change).
+Rule of thumb: **all-elements-kit → plain (or `@reactive`) fields; slots driven from another framework → `@slot()`.** `PropertiesOf` types the key by its declared field type either way.
 
 ---
 

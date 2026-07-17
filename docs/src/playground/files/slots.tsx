@@ -2,9 +2,12 @@ import { reactive, signal } from "elements-kit/signals";
 import { Children } from "elements-kit/jsx-runtime";
 
 // ── Card Component with named slots ───────────────────────────────────────────
-// `@slot()` declares each named slot as a plain property: reading places the
-// region in the template, assigning fills it — `<CardComponent header={…}/>`
-// in JSX, or `card.header = node` from anywhere.
+// Inside elements-kit JSX, named slots are just properties — pass them as
+// props (`<CardComponent header={…}/>`) and place them in the template. No
+// `@slot()` decorator is needed here; `@slot()` is for filling a custom
+// element's slots imperatively from OUTSIDE elements-kit (React/vanilla), see
+// the Custom Elements guide. Fields are `@reactive` so a reassignment could
+// update live if the template read them as `{() => this.header}`.
 class CardComponent {
   @reactive() header!: Children;
   @reactive() actions!: Children;
