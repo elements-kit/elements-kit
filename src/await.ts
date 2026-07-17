@@ -78,11 +78,18 @@ function toAwaitables(
  * </Await>
  * ```
  */
+// Await's children may also be raw awaitables (promise()/async() values, or
+// arrays mixing them with regular children) — `toAwaitables` picks them out.
+type AwaitChildren =
+  | Children
+  | PromiseLike<Children>
+  | (Children | PromiseLike<Children>)[];
+
 export function Await(
   props: Props<{
     fallback?: Children;
     when?: unknown;
-    children?: Children;
+    children?: AwaitChildren;
   }>,
 ): Element {
   // Props arrive as resolveProps getters. Branded values (a ComputedPromise

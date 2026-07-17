@@ -16,10 +16,7 @@ import {
   type Attributes,
 } from "elements-kit/attributes";
 import { defineElement } from "elements-kit/custom-elements";
-import type {
-  MaybeReactiveProps,
-  ReactiveProps,
-} from "elements-kit/jsx-runtime";
+import type { MaybeReactiveProps, Props } from "elements-kit/jsx-runtime";
 
 // ============ Demo 1: Counter ============
 const count = signal(0);
@@ -354,7 +351,7 @@ const propsExcited = signal(false);
 const propsNameUpper = computed(() => propsName().toUpperCase());
 
 // — Function component — props auto-wrapped into per-key getters
-function FnGreeting(props: ReactiveProps<{ name: string; excited?: boolean }>) {
+function FnGreeting(props: Props<{ name: string; excited?: boolean }>) {
   return (
     <p style="margin: 0;">
       <code>[fn]</code> Hello {() => props.name()}
@@ -366,7 +363,7 @@ function FnGreeting(props: ReactiveProps<{ name: string; excited?: boolean }>) {
 // — Class component — constructor-typed props, applyProps assigns each key
 class ClassGreeting {
   constructor(
-    _props?: MaybeReactiveProps<{ name: string; excited?: boolean }>,
+    _props?: MaybeReactiveProps<{ name?: string; excited?: boolean }>,
   ) {}
   @reactive() name: string = "world";
   @reactive() excited: boolean = false;

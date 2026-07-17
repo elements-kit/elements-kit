@@ -8,6 +8,7 @@ import { render } from "./render";
 import { signal } from "./signals";
 import { async, type Async } from "./utilities/async";
 import type { Props } from "./jsx-runtime/infer";
+import type { Children } from "./jsx-runtime/children";
 import { promise } from "./utilities/promise";
 
 const tick = () => new Promise<void>((r) => setTimeout(r, 0));
@@ -94,8 +95,8 @@ describe("Await", () => {
       op.run();
       return (
         <div>
-          <Await fallback={() => (<u>loading…</u>) as never}>
-            {op as never}
+          <Await fallback={() => <u>loading…</u>}>
+            {op}
           </Await>
         </div>
       ) as Node;
@@ -114,14 +115,46 @@ describe("Await", () => {
       op.run();
       return (
         <div>
-          <Await fallback={() => (<u>loading…</u>) as never}>
-            {op as never}
+          <Await fallback={() => <u>loading…</u>}>
+            {op}
           </Await>
         </div>
       );
     });
     expect(html).toContain("loaded");
     expect(html).not.toContain("loading…");
+  });
+
+  it("re-renders a thunk fallback when the boundary re-enters pending", async () => {
+    let d = deferred<typeof Badge>();
+    const fallback = vi.fn(() => <u>loading…</u>);
+    const op = async(() => d.p);
+    const host = document.createElement("div");
+    render(host, () => {
+      op.run();
+      return (
+        <div>
+          <Await fallback={fallback}>{op}</Await>
+        </div>
+      ) as Node;
+    });
+
+    expect(host.querySelector("u")).not.toBeNull();
+    d.resolve(Badge);
+    await tick();
+    expect(host.querySelector("span")!.textContent).toBe("loaded");
+
+    // Re-run the op — the boundary re-enters pending and the thunk renders
+    // a FRESH fallback (the first one was consumed by the slot swap).
+    d = deferred<typeof Badge>();
+    op.run();
+    await tick();
+    expect(host.querySelector("u")).not.toBeNull();
+    expect(fallback).toHaveBeenCalledTimes(2);
+
+    d.resolve(Badge);
+    await tick();
+    expect(host.querySelector("span")!.textContent).toBe("loaded");
   });
 
   it("passes non-async children straight through", async () => {
@@ -131,7 +164,7 @@ describe("Await", () => {
       () =>
         (
           <div>
-            <Await fallback={() => (<u>l</u>) as never}>
+            <Await fallback={() => <u>l</u>}>
               <b>static</b>
             </Await>
           </div>
@@ -151,7 +184,7 @@ describe("Await", () => {
       () =>
         (
           <div>
-            <Await when={gate as never} fallback={() => (<u>w</u>) as never}>
+            <Await when={gate} fallback={() => <u>w</u>}>
               <span>{() => s()}</span>
             </Await>
           </div>
@@ -167,11 +200,11 @@ describe("Await", () => {
 });
 
 describe("Await — hydration", () => {
-  const app = (op: unknown) => () => {
-    (op as { run(): void }).run();
+  const app = (op: { run(): void } & PromiseLike<Children>) => () => {
+    op.run();
     return (
       <div>
-        <Await fallback={() => (<u>loading…</u>) as never}>{op as never}</Await>
+        <Await fallback={() => <u>loading…</u>}>{op}</Await>
       </div>
     );
   };
@@ -198,11 +231,14 @@ describe("Await — hydration", () => {
   });
 
   it("keeps ek-data ids aligned for async values after a boundary", async () => {
-    const page = (op: unknown, later: unknown) => () => {
-      (op as { run(): void }).run();
+    const page = (
+      op: { run(): void } & PromiseLike<Children>,
+      later: unknown,
+    ) => () => {
+      op.run();
       return (
         <div>
-          <Await fallback={null as never}>{op as never}</Await>
+          <Await fallback={null}>{op}</Await>
           <p>{later as never}</p>
         </div>
       );
@@ -219,7 +255,7 @@ describe("Await — hydration", () => {
     hydrate(
       container,
       page(
-        async(() => new Promise(() => {})),
+        async(() => new Promise<never>(() => {})),
         later,
       ),
     );

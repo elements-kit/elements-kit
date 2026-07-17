@@ -514,6 +514,31 @@ void _xr_prop_ns;
 void _xr_event;
 void _xr_slot;
 
+// Namespaced props on registered custom elements accept reactive values —
+// same wrap order as intrinsics (namespaces first, MaybeReactiveProps after).
+const _xr_ns_sig: _XRangeAttrs = {
+  "class:active": () => false,
+  "style:color": () => "red",
+  "prop:value": () => 42,
+};
+void _xr_ns_sig;
+
+// `on:` handlers accept a computed-of-handler (runtime re-subscribes).
+const _xr_event_computed: _XRangeAttrs = {
+  "on:commit": computed(() => (_e: CustomEvent<void>) => void 0),
+};
+void _xr_event_computed;
+
+// `ref` receives the concrete instance, contextually inferred, and stays
+// outside the reactive wrap.
+const _xr_ref: _XRangeAttrs = {
+  ref: (el) => {
+    type _RefEl = Assert<Equal<typeof el, XRange>>;
+    void el;
+  },
+};
+void _xr_ref;
+
 // ─ HTMLElement subclass with reactive-shaped fields ────────────────────────
 
 interface Probe extends HTMLElement {

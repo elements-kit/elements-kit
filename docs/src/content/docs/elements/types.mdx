@@ -14,6 +14,7 @@ Derive JSX prop types from your components — attributes, events, slots, childr
 | Class component with `constructor(props: P)` | `ConstructorParameters<typeof Cls>[0]` (built-in) |
 | Function component | [`PropsOf<typeof Fn>`](#propsofc) |
 | Function-component received props (auto-wrapped) | [`Props<P>`](#propsp) |
+| Hand-write a caller-facing shape (class ctor param) | [`MaybeReactiveProps<P>`](#maybereactivepropsp) |
 | Recover raw `P` from a branded `Props<P>` | [`RawProps<R>`](#rawpropsr) |
 | Scalar value-or-getter | [`MaybeReactive<T>`](#maybereactivet) |
 | Manual prop bag → getters (non-JSX) | [`resolveProps`](/components#function-components) |
@@ -114,6 +115,24 @@ function Counter(props: Props<{ count: number }>) {
 ```
 
 `Props<P>` carries a phantom `RAW_PROPS` brand so the JSX layer (`JSX.LibraryManagedAttributes`) can recover the original `P` and let parents pass each prop as a static value *or* a signal/computed — callers never wrap anything by hand.
+
+## `MaybeReactiveProps<P>`
+
+Caller-facing — wrap every prop in `MaybeReactive`. The JSX checker applies this automatically to component props, so you rarely write it for plain components. Name it directly when hand-writing a call-site shape — the main case is a class component's constructor param (the shape passes through to the JSX call site verbatim, like `For`'s):
+
+```ts twoslash
+import type { MaybeReactiveProps } from "elements-kit/jsx-runtime";
+
+type Raw = { count: number; label?: string; onClick: (e: Event) => void };
+type Wrapped = MaybeReactiveProps<Raw>;
+// {
+//   count:    MaybeReactive<number>;
+//   label?:   MaybeReactive<string>;
+//   onClick:  MaybeReactive<(e: Event) => void>;
+// }
+```
+
+Unlike `PropsOf`, it preserves required keys.
 
 ## `RawProps<R>`
 

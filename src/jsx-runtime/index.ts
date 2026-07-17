@@ -10,7 +10,14 @@ import type {
 import { SvgNamespaceAttrs, WithJsxNamespaces } from "./properties";
 import { Children } from "./children";
 
-export type { ElementProps, PropsOf, RawProps, Props, Require } from "./infer";
+export type {
+  ElementProps,
+  MaybeReactiveProps,
+  PropsOf,
+  RawProps,
+  Props,
+  Require,
+} from "./infer";
 
 export type { MaybeReactive } from "../signals";
 
@@ -43,7 +50,15 @@ export namespace JSX {
   type RegisteredElements = {
     [K in keyof CustomElementRegistry]: CustomElementRegistry[K] extends infer C extends
       AnyElementCtor
-      ? WithJsxNamespaces<MaybeReactiveProps<ElementProps<C>>, InstanceType<C>>
+      ? MaybeReactiveProps<
+          WithJsxNamespaces<
+            Omit<ElementProps<C>, "children" | "ref">,
+            InstanceType<C>
+          >
+        > & {
+          ref?: (el: InstanceType<C>) => void;
+          children?: Children;
+        }
       : never;
   };
 

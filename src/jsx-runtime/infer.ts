@@ -50,10 +50,11 @@ export type Props<P> = {
 export type RawProps<R> = R extends { readonly [RAW_PROPS]?: infer P } ? P : R;
 
 /**
- * @internal JSX-layer call-site wrap: each key accepts a plain value OR a
- * reactive getter. Not part of the public API — the JSX checker applies it
- * automatically; end users never name it. Function-typed props are wrapped
- * too (`Computed<F>` is zero-arg, so TS still picks the handler signature by
+ * Caller-facing wrap: each key accepts a plain value OR a reactive getter.
+ * The JSX checker applies it automatically to component props; name it
+ * directly when typing a call-site shape by hand (e.g. a class component's
+ * constructor param, like `For`'s). Function-typed props are wrapped too
+ * (`Computed<F>` is zero-arg, so TS still picks the handler signature by
  * arity for inline arrows). `Signal<F>` must never be added explicitly — its
  * one-arg `Updater` half would collapse inline arrow params to implicit any.
  */
