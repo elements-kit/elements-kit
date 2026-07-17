@@ -313,7 +313,7 @@ function claimSlot(cur: Cursor, om?: OnMismatch): Slot {
   if (range) return Slot.claim(range.start, range.end);
   om?.({ expected: "<!--{-->", found: cur.node });
   const slot = new Slot();
-  cur.parent.insertBefore(slot.render(), cur.node);
+  cur.parent.insertBefore(slot.get(), cur.node);
   return slot;
 }
 

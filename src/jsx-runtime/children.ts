@@ -216,7 +216,7 @@ export function mountChild(
 ): void {
   if (typeof child === "function") {
     const slot = new Slot();
-    el.appendChild(slot.render());
+    el.appendChild(slot.get());
     effect(() => slot.set(resolveChild(child())));
     onCleanup(() => slot.clear());
     return;

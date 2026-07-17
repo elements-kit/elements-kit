@@ -1,16 +1,14 @@
-import { signal } from "elements-kit/signals";
-import { Slot } from "elements-kit/slot";
+import { reactive, signal } from "elements-kit/signals";
+import { Children } from "elements-kit/jsx-runtime";
 
 // ── Card Component with named slots ───────────────────────────────────────────
-// Plain class component — no inherited DOM surface, so slots can be plain
-// instance fields. The `[SLOTS]` symbol exists to avoid collisions on custom
-// elements (HTMLElement subclasses); plain components don't need it.
-// No constructor: the JSX layer derives caller props from the public fields
-// (Slot fields accept any children).
+// `@slot()` declares each named slot as a plain property: reading places the
+// region in the template, assigning fills it — `<CardComponent header={…}/>`
+// in JSX, or `card.header = node` from anywhere.
 class CardComponent {
-  header = new Slot();
-  actions = new Slot();
-  children = new Slot();
+  @reactive() header!: Children;
+  @reactive() actions!: Children;
+  @reactive() children!: Children;
 
   render() {
     return (
@@ -24,11 +22,11 @@ class CardComponent {
       "
       >
         <header style="padding: 1rem; border-bottom: 1px solid #e2e8f0; background: #f7fafc">
-          {this.header.render(new Text("Untitled"))}
+          {this.header}
         </header>
-        <main style="padding: 1rem">{this.children.render()}</main>
+        <main style="padding: 1rem">{this.children}</main>
         <footer style="padding: 0.75rem 1rem; border-top: 1px solid #e2e8f0; display: flex; gap: 8px">
-          {this.actions.render()}
+          {this.actions}
         </footer>
       </article>
     );

@@ -63,7 +63,7 @@ Every feature is a separate subpath export — import only what you use.
 | `elements-kit/signals` | `signal`, `computed`, `effect`, `effectScope`, `batch`, `untracked`, `trigger`, `onCleanup`, `MaybeReactive`, `resolve`, `resolveProps`, `@reactive` |
 | `elements-kit/render` | `render(target, setup)` — mount a node with a scoped lifetime; returns `unmount` |
 | `elements-kit/attributes` | `@attributes` decorator + `ATTRIBUTES` symbol |
-| `elements-kit/slot` | `Slot`, `Slots`, `SLOTS` symbol — comment-marker DOM regions |
+| `elements-kit/slot` | `Slot` class + `@slot()` decorator — comment-marker DOM regions as plain properties |
 | `elements-kit/custom-elements` | `defineElement`, `CustomElementRegistry` |
 | `elements-kit/for` | `For` keyed-list component |
 | `elements-kit/jsx-runtime` | JSX factory + type helpers (`PropsOf`, `MaybeReactiveProps`, `RawProps`, `Props`, `Require`) — configure via `jsxImportSource` |
@@ -473,7 +473,7 @@ class MyElement extends HTMLElement {
 }
 ```
 
-For typed slots, attach a `[SLOTS]` instance field — pass the key list with `as const` so TS can narrow:
+For named slots, declare `@slot()` properties — reading places the region in your template, assigning fills it (from any framework, or none):
 
 ```ts
 import { slot } from "elements-kit/slot";

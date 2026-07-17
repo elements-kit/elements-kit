@@ -39,7 +39,7 @@ export function Fragment(
 
   if ("html" in props && props.html) {
     const slot = new Slot();
-    fragment.appendChild(slot.render());
+    fragment.appendChild(slot.get());
     const source = props.children as unknown;
     if (typeof source === "function") {
       // Signal, computed, or resolveProps getter — a live region either way;

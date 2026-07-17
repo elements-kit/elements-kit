@@ -59,10 +59,21 @@ describe("@slot — JSX props", () => {
     expect(el.querySelector("h1")?.textContent).toBe("updated");
   });
 
-  it("throws when slot value is not a Node", () => {
-    expect(() =>
-      createElement(Card, { header: "not-a-node" as unknown as Node }),
-    ).toThrow("slot value must be a Node");
+  it("accepts a string (native append semantics — becomes a text node)", () => {
+    const el = createElement(Card, {
+      header: "plain text" as unknown as Node,
+    }) as Element;
+    expect(el.textContent).toContain("plain text");
+  });
+
+  it("accepts an array of children (JSX multi-children)", () => {
+    const a = document.createElement("em");
+    const b = document.createElement("strong");
+    const el = createElement(Card, {
+      header: [a, b] as unknown as Node,
+    }) as Element;
+    expect(el.querySelector("em")).not.toBeNull();
+    expect(el.querySelector("strong")).not.toBeNull();
   });
 });
 

@@ -390,27 +390,32 @@ Compose them however your host needs — see the [framework integration guides](
 
 ### Slots as properties
 
-To make slot content settable by plain assignment (`el.header = node` — the only slot API other frameworks can reach), pair the `Slot` with a getter/setter:
+Declare a named slot with the `@slot()` decorator — the property IS the slot:
 
-```ts
-import { Slot } from "elements-kit/slot";
+```tsx
+import { slot } from "elements-kit/slot";
 
 class XCard extends HTMLElement {
-  #header = new Slot();
-  get header(): Slot {
-    return this.#header;
-  }
-  set header(v: Node) {
-    this.#header.set(v);
+  @slot() header!: Node;
+
+  render() {
+    return <article>{this.header}</article>;
+    // or, without elements-kit JSX: root.append(this.header)
   }
 }
 
 const el = document.querySelector("x-card")!;
 el.header = document.createElement("h1"); // fills the slot
 el.header = new Text("plain text");       // any Node
+el.header = null;                         // clears it
 ```
 
-The getter returns the `Slot` (your `render()` keeps calling `this.header.render()`); the setter takes a `Node` — call `el.header.clear()` to empty it. `PropertiesOf` types the key as `Node`, and inside elements-kit JSX `header={…}` keeps working.
+Two rules:
+
+- **Reading places the region.** The getter yields the slot's comment-marker fragment — append it wherever the content should live. Any renderer that can append a fragment works; no elements-kit JSX required. Reads are for *placement*, not inspection (a later read extracts the current content — the re-render semantic).
+- **Assigning fills it.** Any `Node`, from any framework or none; `null` clears. Assignments before the region is placed are buffered and flush on mount, so consumers can set content before the element first renders.
+
+`PropertiesOf` types the key by its declared field type (`Node`), and inside elements-kit JSX `header={…}` works as a plain prop — including reactive values (`header={computed(…)}` re-fills on change).
 
 ---
 

@@ -10,6 +10,7 @@ import type {
 import { SvgNamespaceAttrs, WithJsxNamespaces } from "./properties";
 import { Children } from "./children";
 
+export type { Children } from "./children";
 export type {
   MaybeReactiveProps,
   PropsOf,
