@@ -1,5 +1,5 @@
 import type { Props } from "./infer";
-import { createElement } from "./element";
+import { createElement, DOMIntrinsicElements, DOMElements } from "./element";
 import type { CustomElementRegistry } from "../custom-elements";
 import type {
   AnyElementCtor,
@@ -8,7 +8,6 @@ import type {
   ResolveProps,
 } from "./infer";
 import { SvgNamespaceAttrs, WithJsxNamespaces } from "./properties";
-import type { JSX as DomJSX } from "dom-expressions/src/jsx";
 import { Children } from "./children";
 
 export type { ElementProps, PropsOf, RawProps, Props, Require } from "./infer";
@@ -22,12 +21,6 @@ export {
   createElement as h,
 };
 export { Fragment } from "./fragment";
-
-type IntrinsicElementOf<T> = T extends { ref?: infer R | undefined }
-  ? Extract<R, (el: any) => any> extends (el: infer E) => any
-    ? E
-    : Element
-  : Element;
 
 export namespace JSX {
   export type Element = globalThis.Element | globalThis.DocumentFragment;
@@ -54,26 +47,13 @@ export namespace JSX {
       : never;
   };
 
-  // dom-expressions' `jsx` schema types attributes as PLAIN values (its
-  // compiled runtime wraps expressions itself). elements-kit has no compiler,
-  // so the reactive layer is applied here: every attribute widens to
-  // value-or-getter, and `children` is replaced with our `Children` (which
-  // admits getters, signals, and arrays).
   export type IntrinsicElements = {
-    // `ref` stays outside the reactive wrap: the runtime invokes it once with
-    // the element (never unwraps a getter), and wrapping it would intersect
-    // badly with IntrinsicAttributes.ref, killing inline-arrow param inference.
-    [K in keyof DomJSX.IntrinsicElements]: MaybeReactiveProps<
-      WithJsxNamespaces<
-        DomJSX.IntrinsicElements[K],
-        IntrinsicElementOf<DomJSX.IntrinsicElements[K]>
-      >
+    [K in keyof DOMIntrinsicElements]: MaybeReactiveProps<
+      Omit<WithJsxNamespaces<DOMIntrinsicElements[K], DOMElements[K]>, "ref">
     > & {
-      ref?: (el: IntrinsicElementOf<DomJSX.IntrinsicElements[K]>) => void;
+      ref?: (el: DOMElements[K]) => void;
       children?: Children;
-    } & (IntrinsicElementOf<DomJSX.IntrinsicElements[K]> extends SVGElement
-        ? SvgNamespaceAttrs
-        : {});
+    } & (DOMElements[K] extends SVGElement ? SvgNamespaceAttrs : {});
   } & RegisteredElements;
 }
 

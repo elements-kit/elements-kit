@@ -10,6 +10,27 @@ import { effectScope, resolveProps, untracked } from "../signals";
 import { getRenderer } from "./renderer";
 import { attachDisposables } from "./dispose";
 import "../polyfill";
+import type { JSX as DomJSX } from "dom-expressions/src/jsx";
+
+export type DOMIntrinsicElements = {
+  [K in keyof DomJSX.IntrinsicElements]: Omit<
+    DomJSX.IntrinsicElements[K],
+    "children" | "ref"
+  >;
+};
+
+// Per-tag concrete element type, extracted from dom-expressions' `ref` prop
+// BEFORE DOMIntrinsicElements omits it (the attrs interfaces carry the element
+// type nowhere else).
+export type DOMElements = {
+  [K in keyof DomJSX.IntrinsicElements]: DomJSX.IntrinsicElements[K] extends {
+    ref?: infer R | undefined;
+  }
+    ? Extract<R, (el: any) => any> extends (el: infer E) => any
+      ? E
+      : Element
+    : Element;
+};
 
 // ─ Public API ─────────────────────────────────────────────────────────────────
 

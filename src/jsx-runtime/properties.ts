@@ -82,8 +82,6 @@ type JsxNamespaces<E extends Element = Element> = StyleNamespace &
  * Namespaced JSX props added by elements-kit on top of dom-expressions.
  * All four are tag-aware via the element type `E`.
  *
- * - `ref` — callback invoked with the mounted element, typed as the concrete
- *   element class for intrinsics and registered custom elements.
  * - `class:foo` — open string + `MaybeReactive<boolean>`. Class names are
  *   user-defined CSS so the key stays open (no autocomplete possible).
  * - `style:cssProp` — keys mapped from `DomJSX.CSSProperties` (csstype's
@@ -103,7 +101,6 @@ type JsxNamespaces<E extends Element = Element> = StyleNamespace &
 // onto IntrinsicElements whose concrete element type extends SVGElement.
 
 type JsxNamespaceKeys =
-  | "ref"
   | `class:${string}`
   | `style:${string}`
   | `prop:${string}`;
