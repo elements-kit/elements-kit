@@ -50,11 +50,11 @@ export class App {
               style={{
                 background: "#f9fafb",
                 padding: "0.5rem",
-                "border-radius": "4px",
-                "max-height": "150px",
+                borderRadius: "4px",
+                maxHeight: "150px",
                 overflow: "auto",
-                "font-family": "monospace",
-                "font-size": "0.85em",
+                fontFamily: "monospace",
+                fontSize: "0.85em",
               }}
             >
               <For each={batchLogs} by={(log) => log}>

@@ -326,15 +326,35 @@ void _fn_with_excited;
 void _fn_missing;
 void _fn_wrong;
 
-// Instance-field class — JSX attrs derived from public fields
-// (TS extracts `{}` for classes without a constructor signature.)
-type _ClsAttrs = JSX.LibraryManagedAttributes<typeof Toggle, {}>;
+// Instance-field class component — JSX attrs derived from public fields
+// (TS extracts `{}` for classes without a constructor signature.) Must have
+// `render()`: plain HTMLElement subclasses (like `Toggle`) are not valid JSX
+// tags — they mount via their registered tag name instead.
+class ToggleView {
+  open = false;
+  onToggle: (v: boolean) => void = () => {};
+  render(): JSX.Element | null {
+    return null;
+  }
+}
+type _ClsAttrs = JSX.LibraryManagedAttributes<typeof ToggleView, {}>;
 const _cls_static: _ClsAttrs = { open: true };
 const _cls_signal: _ClsAttrs = { open: () => false };
 const _cls_handler: _ClsAttrs = { onToggle: (v: boolean) => void v };
 void _cls_static;
 void _cls_signal;
 void _cls_handler;
+// Non-vacuity guard: if ResolveProps ever degrades to `{}` /
+// `MaybeReactiveProps<unknown>` again (the empty-P-matches-brand bug), the
+// three accepts above pass trivially — this rejection is what actually fails.
+const _cls_unknown_rejected: _ClsAttrs = {
+  // @ts-expect-error — unknown key must be rejected
+  nope: 1,
+};
+void _cls_unknown_rejected;
+type _Cls_Open = Assert<
+  Equal<_ClsAttrs["open"], MaybeReactive<boolean> | undefined>
+>;
 
 // Constructor-class with explicit MaybeReactiveProps param — passes through,
 // generic stays inferable. Mirrors the `For<T>` pattern used in the library.

@@ -97,7 +97,7 @@ export class App {
                 style={{
                   padding: "6px 12px",
                   border: "none",
-                  "border-radius": "4px",
+                  borderRadius: "4px",
                   cursor: "pointer",
                 }}
               >
@@ -141,11 +141,11 @@ function DemoCounter() {
           style={{
             background: "#f9fafb",
             padding: "0.5rem",
-            "border-radius": "4px",
-            "max-height": "100px",
+            borderRadius: "4px",
+            maxHeight: "100px",
             overflow: "auto",
-            "font-family": "monospace",
-            "font-size": "0.85em",
+            fontFamily: "monospace",
+            fontSize: "0.85em",
           }}
         >
           <For each={logs} by={(log, i) => i}>
@@ -195,11 +195,11 @@ function DemoBatch() {
           style={{
             background: "#f9fafb",
             padding: "0.5rem",
-            "border-radius": "4px",
-            "max-height": "100px",
+            borderRadius: "4px",
+            maxHeight: "100px",
             overflow: "auto",
-            "font-family": "monospace",
-            "font-size": "0.85em",
+            fontFamily: "monospace",
+            fontSize: "0.85em",
           }}
         >
           <For each={batchLogs} by={(log) => log}>
@@ -231,11 +231,11 @@ function DemoCleanup() {
           style={{
             background: "#f9fafb",
             padding: "0.5rem",
-            "border-radius": "4px",
-            "max-height": "100px",
+            borderRadius: "4px",
+            maxHeight: "100px",
             overflow: "auto",
-            "font-family": "monospace",
-            "font-size": "0.85em",
+            fontFamily: "monospace",
+            fontSize: "0.85em",
           }}
         >
           <For each={fetchLogs} by={(log, i) => i}>
@@ -286,11 +286,11 @@ function DemoEffectScope() {
           style={{
             background: "#f9fafb",
             padding: "0.5rem",
-            "border-radius": "4px",
-            "max-height": "100px",
+            borderRadius: "4px",
+            maxHeight: "100px",
             overflow: "auto",
-            "font-family": "monospace",
-            "font-size": "0.85em",
+            fontFamily: "monospace",
+            fontSize: "0.85em",
           }}
         >
           <For each={scopeLogs} by={(log, i) => i}>
@@ -328,11 +328,11 @@ function DemoUntracked() {
           style={{
             background: "#f9fafb",
             padding: "0.5rem",
-            "border-radius": "4px",
-            "max-height": "100px",
+            borderRadius: "4px",
+            maxHeight: "100px",
             overflow: "auto",
-            "font-family": "monospace",
-            "font-size": "0.85em",
+            fontFamily: "monospace",
+            fontSize: "0.85em",
           }}
         >
           <For each={untrackedLogs} by={(log, i) => i}>

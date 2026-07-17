@@ -23,22 +23,22 @@ Two helpers exported from `elements-kit/jsx-runtime`:
 
 | Helper | Shape | Use when |
 |---|---|---|
-| `InstanceProps<I>` | Public instance fields only (drops the `HTMLElement` surface) | You want to type just the user-defined props |
+| `PropsOf<I>` | Public instance fields only (drops the `HTMLElement` surface) | You want to type just the user-defined props |
 | `ElementProps<C>` | Full elements-kit JSX surface — attrs, fields, events from `static events`, slots from `[SLOTS]`, children | Your element declares typed events or slots and you want callers to see them |
 
-For most Solid wiring `InstanceProps<XCounter>` is enough.
+For most Solid wiring `PropsOf<XCounter>` is enough.
 
 ## Augment Solid's `JSX.IntrinsicElements`
 
 ```ts
 import type { JSX } from "solid-js";
-import type { InstanceProps } from "elements-kit/jsx-runtime";
+import type { PropsOf } from "elements-kit/jsx-runtime";
 import type { XCounter } from "./x-counter";
 
 declare module "solid-js" {
   namespace JSX {
     interface IntrinsicElements {
-      "x-counter": JSX.HTMLAttributes<XCounter> & InstanceProps<XCounter>;
+      "x-counter": JSX.HTMLAttributes<XCounter> & PropsOf<XCounter>;
     }
   }
 }
@@ -56,7 +56,7 @@ Put the `declare module "solid-js"` block in the same file as the element class.
 // x-counter.ts
 import { defineElement } from "elements-kit/custom-elements";
 import { reactive } from "elements-kit/signals";
-import type { InstanceProps } from "elements-kit/jsx-runtime";
+import type { PropsOf } from "elements-kit/jsx-runtime";
 
 export class XCounter extends HTMLElement {
   @reactive() count = 0;
@@ -67,7 +67,7 @@ defineElement("x-counter", XCounter);
 declare module "solid-js" {
   namespace JSX {
     interface IntrinsicElements {
-      "x-counter": JSX.HTMLAttributes<XCounter> & InstanceProps<XCounter>;
+      "x-counter": JSX.HTMLAttributes<XCounter> & PropsOf<XCounter>;
     }
   }
 }

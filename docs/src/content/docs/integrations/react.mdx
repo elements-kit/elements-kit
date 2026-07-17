@@ -275,22 +275,22 @@ Two helpers exported from `elements-kit/jsx-runtime`:
 
 | Helper | Shape | Use when |
 |---|---|---|
-| `InstanceProps<I>` | Public instance fields only (drops the `HTMLElement` surface) | You want to type just the user-defined props |
+| `PropsOf<I>` | Public instance fields only (drops the `HTMLElement` surface) | You want to type just the user-defined props |
 | `ElementProps<C>` | Full elements-kit JSX surface — attrs, fields, events from `static events`, slots from `[SLOTS]`, children | Your element declares typed events or slots and you want callers to see them |
 
-For most React wiring `InstanceProps<XCounter>` is enough.
+For most React wiring `PropsOf<XCounter>` is enough.
 
 ### Augment React's `JSX.IntrinsicElements`
 
 ```ts
-import type { InstanceProps } from "elements-kit/jsx-runtime";
+import type { PropsOf } from "elements-kit/jsx-runtime";
 import type { XCounter } from "./x-counter";
 
 declare module "react" {
   namespace JSX {
     interface IntrinsicElements {
       "x-counter": React.DetailedHTMLProps<
-        React.HTMLAttributes<XCounter> & InstanceProps<XCounter>,
+        React.HTMLAttributes<XCounter> & PropsOf<XCounter>,
         XCounter
       >;
     }
@@ -310,7 +310,7 @@ Put the `declare module "react"` block in the same file as the element class. Im
 // x-counter.ts
 import { defineElement } from "elements-kit/custom-elements";
 import { reactive } from "elements-kit/signals";
-import type { InstanceProps } from "elements-kit/jsx-runtime";
+import type { PropsOf } from "elements-kit/jsx-runtime";
 
 export class XCounter extends HTMLElement {
   @reactive() count = 0;
@@ -322,7 +322,7 @@ declare module "react" {
   namespace JSX {
     interface IntrinsicElements {
       "x-counter": React.DetailedHTMLProps<
-        React.HTMLAttributes<XCounter> & InstanceProps<XCounter>,
+        React.HTMLAttributes<XCounter> & PropsOf<XCounter>,
         XCounter
       >;
     }

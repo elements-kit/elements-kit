@@ -11,6 +11,9 @@ importers:
       '@floating-ui/dom':
         specifier: ^1.7.6
         version: 1.7.6
+      csstype:
+        specifier: ^3.2.3
+        version: 3.2.3
       dom-expressions:
         specifier: ^0.40.6
         version: 0.40.6(csstype@3.2.3)(seroval-plugins@1.5.2(seroval@1.5.2))(seroval@1.5.2)
@@ -24,9 +27,6 @@ importers:
       '@types/react-dom':
         specifier: ^19.2.3
         version: 19.2.3(@types/react@19.2.14)
-      csstype:
-        specifier: ^3.2.3
-        version: 3.2.3
       happy-dom:
         specifier: ^20.8.9
         version: 20.8.9

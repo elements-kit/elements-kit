@@ -97,11 +97,25 @@ export type SvgNamespaceAttrs = XlinkAttrs & XmlAttrs;
  * `[SLOTS]`. Plain HTML intrinsics don't accept slot props (the runtime
  * ignores them).
  */
-type JsxNamespaces<E extends Element = Element> = StyleNamespace &
-  PropNamespace<Omit<E, "children">> &
-  ClassNamespace;
+// Object form of the `style` ATTRIBUTE is applied with
+// `Object.assign(el.style, value)` (see `applyStyle`) — CSSStyleDeclaration
+// fields are camelCase, so the object type is csstype's camelCase
+// `Properties` (hyphenated keys would silently no-op). The `style:prop`
+// NAMESPACE goes through `setProperty` instead, hence hyphenated keys there.
+interface StyleAttrObject extends CSS.Properties {}
+
+// Style props only exist on elements that carry inline style —
+// `ElementCSSInlineStyle` is the DOM interface providing `.style`
+// (HTML/SVG/MathML). A bare `Element` gets neither form.
+type JsxNamespaces<E extends Element = Element> =
+  (E extends ElementCSSInlineStyle
+    ? { style?: string | StyleAttrObject } & StyleNamespace
+    : {}) &
+    PropNamespace<Omit<E, "children">> &
+    ClassNamespace;
 
 type JsxNamespaceKeys =
+  | "style"
   | `class:${string}`
   | `style:${string}`
   | `prop:${string}`;

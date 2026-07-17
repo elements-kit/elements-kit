@@ -42,9 +42,8 @@ export namespace JSX {
   export interface ElementChildrenAttribute {
     children: {};
   }
-  export interface IntrinsicAttributes {
-    ref?: (el: Element) => void;
-  }
+
+  export interface IntrinsicAttributes {}
 
   export type LibraryManagedAttributes<C, P> = ResolveProps<C, P>;
   type RegisteredElements = {

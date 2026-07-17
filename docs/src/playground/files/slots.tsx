@@ -1,17 +1,13 @@
 import { signal } from "elements-kit/signals";
 import { Slot } from "elements-kit/slot";
-import type { Props } from "elements-kit/jsx-runtime";
 
 // ── Card Component with named slots ───────────────────────────────────────────
 // Plain class component — no inherited DOM surface, so slots can be plain
 // instance fields. The `[SLOTS]` symbol exists to avoid collisions on custom
 // elements (HTMLElement subclasses); plain components don't need it.
-export type CardProps = Props<CardComponent>;
-
+// No constructor: the JSX layer derives caller props from the public fields
+// (Slot fields accept any children).
 class CardComponent {
-  // Phantom constructor: JSX reads this signature to infer accepted props.
-  constructor(_props?: CardProps) {}
-
   header = new Slot();
   actions = new Slot();
   children = new Slot();

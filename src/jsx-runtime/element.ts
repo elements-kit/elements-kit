@@ -39,7 +39,7 @@ export type DOMElements = {
 // the `JSX.Element` namespace type, not this signature.
 export function createElement(
   type: JSX.ElementType,
-  allProps: JSX.IntrinsicAttributes & Record<string, unknown> = {},
+  allProps: { ref?: (el: Element) => void } & Record<string, unknown> = {},
 ): JSX.Element | null {
   const renderer = getRenderer();
   if (renderer) return renderer.jsx(type, allProps) as JSX.Element;

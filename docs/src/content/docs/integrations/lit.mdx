@@ -23,7 +23,7 @@ Two helpers exported from `elements-kit/jsx-runtime`:
 
 | Helper | Shape | Use when |
 |---|---|---|
-| `InstanceProps<I>` | Public instance fields only (drops the `HTMLElement` surface) | Annotating setters, wrapper props, or helper functions |
+| `PropsOf<I>` | Public instance fields only (drops the `HTMLElement` surface) | Annotating setters, wrapper props, or helper functions |
 | `ElementProps<C>` | Full elements-kit JSX surface — attrs, fields, events from `static events`, slots from `[SLOTS]`, children | When you need the full declared surface |
 
 ## Typed element queries
@@ -70,15 +70,15 @@ export class MyHost extends LitElement {
 }
 ```
 
-## `InstanceProps` as a type annotation
+## `PropsOf` as a type annotation
 
-`InstanceProps<I>` is useful when you need to describe the settable surface of an elements-kit element — for example, inside a factory or test helper:
+`PropsOf<I>` is useful when you need to describe the settable surface of an elements-kit element — for example, inside a factory or test helper:
 
 ```ts
-import type { InstanceProps } from "elements-kit/jsx-runtime";
+import type { PropsOf } from "elements-kit/jsx-runtime";
 import { XCounter } from "./x-counter";
 
-function applyProps(el: XCounter, props: InstanceProps<XCounter>) {
+function applyProps(el: XCounter, props: PropsOf<XCounter>) {
   Object.assign(el, props);
 }
 ```

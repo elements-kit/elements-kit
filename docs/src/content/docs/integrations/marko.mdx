@@ -23,7 +23,7 @@ Two helpers exported from `elements-kit/jsx-runtime`:
 
 | Helper | Shape | Use when |
 |---|---|---|
-| `InstanceProps<I>` | Public instance fields only (drops the `HTMLElement` surface) | Annotating setters, wrapper props, or helper functions |
+| `PropsOf<I>` | Public instance fields only (drops the `HTMLElement` surface) | Annotating setters, wrapper props, or helper functions |
 | `ElementProps<C>` | Full elements-kit JSX surface — attrs, fields, events from `static events`, slots from `[SLOTS]`, children | When you need the full declared surface |
 
 ## Use the element in a template
@@ -58,13 +58,13 @@ Make sure this file is covered by your `tsconfig.json`'s `include` array.
 const el = document.querySelector("x-counter"); // XCounter | null
 ```
 
-`InstanceProps<XCounter>` is useful as a type annotation when writing helper functions that operate on the element:
+`PropsOf<XCounter>` is useful as a type annotation when writing helper functions that operate on the element:
 
 ```ts
-import type { InstanceProps } from "elements-kit/jsx-runtime";
+import type { PropsOf } from "elements-kit/jsx-runtime";
 import { XCounter } from "./x-counter";
 
-function applyProps(el: XCounter, props: InstanceProps<XCounter>) {
+function applyProps(el: XCounter, props: PropsOf<XCounter>) {
   Object.assign(el, props);
 }
 ```

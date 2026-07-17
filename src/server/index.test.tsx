@@ -86,7 +86,7 @@ describe("renderToString — elements and attributes", () => {
 
   it("merges style prop objects and style: namespace entries", async () => {
     const html = await renderToString(() => (
-      <div style={{ "background-color": "blue" }} style:color="red" />
+      <div style={{ backgroundColor: "blue" }} style:color="red" />
     ));
     expect(html).toBe('<div style="background-color:blue;color:red"></div>');
   });

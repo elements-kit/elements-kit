@@ -66,18 +66,26 @@ export type MaybeReactiveProps<P> = {
 
 /**
  * @internal Call-site prop resolution for `JSX.LibraryManagedAttributes`:
+ * - empty param (instance-field classes, no ctor) → wrap `PropsOf<C>`
  * - branded `Props<P>` param (function components) → wrap the raw `P`
- * - empty constructor param (instance-field classes) → wrap `PropsOf<C>`
  * - non-empty constructor param → pass through (preserves `For<T>` inference)
+ *
+ * Emptiness is checked FIRST: `{}` structurally matches the optional brand
+ * (`{} extends { [RAW_PROPS]?: infer Raw }` with `Raw = unknown`), which
+ * would silently type every no-ctor class as `MaybeReactiveProps<unknown>`
+ * (= `{}`, accepting anything). A real `Props<P>` is never empty — its
+ * `keyof` always contains the brand symbol.
  */
-export type ResolveProps<C, P, NN = NonNullable<P>> = NN extends {
-  readonly [RAW_PROPS]?: infer Raw;
-}
-  ? MaybeReactiveProps<Raw>
-  : [keyof NN] extends [never]
-    ? C extends JSX.ElementType | JSX.ElementClass
-      ? MaybeReactiveProps<PropsOf<C>>
-      : {}
+export type ResolveProps<C, P, NN = NonNullable<P>> = [keyof NN] extends [
+  never,
+]
+  ? C extends JSX.ElementType | JSX.ElementClass
+    ? MaybeReactiveProps<PropsOf<C>>
+    : {}
+  : NN extends {
+        readonly [RAW_PROPS]?: infer Raw;
+      }
+    ? MaybeReactiveProps<Raw>
     : NN;
 
 // ─ Internal composition pieces ───────────────────────────────────────────────
