@@ -90,8 +90,7 @@ Each subpath is a stable import entry declared in [package.json](package.json) `
 - Inheritance merges maps; subclass entries override. `observedAttributes(cls)` resolves the final set.
 - `@reactive()` on instance fields backs them with signals; works in both plain classes and `HTMLElement` subclasses.
 - No constructor-mounted rendering. Mount in `connectedCallback`, dispose in `disconnectedCallback`.
-- `renderScope(setup)` runs `setup` inside a detached `effectScope` and returns `{ result, dispose }`. Effects, `onCleanup` callbacks and reactive reads inside `setup` bind to that scope. Store `dispose` on the instance, call from `disconnectedCallback`.
-- `connectedScope(this, setup)` + `disconnectedScope(this)` wrap `renderScope` and store the dispose handle per element — no instance field needed. Calling `connectedScope` twice disposes the previous scope first, so reconnect works correctly.
+- `render(target, setup)` (`elements-kit/render`) runs `setup` inside a detached `effectScope`, appends the returned node to `target`, and returns an `unmount` thunk. Effects, `onCleanup` callbacks and reactive reads inside `setup` bind to that scope. Store the thunk on the instance; call it from `disconnectedCallback` to remove the node, run its `Symbol.dispose` hook, and tear down every registered effect.
 
 ### 5a. Store pattern
 
@@ -145,10 +144,10 @@ Each subpath is a stable import entry declared in [package.json](package.json) `
 | Fragment (`<>...</>`) | ✓ — via the surrounding `createElement` call the JSX transform emits | The fragment's disposables fire through the enclosing scope. |
 | Per-child and reactive-child slots (e.g. `{() => signal()}`) | ✓ — each slot owns a scope | The slot is replaced or its parent is disposed. |
 | `<For>` render callback (per item) | ✓ — per-entry scope | The item's key leaves `each`, or the list unmounts. |
-| Custom element `connectedCallback` | ✗ by default — opt in with `renderScope` | `dispose()` is called (typically from `disconnectedCallback`). |
+| Custom element `connectedCallback` | ✗ by default — opt in with `render(this, setup)` | The `unmount` thunk is called (typically from `disconnectedCallback`). |
 | Direct calls to `Fragment({ children })` (non-JSX) | ✗ | Caller owns the scope. |
 
-Effects created outside an auto-scoped boundary leak unless the caller captures and disposes an `effectScope` manually (or uses `renderScope`).
+Effects created outside an auto-scoped boundary leak unless the caller captures and disposes an `effectScope` manually (or uses `render`).
 
 Full dependency and returns matrix: [src/utilities/README.md](src/utilities/README.md).
 
