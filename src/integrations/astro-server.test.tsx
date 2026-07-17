@@ -53,9 +53,9 @@ describe("astro-server renderer", () => {
     );
   });
 
-  it("maps named slots to slot:<name> props", async () => {
-    const Card = (props: { "slot:header"?: unknown }) => (
-      <header>{props["slot:header"] as never}</header>
+  it("maps named slots to plain <name> props", async () => {
+    const Card = (props: { header?: unknown }) => (
+      <header>{props.header as never}</header>
     );
     const { html } = await renderer.renderToStaticMarkup(
       Card,
