@@ -1,5 +1,4 @@
 import type { ATTRIBUTES, AttrChangeHandler } from "../attributes";
-import type { SLOTS, Slot } from "../slot";
 import type { Computed, MaybeReactive } from "../signals";
 import type { JSX as DomJSX } from "dom-expressions/src/jsx";
 import type { JSX } from "elements-kit/jsx-runtime";
@@ -12,13 +11,8 @@ import type {
   EventsOf as RawEventsOf,
 } from "../custom-elements";
 
-/**
- * Public instance fields of `I` — all optional. For `HTMLElement` subclasses
- * the DOM surface is excluded; for plain classes, all own keys are kept.
- * `Slot`-typed fields are mapped to `Child`.
- */
 export type InstanceProps<I> = {
-  [K in PublicPropKeys<I> & string]?: I[K] extends Slot ? Children : I[K];
+  [K in PublicPropKeys<I> & string]?: I[K];
 };
 
 /**
@@ -128,27 +122,16 @@ type JsxEventsOf<C> = {
   ) => void;
 };
 
-type SlotKeys<I> = I extends { [SLOTS]: infer S }
-  ? Extract<keyof S, string>
-  : never;
-
-type SlotsOf<C> =
-  SlotKeys<InstanceOf<C>> extends infer K
-    ? [K] extends [string]
-      ? { [P in K as `slot:${P}`]?: Children }
-      : {}
-    : {};
-
 type ChildrenOf<C> = C extends { children: never }
   ? {}
   : { children?: Children };
 
 type BaseDOMAttrs = DomJSX.DOMAttributes<HTMLElement>;
 
-// Namespaces (`class:`, `style:`, `prop:`, `slot:`, `ref`) are added at the
+// Namespaces (`class:`, `style:`, `prop:`, `ref`) are added at the
 // JSX layer via `OurProps` in [src/jsx-runtime/index.ts]. They're not part of
 // the raw `ElementProps<C>` shape — that one only carries the element's
-// declared surface (attrs, instance fields, events, slots, children).
+// declared surface (attrs, instance fields, events, children).
 
 // ─ Public composed types ─────────────────────────────────────────────────────
 
@@ -162,7 +145,6 @@ type BaseDOMAttrs = DomJSX.DOMAttributes<HTMLElement>;
  * - **`prop:*`** — explicit property assignment for every field.
  * - **Events** — keys from `declare static events: { ... }` produce
  *   `on:${K}` typed handlers (the only event syntax the runtime attaches).
- * - **Slots** — keys from `[SLOTS] = { ... } as const` produce `slot:${K}`.
  * - **Children** — `children?: Child` unless `static children: never`.
  * - **DOM attrs** — the standard dom-expressions surface (`class`, `style`, `ref`, …).
  *
@@ -174,7 +156,9 @@ type BaseDOMAttrs = DomJSX.DOMAttributes<HTMLElement>;
  * class XRange extends HTMLElement {
  *   static [ATTRIBUTES]: Attributes<XRange> = { min(v) { this.min = +v! } };
  *   declare static events: { commit: CustomEvent<number> };
- *   [SLOTS] = { label: new Slot() } as const;
+ *   #slot = new Slot();
+ *   get label() { return this.#slot.get(); }
+ *   set label(value: Node) { this.#slot.set(value) }
  *   \@reactive() min = 0;
  * }
  *
@@ -183,20 +167,19 @@ type BaseDOMAttrs = DomJSX.DOMAttributes<HTMLElement>;
  * //   min?: MaybeReactive<number>;
  * //   "prop:min"?: number;
  * //   "on:commit"?: (e: CustomEvent<number>) => void;
- * //   "slot:label"?: Child;
- * //   children?: Child;
+ * //   label?: Node
+ * //   children?: Node;
  * //   // …plus ref, class, class:*, style, style:*, standard DOM events
  * // }
  * ```
  *
- * @see {@link PropsOf} for class-components / function components (no attr/event/slot synthesis).
+ * @see {@link PropsOf} for class-components / function components (no attr/event synthesis).
  */
 export type ElementProps<C extends AnyElementCtor> = BaseDOMAttrs &
   AttrsOf<C> &
   InstancePropsOf<C> &
   PropNamespacedOf<C> &
   JsxEventsOf<C> &
-  SlotsOf<C> &
   ChildrenOf<C>;
 
 /**
@@ -204,8 +187,7 @@ export type ElementProps<C extends AnyElementCtor> = BaseDOMAttrs &
  *
  * The combination of the two specialised helpers:
  * - **Custom-element constructor** (`typeof Cls`, `Cls extends HTMLElement`)
- *   → `ElementProps<Cls>` — the full JSX surface (attrs, `prop:*`, `on:*`,
- *   `slot:*`, children).
+ *   → `ElementProps<Cls>` — the full JSX surface (attrs, `prop:*`, `on:*`,children).
  * - **Everything else** (function component, class component ctor or
  *   instance) → `ComponentProps<T>` — the raw prop shape.
  *
@@ -240,16 +222,14 @@ export type PropsOf<
 /**
  * Raw props of a function or class COMPONENT (not a custom element):
  * function components use the first parameter (`RawProps` unwraps a branded
- * `Props<P>`); classes use their public instance fields. Slot fields add
- * `slot:*` keys. The custom-element half of `PropsOf` is `ElementProps`.
+ * `Props<P>`); classes use their public instance fields. The custom-element half of `PropsOf` is `ElementProps`.
  */
 export type ComponentProps<T extends JSX.ElementType | JSX.ElementClass> =
-  (T extends (props: infer P, ...rest: any[]) => any
+  T extends (props: infer P, ...rest: any[]) => any
     ? P extends object
       ? RawProps<P>
       : {}
-    : InstanceProps<InstanceOf<T>>) &
-    SlotsOf<T>;
+    : InstanceProps<InstanceOf<T>>;
 
 // ─ Constructor helper ─────────────────────────────────────────────────────────
 
@@ -257,6 +237,6 @@ export type AnyElementCtor = abstract new (...args: any[]) => HTMLElement;
 
 /**
  * Instance type of a constructor; non-constructors pass through unchanged —
- * lets `PropsOf<>`/`SlotsOf<>` accept both `typeof Cls` and `Cls`.
+ * lets `PropsOf<> accept both `typeof Cls` and `Cls`.
  */
 type InstanceOf<C> = C extends abstract new (...args: any[]) => infer I ? I : C;

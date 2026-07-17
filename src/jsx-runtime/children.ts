@@ -1,5 +1,5 @@
 import { effect, onCleanup } from "../signals";
-import { SLOTS, Slot } from "../slot";
+import { Slot } from "../slot";
 import type { Disposer } from "./dispose";
 import { PropsTarget } from "./properties";
 
@@ -55,31 +55,13 @@ export type Children =
   | DocumentFragment
   | Children[];
 
-// ─ Typed SLOTS accessor ──────────────────────────────────────────────────────
-
-type SlotsMap = Record<string, Slot>;
-type WithSlots = PropsTarget & { [SLOTS]: SlotsMap };
-
-function hasSlots(node: PropsTarget): node is WithSlots {
-  return SLOTS in node;
-}
-
 // ─ Public API ─────────────────────────────────────────────────────────────────
 
 export function isChildrenProperty(node: PropsTarget, key: string): boolean {
-  if (
+  return (
     key === "children" &&
     (node instanceof Element || node instanceof DocumentFragment)
-  )
-    return true;
-
-  if (hasSlots(node)) {
-    const slotName = key.replace(/^slot:/, "");
-    if (slotName in node[SLOTS]) return true;
-    // fall through — still check "children" and direct Slot properties
-  }
-
-  return key in node && (node as Record<string, any>)[key] instanceof Slot;
+  );
 }
 
 export function applyChildren(
@@ -87,52 +69,18 @@ export function applyChildren(
   key: string,
   value: Children,
 ): void {
-  // ─ SLOTS ─────────────────────────────────────────────────────────────────
-  if (hasSlots(node)) {
-    const slotName = key.replace(/^slot:/, "");
-    if (slotName in node[SLOTS]) {
-      applySlot(node[SLOTS][slotName], value);
-      return;
-    }
-  }
-
-  // ─ Children ─────────────────────────────────────────────────────────────────
+  // Slot-backed props (`@slot()` accessors) are NOT handled here — they're
+  // plain properties now; `applyProps` assigns them and the accessor's setter
+  // forwards to the backing Slot.
   if (
     key === "children" &&
     (node instanceof Element || node instanceof DocumentFragment)
   ) {
     mountChildren(node as Element | DocumentFragment, value);
-    return;
-  }
-
-  // ─ Slots ─────────────────────────────────────────────────────────────────
-  if (key in node) {
-    const slot = (node as unknown as Record<typeof key, unknown>)[key];
-    if (!(slot instanceof Slot)) return;
-    applySlot(slot, value);
   }
 }
 
 // ─ Helpers ────────────────────────────────────────────────────────────────────
-
-function applySlot(slot: Slot, value: Children): void {
-  // Relies on the caller's effectScope (every JSX render sits inside one).
-  // The signals lib supports multiple onCleanup per scope (push to array), so
-  // sibling slots don't clobber each other. Intermediate replacements are
-  // handled by slot.set() → slot.clear(); this onCleanup covers final teardown.
-  let dispose: (() => void) | undefined;
-  if (typeof value === "function") {
-    effect(() => slot.set(resolveChild(value())));
-  } else {
-    const node = resolveChild(value);
-    dispose = (node as unknown as Partial<Disposable>)[Symbol.dispose];
-    slot.set(node);
-  }
-  onCleanup(() => {
-    dispose?.();
-    slot.clear();
-  });
-}
 
 // Pool of reusable DocumentFragments. After `el.appendChild(buffer)` the
 // buffer's children transfer to `el` and the fragment is empty — safe to

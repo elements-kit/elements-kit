@@ -102,7 +102,7 @@ export default function Demo() {
 
 ## Slots
 
-Islands accept Astro slot content — the integration delivers it as pre-rendered HTML mapped to `children` (default slot) and `slot:<name>` props:
+Islands accept Astro slot content — the integration delivers it as pre-rendered HTML mapped to `children` (default slot) and named props:
 
 <IslandDemo>
   <AstroCard client:load>
@@ -121,11 +121,11 @@ Islands accept Astro slot content — the integration delivers it as pre-rendere
 ```tsx
 export default function AstroCard(props: {
   children?: unknown;          // default slot
-  "slot:header"?: unknown;     // named slot
+  header?: unknown;            // named slot
 }) {
   return (
     <section>
-      <header>{props["slot:header"]}</header>
+      <header>{props.header}</header>
       {props.children}
     </section>
   );

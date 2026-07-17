@@ -476,12 +476,12 @@ class MyElement extends HTMLElement {
 For typed slots, attach a `[SLOTS]` instance field — pass the key list with `as const` so TS can narrow:
 
 ```ts
-import { SLOTS, Slots } from "elements-kit/slot";
+import { slot } from "elements-kit/slot";
 
 class Card extends HTMLElement {
-  [SLOTS] = Slots.new(["header", "footer"] as const);
+  @slot() header!: Node
+  @slot() footer!: Node
 }
-// PropsOf<typeof Card> now includes `slot:header` / `slot:footer`
 ```
 
 For typed events, declare a `static events` map:

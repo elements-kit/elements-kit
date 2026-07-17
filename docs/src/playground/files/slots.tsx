@@ -42,7 +42,7 @@ export class App {
   render() {
     return (
       <div style="padding: 2rem; display: flex; flex-direction: column; gap: 1rem">
-        {/* Slot content via direct prop names (no slot:* needed for plain components) */}
+        {/* Slot content via direct prop names */}
         <CardComponent
           header={<h2 style="margin: 0">{cardTitle}</h2>}
           actions={

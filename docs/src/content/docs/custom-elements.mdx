@@ -410,7 +410,7 @@ el.header = document.createElement("h1"); // fills the slot
 el.header = new Text("plain text");       // any Node
 ```
 
-The getter returns the `Slot` (your `render()` keeps calling `this.header.render()`); the setter takes a `Node` — call `el.header.clear()` to empty it. `PropertiesOf` types the key as `Node`, and inside elements-kit JSX both `header={…}` and `slot:header={…}` keep working.
+The getter returns the `Slot` (your `render()` keeps calling `this.header.render()`); the setter takes a `Node` — call `el.header.clear()` to empty it. `PropertiesOf` types the key as `Node`, and inside elements-kit JSX `header={…}` keeps working.
 
 ---
 

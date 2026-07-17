@@ -36,7 +36,6 @@
  * ```
  */
 import type { ATTRIBUTES } from "./attributes";
-import type { Slot } from "./slot";
 
 // Instance types of every registry entry, keyed by tag. Feeding these into
 // `HTMLElementTagNameMap` types the DOM surface for registered elements —
@@ -64,7 +63,7 @@ type AnyCtor = CustomElementConstructor;
 // ─ Raw type extractors ────────────────────────────────────────────────────────
 // Framework-agnostic views of a custom-element class, for use OUTSIDE
 // elements-kit JSX (React/Svelte/Vue/Angular wrappers, vanilla DOM). The JSX
-// presentation layer (`slot:*`, `on:*`, MaybeReactive wraps) is built on top
+// presentation layer (named slot props, `on:*`, MaybeReactive wraps) is built on top
 // of these in src/jsx-runtime/infer.ts.
 
 /**
@@ -83,8 +82,8 @@ type InstanceOfCtor<C> = C extends abstract new (...args: any[]) => infer I
 /**
  * Settable property surface of a custom-element class (or instance) — the
  * user's public fields, all optional, without the inherited `HTMLElement`
- * surface. `Slot`-typed keys take a `Node` (the slot's write view): pair
- * them with a getter/setter so `el.header = node` fills the slot.
+ * surface. Slot-backed props (`@slot()` accessors) appear here as their
+ * `Node | null` read type — assignment fills the slot.
  *
  * @example
  * ```ts
@@ -94,9 +93,7 @@ type InstanceOfCtor<C> = C extends abstract new (...args: any[]) => infer I
  */
 export type PropertiesOf<C> =
   InstanceOfCtor<C> extends infer I
-    ? {
-        [K in PublicPropKeys<I> & string]?: I[K] extends Slot ? Node : I[K];
-      }
+    ? { [K in PublicPropKeys<I> & string]?: I[K] }
     : never;
 
 /**

@@ -27,7 +27,7 @@ Three type helpers exported from `elements-kit/custom-elements` read the raw pla
 | `AttributesOf<typeof XCounter>` | Every key of `static [ATTRIBUTES]`, valued `string \| null` | Typing the raw HTML attribute surface — `setAttribute`, server-rendered markup |
 | `EventsOf<typeof XCounter>` | The `static events` map, verbatim — event name to event type | Typing `addEventListener`, framework event bindings, `HTMLElementEventMap` augmentations |
 
-Namespaced JSX props (`slot:*`, `on:*`, `class:*`) don't exist in other
+Namespaced JSX props (`on:*`, `class:*`) don't exist in other
 frameworks. Slot content is set at property level (they're regular
 properties — assign to fill, read to inspect; `PropertiesOf` types those
 keys as content), and events attach with `addEventListener`, typed via

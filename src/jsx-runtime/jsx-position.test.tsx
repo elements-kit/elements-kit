@@ -51,7 +51,7 @@ const _xr = (
     prop:value={() => 42}
     on:commit={(_e) => void 0}
     on:ready={computed(() => (_e: CustomEvent<number>) => void 0)}
-    slot:header="title"
+    header={<h1>title</h1>}
     ref={(el) => {
       type _T = Assert<Equal<typeof el.min, number>>;
       void el;

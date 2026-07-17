@@ -75,6 +75,8 @@ export class Slot {
    * No-op if the slot is not mounted or the content is identical.
    */
   set(element: Node) {
+    if (!(element instanceof Node))
+      throw new TypeError("slot value must be a Node");
     const parent = this.parent();
     if (!parent) {
       this.#pending = element; // buffer until render() mounts the markers
@@ -122,24 +124,66 @@ export class Slot {
 }
 
 /**
- * Symbol key for attaching a slot collection to a custom element instance.
- * Prevents collisions with public Element properties and signals to the JSX
- * runtime that this property holds slot wiring (not regular children).
+ * Field decorator declaring a slot as a plain property backed by a
+ * {@link Slot}. Reading returns the slot's region (`slot.render()` — a
+ * fragment to append into any template, elements-kit JSX or not); assigning
+ * fills it (`null` clears). Assignment buffers before mount, so consumers
+ * can set content before the element renders.
  *
- * The value at `[SLOTS]` is a plain object whose keys are slot names and whose
- * values are {@link Slot} instances. Declare with `as const` so TypeScript
- * preserves the literal key union — this is what `ElementProps<typeof Cls>`
- * uses to synthesize `slot:${K}` entries.
+ * The getter is EFFECTFUL: it mounts the markers on first read and extracts
+ * current content on later reads (the re-render semantic of
+ * {@link Slot.render}). Read it to PLACE the region, not to inspect it.
  *
  * @example
- * ```ts
+ * ```tsx
  * class Card extends HTMLElement {
- *   // ✅ literal keys flow through — "header" | "footer"
- *   [SLOTS] = { header: new Slot(), footer: new Slot() } as const;
+ *   \@slot() header!: Node;
+ *
+ *   render() {
+ *     return <header>{this.header}</header>; // or root.append(card.header)
+ *   }
  * }
  *
- * // ❌ widens — no typed slot:* props
- * // [SLOTS] = { header: new Slot(), footer: new Slot() };
+ * // consumers — any framework, or none:
+ * card.header = document.createElement("h1");
+ * card.header = null; // clear
  * ```
  */
-export const SLOTS: unique symbol = Symbol("slots");
+export function slot() {
+  const store = new WeakMap<object, Slot>();
+
+  return function <This extends object>(
+    _target: unknown,
+    context: ClassFieldDecoratorContext<This, Node | null>,
+  ) {
+    // Same shape as `@reactive`: addInitializer runs after the field's
+    // [[DefineOwnProperty]] step, so the accessor is installed on top of the
+    // data property the runtime just wrote.
+    context.addInitializer(function (this: This) {
+      const s = store.get(this)!;
+      Object.defineProperty(this, context.name, {
+        get(): Node {
+          return s.render();
+        },
+        set(value: Node | null) {
+          if (value == null) {
+            s.clear();
+            return;
+          }
+          if (!(value instanceof Node))
+            throw new TypeError("slot value must be a Node");
+          s.set(value);
+        },
+        enumerable: true,
+        configurable: true,
+      });
+    });
+
+    return function (this: This, initialValue: Node | null): Node | null {
+      const s = new Slot();
+      store.set(this, s);
+      if (initialValue != null) s.set(initialValue); // buffered until mount
+      return initialValue ?? null;
+    };
+  };
+}

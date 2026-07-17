@@ -74,7 +74,7 @@ Each subpath is a stable import entry declared in [package.json](package.json) `
   - `prop:name={value}` — forces property assignment, bypasses `setAttribute`.
   - `ref={(el) => void | () => void}` — fires after props/children attach, before insertion into the parent. Available on every JSX tag via `JSX.IntrinsicAttributes`. May return a cleanup function; cleanup runs when the surrounding scope disposes.
 - **Lists**: use `<For each by>` for keyed reconciliation. Plain array children render once.
-- **Slots**: `slot:name={child}` assigns named slot content when mounting into custom-element hosts.
+- **Slots**: `name={child}` assigns named slot content when mounting into custom-element hosts.
 - **`jsxImportSource`**: `"elements-kit"` with `"jsx": "react-jsx"` in tsconfig.
 
 **Edge cases**:
@@ -119,7 +119,7 @@ Each subpath is a stable import entry declared in [package.json](package.json) `
 - `slot.set(content)` replaces current content; `slot.clear()` removes it; `slot.get()` returns the current content.
 - Content passed before mount is buffered and flushed on `connect()`.
 - `Slot` implements `Symbol.dispose` — disposing removes the markers and clears content.
-- Named slots in JSX (`slot:name={child}`) are resolved against host elements that expose matching `Slot` instances.
+- Named slots in JSX (`name={child}`) are resolved against host elements that expose matching `Slot` instances.
 
 ### 5e. Attribute reflection
 
@@ -207,6 +207,6 @@ Two subpaths: `elements-kit/server` ([src/server/](src/server/)) and `elements-k
 - **Fetch skipping**: `Async.run()` calls during hydrate evaluation are deferred; the claim walk discards them for seeded instances — the fetcher never executes. Unseeded or unclaimed deferred runs execute after the walk. `promise(fetch(...))` cannot skip (the promise fires before the library sees it) and `Async.start()` always executes (reactive re-runs need dependency collection). On the server, `run()` executes directly despite inert effects so the stream can await it.
 - **Determinism constraint**: server and client must execute the same tree. Browser-only branches that change structure before hydration cause mismatches (safe fallback: fresh render of that subtree).
 - **v1 excludes**: custom-element/DSD rendering, class components other than `For`, out-of-order streaming, partial/island hydration.
-- **Astro**: `elements-kit/integrations/astro` packages the renderer pair as an Astro island framework — `astro-server` implements Astro's `check`/`renderToStaticMarkup` over `renderToString` (component-return `SNode` discrimination keeps it safe next to other renderers), `astro-client` maps client directives to `hydrate` (or `render` for `client:only`). Astro slots map to `children` / `slot:<name>` props as thunks composing `<astro-slot>` / `<astro-static-slot>` wrapper elements around `<Fragment html>` regions; Server Islands (`server:defer`) work through the same contract.
+- **Astro**: `elements-kit/integrations/astro` packages the renderer pair as an Astro island framework — `astro-server` implements Astro's `check`/`renderToStaticMarkup` over `renderToString` (component-return `SNode` discrimination keeps it safe next to other renderers), `astro-client` maps client directives to `hydrate` (or `render` for `client:only`). Astro slots map to `children` / named props as thunks composing `<astro-slot>` / `<astro-static-slot>` wrapper elements around `<Fragment html>` regions; Server Islands (`server:defer`) work through the same contract.
 - **Raw HTML regions**: `<Fragment html>{MaybeReactive<string>}</Fragment>` renders between Slot markers on all three renderers — server emits the string verbatim, hydration keeps the server content until the source changes, the client re-renders the region reactively. Script-inert parsing (§8).
 - **Await & code splitting** (`elements-kit/await`): code splitting is `async(() => import(…))` — the stream awaits the import in order, hydration defers `run()` and keeps server content until the chunk lands. `Await` shows its fallback only on the client while direct async children (or `when`) are pending; it stamps the region with ids + a pending-probe so the claim walk keeps server content (no fallback flash) and stays ek-data-aligned past the boundary. One async child per boundary is the supported SSR-hydration shape; props for code-split components use the element-factory recipe (`promise(op.then((C) => () => <C …/>))`).

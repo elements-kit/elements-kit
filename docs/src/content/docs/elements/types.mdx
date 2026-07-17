@@ -39,7 +39,7 @@ class XRange extends HTMLElement {
     min(this: XRange, v) { this.min = Number(v ?? 0); },
   };
   declare static events: { commit: CustomEvent<number> };
-  [SLOTS] = { label: new Slot() } as const;
+  @slot() label: Node
 
   @reactive() min = 0;
 }
@@ -49,8 +49,8 @@ type XRangeProps = PropsOf<typeof XRange>;
 //   min?: number;                                    // raw property type
 //   "prop:min"?: number;
 //   "on:commit"?: (e: CustomEvent<number>) => void;
-//   "slot:label"?: Children;
-//   children?: Children;
+//   label?: Node;
+//   children?: Node ;
 // }
 ```
 
@@ -69,7 +69,7 @@ At the JSX call site, the runtime widens every key to value-or-getter, so parent
 Plus the namespaced extras (`class:`, `style:`, `prop:`, `ref`) are layered on every intrinsic element via [src/jsx-runtime/properties.ts](https://github.com/wbettayeb/elements-kit/blob/main/src/jsx-runtime/properties.ts).
 
 :::note[Slot keys need `as const`]
-`{ label: new Slot(), footer: new Slot() }` without `as const` widens — the key literals are lost. Always trail with `as const` so `slot:${K}` entries can be synthesized.
+`{ @slot() label: new Slot(), @slot() footer: new Slot() }` without `as const` widens — the key literals are lost. Always trail with `as const` so named slot entries can be synthesized.
 :::
 
 ## `PropsOf<C>`
@@ -99,7 +99,7 @@ type CounterProps = PropsOf<typeof Counter>;
 
 // 4. Custom-element constructor → the FULL JSX surface
 //    (attrs, prop:*, on:*,
-//     slot:*, children)
+//     named slots, children)
 class XRange extends HTMLElement { min = 0; }
 type XRangeProps = PropsOf<typeof XRange>;
 ```

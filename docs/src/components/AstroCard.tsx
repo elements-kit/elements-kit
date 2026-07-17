@@ -3,20 +3,25 @@ import { computed, signal } from "elements-kit/signals";
 
 /**
  * Slot-accepting island: Astro delivers the pre-rendered slot HTML, the
- * integration maps it to `children` / `slot:header`, and the component
+ * integration maps it to `children` / `header`, and the component
  * places it — while staying interactive itself.
  */
 export default function AstroCard(props: {
   children?: unknown;
-  "slot:header"?: unknown;
+  header?: unknown;
 }) {
   const open = signal(true);
   const display = computed(() => (open() ? "block" : "none"));
   const label = computed(() => (open() ? "collapse" : "expand"));
   return (
-    <section class="unset x-card" data-variant="surface" data-size="2" style="padding:0;overflow:hidden">
+    <section
+      class="unset x-card"
+      data-variant="surface"
+      data-size="2"
+      style="padding:0;overflow:hidden"
+    >
       <header style="display:flex;justify-content:space-between;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-4)">
-        {props["slot:header"] as never}
+        {props.header as never}
         <button
           class="unset x-button"
           data-variant="outline"

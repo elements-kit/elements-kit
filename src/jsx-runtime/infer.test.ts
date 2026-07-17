@@ -1,6 +1,6 @@
 import { it, expect } from "vitest";
 import { ATTRIBUTES, type Attributes } from "../attributes";
-import { SLOTS, Slot } from "../slot";
+import { slot } from "../slot";
 import type { Children } from "./children";
 import { computed, signal, type MaybeReactive } from "../signals";
 import { For } from "../for";
@@ -41,7 +41,7 @@ class XRange extends HTMLElement {
     commit: CustomEvent<void>;
     ready: CustomEvent<number>;
   };
-  declare [SLOTS]: { header: Slot; footer: Slot };
+  @slot() header: Node | null = null;
 
   min = 0;
   max = 100;
@@ -219,8 +219,9 @@ type _EV_OnReady = Assert<Extends<ReadyHandler, NonNullable<XP["on:ready"]>>>;
 
 // ─ ElementProps: slots ───────────────────────────────────────────────────────
 
-type _SL_Header = Assert<Equal<XP["slot:header"], Children | undefined>>;
-type _SL_Footer = Assert<Equal<XP["slot:footer"], Children | undefined>>;
+// Slot-backed props are plain instance fields now (`@slot()` accessor) —
+// their read type flows through InstanceProps like any other field.
+type _SL_Header = Assert<Equal<XP["header"], Node | null | undefined>>;
 
 // ─ ElementProps: children ────────────────────────────────────────────────────
 
@@ -452,11 +453,10 @@ const _div_prop_unknown_rejected: _DivAttrs = {
 };
 void _div_prop_unknown_rejected;
 
-// `slot:foo` is NOT accepted on plain intrinsics — only on elements that
-// declare `[SLOTS]` (typed via `SlotsOf<C>`). Runtime ignores `slot:` on
-// plain HTML, so the type system rejects it at compile time.
+// There is no `slot:` namespace — slots are plain properties (`@slot()`
+// accessors) and unknown `slot:*` keys are rejected like any unknown prop.
 const _div_slot_rejected: _DivAttrs = {
-  // @ts-expect-error — `<div>` has no declared slots
+  // @ts-expect-error — no `slot:` namespace exists
   "slot:header": "title",
 };
 void _div_slot_rejected;
@@ -540,12 +540,17 @@ const _xr_prop_ns: _XRangeAttrs = { "prop:value": 42 };
 const _xr_event: _XRangeAttrs = {
   "on:commit": (_e: CustomEvent<void>) => void 0,
 };
-const _xr_slot: _XRangeAttrs = { "slot:header": "title" };
+// Slot-backed props are flat properties — pass a Node (or a reactive of one).
+const _xr_slot: _XRangeAttrs = { header: document.createElement("h1") };
+const _xr_slot_sig: _XRangeAttrs = {
+  header: computed(() => document.createElement("h1")),
+};
 void _xr_min;
 void _xr_min_sig;
 void _xr_prop_ns;
 void _xr_event;
 void _xr_slot;
+void _xr_slot_sig;
 
 // Namespaced props on registered custom elements accept reactive values —
 // same wrap order as intrinsics (namespaces first, MaybeReactiveProps after).
@@ -610,7 +615,7 @@ type _JsxElement_IsNode = Assert<Extends<JSX.Element, Node>>;
 type _Raw_Props = Assert<
   Equal<
     PropertiesOf<typeof XRange>,
-    { min?: number; max?: number; value?: number }
+    { min?: number; max?: number; value?: number; header?: Node | null }
   >
 >;
 type _Raw_Attrs = Assert<
@@ -626,20 +631,14 @@ type _Raw_Events = Assert<
   >
 >;
 
-// Slots-as-properties: an asymmetric accessor (get → Slot, set → Node).
-// PropertiesOf maps the Slot-read key to `Node` — the slot's write view.
+// Slots-as-properties: `@slot()` accessor — read type is `Node | null` (the
+// last assigned node), so the key flows through PropertiesOf like any field.
 class XCard extends HTMLElement {
-  #header = new Slot();
-  get header(): Slot {
-    return this.#header;
-  }
-  set header(v: Node) {
-    this.#header.set(v);
-  }
+  @slot() header: Node | null = null;
   count = 0;
 }
 type _Raw_SlotProp = Assert<
-  Equal<PropertiesOf<typeof XCard>, { header?: Node; count?: number }>
+  Equal<PropertiesOf<typeof XCard>, { header?: Node | null; count?: number }>
 >;
 
 // ─ Tiny runtime anchor so vitest picks the file up ───────────────────────────

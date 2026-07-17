@@ -33,19 +33,6 @@ type PropNamespace<E> = {
   [K in keyof E as K extends string ? `prop:${K}` : never]?: E[K];
 };
 
-/**
- * Maps slot names to `Child` content.
- * Use this to type `slot:name` JSX props on a custom component.
- *
- * @example
- * ```tsx
- * function Card(props: { title: string } & SlotProps<"header" | "footer">) { … }
- * // caller: <Card title="…" slot:header={<h1>…</h1>} slot:footer={<p>…</p>} />
- * ```
- */
-export type SlotProps<K extends string> = {
-  [P in K as `slot:${P}`]?: Children;
-};
 type XlinkAttrs = {
   "xlink:href"?: string | undefined;
   "xlink:title"?: string | undefined;
@@ -78,25 +65,6 @@ type XmlAttrs = {
 // IntrinsicElements whose concrete element type extends SVGElement.
 export type SvgNamespaceAttrs = XlinkAttrs & XmlAttrs;
 
-/**
- * Namespaced JSX props added by elements-kit on top of dom-expressions.
- * All three are tag-aware via the element type `E`. Values here are plain —
- * `JSX.IntrinsicElements` wraps them in `MaybeReactive` afterwards.
- *
- * - `class:foo` — `boolean`. Class names are user-defined CSS so the key
- *   stays open (no autocomplete possible).
- * - `style:cssProp` — keys mapped from csstype's hyphenated property names
- *   for autocomplete; value typed per-property.
- * - `prop:K` — inferred from `keyof E`. On `<div>` exposes
- *   `prop:className`, `prop:id`, etc. (from `HTMLDivElement`); on a
- *   registered custom element exposes its public fields too.
- *
- * `ref` and `slot:foo` are NOT here — `ref` is declared directly by
- * `JSX.IntrinsicElements` (called once, never reactive), and `slot:foo` is
- * emitted per-element via `SlotsOf<C>` only for elements that declare
- * `[SLOTS]`. Plain HTML intrinsics don't accept slot props (the runtime
- * ignores them).
- */
 // Object form of the `style` ATTRIBUTE is applied with
 // `Object.assign(el.style, value)` (see `applyStyle`) — CSSStyleDeclaration
 // fields are camelCase, so the object type is csstype's camelCase
@@ -133,7 +101,7 @@ export function applyProps(
   const entries = Object.entries(props);
   if (entries.length === 0) return;
   for (const [key, value] of entries) {
-    // ─ Children (slot:name, Slot properties) ──────────────────────────────────
+    // ─ Children
     if (isChildrenProperty(node, key)) {
       applyChildren(node, key, value as Children);
       continue;
