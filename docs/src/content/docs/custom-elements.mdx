@@ -429,10 +429,10 @@ node replaces the slot's content directly in the DOM, with no elements-kit
 reactive context.
 
 ```tsx
-import { slot } from "elements-kit/slot";
+import { slot, type SlotContent } from "elements-kit/slot";
 
 class XCard extends HTMLElement {
-  @slot() header!: Node;
+  @slot() header!: SlotContent;
 
   render() {
     return <article>{this.header}</article>;

@@ -43,10 +43,6 @@ export function resolveNode(c: PrimitiveNodeType): Node {
   throw new UnsupportedChildError(c);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// Child Types
-// ═══════════════════════════════════════════════════════════════════════════════
-
 export type AnyFn = (...args: any[]) => Children;
 export type Children =
   | PrimitiveNodeType

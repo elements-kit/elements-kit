@@ -183,11 +183,11 @@ when **imperative DOM code** (a vanilla script, or another framework's
 mounted element.
 
 ```tsx
-import { slot } from "elements-kit/slot";
+import { slot, type SlotContent } from "elements-kit/slot";
 
 class XCard extends HTMLElement {
-  @slot() header!: Node;   // named slot
-  @slot() children!: Node; // default slot — surfaces as the JSX `children` prop
+  @slot() header!: SlotContent;   // named slot
+  @slot() children!: SlotContent; // default slot — surfaces as the JSX `children` prop
 
   connectedCallback() {
     this.replaceChildren(

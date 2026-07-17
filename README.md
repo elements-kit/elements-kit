@@ -63,8 +63,8 @@ Every feature is a separate subpath export — import only what you use.
 | `elements-kit/signals` | `signal`, `computed`, `effect`, `effectScope`, `batch`, `untracked`, `trigger`, `onCleanup`, `MaybeReactive`, `resolve`, `resolveProps`, `@reactive` |
 | `elements-kit/render` | `render(target, setup)` — mount a node with a scoped lifetime; returns `unmount` |
 | `elements-kit/attributes` | `@attributes` decorator + `ATTRIBUTES` symbol |
-| `elements-kit/slot` | `Slot` class + `@slot()` decorator — comment-marker DOM regions as plain properties |
-| `elements-kit/custom-elements` | `defineElement`, `CustomElementRegistry` |
+| `elements-kit/slot` | `Slot` class + `@slot()` decorator + `SlotContent` type — comment-marker DOM regions as plain properties |
+| `elements-kit/custom-elements` | `defineElement`, `CustomElementRegistry`, `PropertiesOf`, `AttributesOf`, `EventsOf`, `PublicPropKeys` — raw framework-agnostic extractors for a custom element's properties/attributes/events |
 | `elements-kit/for` | `For` keyed-list component |
 | `elements-kit/jsx-runtime` | JSX factory + type helpers (`PropsOf`, `MaybeReactiveProps`, `RawProps`, `Props`, `Require`) — configure via `jsxImportSource` |
 | `elements-kit/server` | `renderToStream`, `renderToString` — streaming HTML rendering in any JS runtime (Node, edge/Workers), no DOM required *(experimental)* |

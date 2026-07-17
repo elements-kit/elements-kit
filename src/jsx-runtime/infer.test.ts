@@ -237,6 +237,19 @@ type _IE_Strict = Assert<
 >;
 type _IE_Registered = Assert<Extends<"x-range", keyof JSX.IntrinsicElements>>;
 
+// Native DOM event handlers are stripped from intrinsics — the runtime only
+// wires the `on:` namespace, so a bare `onClick`/`onclick` must not typecheck
+// (it would silently no-op). The `on:click` form is preserved.
+type _IE_NoCamelEvent = Assert<
+  Equal<HasKey<JSX.IntrinsicElements["button"], "onClick">, false>
+>;
+type _IE_NoLowerEvent = Assert<
+  Equal<HasKey<JSX.IntrinsicElements["button"], "onclick">, false>
+>;
+type _IE_OnColonEvent = Assert<
+  HasKey<JSX.IntrinsicElements["button"], "on:click">
+>;
+
 // ─ PropsOf<C> — unified helper (assignment-based checks) ──────────────────────
 
 // Class constructor — takes InstanceType's public fields

@@ -26,8 +26,9 @@ export interface Entry {
 
 /**
  * Props for `<For>`, derived from its public instance fields.
- * All props are optional — the class initializes sane defaults at runtime.
- * Non-function props also accept a reactive getter.
+ * `each` and `children` are required; `by` is optional (identity keying by
+ * default). Non-function props also accept a reactive getter — `each` takes a
+ * signal of arrays.
  *
  * @example
  * ```tsx

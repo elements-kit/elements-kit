@@ -38,6 +38,19 @@ const _styled_str = <div style="color: red" />;
 // nested + reactive children
 const _kids = <ul>{[<li />, [<li />, () => "x"]]}</ul>;
 
+// Native DOM event handlers are NOT wired by the runtime — only the `on:`
+// namespace is (applyProps routes a bare `onClick` to setAttribute, a silent
+// no-op). The types reject both camelCase and lowercase forms so the broken
+// usage can't compile; `on:click` is the supported form.
+// @ts-expect-error — camelCase `onClick` is not a valid intrinsic prop
+const _noCamelEvent = <button onClick={() => void 0} />;
+// @ts-expect-error — lowercase `onclick` is likewise rejected
+const _noLowerEvent = <button onclick={() => void 0} />;
+const _onColonEvent = <button on:click={() => void 0} />;
+void _noCamelEvent;
+void _noLowerEvent;
+void _onColonEvent;
+
 // ─ Registered custom elements ────────────────────────────────────────────────
 
 const _xr = (

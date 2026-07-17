@@ -12,10 +12,22 @@ import { attachDisposables } from "./dispose";
 import "../polyfill";
 import type { JSX as DomJSX } from "dom-expressions/src/jsx";
 
+// dom-expressions carries native DOM event handlers in two forms the runtime
+// never wires: camelCase (`onClick`, `CustomEventHandlersCamelCase`) and
+// all-lowercase (`onclick`, `CustomEventHandlersLowerCase`). `applyProps` only
+// handles the `on:` namespace and routes a bare `onClick` to `setAttribute` — a
+// silent no-op (see element.test.ts). Omitting exactly those two interfaces'
+// keys keeps the types matched to the runtime; the namespaced `on:`/`oncapture:`
+// handlers live in a separate interface (`CustomEventHandlersNamespaced`) and
+// are preserved untouched.
+type NativeEventKeys<T = any> =
+  | keyof DomJSX.CustomEventHandlersCamelCase<T>
+  | keyof DomJSX.CustomEventHandlersLowerCase<T>;
+
 export type DOMIntrinsicElements = {
   [K in keyof DomJSX.IntrinsicElements]: Omit<
     DomJSX.IntrinsicElements[K],
-    "children" | "ref"
+    "children" | "ref" | NativeEventKeys<DomJSX.IntrinsicElements[K]>
   >;
 };
 

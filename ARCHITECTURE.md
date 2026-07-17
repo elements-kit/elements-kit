@@ -19,9 +19,9 @@ Each subpath is a stable import entry declared in [package.json](package.json) `
 | `elements-kit/for` | `For` — reactive keyed-list renderer | stable |
 | `elements-kit/signals` | Factories: `signal`, `computed`, `effect`, `effectScope`, `reactive`, `@reactive`. Helpers: `batch`, `untracked`, `trigger`, `onCleanup`, `resolve`. Predicates: `isSignal`, `isComputed`, `isEffect`, `isEffectScope`, `isReactive`. Brand symbols `SIGNAL` / `COMPUTED` / `EFFECT` / `EFFECT_SCOPE` — type-narrowing markers, not debug variants, no logging. Types: `Signal<T>`, `Computed<T>`, `MaybeReactive<T>`. | stable |
 | `elements-kit/attributes` | `@attributes`, `ATTRIBUTES`, `dispatchAttrChange`, `observedAttributes`; types `Attributes<T>`, `AttrChangeHandler<T>` | stable |
-| `elements-kit/custom-elements` | `renderScope` — run setup in a detached `effectScope`, return `{ result, dispose }`. `connectedScope(el, setup)` / `disconnectedScope(el)` — convenience pair for `connectedCallback`/`disconnectedCallback` that stores the dispose handle per-element. | stable |
-| `elements-kit/slot` | `Slot` | stable |
-| `elements-kit/jsx-runtime` | `jsx`, `jsxs`, `jsxDEV`, `h`, `Fragment`; types `ElementProps`, `PropsOf`, `RawProps`, `Props`, `Require`, `MaybeReactive`, `ComponentFn`, `ComponentClass`; `JSX` namespace (`Element`, `ElementClass`, `ElementType`, `IntrinsicAttributes`, `IntrinsicElements`) | stable (JSX contract) |
+| `elements-kit/custom-elements` | `defineElement` — strict registration with typed JSX via `CustomElementRegistry` augmentation; types `CustomElementRegistry`, `PublicPropKeys`, and the raw framework-agnostic extractors `PropertiesOf` / `AttributesOf` / `EventsOf`. | stable |
+| `elements-kit/slot` | `Slot` class, `@slot()` decorator, `SlotContent` type | stable |
+| `elements-kit/jsx-runtime` | `jsx`, `jsxs`, `jsxDEV`, `h`, `Fragment`; types `Children`, `PropsOf`, `RawProps`, `Props`, `Require`, `MaybeReactiveProps`, `MaybeReactive`, `ComponentFn`, `ComponentClass`; `JSX` namespace (`Element`, `ElementClass`, `ElementType`, `IntrinsicAttributes`, `IntrinsicElements`) | stable (JSX contract) |
 | `elements-kit/integrations/react` | `useSignal`, `useScope` | stable |
 | `elements-kit/server` | `renderToStream`, `renderToString` — streaming HTML rendering, no DOM required (§11) | experimental |
 | `elements-kit/hydrate` | `hydrate` — claim-mode adoption of server-rendered DOM (§11) | experimental |
@@ -72,9 +72,9 @@ Each subpath is a stable import entry declared in [package.json](package.json) `
   - `class:name={bool | signal}` — reactive `classList.toggle`.
   - `style:prop={value | signal}` — reactive inline style property.
   - `prop:name={value}` — forces property assignment, bypasses `setAttribute`.
-  - `ref={(el) => void | () => void}` — fires after props/children attach, before insertion into the parent. Available on every JSX tag via `JSX.IntrinsicAttributes`. May return a cleanup function; cleanup runs when the surrounding scope disposes.
+  - `ref={(el) => void | () => void}` — fires after props/children attach, before insertion into the parent. Declared per-tag on every intrinsic element and registered custom element (`JSX.IntrinsicAttributes` is empty); components opt in by declaring `ref` themselves. May return a cleanup function; cleanup runs when the surrounding scope disposes.
 - **Lists**: use `<For each by>` for keyed reconciliation. Plain array children render once.
-- **Slots**: `name={child}` assigns named slot content when mounting into custom-element hosts.
+- **Slots**: named slots are plain properties on the host — elements-kit JSX assigns them like any prop (`header={child}`), placing `{this.header}` in the template. The `@slot()` decorator backs a property with a `Slot` for imperative/vanilla consumers filling from outside elements-kit JSX.
 - **`jsxImportSource`**: `"elements-kit"` with `"jsx": "react-jsx"` in tsconfig.
 
 **Edge cases**:
@@ -116,10 +116,10 @@ Each subpath is a stable import entry declared in [package.json](package.json) `
 ### 5d. Slot semantics
 
 - `Slot` reserves a DOM region with two comment-node markers. No wrapper element.
-- `slot.set(content)` replaces current content; `slot.clear()` removes it; `slot.get()` returns the current content.
-- Content passed before mount is buffered and flushed on `connect()`.
-- `Slot` implements `Symbol.dispose` — disposing removes the markers and clears content.
-- Named slots in JSX (`name={child}`) are resolved against host elements that expose matching `Slot` instances.
+- `slot.get(...content)` mounts the markers and returns the region as a fragment (optional default content); `slot.current()` extracts and returns the current content; `slot.set(...content)` replaces it; `slot.clear()` removes it. Content follows native `append()` semantics (`Node` or string).
+- Content passed to `set()` before mount is buffered and flushed on the first `get()`.
+- `clear()` disposes reactive children (their `Symbol.dispose`) before removing them.
+- The `@slot()` field decorator exposes a `Slot` as a plain property: reading places the region, assigning fills it (`null` clears). For imperative/vanilla consumers filling a custom element's slots from outside elements-kit JSX.
 
 ### 5e. Attribute reflection
 

@@ -164,10 +164,14 @@ function toArgs(value: SlotContent): (string | Node)[] {
  * current content on later reads (the re-render semantic of
  * {@link Slot.get}). Read it to PLACE the region, not to inspect it.
  *
+ * Declare the field as {@link SlotContent} to accept the full native
+ * `append()` surface (`Node` | string | array); narrow it to `Node` when the
+ * slot only ever holds an element.
+ *
  * @example
  * ```tsx
  * class Card extends HTMLElement {
- *   \@slot() header!: Node;
+ *   \@slot() header!: SlotContent;
  *
  *   render() {
  *     return <header>{this.header}</header>; // or root.append(card.header)
@@ -175,14 +179,15 @@ function toArgs(value: SlotContent): (string | Node)[] {
  * }
  *
  * // consumers — any framework, or none:
- * card.header = document.createElement("h1");
- * card.header = null; // clear
+ * card.header = document.createElement("h1"); // Node
+ * card.header = "plain text";                  // native append() content
+ * card.header = null;                          // clear
  * ```
  */
 export function slot() {
   const store = new WeakMap<object, Slot>();
 
-  return function <This extends object, V extends Node | null>(
+  return function <This extends object, V extends SlotContent | null>(
     _target: unknown,
     context: ClassFieldDecoratorContext<This, V>,
   ) {
