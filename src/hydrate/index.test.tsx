@@ -4,6 +4,7 @@ import { describe, it, expect, vi } from "vitest";
 import { renderToString } from "../server";
 import { hydrate } from "./index";
 import { signal } from "../signals";
+import type { Props } from "../jsx-runtime/infer";
 import { promise } from "../utilities/promise";
 import { For } from "../for";
 
@@ -75,8 +76,8 @@ describe("hydrate — DOM adoption", () => {
   });
 
   it("hydrates function components with getter props", async () => {
-    const Greet = (props: { name: () => string }) => <p>{props.name}</p>;
-    const app = () => <Greet name={"wael" as never} />;
+    const Greet = (props: Props<{ name: string }>) => <p>{props.name}</p>;
+    const app = () => <Greet name="wael" />;
     const container = await serve(app);
     const before = container.querySelector("p");
 

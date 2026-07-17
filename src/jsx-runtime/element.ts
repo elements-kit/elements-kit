@@ -1,10 +1,4 @@
-import type {
-  Component,
-  ComponentClass,
-  ComponentFn,
-  ComponentInstance,
-  PropsTarget,
-} from "./types";
+import type { ComponentFn, PropsTarget } from "./types";
 import type { JSX } from ".";
 import { applyProps } from "./properties";
 import {
@@ -24,7 +18,7 @@ import "../polyfill";
 // function/class components propagate here. TS types JSX *expressions* via
 // the `JSX.Element` namespace type, not this signature.
 export function createElement(
-  type: string | Component,
+  type: JSX.ElementType,
   allProps: JSX.IntrinsicAttributes & Record<string, unknown> = {},
 ): JSX.Element | null {
   const renderer = getRenderer();
@@ -41,11 +35,7 @@ export function createElement(
     );
   }
 
-  return createNodeElement(
-    type as string | Element | DocumentFragment | ComponentClass,
-    props,
-    ref,
-  );
+  return createNodeElement(type, props, ref);
 }
 
 /** Runs all cleanup functions registered by JSX props/effects on `el`. */
@@ -122,14 +112,13 @@ function resolveNode(type: JSX.ElementType): PropsTarget {
     return document.createElement(type);
   }
   if (type instanceof Element || type instanceof DocumentFragment) return type;
-  return new (type as new (...args: any[]) => ComponentInstance)();
+  return new (type as new (...args: any[]) => JSX.ElementClass)();
 }
 
 function renderNode(
-  node: ComponentInstance | Element | DocumentFragment | null,
+  node: JSX.ElementClass | Element | DocumentFragment | null,
 ): Element | DocumentFragment | null {
   if (node instanceof Element || node instanceof DocumentFragment) return node;
   if (!node || typeof node.render !== "function") return null;
   return renderNode(node.render());
 }
-

@@ -1,4 +1,4 @@
-import { Child, Component } from "./types";
+import { Children } from "./types";
 import { createElement } from "./element";
 import type { JSX as DomJSX } from "dom-expressions/src/jsx-h";
 import type { CustomElementRegistry } from "../custom-elements";
@@ -10,25 +10,9 @@ import type {
 } from "./infer";
 import type { MaybeReactive } from "../signals";
 
-export type {
-  ComponentProps,
-  ElementProps,
-  MaybeReactiveProps,
-  Props,
-  RawProps,
-  ReactiveProps,
-  ResolveProps,
-  Require,
-} from "./infer";
+export type { ElementProps, PropsOf, RawProps, Props, Require } from "./infer";
 
-export type {
-  Child,
-  Component,
-  ComponentClass,
-  ComponentFn,
-  ComponentInstance,
-  PropsTarget as PropsTarget,
-} from "./types";
+export type { Children } from "./types";
 
 export type { MaybeReactive } from "../signals";
 
@@ -53,7 +37,7 @@ export { Fragment } from "./fragment";
  * ```
  */
 export type SlotProps<K extends string> = {
-  [P in K as `slot:${P}`]?: Child;
+  [P in K as `slot:${P}`]?: Children;
 };
 
 /**
@@ -126,13 +110,7 @@ type XlinkAttrs = {
   >;
   "xlink:role"?: MaybeReactive<string | undefined>;
   "xlink:type"?: MaybeReactive<
-    | "simple"
-    | "extended"
-    | "locator"
-    | "arc"
-    | "resource"
-    | "title"
-    | undefined
+    "simple" | "extended" | "locator" | "arc" | "resource" | "title" | undefined
   >;
   "xlink:arcrole"?: MaybeReactive<string | undefined>;
   "xlink:actuate"?: MaybeReactive<
@@ -174,7 +152,19 @@ export namespace JSX {
   // `Node` is expected without narrowing. Components may still *return* null —
   // their signatures are `JSX.Element | null` (see ./types).
   export type Element = globalThis.Element | globalThis.DocumentFragment;
-  export type ElementType = Child | Component;
+  // The INSTANCE shape a class tag must construct (TS checks instances
+  // against this, not constructors).
+  export type ElementClass = {
+    render(): JSX.Element | null;
+  };
+  // Param types stay `any` on purpose: params are compared contravariantly,
+  // and anything narrower than `any` rejects components with required or
+  // custom-shaped props. Prop validation happens in LibraryManagedAttributes.
+  export type ElementType =
+    | string
+    | JSX.Element
+    | (new (props: any) => JSX.ElementClass)
+    | ((props: any) => JSX.Element | null);
   export interface ElementChildrenAttribute {
     children: {};
   }
@@ -183,11 +173,9 @@ export namespace JSX {
   }
   export type LibraryManagedAttributes<C, P> = ResolveProps<C, P>;
   type RegisteredElements = {
-    [K in keyof CustomElementRegistry]: CustomElementRegistry[K] extends infer C extends AnyElementCtor
-      ? WithJsxNamespaces<
-          MaybeReactiveProps<ElementProps<C>>,
-          InstanceType<C>
-        >
+    [K in keyof CustomElementRegistry]: CustomElementRegistry[K] extends infer C extends
+      AnyElementCtor
+      ? WithJsxNamespaces<MaybeReactiveProps<ElementProps<C>>, InstanceType<C>>
       : never;
   };
 

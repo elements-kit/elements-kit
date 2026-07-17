@@ -7,6 +7,7 @@ import {
   untracked,
 } from "@/signals";
 import { disposeElement } from "@/jsx-runtime/element";
+import { MaybeReactiveProps } from "./jsx-runtime/infer";
 
 type KeyFn<T> = (item: T, index: number) => string | number;
 type RenderFn<T> = (
@@ -22,31 +23,6 @@ export interface Entry {
   /** Disposes effects/onCleanup registered by the render callback for this item. */
   dispose: () => void;
 }
-
-/**
- * Keyed list renderer. Reconciles a reactive array into the DOM using a key
- * function to match existing nodes — minimising create/destroy churn.
- *
- * Reconciliation strategy (inspired by udomdiff / dom-expressions):
- *   1. Remove stale entries (keys absent from the new array).
- *   2. Skip unchanged common prefix and suffix.
- *   3. Pure-append fast path when the surviving old range is empty.
- *   4. Backward scan of the middle region — move or create entries so that
- *      each entry's range lands immediately before the already-correct cursor.
- *
- * @example
- * ```tsx
- * <For each={visibleTodos} by={(todo) => todo.id}>
- *   {(todo) => <li>{todo.text}</li>}
- * </For>
- * ```
- *
- * Props:
- *   each     — reactive getter returning the array (e.g. a `computed`)
- *   by       — extracts a stable key per item (default: index)
- *   children — render function called once per new key
- */
-import type { Props, Require } from "@/jsx-runtime/infer";
 
 /**
  * Props for `<For>`, derived from its public instance fields.
@@ -67,7 +43,11 @@ import type { Props, Require } from "@/jsx-runtime/infer";
  * };
  * ```
  */
-type ForProps<T> = Require<Props<For<T>>, "each" | "children">;
+type ForProps<T> = MaybeReactiveProps<{
+  each?: T[];
+  by?: KeyFn<T>;
+  children?: RenderFn<T>;
+}>;
 
 /**
  * Keyed list renderer. See {@link ForProps} for prop details.
@@ -87,8 +67,6 @@ type ForProps<T> = Require<Props<For<T>>, "each" | "children">;
 export class For<T = unknown> {
   // Phantom signature: JSX reads it to infer T from props. Runtime constructs
   // with no args — createElement assigns each prop via property set afterwards.
-  // Inlined (not `ForProps<T>`) to avoid a self-referential type alias during
-  // class-shape resolution.
   constructor(_props?: ForProps<T>) {}
 
   readonly #each = signal<T[] | (() => T[])>([]);

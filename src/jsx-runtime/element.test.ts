@@ -444,6 +444,25 @@ describe("event handlers", () => {
     el.dispatchEvent(new CustomEvent("myevent"));
     expect(spy).not.toHaveBeenCalled();
   });
+
+  it("accepts a signal-of-handler for `on:click` and re-subscribes on change", () => {
+    const first = vi.fn();
+    const second = vi.fn();
+    const handler = signal<(e: Event) => void>(first);
+    const btn = createElement("button", {
+      "on:click": handler,
+    }) as HTMLButtonElement;
+
+    btn.click();
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(second).not.toHaveBeenCalled();
+
+    handler(second);
+    btn.click();
+    expect(second).toHaveBeenCalledTimes(1);
+    // Old handler detached — not called again.
+    expect(first).toHaveBeenCalledTimes(1);
+  });
 });
 
 // ---------------------------------------------------------------------------

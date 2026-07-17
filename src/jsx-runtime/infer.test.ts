@@ -1,17 +1,17 @@
 import { it, expect } from "vitest";
 import { ATTRIBUTES, type Attributes } from "../attributes";
 import { SLOTS, Slot } from "../slot";
-import type { Child } from "./types";
-import type { MaybeReactive } from "../signals";
+import type { Children } from "./types";
+import { computed, signal, type MaybeReactive } from "../signals";
+import { For } from "../for";
 import type { JSX } from "./index";
 import type {
-  ComponentProps,
   ElementProps,
   MaybeReactiveProps,
-  Props,
+  PropsOf,
   InstanceProps,
   RawProps,
-  ReactiveProps,
+  Props,
   Require,
   ResolveProps,
 } from "./infer";
@@ -97,10 +97,74 @@ type _MR = MaybeReactiveProps<{
 }>;
 type _MR_Count = Assert<Equal<_MR["count"], MaybeReactive<number> | undefined>>;
 type _MR_Label = Assert<Equal<_MR["label"], MaybeReactive<string> | undefined>>;
-// Function-typed props are NOT wrapped — wrapping them in `F | (() => F)`
-// breaks contextual typing for inline arrow callbacks (TS can't pick a
-// signature and parameter types fall back to implicit any).
-type _MR_OnClick = Assert<Equal<_MR["onClick"], () => void>>;
+// Function-typed props are wrapped too — the runtime accepts a signal/computed
+// for every prop (`applyProps` re-subscribes `on:` listeners in an effect,
+// `resolveProps` passes reactive handlers through as getters).
+type _MR_OnClick = Assert<Equal<_MR["onClick"], MaybeReactive<() => void>>>;
+
+// ─ Reactive function-valued props ─────────────────────────────────────────────
+// Signals/computeds are accepted wherever a function-typed prop is expected,
+// WITHOUT breaking contextual param typing for inline arrows (TS picks the
+// handler signature by arity — `Computed<F>` is zero-arg, handlers aren't).
+
+type ToggleHandler = (v: boolean) => void;
+const _toggleSig = signal<ToggleHandler>(() => {});
+const _toggleComputed = computed<ToggleHandler>(() => () => {});
+
+// Instance-field class props (PropsOf<C>)
+type _P_InstFn = PropsOf<Toggle>;
+const _p_fn_signal: _P_InstFn = { onToggle: _toggleSig };
+const _p_fn_computed: _P_InstFn = { onToggle: _toggleComputed };
+void _p_fn_signal;
+void _p_fn_computed;
+
+// Function-component props (PropsOf<Fn>)
+const Clicky = (_p: { onPick: (n: number) => string }) => null;
+type _ClickyProps = MaybeReactiveProps<PropsOf<typeof Clicky>>;
+const _clicky_plain: _ClickyProps = { onPick: (n) => String(n) };
+const _clicky_signal: _ClickyProps = {
+  onPick: signal<(n: number) => string>(() => ""),
+};
+const _clicky_computed: _ClickyProps = {
+  onPick: computed<(n: number) => string>(() => () => ""),
+};
+void _clicky_plain;
+void _clicky_signal;
+void _clicky_computed;
+
+// Custom-element event props (JSX layer)
+const _commitSig = signal<(ev: CustomEvent<void>) => void>(() => {});
+const _xr_event_signal: JSX.IntrinsicElements["x-range"] = {
+  "on:commit": _commitSig,
+};
+void _xr_event_signal;
+
+// REGRESSION GUARDS — inline arrows keep contextual param typing.
+// (No `strict` mode here: broken inference silently yields `any`, so each
+// guard pins the exact inferred param type.)
+const _p_fn_inline: _P_InstFn = {
+  onToggle: (v) => {
+    type _VIsBool = Assert<Equal<typeof v, boolean>>;
+    void v;
+  },
+};
+void _p_fn_inline;
+
+const _clicky_inline: _ClickyProps = {
+  onPick: (n) => {
+    type _NIsNumber = Assert<Equal<typeof n, number>>;
+    return String(n);
+  },
+};
+void _clicky_inline;
+
+const _xr_event_inline: JSX.IntrinsicElements["x-range"] = {
+  "on:ready": (ev) => {
+    type _EvTyped = Assert<Extends<typeof ev, CustomEvent<number>>>;
+    void ev;
+  },
+};
+void _xr_event_inline;
 
 // ─ ElementProps: attribute vs property precedence ────────────────────────────
 
@@ -146,25 +210,20 @@ type ReadyHandler = (ev: CustomEvent<number>) => void;
 type _EV_OnCommit = Assert<
   Extends<CommitHandler, NonNullable<XP["on:commit"]>>
 >;
-type _EV_OnCommitCamel = Assert<
-  Extends<CommitHandler, NonNullable<XP["onCommit"]>>
->;
+// camelCase `onCommit` is NOT synthesized — the runtime only attaches
+// listeners via `on:`; a camel key would silently become an attribute.
+type _EV_NoCamel = Assert<Equal<HasKey<XP, "onCommit">, false>>;
 type _EV_OnReady = Assert<Extends<ReadyHandler, NonNullable<XP["on:ready"]>>>;
 
 // ─ ElementProps: slots ───────────────────────────────────────────────────────
 
-type _SL_Header = Assert<Equal<XP["slot:header"], Child | undefined>>;
-type _SL_Footer = Assert<Equal<XP["slot:footer"], Child | undefined>>;
+type _SL_Header = Assert<Equal<XP["slot:header"], Children | undefined>>;
+type _SL_Footer = Assert<Equal<XP["slot:footer"], Children | undefined>>;
 
 // ─ ElementProps: children ────────────────────────────────────────────────────
 
 // Children key is always present (intersection with DomJSX attrs ensures this).
 type _CH_Present = Assert<HasKey<XP, "children">>;
-
-// ─ ComponentProps ────────────────────────────────────────────────────────────
-
-type _CP = ComponentProps<typeof Card>;
-type _CP_Eq = Assert<Equal<_CP, { title: string; count?: number }>>;
 
 // ─ CustomElementRegistry → IntrinsicElements ─────────────────────────────────
 // Custom tags must be registered in `CustomElementRegistry` — there is no
@@ -175,17 +234,17 @@ type _IE_Strict = Assert<
 >;
 type _IE_Registered = Assert<Extends<"x-range", keyof JSX.IntrinsicElements>>;
 
-// ─ Props<C> — unified helper (assignment-based checks) ──────────────────────
+// ─ PropsOf<C> — unified helper (assignment-based checks) ──────────────────────
 
 // Class constructor — takes InstanceType's public fields
-type _P_Ctor = Props<typeof Card>;
+type _P_Ctor = MaybeReactiveProps<PropsOf<typeof Card>>;
 const _p_ctor_ok: _P_Ctor = { props: { title: "x" } };
 const _p_ctor_getter: _P_Ctor = { props: () => ({ title: "y", count: 1 }) };
 void _p_ctor_ok;
 void _p_ctor_getter;
 
 // Class instance — scalar wraps, functions pass through, all optional
-type _P_Inst = Props<Toggle>;
+type _P_Inst = MaybeReactiveProps<PropsOf<Toggle>>;
 const _p_inst_empty: _P_Inst = {};
 const _p_inst_open: _P_Inst = { open: true };
 const _p_inst_openGetter: _P_Inst = { open: () => false };
@@ -195,9 +254,26 @@ void _p_inst_open;
 void _p_inst_openGetter;
 void _p_inst_onToggle;
 
+// Constructor instantiation-expression form — generics flow through
+// InstanceOf to the instance fields. Instance form is accepted via the
+// `JSX.ElementClass` half of the constraint (render()-bearing), ctor form
+// via `JSX.ElementType` — both resolve to the same type.
+type _P_ForCtor = MaybeReactiveProps<PropsOf<typeof For<number>>>;
+type _P_ForInst = MaybeReactiveProps<PropsOf<For<number>>>;
+type _P_ForSame = Assert<Equal<_P_ForInst, _P_ForCtor>>;
+const _p_for_ctor: _P_ForCtor = { each: () => [1, 2] };
+void _p_for_ctor;
+
+// PropsOf accepts components only — function, constructor, or instance
+// (HTMLElement / render()-bearing). A plain prop shape is rejected at the
+// constraint; use MaybeReactiveProps to transform raw shapes.
+// @ts-expect-error — `{ name: string }` is not a component
+type _P_Plain = PropsOf<{ name: string; age?: number }>;
+void (0 as unknown as _P_Plain);
+
 // Function component — first param wrapped
 const Greeting = (_props: { name: string; excited?: boolean }) => null;
-type _P_Fn = Props<typeof Greeting>;
+type _P_Fn = MaybeReactiveProps<PropsOf<typeof Greeting>>;
 const _p_fn_ok: _P_Fn = { name: "sam" };
 const _p_fn_getter: _P_Fn = { name: () => "sam", excited: () => true };
 // @ts-expect-error — `name` is required
@@ -209,7 +285,7 @@ void _p_fn_missing;
 // ─ ReactiveProps + LibraryManagedAttributes ─────────────────────────────────
 
 // Per-key getter shape inside a function-component body
-type _RP = ReactiveProps<{ name: string; excited?: boolean }>;
+type _RP = Props<{ name: string; excited?: boolean }>;
 type _RP_Name = Assert<Equal<_RP["name"], Computed<string>>>;
 type _RP_Excited = Assert<
   Equal<_RP["excited"], Computed<boolean | undefined> | undefined>
@@ -228,7 +304,7 @@ type _RPP_Plain = Assert<Equal<RawProps<{ a: number }>, { a: number }>>;
 
 // Function component declared with ReactiveProps — JSX call-site type
 function FnGreeting(
-  _props: ReactiveProps<{ name: string; excited?: boolean }>,
+  _props: Props<{ name: string; excited?: boolean }>,
 ): Element | null {
   return null;
 }
@@ -290,7 +366,7 @@ const _ra_branded_sig: _RA_Branded = { name: () => "x", excited: true };
 void _ra_branded;
 void _ra_branded_sig;
 
-// 2) empty constructor param → falls back to Props<C>
+// 2) empty constructor param → falls back to PropsOf<C>
 type _RA_Empty = ResolveProps<typeof Toggle, {}>;
 const _ra_empty: _RA_Empty = { open: () => true };
 void _ra_empty;

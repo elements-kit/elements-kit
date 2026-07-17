@@ -7,6 +7,7 @@ import { hydrate } from "./hydrate";
 import { render } from "./render";
 import { signal } from "./signals";
 import { async, type Async } from "./utilities/async";
+import type { Props } from "./jsx-runtime/infer";
 import { promise } from "./utilities/promise";
 
 const tick = () => new Promise<void>((r) => setTimeout(r, 0));
@@ -20,7 +21,7 @@ function deferred<T>() {
 // The blessed code-splitting pattern: async + dynamic import. `run()` is
 // awaited by the server stream, deferred during hydration, and doubles as
 // preload when called early.
-const Badge = (props: { label?: () => string } = {}) => (
+const Badge = (props: Props<{ label?: string }> = {}) => (
   <span>{props.label ?? (() => "loaded")}</span>
 );
 
@@ -170,9 +171,7 @@ describe("Await — hydration", () => {
     (op as { run(): void }).run();
     return (
       <div>
-        <Await fallback={() => (<u>loading…</u>) as never}>
-          {op as never}
-        </Await>
+        <Await fallback={() => (<u>loading…</u>) as never}>{op as never}</Await>
       </div>
     );
   };
@@ -217,7 +216,13 @@ describe("Await — hydration", () => {
     );
 
     const later = promise<string>(new Promise<string>(() => {}));
-    hydrate(container, page(async(() => new Promise(() => {})), later));
+    hydrate(
+      container,
+      page(
+        async(() => new Promise(() => {})),
+        later,
+      ),
+    );
 
     expect(later.state).toBe("fulfilled");
     expect(later.value).toBe("seeded");

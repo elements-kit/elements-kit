@@ -66,7 +66,7 @@ Every feature is a separate subpath export — import only what you use.
 | `elements-kit/slot` | `Slot`, `Slots`, `SLOTS` symbol — comment-marker DOM regions |
 | `elements-kit/custom-elements` | `defineElement`, `CustomElementRegistry` |
 | `elements-kit/for` | `For` keyed-list component |
-| `elements-kit/jsx-runtime` | JSX factory + type helpers (`ElementProps`, `Props`, `ComponentProps`, `MaybeReactiveProps`, `ReactiveProps`, `Require`) — configure via `jsxImportSource` |
+| `elements-kit/jsx-runtime` | JSX factory + type helpers (`ElementProps`, `PropsOf`, `MaybeReactiveProps`, `ReactiveProps`, `Require`) — configure via `jsxImportSource` |
 | `elements-kit/server` | `renderToStream`, `renderToString` — streaming HTML rendering in any JS runtime (Node, edge/Workers), no DOM required *(experimental)* |
 | `elements-kit/hydrate` | `hydrate(container, () => <App/>)` — adopt server-rendered DOM and make it interactive *(experimental)* |
 | `elements-kit/await` | `Await` — loading boundary (Suspense equivalent); code splitting = `async` + dynamic import *(experimental)* |
@@ -412,13 +412,12 @@ import { For } from "elements-kit/for";
 
 ## Prop types
 
-Six type helpers derive JSX prop shapes from your components — no parallel `declare global` block to maintain. Full guide at [docs/src/content/docs/elements/types.mdx](docs/src/content/docs/elements/types.mdx).
+A small set of type helpers derives JSX prop shapes from your components — no parallel `declare global` block to maintain. Full guide at [docs/src/content/docs/elements/types.mdx](docs/src/content/docs/elements/types.mdx).
 
 | Helper | For |
 | ------ | --- |
 | `ElementProps<typeof Cls>` | `HTMLElement` subclass — full surface (attrs, events, slots, children) |
-| `Props<C>` | Class instance, constructor, or function component — unified |
-| `ComponentProps<typeof Cls>` | Class components with `constructor(props: P)` |
+| `PropsOf<C>` | Class instance, constructor, or function component — unified |
 | `MaybeReactiveProps<P>` | Caller-facing — wrap every prop in `MaybeReactive` (what parents pass) |
 | `ReactiveProps<P>` | Component-facing — every prop becomes a `Computed<T>` getter (what function components receive) |
 | `MaybeReactive<T>` | Scalar value-or-getter (from `elements-kit/signals`) |

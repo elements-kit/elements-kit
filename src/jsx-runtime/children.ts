@@ -1,5 +1,5 @@
 import { effect, onCleanup } from "../signals";
-import { PropsTarget, Child, Disposer } from "./types";
+import { PropsTarget, Children, Disposer, Child } from "./types";
 import { SLOTS, Slot } from "../slot";
 import { PrimitiveNodeType, resolveNode } from "../lib";
 
@@ -33,7 +33,7 @@ export function isChildrenProperty(node: PropsTarget, key: string): boolean {
 export function applyChildren(
   node: PropsTarget,
   key: string,
-  value: Child,
+  value: Children,
 ): void {
   // ─ SLOTS ─────────────────────────────────────────────────────────────────
   if (hasSlots(node)) {
@@ -63,7 +63,7 @@ export function applyChildren(
 
 // ─ Helpers ────────────────────────────────────────────────────────────────────
 
-function applySlot(slot: Slot, value: Child): void {
+function applySlot(slot: Slot, value: Children): void {
   // Relies on the caller's effectScope (every JSX render sits inside one).
   // The signals lib supports multiple onCleanup per scope (push to array), so
   // sibling slots don't clobber each other. Intermediate replacements are
@@ -97,7 +97,7 @@ function releaseFragment(frag: DocumentFragment): void {
   if (fragmentPool.length < FRAGMENT_POOL_MAX) fragmentPool.push(frag);
 }
 
-function mountChildren(el: Element | DocumentFragment, value: Child): void {
+function mountChildren(el: Element | DocumentFragment, value: Children): void {
   const list = ensureFlatArray<Child>(value);
   if (list.length === 0) return;
   if (list.length === 1) {
@@ -156,7 +156,7 @@ function classifyStatic(list: readonly Child[]): StaticKind {
 
 function mountStatic(
   el: Element | DocumentFragment,
-  list: readonly Child[],
+  list: readonly Children[],
   kind: StaticKind,
 ): void {
   const buffer = acquireFragment();
@@ -210,7 +210,10 @@ function mountStatic(
  * getter or primitive — keeps the component's `effectScope` alive for the
  * lifetime of the fragment it mounts into.
  */
-export function mountChild(el: Element | DocumentFragment, child: Child): void {
+export function mountChild(
+  el: Element | DocumentFragment,
+  child: Children,
+): void {
   if (typeof child === "function") {
     const slot = new Slot();
     el.appendChild(slot.render());
@@ -226,7 +229,7 @@ export function mountChild(el: Element | DocumentFragment, child: Child): void {
   if (dispose) onCleanup(dispose);
 }
 
-export function resolveChild(value: Child): Node {
+export function resolveChild(value: Children): Node {
   // Hot order: Node → primitive → function → array. Most JSX expressions
   // resolve to a Node (already-rendered element) or a primitive (text from a
   // signal); reactive thunks and arrays trail.
@@ -235,7 +238,8 @@ export function resolveChild(value: Child): Node {
     return document.createTextNode(String(value));
   if (value == null || typeof value === "boolean")
     return document.createComment("");
-  if (typeof value === "function") return resolveChild((value as () => Child)());
+  if (typeof value === "function")
+    return resolveChild((value as () => Children)());
   if (Array.isArray(value)) {
     const fragment = document.createDocumentFragment();
     for (const item of value as any[]) {

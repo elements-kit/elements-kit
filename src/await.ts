@@ -1,4 +1,5 @@
-import type { Child } from "@/jsx-runtime/types";
+import type { Children } from "@/jsx-runtime/types";
+import type { Props } from "@/jsx-runtime/infer";
 import { isReactive } from "@/signals";
 import { ASYNC_REGION, effectsInert } from "@/signals/lib";
 import { isReactivePromiseLike, promise } from "@/utilities/promise";
@@ -24,8 +25,12 @@ function isThenable(value: unknown): value is PromiseLike<unknown> {
   );
 }
 
-function toAwaitables(value: unknown): (AwaitableLike & PromiseLike<unknown>)[] {
-  const list = Array.isArray(value) ? (value as unknown[]).flat(Infinity) : [value];
+function toAwaitables(
+  value: unknown,
+): (AwaitableLike & PromiseLike<unknown>)[] {
+  const list = Array.isArray(value)
+    ? (value as unknown[]).flat(Infinity)
+    : [value];
   const out: (AwaitableLike & PromiseLike<unknown>)[] = [];
   for (const item of list) {
     if (isReactivePromiseLike(item) || isAsyncLike(item)) {
@@ -73,11 +78,13 @@ function toAwaitables(value: unknown): (AwaitableLike & PromiseLike<unknown>)[] 
  * </Await>
  * ```
  */
-export function Await(props: {
-  fallback?: Child | (() => Child);
-  when?: unknown;
-  children?: Child;
-}): Element {
+export function Await(
+  props: Props<{
+    fallback?: Children;
+    when?: unknown;
+    children?: Children;
+  }>,
+): Element {
   // Props arrive as resolveProps getters. Branded values (a ComputedPromise
   // or Async child, a signal) pass through resolveProps unchanged — keep the
   // object itself; plain thunks unwrap.
@@ -104,7 +111,7 @@ export function Await(props: {
   const fallback = props.fallback as unknown;
   const pending = () => awaitables.some((a) => a.state === "pending");
   const region = () =>
-    pending() ? (read(fallback) as Child) : (children as Child);
+    pending() ? (read(fallback) as Children) : (children as Children);
   // Hydration metadata: the server consumed one ek-data id for the boundary
   // (it renders as an async insertion point when awaitables exist) plus one
   // per async child re-emitted inside; the claim walk advances its counter

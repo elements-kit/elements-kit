@@ -1,6 +1,6 @@
 import { effect, isReactive } from "../signals";
 import { on } from "../utilities/event-listener.ts";
-import { Child, PropsTarget } from "./types";
+import { Children, PropsTarget } from "./types";
 import {
   ChildProperties,
   Properties,
@@ -18,7 +18,7 @@ export function applyProps(
   for (const [key, value] of entries) {
     // ─ Children (slot:name, Slot properties) ──────────────────────────────────
     if (isChildrenProperty(node, key)) {
-      applyChildren(node, key, value as Child);
+      applyChildren(node, key, value as Children);
       continue;
     }
 

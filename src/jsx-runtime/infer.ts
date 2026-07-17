@@ -1,14 +1,9 @@
 import type { ATTRIBUTES, AttrChangeHandler } from "../attributes";
 import type { SLOTS, Slot } from "../slot";
-import type { Child, ComponentClass, ComponentInstance } from "./types";
+import type { Children } from "./types";
 import type { Computed, MaybeReactive } from "../signals";
 import type { JSX as DomJSX } from "dom-expressions/src/jsx-h";
-
-// ─ Constructor helper ─────────────────────────────────────────────────────────
-
-type AnyElementCtor = abstract new (...args: any[]) => HTMLElement;
-
-type Inst<C> = C extends abstract new (...args: any[]) => infer I ? I : never;
+import type { JSX } from "elements-kit/jsx-runtime";
 
 // ─ Props (public user-facing helpers) ────────────────────────────────────────
 
@@ -22,19 +17,12 @@ type PublicPropKeys<I> = I extends HTMLElement
   : Exclude<keyof I, symbol | "render">;
 
 /**
- * Instance fields typed as `Slot` are default-slot mounts at runtime — the JSX
- * consumer passes DOM content, which `applyChildren` routes via `applySlot`.
- * Surface them as `Child` in the JSX prop shape so callers type-check.
- */
-type PropValueFor<V> = V extends Slot ? Child : V;
-
-/**
  * Public instance fields of `I` — all optional. For `HTMLElement` subclasses
  * the DOM surface is excluded; for plain classes, all own keys are kept.
- * `Slot`-typed fields are mapped to `Child` (see {@link PropValueFor}).
+ * `Slot`-typed fields are mapped to `Child`.
  */
 export type InstanceProps<I> = {
-  [K in PublicPropKeys<I> & string]?: PropValueFor<I[K]>;
+  [K in PublicPropKeys<I> & string]?: I[K] extends Slot ? Children : I[K];
 };
 
 /**
@@ -52,71 +40,48 @@ export type InstanceProps<I> = {
  */
 export type Require<P, K extends keyof P> = { [X in K]-?: P[X] } & Omit<P, K>;
 
-/**
- * Wrap every non-function prop in {@link MaybeReactive} so callers may pass
- * either a plain value or a reactive getter. Function-typed props (event
- * handlers, render callbacks) are left as-is so inline arrow callbacks get
- * proper contextual typing for their parameters — wrapping them in
- * `MaybeReactive<F> = F | (() => F)` produces two callable alternatives and
- * TS falls back to implicit-any on the callback's params. Optionality is
- * preserved at the key level — the `| undefined` stays at the prop, not
- * inside the reactive.
- *
- * @template P — source prop object type.
- *
- * @example
- * ```ts
- * type Raw = { count: number; label?: string; onClick: (e: Event) => void };
- * type Wrapped = MaybeReactiveProps<Raw>;
- * // {
- * //   count:    MaybeReactive<number>;
- * //   label?:   MaybeReactive<string>;
- * //   onClick:  (e: Event) => void;
- * // }
- * ```
- *
- * @see {@link MaybeReactive}
- * @see {@link Props}
- */
-export type MaybeReactiveProps<P> = {
-  [K in keyof P]: undefined extends P[K]
-    ? MaybeReactiveOrFn<Exclude<P[K], undefined>> | undefined
-    : MaybeReactiveOrFn<P[K]>;
-};
-
-type MaybeReactiveOrFn<T> =
-  Extract<T, (...args: any[]) => any> extends never ? MaybeReactive<T> : T;
-
 declare const RAW_PROPS: unique symbol;
 
-export type ReactiveProps<P> = {
+export type Props<P> = {
   readonly [K in keyof P]: Computed<P[K]>;
 } & { readonly [RAW_PROPS]?: P };
 
-/** Recover the raw prop shape `P` from a `ReactiveProps<P>`. */
+/** Recover the raw prop shape `P` from a `Props<P>`. */
 export type RawProps<R> = R extends { readonly [RAW_PROPS]?: infer P } ? P : R;
 
 /**
- * Resolve the JSX call-site prop type for a component (function or class).
- * Wired into `JSX.LibraryManagedAttributes` so parents see the right shape:
- * - branded `ReactiveProps<P>` (function components) → `MaybeReactiveProps<P>`
- * - empty constructor param (instance-field classes) → `Props<C>`
- * - otherwise pass the constructor param shape through (preserves generic
- *   inference for classes like `For<T>` whose param is already shaped).
- *
- * Component props only — custom-element attributes go through {@link ElementProps}.
+ * @internal JSX-layer call-site wrap: each key accepts a plain value OR a
+ * reactive getter. Not part of the public API — the JSX checker applies it
+ * automatically; end users never name it. Function-typed props are wrapped
+ * too (`Computed<F>` is zero-arg, so TS still picks the handler signature by
+ * arity for inline arrows). `Signal<F>` must never be added explicitly — its
+ * one-arg `Updater` half would collapse inline arrow params to implicit any.
+ */
+export type MaybeReactiveProps<P> = {
+  [K in keyof P]: undefined extends P[K]
+    ? MaybeReactive<Exclude<P[K], undefined>> | undefined
+    : MaybeReactive<P[K]>;
+};
+
+/**
+ * @internal Call-site prop resolution for `JSX.LibraryManagedAttributes`:
+ * - branded `Props<P>` param (function components) → wrap the raw `P`
+ * - empty constructor param (instance-field classes) → wrap `PropsOf<C>`
+ * - non-empty constructor param → pass through (preserves `For<T>` inference)
  */
 export type ResolveProps<C, P, NN = NonNullable<P>> = NN extends {
   readonly [RAW_PROPS]?: infer Raw;
 }
   ? MaybeReactiveProps<Raw>
   : [keyof NN] extends [never]
-    ? Props<C>
+    ? C extends JSX.ElementType | JSX.ElementClass
+      ? MaybeReactiveProps<PropsOf<C>>
+      : {}
     : NN;
 
 // ─ Internal composition pieces ───────────────────────────────────────────────
 
-type InstancePropsOf<C> = Inst<C> extends infer I ? InstanceProps<I> : {};
+type InstancePropsOf<C> = InstanceProps<InstanceOf<C>>;
 
 type PropKeysOf<C> = keyof InstancePropsOf<C> & string;
 
@@ -146,25 +111,20 @@ type AttrsOf<C> =
       : {}
     : {};
 
-type FlatPropsOf<C> = InstancePropsOf<C>;
-
 type PropNamespacedOf<C> = {
   [K in PropKeysOf<C> as `prop:${K}`]?: NonNullable<InstancePropsOf<C>[K]>;
 };
 
 type EventMapOf<C> = C extends { events: infer E } ? E : {};
 
-type Capitalize1<S extends string> = S extends `${infer H}${infer R}`
-  ? `${Uppercase<H>}${R}`
-  : S;
-
+// Only `on:event` — the runtime attaches listeners solely through the `on:`
+// namespace (see applyProps); a camelCase `onEvent` key would silently fall
+// through to setAttribute, so it must not be typed as valid.
 type EventsOf<C> =
   EventMapOf<C> extends infer E
     ? E extends Record<string, Event>
       ? {
           [K in keyof E & string as `on:${K}`]?: (ev: E[K]) => void;
-        } & {
-          [K in keyof E & string as `on${Capitalize1<K>}`]?: (ev: E[K]) => void;
         }
       : {}
     : {};
@@ -173,19 +133,16 @@ type SlotKeys<I> = I extends { [SLOTS]: infer S }
   ? Extract<keyof S, string>
   : never;
 
-// If C is a constructor, extract the instance type; otherwise treat C as an
-// instance directly. This lets SlotsOf<> work for `Props<Constructor>` AND
-// `Props<InstanceType>` (the common case when a class name is used as a type).
-type InstanceOf<C> = C extends abstract new (...args: any[]) => infer I ? I : C;
-
 type SlotsOf<C> =
   SlotKeys<InstanceOf<C>> extends infer K
     ? [K] extends [string]
-      ? { [P in K as `slot:${P}`]?: Child }
+      ? { [P in K as `slot:${P}`]?: Children }
       : {}
     : {};
 
-type ChildrenOf<C> = C extends { children: never } ? {} : { children?: Child };
+type ChildrenOf<C> = C extends { children: never }
+  ? {}
+  : { children?: Children };
 
 type BaseDOMAttrs = DomJSX.DOMAttributes<HTMLElement>;
 
@@ -204,8 +161,8 @@ type BaseDOMAttrs = DomJSX.DOMAttributes<HTMLElement>;
  *   Keys also present on the instance are dropped here so the flat key carries the property type.
  * - **Flat properties** — public instance fields, wrapped in `MaybeReactive`.
  * - **`prop:*`** — explicit property assignment for every field.
- * - **Events** — keys from `declare static events: { ... }` produce both
- *   `on:${K}` and `on${Capitalize<K>}` typed handlers.
+ * - **Events** — keys from `declare static events: { ... }` produce
+ *   `on:${K}` typed handlers (the only event syntax the runtime attaches).
  * - **Slots** — keys from `[SLOTS] = { ... } as const` produce `slot:${K}`.
  * - **Children** — `children?: Child` unless `static children: never`.
  * - **DOM attrs** — the standard dom-expressions surface (`class`, `style`, `ref`, …).
@@ -227,51 +184,24 @@ type BaseDOMAttrs = DomJSX.DOMAttributes<HTMLElement>;
  * //   min?: MaybeReactive<number>;
  * //   "prop:min"?: number;
  * //   "on:commit"?: (e: CustomEvent<number>) => void;
- * //   onCommit?:   (e: CustomEvent<number>) => void;
  * //   "slot:label"?: Child;
  * //   children?: Child;
  * //   // …plus ref, class, class:*, style, style:*, standard DOM events
  * // }
  * ```
  *
- * @see {@link Props} for class-components / function components (no attr/event/slot synthesis).
+ * @see {@link PropsOf} for class-components / function components (no attr/event/slot synthesis).
  */
 export type ElementProps<C extends AnyElementCtor> = BaseDOMAttrs &
   AttrsOf<C> &
-  FlatPropsOf<C> &
+  InstancePropsOf<C> &
   PropNamespacedOf<C> &
   EventsOf<C> &
   SlotsOf<C> &
   ChildrenOf<C>;
 
 /**
- * Props of a class component that receives them via its constructor:
- * `class Comp { constructor(props: P) }`. Reads `ConstructorParameters[0]`.
- *
- * Use this when the component's props live on a constructor parameter rather
- * than on public instance fields. For instance-field components, use {@link Props}.
- *
- * @template C — the class constructor type (e.g. `typeof Card`).
- *
- * @example
- * ```ts
- * class Card {
- *   constructor(public props: { title: string; children?: Child }) {}
- *   render() { return <div>{this.props.title}</div>; }
- * }
- *
- * type P = ComponentProps<typeof Card>;
- * // { title: string; children?: Child }
- * ```
- *
- * @see {@link Props}
- */
-export type ComponentProps<C extends ComponentClass<any>> =
-  C extends ComponentClass<infer P> ? (P extends object ? P : {}) : {};
-
-/**
- * Props for any component — class or function. Wraps every non-function
- * prop in {@link MaybeReactive} so callers may pass values or reactive getters.
+ * Props for any component — class or function.
  *
  * Branches by input shape:
  * - **Class constructor** (`typeof Cls`) → uses `InstanceProps<InstanceType<Cls>>`.
@@ -279,40 +209,42 @@ export type ComponentProps<C extends ComponentClass<any>> =
  * - **Class instance** (`Cls<T>`) → uses `InstanceProps<Cls<T>>` (useful when
  *   generics need to flow through — see the `For` example below).
  *
- * Does **not** synthesize `on:*`, `slot:*`, or attribute surface. For custom
- * elements that need those, use {@link ElementProps}.
- *
- * @template C — constructor, function, or instance.
+ * @template T — constructor, function, or instance.
  *
  * @example
  * ```ts
  * // 1. Class instance (lets a generic flow)
  * class For<T> { each: T[] = []; render() { return null } }
- * type ForProps<T> = Props<For<T>>;
- * //   ↑ { each?: MaybeReactive<T[]> }
+ * type ForProps<T> = PropsOf<For<T>>;
+ * //   ↑ { each?: T[] }
  *
  * // 2. Function component
  * const Greeting = (_p: { name: string; excited?: boolean }) => null;
- * type GreetingProps = Props<typeof Greeting>;
- * //   ↑ { name: MaybeReactive<string>; excited?: MaybeReactive<boolean> }
+ * type GreetingProps = PropsOf<typeof Greeting>;
+ * //   ↑ { name: string; excited?: boolean }
  *
  * // 3. Class constructor
  * class Counter { count = 0; render() { return null } }
- * type CounterProps = Props<typeof Counter>;
- * //   ↑ { count?: MaybeReactive<number> }
+ * type CounterProps = PropsOf<typeof Counter>;
+ * //   ↑ { count?: number }
  * ```
- *
- * @see {@link ElementProps} — custom elements (`HTMLElement` subclasses).
- * @see {@link ComponentProps} — constructor-param-based class components.
- * @see {@link MaybeReactiveProps}
  */
-export type Props<C> = (C extends abstract new (...args: any[]) => infer I
-  ? MaybeReactiveProps<InstanceProps<I>>
-  : C extends (props: infer P, ...rest: any[]) => any
-    ? P extends object
-      ? MaybeReactiveProps<RawProps<P>>
-      : {}
-    : MaybeReactiveProps<InstanceProps<C>>) &
-  SlotsOf<C>;
+export type PropsOf<T extends JSX.ElementType | JSX.ElementClass> = (T extends (
+  props: infer P,
+  ...rest: any[]
+) => any
+  ? P extends object
+    ? RawProps<P>
+    : {}
+  : InstanceProps<InstanceOf<T>>) &
+  SlotsOf<T>;
 
-export type { AnyElementCtor, ComponentInstance };
+// ─ Constructor helper ─────────────────────────────────────────────────────────
+
+export type AnyElementCtor = abstract new (...args: any[]) => HTMLElement;
+
+/**
+ * Instance type of a constructor; non-constructors pass through unchanged —
+ * lets `PropsOf<>`/`SlotsOf<>` accept both `typeof Cls` and `Cls`.
+ */
+type InstanceOf<C> = C extends abstract new (...args: any[]) => infer I ? I : C;

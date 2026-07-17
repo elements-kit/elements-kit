@@ -20,7 +20,7 @@ export {
 } from "./lib";
 import { isSignal, isComputed, signal } from "./lib";
 import "../polyfill";
-import type { ReactiveProps } from "@/jsx-runtime/infer";
+import type { Props } from "@/jsx-runtime/infer";
 
 /**
  * Type-guard: `true` when `value` is a reactive source (`signal` or `computed`),
@@ -191,12 +191,12 @@ const RESOLVED_PROPS = Symbol.for("elements-kit.resolved-props");
 
 export function resolveProps<P extends object>(raw: {
   [K in keyof P]: MaybeReactive<P[K]>;
-}): ReactiveProps<P> {
+}): Props<P> {
   // Idempotent: forwarding components (e.g. lazy) pass their already-getter
   // props to createElement again — re-wrapping would turn every read into a
   // getter-returning-getter.
   if ((raw as Record<PropertyKey, unknown>)[RESOLVED_PROPS]) {
-    return raw as unknown as ReactiveProps<P>;
+    return raw as unknown as Props<P>;
   }
   // Snapshot the key list once. Proxy traps (`ownKeys`,
   // `getOwnPropertyDescriptor`, `has`) reuse it instead of calling
@@ -228,5 +228,5 @@ export function resolveProps<P extends object>(raw: {
             value: get(key),
           }
         : undefined,
-  }) as unknown as ReactiveProps<P>;
+  }) as unknown as Props<P>;
 }

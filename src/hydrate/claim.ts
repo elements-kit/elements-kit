@@ -1,4 +1,3 @@
-import type { Component } from "../jsx-runtime/types";
 import { Fragment, isFragmentComponent } from "../jsx-runtime/fragment";
 import { For, isForComponent, type Entry } from "../for";
 import { createElement } from "../jsx-runtime/element";
@@ -251,7 +250,11 @@ function splitProps(props: Record<string, unknown>): {
 
 // ─ Dynamic children (slot markers) ────────────────────────────────────────────
 
-function claimDynamic(cur: Cursor, getter: () => unknown, om?: OnMismatch): void {
+function claimDynamic(
+  cur: Cursor,
+  getter: () => unknown,
+  om?: OnMismatch,
+): void {
   // Await boundaries rendered as async insertion points on the server:
   // mirror the ids the server consumed, and keep the server content for as
   // long as the region is pending — never flash the fallback over it (even
@@ -496,11 +499,11 @@ function buildVNode(v: VNode): Node {
       children: (() => buildChildValue(v.children)) as never,
     });
   }
-  return createElement(For as unknown as Component, v.props) as Node;
+  return createElement(For, v.props) as Node;
 }
 
 function buildChildValue(c: unknown): unknown {
-  if (Array.isArray(c)) return (c as unknown[]).map(buildChildValue);
+  if (Array.isArray(c)) return c.map(buildChildValue);
   if (isVNode(c)) return buildVNode(c);
   return c;
 }
