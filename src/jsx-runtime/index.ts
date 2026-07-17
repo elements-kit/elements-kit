@@ -49,7 +49,7 @@ export namespace JSX {
 
   export type IntrinsicElements = {
     [K in keyof DOMIntrinsicElements]: MaybeReactiveProps<
-      Omit<WithJsxNamespaces<DOMIntrinsicElements[K], DOMElements[K]>, "ref">
+      WithJsxNamespaces<DOMIntrinsicElements[K], DOMElements[K]>
     > & {
       ref?: (el: DOMElements[K]) => void;
       children?: Children;

@@ -7,7 +7,7 @@ import {
   untracked,
 } from "@/signals";
 import { disposeElement } from "@/jsx-runtime/element";
-import { MaybeReactiveProps } from "./jsx-runtime/infer";
+import type { MaybeReactiveProps } from "./jsx-runtime/infer";
 
 type KeyFn<T> = (item: T, index: number) => string | number;
 type RenderFn<T> = (
@@ -44,9 +44,9 @@ export interface Entry {
  * ```
  */
 type ForProps<T> = MaybeReactiveProps<{
-  each?: T[];
+  each: T[];
   by?: KeyFn<T>;
-  children?: RenderFn<T>;
+  children: RenderFn<T>;
 }>;
 
 /**

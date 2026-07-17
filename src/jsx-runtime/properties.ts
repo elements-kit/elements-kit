@@ -72,33 +72,34 @@ type XmlAttrs = {
   "xml:base"?: string | undefined;
 };
 
+// SVG-only namespaced attributes. The runtime routes any `xlink:*` / `xml:*`
+// key through `setAttributeNS` (see `applyProps` below), but spec-wise these
+// only apply to SVG content — so the types are only intersected onto
+// IntrinsicElements whose concrete element type extends SVGElement.
 export type SvgNamespaceAttrs = XlinkAttrs & XmlAttrs;
-
-type JsxNamespaces<E extends Element = Element> = StyleNamespace &
-  PropNamespace<Omit<E, "children">> &
-  ClassNamespace;
 
 /**
  * Namespaced JSX props added by elements-kit on top of dom-expressions.
- * All four are tag-aware via the element type `E`.
+ * All three are tag-aware via the element type `E`. Values here are plain —
+ * `JSX.IntrinsicElements` wraps them in `MaybeReactive` afterwards.
  *
- * - `class:foo` — open string + `MaybeReactive<boolean>`. Class names are
- *   user-defined CSS so the key stays open (no autocomplete possible).
- * - `style:cssProp` — keys mapped from `DomJSX.CSSProperties` (csstype's
- *   hyphenated property names) for autocomplete; value typed per-property.
+ * - `class:foo` — `boolean`. Class names are user-defined CSS so the key
+ *   stays open (no autocomplete possible).
+ * - `style:cssProp` — keys mapped from csstype's hyphenated property names
+ *   for autocomplete; value typed per-property.
  * - `prop:K` — inferred from `keyof E`. On `<div>` exposes
  *   `prop:className`, `prop:id`, etc. (from `HTMLDivElement`); on a
  *   registered custom element exposes its public fields too.
  *
- * `slot:foo` is NOT here — it's emitted per-element via `SlotsOf<C>` only
- * for elements that declare `[SLOTS]`. Plain HTML intrinsics don't accept
- * slot props (the runtime ignores them).
+ * `ref` and `slot:foo` are NOT here — `ref` is declared directly by
+ * `JSX.IntrinsicElements` (called once, never reactive), and `slot:foo` is
+ * emitted per-element via `SlotsOf<C>` only for elements that declare
+ * `[SLOTS]`. Plain HTML intrinsics don't accept slot props (the runtime
+ * ignores them).
  */
-
-// SVG-only namespaced attributes. The runtime routes any `xlink:*` / `xml:*`
-// key through `setAttributeNS` (see src/jsx-runtime/properties.ts), but spec-
-// wise these only apply to SVG content — so the types are only intersected
-// onto IntrinsicElements whose concrete element type extends SVGElement.
+type JsxNamespaces<E extends Element = Element> = StyleNamespace &
+  PropNamespace<Omit<E, "children">> &
+  ClassNamespace;
 
 type JsxNamespaceKeys =
   | `class:${string}`

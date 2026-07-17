@@ -144,10 +144,10 @@ A function component is a plain function that returns an `Element`. The JSX runt
 
 ```tsx twoslash
 // @noErrors
-import type { ReactiveProps } from "elements-kit/jsx-runtime";
+import type { Props } from "elements-kit/jsx-runtime";
 
 function Greeting(
-  props: ReactiveProps<{ name: string; excited?: boolean }>,
+  props: Props<{ name: string; excited?: boolean }>,
 ) {
   return (
     <p>

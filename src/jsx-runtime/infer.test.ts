@@ -432,6 +432,36 @@ void _div_slot_rejected;
 const _div_ref: _DivAttrs = { ref: (_el: HTMLDivElement) => void 0 };
 void _div_ref;
 
+// `ref` param is contextually inferred — no annotation needed. Guards the
+// contextual signature: wrapping `ref` in MaybeReactive (or intersecting a
+// second declaration) collapses inference to implicit any.
+const _div_ref_inferred: _DivAttrs = {
+  ref: (el) => {
+    type _RefEl = Assert<Equal<typeof el, HTMLDivElement>>;
+    void el;
+  },
+};
+void _div_ref_inferred;
+
+// `children` admits getters and arrays nested to any depth — the runtime
+// flattens with `.flat(Infinity)` (see children.test.tsx).
+const _div_children_nested: _DivAttrs = {
+  children: ["a", 1, ["b", () => "c", [() => 0]]],
+};
+void _div_children_nested;
+const _div_children_rejected: _DivAttrs = {
+  // @ts-expect-error — plain objects are not valid children
+  children: { not: "a child" },
+};
+void _div_children_rejected;
+
+// SVG-only namespace attrs: present on SVG tags, absent on HTML tags
+const _use_xlink: JSX.IntrinsicElements["use"] = { "xlink:href": "#icon" };
+const _svg_xml: JSX.IntrinsicElements["svg"] = { "xml:lang": "en" };
+void _use_xlink;
+void _svg_xml;
+type _NoXlinkOnDiv = Assert<Equal<HasKey<_DivAttrs, "xlink:href">, false>>;
+
 // Input value/checked are reactive
 type _InputAttrs = JSX.IntrinsicElements["input"];
 const _input_value: _InputAttrs = { value: "x", checked: false };
@@ -444,6 +474,12 @@ const _btn_click: JSX.IntrinsicElements["button"] = {
   "on:click": (_e: MouseEvent) => void 0,
 };
 void _btn_click;
+// `on:click` also accepts a computed-of-handler (runtime re-subscribes on
+// change; see element.test.ts).
+const _btn_click_computed: JSX.IntrinsicElements["button"] = {
+  "on:click": computed(() => (_e: MouseEvent) => void 0),
+};
+void _btn_click_computed;
 // Standard HTML intrinsics don't expose `on:custom-event` — that's
 // custom-element territory (declared via `static events` on the class).
 const _btn_custom_rejected: JSX.IntrinsicElements["button"] = {

@@ -5,9 +5,9 @@
 ```tsx
 import { signal, computed } from "elements-kit/signals";
 import { render } from "elements-kit/render";
-import type { ReactiveProps } from "elements-kit/jsx-runtime";
+import type { Props } from "elements-kit/jsx-runtime";
 
-function Counter(props: ReactiveProps<{ initial?: number }>) {
+function Counter(props: Props<{ initial?: number }>) {
   const count = signal(props.initial() ?? 0);
   const doubled = computed(() => count() * 2);
 
@@ -66,7 +66,7 @@ Every feature is a separate subpath export — import only what you use.
 | `elements-kit/slot` | `Slot`, `Slots`, `SLOTS` symbol — comment-marker DOM regions |
 | `elements-kit/custom-elements` | `defineElement`, `CustomElementRegistry` |
 | `elements-kit/for` | `For` keyed-list component |
-| `elements-kit/jsx-runtime` | JSX factory + type helpers (`ElementProps`, `PropsOf`, `MaybeReactiveProps`, `ReactiveProps`, `Require`) — configure via `jsxImportSource` |
+| `elements-kit/jsx-runtime` | JSX factory + type helpers (`ElementProps`, `PropsOf`, `RawProps`, `Props`, `Require`) — configure via `jsxImportSource` |
 | `elements-kit/server` | `renderToStream`, `renderToString` — streaming HTML rendering in any JS runtime (Node, edge/Workers), no DOM required *(experimental)* |
 | `elements-kit/hydrate` | `hydrate(container, () => <App/>)` — adopt server-rendered DOM and make it interactive *(experimental)* |
 | `elements-kit/await` | `Await` — loading boundary (Suspense equivalent); code splitting = `async` + dynamic import *(experimental)* |
@@ -417,18 +417,20 @@ A small set of type helpers derives JSX prop shapes from your components — no 
 | Helper | For |
 | ------ | --- |
 | `ElementProps<typeof Cls>` | `HTMLElement` subclass — full surface (attrs, events, slots, children) |
-| `PropsOf<C>` | Class instance, constructor, or function component — unified |
-| `MaybeReactiveProps<P>` | Caller-facing — wrap every prop in `MaybeReactive` (what parents pass) |
-| `ReactiveProps<P>` | Component-facing — every prop becomes a `Computed<T>` getter (what function components receive) |
+| `PropsOf<C>` | Class instance, constructor, or function component — raw prop shape, unified |
+| `Props<P>` | Component-facing — every prop becomes a `Computed<T>` getter (what function components receive) |
+| `RawProps<R>` | Recover the raw `P` from a branded `Props<P>` |
 | `MaybeReactive<T>` | Scalar value-or-getter (from `elements-kit/signals`) |
 | `Require<P, K>` | Promote optional keys to required |
 
-The JSX runtime auto-wraps function-component props — each key arrives as a callable getter that subscribes on read. Pair the signature with `ReactiveProps<P>` and read `props.x()`:
+Callers never wrap anything by hand — at every JSX call site the runtime's `LibraryManagedAttributes` automatically lets parents pass each prop as a static value *or* a signal/computed.
+
+The JSX runtime auto-wraps function-component props — each key arrives as a callable getter that subscribes on read. Pair the signature with `Props<P>` and read `props.x()`:
 
 ```tsx
-import type { ReactiveProps } from "elements-kit/jsx-runtime";
+import type { Props } from "elements-kit/jsx-runtime";
 
-function Greeting(props: ReactiveProps<{ name: string }>) {
+function Greeting(props: Props<{ name: string }>) {
   return <p>Hello, {props.name}</p>;
 }
 ```
