@@ -1,7 +1,20 @@
 import { effect, onCleanup } from "../signals";
-import { PropsTarget, Children, Disposer, Child } from "./types";
 import { SLOTS, Slot } from "../slot";
-import { PrimitiveNodeType, resolveNode } from "../lib";
+import type { Disposer } from "./dispose";
+import { PropsTarget } from "./properties";
+import { PrimitiveNodeType, resolveNode } from "@/lib";
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Child Types
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export type AnyFn = (...args: any[]) => Children;
+export type Children =
+  | PrimitiveNodeType
+  | AnyFn
+  | Element
+  | DocumentFragment
+  | Children[];
 
 // ─ Typed SLOTS accessor ──────────────────────────────────────────────────────
 
@@ -98,7 +111,7 @@ function releaseFragment(frag: DocumentFragment): void {
 }
 
 function mountChildren(el: Element | DocumentFragment, value: Children): void {
-  const list = ensureFlatArray<Child>(value);
+  const list = ensureFlatArray(value);
   if (list.length === 0) return;
   if (list.length === 1) {
     mountChild(el, list[0]);
@@ -132,7 +145,7 @@ const enum StaticKind {
   Mixed = 3,
 }
 
-function classifyStatic(list: readonly Child[]): StaticKind {
+function classifyStatic(list: readonly Children[]): StaticKind {
   let kind = StaticKind.AllNode | StaticKind.AllPrimitive;
   for (const c of list) {
     if (c == null || c === false || c === true) continue;

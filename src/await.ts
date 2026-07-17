@@ -1,4 +1,4 @@
-import type { Children } from "@/jsx-runtime/types";
+import type { Children } from "@/jsx-runtime/children";
 import type { Props } from "@/jsx-runtime/infer";
 import { isReactive } from "@/signals";
 import { ASYNC_REGION, effectsInert } from "@/signals/lib";

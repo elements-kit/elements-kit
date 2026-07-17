@@ -1,6 +1,5 @@
 import { effect, MaybeReactive, onCleanup } from "@/signals";
-import { mountChild } from "./children";
-import type { Children } from "./types";
+import { mountChild, Children } from "./children";
 import type { Props } from "./infer";
 import { Slot } from "@/slot";
 

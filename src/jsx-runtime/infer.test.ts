@@ -1,7 +1,7 @@
 import { it, expect } from "vitest";
 import { ATTRIBUTES, type Attributes } from "../attributes";
 import { SLOTS, Slot } from "../slot";
-import type { Children } from "./types";
+import type { Children } from "./children";
 import { computed, signal, type MaybeReactive } from "../signals";
 import { For } from "../for";
 import type { JSX } from "./index";

@@ -1,6 +1,5 @@
-import type { ComponentFn, PropsTarget } from "./types";
-import type { JSX } from ".";
-import { applyProps } from "./properties";
+import type { ComponentFn, JSX } from ".";
+import { applyProps, PropsTarget } from "./properties";
 import {
   MATHML_NAMESPACE,
   MathMLElements,

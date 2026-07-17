@@ -24,6 +24,9 @@ importers:
       '@types/react-dom':
         specifier: ^19.2.3
         version: 19.2.3(@types/react@19.2.14)
+      csstype:
+        specifier: ^3.2.3
+        version: 3.2.3
       happy-dom:
         specifier: ^20.8.9
         version: 20.8.9

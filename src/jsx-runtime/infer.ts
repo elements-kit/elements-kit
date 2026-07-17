@@ -1,9 +1,9 @@
 import type { ATTRIBUTES, AttrChangeHandler } from "../attributes";
 import type { SLOTS, Slot } from "../slot";
-import type { Children } from "./types";
 import type { Computed, MaybeReactive } from "../signals";
-import type { JSX as DomJSX } from "dom-expressions/src/jsx-h";
+import type { JSX as DomJSX } from "dom-expressions/src/jsx";
 import type { JSX } from "elements-kit/jsx-runtime";
+import type { Children } from "./children";
 
 // ─ Props (public user-facing helpers) ────────────────────────────────────────
 
