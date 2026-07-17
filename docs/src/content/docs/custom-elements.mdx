@@ -428,15 +428,18 @@ and want it to appear (and later be swapped) inside the mounted element.
 node replaces the slot's content directly in the DOM, with no elements-kit
 reactive context.
 
-```tsx
+```ts
 import { slot, type SlotContent } from "elements-kit/slot";
 
+// Authored with plain DOM — no elements-kit rendering. Reading a @slot()
+// property returns its live region; `append()` places it and mounts the markers.
 class XCard extends HTMLElement {
   @slot() header!: SlotContent;
 
-  render() {
-    return <article>{this.header}</article>;
-    // or, with no elements-kit JSX at all: root.append(this.header)
+  connectedCallback() {
+    const article = document.createElement("article");
+    article.append(this.header);
+    this.replaceChildren(article);
   }
 }
 
@@ -444,6 +447,7 @@ class XCard extends HTMLElement {
 const el = document.querySelector("x-card")!;
 el.header = document.createElement("h1"); // fills the slot, in the live DOM
 el.header = "plain text";                 // native append() content
+el.header = "updated";                    // replaces the previous content in place
 el.header = null;                         // clears it
 ```
 

@@ -182,44 +182,47 @@ when **imperative DOM code** (a vanilla script, or another framework's
 `ref`-then-assign escape hatch) must fill and replace slots against the
 mounted element.
 
-```tsx
+Here the element is authored with **no elements-kit rendering at all** — plain
+DOM in `connectedCallback`. Reading a `@slot()` property returns its live
+region; placing it with `append()` mounts the markers:
+
+```ts
 import { slot, type SlotContent } from "elements-kit/slot";
 
 class XCard extends HTMLElement {
-  @slot() header!: SlotContent;   // named slot
-  @slot() children!: SlotContent; // default slot — surfaces as the JSX `children` prop
+  @slot() header!: SlotContent; // named slot
+  @slot() body!: SlotContent;   // named slot
 
   connectedCallback() {
-    this.replaceChildren(
-      <article>
-        <header>{this.header}</header>
-        <main>{this.children}</main>
-      </article>,
-    );
+    const article = document.createElement("article");
+    const head = document.createElement("header");
+    const main = document.createElement("main");
+    head.append(this.header); // reading the region places it — markers mount here
+    main.append(this.body);
+    article.append(head, main);
+    this.replaceChildren(article);
   }
 }
 
 customElements.define("x-card", XCard);
 ```
 
-An elements-kit-JSX consumer fills it via plain named props (a plain field
-would work equally here):
-
-```tsx
-<x-card header={<h2>My Title</h2>}>
-  <p>Main body content.</p>
-</x-card>
-```
-
-The payoff comes from imperative code with no elements-kit rendering — the
-swap lands directly in the live DOM, with no reactive context:
+Now imperative code can fill and *replace* a slot at any time — the swap lands
+directly in the live DOM, after mount, with no reactive context:
 
 ```ts
 const el = document.querySelector("x-card")!;
 el.header = document.createElement("h2"); // Node
 el.header = "plain text";                 // native append() content
+el.header = "updated";                    // replaces the previous content in place
 el.header = null;                         // clears
 ```
+
+That post-mount live swap is the *only* thing `@slot()` buys you. Consume the
+same element through elements-kit JSX (`<x-card header={<h2/>}>`) and you
+wouldn't need `@slot()` at all — a plain (or `@reactive`) field works, because
+elements-kit JSX assigns props *before* the element mounts, so the element's
+own render reads the final value directly.
 
 ### Reactive slot content
 
