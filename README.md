@@ -52,7 +52,7 @@ ElementsKit is a library of reactive primitives, not a framework. Each piece is 
 
 - **Designed for the AI age.** Code is cheap; maintenance still isn't. Primitives compose into higher-level blocks. Swap one block at a time instead of maintaining long lines of code.
 
-- **Bundler-friendly.** Every primitive is its own subpath — `elements-kit/signals`, `elements-kit/utilities/*`, `elements-kit/integrations/*`. Import only what you need.
+- **Bundler-friendly.** Every primitive is its own subpath — `elements-kit/signals`, `elements-kit/utilities/*`, `elements-kit/ui/*`, `elements-kit/integrations/*`. Import only what you need.
 
 ## Packages
 
@@ -73,6 +73,7 @@ Every feature is a separate subpath export — import only what you use.
 | `elements-kit/integrations/react` | `useSignal`, `useScope` React bridge hooks |
 | `elements-kit/integrations/astro` | `elementsKit()` Astro integration — elements-kit components as server-rendered, hydrated islands *(experimental)* |
 | `elements-kit/utilities/*` | Reactive browser-API utilities — see [src/utilities/README.md](src/utilities/README.md) |
+| `elements-kit/ui/*` | Headless, accessible custom elements — overlay, checkbox, select, slider, otp-input, and more (`elements-kit/ui/<name>`); optional theme at `elements-kit/ui/styles.css`. Catalog in [src/ui/README.md](src/ui/README.md) |
 
 ## Signals
 
