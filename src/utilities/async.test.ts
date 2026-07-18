@@ -33,7 +33,7 @@ describe("Async", () => {
   });
   it("is callable as a signal and returns the current result", async () => {
     const op = asyncOp(() => Promise.resolve(123));
-    // Initially pending
+    // Initially idle — no result yet
     expect(op()).toBeUndefined();
     op.start();
     await op;
@@ -45,15 +45,30 @@ describe("Async", () => {
     await op2.catch(() => {});
     expect(op2()).toBe(err);
   });
-  it("starts in pending state with no value or reason", () => {
+  it("starts in idle state with no value or reason", () => {
     const op = asyncOp(() => Promise.resolve(1));
-    expect(op.state).toBe("pending");
-    expect(op.pending).toBe(true);
+    // A lazy runner has no request before the first run() / start(): idle, not
+    // pending. (A bare ReactivePromise, which wraps a real in-flight promise,
+    // does start pending — see promise.test.ts.)
+    expect(op.state).toBe("idle");
+    expect(op.pending).toBe(false);
     expect(op.value).toBeUndefined();
     expect(op.reason).toBeUndefined();
     expect(op.result).toBeUndefined();
     // pending is a convenience getter
     expect(op.pending).toBe(op.state === "pending");
+  });
+
+  it("transitions idle -> pending -> fulfilled across a run", async () => {
+    const op = asyncOp(() => Promise.resolve(7));
+    expect(op.state).toBe("idle");
+    op.run();
+    expect(op.state).toBe("pending");
+    expect(op.pending).toBe(true);
+    await op;
+    expect(op.state).toBe("fulfilled");
+    expect(op.pending).toBe(false);
+    expect(op.value).toBe(7);
   });
 
   it("transitions to fulfilled after start()", async () => {

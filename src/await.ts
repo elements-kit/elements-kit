@@ -6,7 +6,7 @@ import { isReactivePromiseLike, promise } from "@/utilities/promise";
 import { isAsyncLike } from "@/utilities/async";
 
 interface AwaitableLike {
-  state: "pending" | "fulfilled" | "rejected";
+  state: "idle" | "pending" | "fulfilled" | "rejected";
 }
 
 /** @internal Metadata stamped on an Await region getter (see claim walk). */
@@ -116,7 +116,10 @@ export function Await(
   }
 
   const fallback = props.fallback as unknown;
-  const pending = () => awaitables.some((a) => a.state === "pending");
+  // Not-yet-settled counts as pending — an idle async child (deferred run not
+  // yet fired during hydration) must keep the server content, not swap it out.
+  const pending = () =>
+    awaitables.some((a) => a.state !== "fulfilled" && a.state !== "rejected");
   const region = () =>
     pending() ? (read(fallback) as Children) : (children as Children);
   // Hydration metadata: the server consumed one ek-data id for the boundary

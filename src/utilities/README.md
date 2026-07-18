@@ -185,7 +185,7 @@ Uses `URLPattern`. Consumers on browsers without native support must load a poly
 | **promise** | `promise(fn \| Promise<T>)` | Wraps a promise/async fn as a `ComputedPromise<T>` — awaitable and callable as reactive state with `.state`, `.value`, `.reason`, `.result`. |
 | **promise** | `ReactivePromise<T, E>` | Class form. Use when you need the state getters without the `Computed` callable. |
 | **async** | `async(fn)` | Returns an `Async` controller. Reactive wrapper over `promise`. |
-| **async** | `Async<TInput, TOutput>` | `.start()` / `.run(input?)` / `.stop()` / `Symbol.dispose`; getters `.state`, `.value`, `.reason`, `.result`, `.pending`, `.raw`; thenable. |
+| **async** | `Async<TInput, TOutput>` | `.start()` / `.run(input?)` / `.stop()` / `Symbol.dispose`; getters `.state` (`"idle"` before the first run — `.pending` is `false` until then), `.value`, `.reason`, `.result`, `.pending`, `.raw`; thenable. |
 | **retry** | `retry(fn, attempts, backoff?)` | Returns a function that retries on rejection with backoff. |
 
 ---

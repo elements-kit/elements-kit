@@ -341,7 +341,7 @@ await op;     // awaitable (delegates to .then/.catch/.finally via .raw)
 op.stop();    // halt reruns + fire registered cleanup
 ```
 
-Reactive state getters: `.state`, `.value`, `.reason`, `.result`, `.pending`, `.raw` (the underlying `ComputedPromise`).
+Reactive state getters: `.state` (`"idle" | "pending" | "fulfilled" | "rejected"` — `idle` before the first run, so `.pending` is `false` until you trigger one), `.value`, `.reason`, `.result`, `.pending`, `.raw` (the underlying `ComputedPromise`).
 
 One-shot mutation (no tracking):
 

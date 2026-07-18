@@ -26,6 +26,13 @@ export function flushDeferredAsyncRuns(): void {
 /** Shape of the async function driven by {@link Async} / {@link async}. */
 export type Fn<TInput, TOutput> = (input: TInput) => Promise<TOutput>;
 
+// Never-settling stand-in for a not-yet-run operation — the default `#current`.
+// Backs the awaitable contract (`then`/`catch`/`finally`) while idle (awaiting
+// an unrun op hangs, as a pending promise would) and reports value/reason/
+// result as undefined. `state` maps this identity to "idle" so its underlying
+// "pending" never leaks. Shared and inert — must never be seeded.
+const IDLE = promise<never>(() => {});
+
 /**
  * Reactive wrapper around an async function. Exposes the current run as
  * reactive signals (`state`, `value`, `reason`, `result`, `pending`) and
@@ -65,15 +72,23 @@ export class Async<TInput = undefined, TOutput = unknown> {
     this.#fn(resolve(fn));
   }
 
-  #current = signal<ComputedPromise<TOutput | undefined>>(promise(() => {}));
+  // `IDLE` until the first run: the "idle" state. Flips to a real operation the
+  // moment `#execute` runs or a seed materializes one. Defaulting to `IDLE`
+  // (rather than null) keeps `raw` a plain reactive read of `#current`, and
+  // since `IDLE` never settles its value/reason/result are already undefined —
+  // so every getter but `state` delegates to `raw` uniformly.
+  #current = signal<ComputedPromise<TOutput | undefined>>(
+    IDLE as ComputedPromise<TOutput | undefined>,
+  );
   get raw() {
     return this.#current();
   }
   get pending() {
-    return this.raw.state === "pending";
+    return this.state === "pending";
   }
-  get state() {
-    return this.raw.state;
+  get state(): "idle" | "pending" | "fulfilled" | "rejected" {
+    const current = this.#current();
+    return current === IDLE ? "idle" : current.state;
   }
   get value() {
     return this.raw.value;
@@ -109,8 +124,16 @@ export class Async<TInput = undefined, TOutput = unknown> {
    * `ReactivePromise`. See `ReactivePromise[SEED]`.
    */
   [SEED](value: unknown): void {
+    // When idle there is no operation to seed — materialize a fresh, settled
+    // one and adopt it. Never seed the shared `IDLE` placeholder (it backs
+    // every idle instance's awaitable contract).
+    let current = this.#current();
+    if (current === IDLE) {
+      current = promise<TOutput | undefined>(() => {});
+      this.#current(current);
+    }
     const seed = (
-      this.raw as unknown as Record<
+      current as unknown as Record<
         PropertyKey,
         ((v: unknown) => void) | undefined
       >
@@ -127,7 +150,12 @@ export class Async<TInput = undefined, TOutput = unknown> {
     const pendingRun = deferredRuns.get(this);
     deferredRuns.delete(this);
     if (record) {
-      if (untracked(() => this.state) === "pending") this[SEED](record.value);
+      // Seed from the server snapshot while unsettled — idle (the deferred run
+      // never fired) or pending (an eager run is in flight; stale-while-
+      // revalidate). [SEED] materializes an operation when idle and seeds the
+      // current one in place otherwise.
+      const state = untracked(() => this.state);
+      if (state !== "fulfilled" && state !== "rejected") this[SEED](record.value);
       return;
     }
     pendingRun?.();

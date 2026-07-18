@@ -278,7 +278,7 @@ function claimDynamic(
 }
 
 interface AsyncLike {
-  state: "pending" | "fulfilled" | "rejected";
+  state: "idle" | "pending" | "fulfilled" | "rejected";
   result: unknown;
 }
 
@@ -301,8 +301,8 @@ function claimAsync(cur: Cursor, p: AsyncLike, om?: OnMismatch): void {
   const slot = claimSlot(cur, om);
   effect(() => {
     // Server content stays visible until the client-side value settles —
-    // hydration does not blank pending async regions.
-    if (p.state === "pending") return;
+    // hydration does not blank pending (or not-yet-run idle) async regions.
+    if (p.state !== "fulfilled" && p.state !== "rejected") return;
     slot.set(resolveChild(p.result as never));
   });
   onCleanup(() => slot.clear());

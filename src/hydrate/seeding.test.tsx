@@ -77,6 +77,26 @@ describe("hydrate — ek-data seeding", () => {
     expect(op.value).toBe("v");
   });
 
+  it("seeds an idle Async by materializing an operation, not the shared IDLE", async () => {
+    // An instance whose deferred run never fired is still idle (#current is the
+    // shared IDLE placeholder) when the claim walk seeds it. [SEED] must
+    // materialize a fresh fulfilled operation — seeding IDLE in place would
+    // corrupt every other idle instance.
+    const container = await serve(() => (
+      <div>{promise(Promise.resolve("v"))}</div>
+    ));
+
+    const op = async(() => never());
+    expect(op.state).toBe("idle");
+    hydrate(container, () => <div>{op as unknown as Element}</div>);
+
+    expect(op.state).toBe("fulfilled");
+    expect(op.value).toBe("v");
+
+    // The shared placeholder was not mutated: a fresh op is still idle.
+    expect(async(() => never()).state).toBe("idle");
+  });
+
   it("leaves promises pending when no ek-data is present", async () => {
     const container = document.createElement("div");
     container.innerHTML = "<div><!--{-->server<!--}--></div>";
