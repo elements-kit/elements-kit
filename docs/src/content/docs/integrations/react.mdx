@@ -82,6 +82,8 @@ setInterval(() => count(count() + 1), 1000);
 ```
 
 ```tsx twoslash
+// @noErrors
+/** @jsxImportSource react */
 import { signal, computed } from "elements-kit/signals";
 import { useSignal } from "elements-kit/integrations/react";
 
