@@ -102,7 +102,7 @@ export default function Demo() {
 
 ## Slots
 
-Islands accept Astro slot content — the integration delivers it as pre-rendered HTML mapped to `children` (default slot) and `slot:<name>` props:
+Islands accept Astro slot content — the integration delivers it as pre-rendered HTML mapped to `children` (default slot) and named props:
 
 <IslandDemo>
   <AstroCard client:load>
@@ -121,11 +121,11 @@ Islands accept Astro slot content — the integration delivers it as pre-rendere
 ```tsx
 export default function AstroCard(props: {
   children?: unknown;          // default slot
-  "slot:header"?: unknown;     // named slot
+  header?: unknown;            // named slot
 }) {
   return (
     <section>
-      <header>{props["slot:header"]}</header>
+      <header>{props.header}</header>
       {props.children}
     </section>
   );
@@ -224,12 +224,13 @@ The [environment guard](/utilities/environment) (`isBrowser`) is only needed for
 
 ### Source the prop shape from the class
 
-Two helpers exported from `elements-kit/jsx-runtime`:
+Three type helpers exported from `elements-kit/custom-elements` read the raw platform surface off the class. All three take the constructor (`typeof XCounter`); `PropertiesOf` also accepts an instance type.
 
 | Helper | Shape | Use when |
 |---|---|---|
-| `InstanceProps<I>` | Public instance fields only (drops the `HTMLElement` surface) | Annotating setters, wrapper props, or helper functions |
-| `ElementProps<C>` | Full elements-kit JSX surface — attrs, fields, events from `static events`, slots from `[SLOTS]`, children | When you need the full declared surface |
+| `PropertiesOf<typeof XCounter>` | Public instance fields, all optional — the `HTMLElement` surface is dropped; `Slot`-typed fields accept a `Node` | Typing property assignments — prop bindings, wrappers, helper functions |
+| `AttributesOf<typeof XCounter>` | Every key of `static [ATTRIBUTES]`, valued `string \| null` | Typing the raw HTML attribute surface — `setAttribute`, server-rendered markup |
+| `EventsOf<typeof XCounter>` | The `static events` map, verbatim — event name to event type | Typing `addEventListener`, framework event bindings, `HTMLElementEventMap` augmentations |
 
 ### Typed `document.querySelector` and `createElement`
 

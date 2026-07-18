@@ -1,21 +1,22 @@
 import { it, expect } from "vitest";
 import { ATTRIBUTES, type Attributes } from "../attributes";
-import { SLOTS, Slot } from "../slot";
-import type { Child } from "./types";
-import type { MaybeReactive } from "../signals";
+import { slot } from "../slot";
+import type { Children } from "./children";
+import { computed, signal, type MaybeReactive } from "../signals";
+import { For } from "../for";
 import type { JSX } from "./index";
 import type {
   ComponentProps,
   ElementProps,
   MaybeReactiveProps,
-  Props,
-  InstanceProps,
+  PropsOf,
   RawProps,
-  ReactiveProps,
+  Props,
   Require,
   ResolveProps,
 } from "./infer";
 import type { Computed } from "../signals";
+import type { AttributesOf, EventsOf, PropertiesOf } from "../custom-elements";
 
 // ─ Type-level assertion helpers ───────────────────────────────────────────────
 
@@ -39,7 +40,7 @@ class XRange extends HTMLElement {
     commit: CustomEvent<void>;
     ready: CustomEvent<number>;
   };
-  declare [SLOTS]: { header: Slot; footer: Slot };
+  @slot() header: Node | null = null;
 
   min = 0;
   max = 100;
@@ -71,9 +72,9 @@ declare global {
   }
 }
 
-// ─ InstanceProps ────────────────────────────────────────────────────────────
+// ─ PropertiesOf ─────────────────────────────────────────────────────────────
 
-type TProps = InstanceProps<Toggle>;
+type TProps = PropertiesOf<Toggle>;
 type _PoI_Open = Assert<Equal<TProps["open"], boolean | undefined>>;
 type _PoI_OnToggle = Assert<
   Equal<TProps["onToggle"], ((v: boolean) => void) | undefined>
@@ -97,10 +98,74 @@ type _MR = MaybeReactiveProps<{
 }>;
 type _MR_Count = Assert<Equal<_MR["count"], MaybeReactive<number> | undefined>>;
 type _MR_Label = Assert<Equal<_MR["label"], MaybeReactive<string> | undefined>>;
-// Function-typed props are NOT wrapped — wrapping them in `F | (() => F)`
-// breaks contextual typing for inline arrow callbacks (TS can't pick a
-// signature and parameter types fall back to implicit any).
-type _MR_OnClick = Assert<Equal<_MR["onClick"], () => void>>;
+// Function-typed props are wrapped too — the runtime accepts a signal/computed
+// for every prop (`applyProps` re-subscribes `on:` listeners in an effect,
+// `resolveProps` passes reactive handlers through as getters).
+type _MR_OnClick = Assert<Equal<_MR["onClick"], MaybeReactive<() => void>>>;
+
+// ─ Reactive function-valued props ─────────────────────────────────────────────
+// Signals/computeds are accepted wherever a function-typed prop is expected,
+// WITHOUT breaking contextual param typing for inline arrows (TS picks the
+// handler signature by arity — `Computed<F>` is zero-arg, handlers aren't).
+
+type ToggleHandler = (v: boolean) => void;
+const _toggleSig = signal<ToggleHandler>(() => {});
+const _toggleComputed = computed<ToggleHandler>(() => () => {});
+
+// Instance-field class props (PropsOf<C>)
+type _P_InstFn = PropsOf<Toggle>;
+const _p_fn_signal: _P_InstFn = { onToggle: _toggleSig };
+const _p_fn_computed: _P_InstFn = { onToggle: _toggleComputed };
+void _p_fn_signal;
+void _p_fn_computed;
+
+// Function-component props (PropsOf<Fn>)
+const Clicky = (_p: { onPick: (n: number) => string }) => null;
+type _ClickyProps = MaybeReactiveProps<PropsOf<typeof Clicky>>;
+const _clicky_plain: _ClickyProps = { onPick: (n) => String(n) };
+const _clicky_signal: _ClickyProps = {
+  onPick: signal<(n: number) => string>(() => ""),
+};
+const _clicky_computed: _ClickyProps = {
+  onPick: computed<(n: number) => string>(() => () => ""),
+};
+void _clicky_plain;
+void _clicky_signal;
+void _clicky_computed;
+
+// Custom-element event props (JSX layer)
+const _commitSig = signal<(ev: CustomEvent<void>) => void>(() => {});
+const _xr_event_signal: JSX.IntrinsicElements["x-range"] = {
+  "on:commit": _commitSig,
+};
+void _xr_event_signal;
+
+// REGRESSION GUARDS — inline arrows keep contextual param typing.
+// (No `strict` mode here: broken inference silently yields `any`, so each
+// guard pins the exact inferred param type.)
+const _p_fn_inline: _P_InstFn = {
+  onToggle: (v) => {
+    type _VIsBool = Assert<Equal<typeof v, boolean>>;
+    void v;
+  },
+};
+void _p_fn_inline;
+
+const _clicky_inline: _ClickyProps = {
+  onPick: (n) => {
+    type _NIsNumber = Assert<Equal<typeof n, number>>;
+    return String(n);
+  },
+};
+void _clicky_inline;
+
+const _xr_event_inline: JSX.IntrinsicElements["x-range"] = {
+  "on:ready": (ev) => {
+    type _EvTyped = Assert<Extends<typeof ev, CustomEvent<number>>>;
+    void ev;
+  },
+};
+void _xr_event_inline;
 
 // ─ ElementProps: attribute vs property precedence ────────────────────────────
 
@@ -146,25 +211,21 @@ type ReadyHandler = (ev: CustomEvent<number>) => void;
 type _EV_OnCommit = Assert<
   Extends<CommitHandler, NonNullable<XP["on:commit"]>>
 >;
-type _EV_OnCommitCamel = Assert<
-  Extends<CommitHandler, NonNullable<XP["onCommit"]>>
->;
+// camelCase `onCommit` is NOT synthesized — the runtime only attaches
+// listeners via `on:`; a camel key would silently become an attribute.
+type _EV_NoCamel = Assert<Equal<HasKey<XP, "onCommit">, false>>;
 type _EV_OnReady = Assert<Extends<ReadyHandler, NonNullable<XP["on:ready"]>>>;
 
 // ─ ElementProps: slots ───────────────────────────────────────────────────────
 
-type _SL_Header = Assert<Equal<XP["slot:header"], Child | undefined>>;
-type _SL_Footer = Assert<Equal<XP["slot:footer"], Child | undefined>>;
+// Slot-backed props are plain instance fields now (`@slot()` accessor) —
+// their read type flows through PropertiesOf like any other field.
+type _SL_Header = Assert<Equal<XP["header"], Node | null | undefined>>;
 
 // ─ ElementProps: children ────────────────────────────────────────────────────
 
 // Children key is always present (intersection with DomJSX attrs ensures this).
 type _CH_Present = Assert<HasKey<XP, "children">>;
-
-// ─ ComponentProps ────────────────────────────────────────────────────────────
-
-type _CP = ComponentProps<typeof Card>;
-type _CP_Eq = Assert<Equal<_CP, { title: string; count?: number }>>;
 
 // ─ CustomElementRegistry → IntrinsicElements ─────────────────────────────────
 // Custom tags must be registered in `CustomElementRegistry` — there is no
@@ -175,17 +236,42 @@ type _IE_Strict = Assert<
 >;
 type _IE_Registered = Assert<Extends<"x-range", keyof JSX.IntrinsicElements>>;
 
-// ─ Props<C> — unified helper (assignment-based checks) ──────────────────────
+// Native DOM event handlers are stripped from intrinsics — the runtime only
+// wires the `on:` namespace, so a bare `onClick`/`onclick` must not typecheck
+// (it would silently no-op). The `on:click` form is preserved.
+type _IE_NoCamelEvent = Assert<
+  Equal<HasKey<JSX.IntrinsicElements["button"], "onClick">, false>
+>;
+type _IE_NoLowerEvent = Assert<
+  Equal<HasKey<JSX.IntrinsicElements["button"], "onclick">, false>
+>;
+type _IE_OnColonEvent = Assert<
+  HasKey<JSX.IntrinsicElements["button"], "on:click">
+>;
+
+// dom-expressions' Solid-only surface the runtime doesn't wire is stripped too:
+// `classList` (object form — we use `class:`) and the `$ServerOnly` SSR marker
+// were concrete keys on every intrinsic; they must no longer be present.
+type _IE_NoClassList = Assert<
+  Equal<HasKey<JSX.IntrinsicElements["div"], "classList">, false>
+>;
+type _IE_NoServerOnly = Assert<
+  Equal<HasKey<JSX.IntrinsicElements["div"], "$ServerOnly">, false>
+>;
+// `aria-*` / `role` are valid HTML attributes — kept.
+type _IE_AriaKept = Assert<HasKey<JSX.IntrinsicElements["div"], "aria-hidden">>;
+
+// ─ PropsOf<C> — unified helper (assignment-based checks) ──────────────────────
 
 // Class constructor — takes InstanceType's public fields
-type _P_Ctor = Props<typeof Card>;
+type _P_Ctor = MaybeReactiveProps<PropsOf<typeof Card>>;
 const _p_ctor_ok: _P_Ctor = { props: { title: "x" } };
 const _p_ctor_getter: _P_Ctor = { props: () => ({ title: "y", count: 1 }) };
 void _p_ctor_ok;
 void _p_ctor_getter;
 
 // Class instance — scalar wraps, functions pass through, all optional
-type _P_Inst = Props<Toggle>;
+type _P_Inst = MaybeReactiveProps<PropsOf<Toggle>>;
 const _p_inst_empty: _P_Inst = {};
 const _p_inst_open: _P_Inst = { open: true };
 const _p_inst_openGetter: _P_Inst = { open: () => false };
@@ -195,9 +281,37 @@ void _p_inst_open;
 void _p_inst_openGetter;
 void _p_inst_onToggle;
 
+// Constructor instantiation-expression form — generics flow through
+// InstanceOf to the instance fields. Instance form is accepted via the
+// `JSX.ElementClass` half of the constraint (render()-bearing), ctor form
+// via `JSX.ElementType` — both resolve to the same type.
+type _P_ForCtor = MaybeReactiveProps<PropsOf<typeof For<number>>>;
+type _P_ForInst = MaybeReactiveProps<PropsOf<For<number>>>;
+type _P_ForSame = Assert<Equal<_P_ForInst, _P_ForCtor>>;
+
+// PropsOf = ElementProps (custom-element ctors) ∪ ComponentProps (the rest).
+type _P_ElementCtor = Assert<
+  Equal<PropsOf<typeof XRange>, ElementProps<typeof XRange>>
+>;
+type _P_FnIsComponent = Assert<
+  Equal<PropsOf<typeof Greeting>, ComponentProps<typeof Greeting>>
+>;
+type _P_InstIsComponent = Assert<
+  Equal<PropsOf<For<number>>, ComponentProps<For<number>>>
+>;
+const _p_for_ctor: _P_ForCtor = { each: () => [1, 2] };
+void _p_for_ctor;
+
+// PropsOf accepts components only — function, constructor, or instance
+// (HTMLElement / render()-bearing). A plain prop shape is rejected at the
+// constraint; use MaybeReactiveProps to transform raw shapes.
+// @ts-expect-error — `{ name: string }` is not a component
+type _P_Plain = PropsOf<{ name: string; age?: number }>;
+void (0 as unknown as _P_Plain);
+
 // Function component — first param wrapped
 const Greeting = (_props: { name: string; excited?: boolean }) => null;
-type _P_Fn = Props<typeof Greeting>;
+type _P_Fn = MaybeReactiveProps<PropsOf<typeof Greeting>>;
 const _p_fn_ok: _P_Fn = { name: "sam" };
 const _p_fn_getter: _P_Fn = { name: () => "sam", excited: () => true };
 // @ts-expect-error — `name` is required
@@ -209,7 +323,7 @@ void _p_fn_missing;
 // ─ ReactiveProps + LibraryManagedAttributes ─────────────────────────────────
 
 // Per-key getter shape inside a function-component body
-type _RP = ReactiveProps<{ name: string; excited?: boolean }>;
+type _RP = Props<{ name: string; excited?: boolean }>;
 type _RP_Name = Assert<Equal<_RP["name"], Computed<string>>>;
 type _RP_Excited = Assert<
   Equal<_RP["excited"], Computed<boolean | undefined> | undefined>
@@ -228,7 +342,7 @@ type _RPP_Plain = Assert<Equal<RawProps<{ a: number }>, { a: number }>>;
 
 // Function component declared with ReactiveProps — JSX call-site type
 function FnGreeting(
-  _props: ReactiveProps<{ name: string; excited?: boolean }>,
+  _props: Props<{ name: string; excited?: boolean }>,
 ): Element | null {
   return null;
 }
@@ -250,15 +364,35 @@ void _fn_with_excited;
 void _fn_missing;
 void _fn_wrong;
 
-// Instance-field class — JSX attrs derived from public fields
-// (TS extracts `{}` for classes without a constructor signature.)
-type _ClsAttrs = JSX.LibraryManagedAttributes<typeof Toggle, {}>;
+// Instance-field class component — JSX attrs derived from public fields
+// (TS extracts `{}` for classes without a constructor signature.) Must have
+// `render()`: plain HTMLElement subclasses (like `Toggle`) are not valid JSX
+// tags — they mount via their registered tag name instead.
+class ToggleView {
+  open = false;
+  onToggle: (v: boolean) => void = () => {};
+  render(): JSX.Element | null {
+    return null;
+  }
+}
+type _ClsAttrs = JSX.LibraryManagedAttributes<typeof ToggleView, {}>;
 const _cls_static: _ClsAttrs = { open: true };
 const _cls_signal: _ClsAttrs = { open: () => false };
 const _cls_handler: _ClsAttrs = { onToggle: (v: boolean) => void v };
 void _cls_static;
 void _cls_signal;
 void _cls_handler;
+// Non-vacuity guard: if ResolveProps ever degrades to `{}` /
+// `MaybeReactiveProps<unknown>` again (the empty-P-matches-brand bug), the
+// three accepts above pass trivially — this rejection is what actually fails.
+const _cls_unknown_rejected: _ClsAttrs = {
+  // @ts-expect-error — unknown key must be rejected
+  nope: 1,
+};
+void _cls_unknown_rejected;
+type _Cls_Open = Assert<
+  Equal<_ClsAttrs["open"], MaybeReactive<boolean> | undefined>
+>;
 
 // Constructor-class with explicit MaybeReactiveProps param — passes through,
 // generic stays inferable. Mirrors the `For<T>` pattern used in the library.
@@ -290,7 +424,7 @@ const _ra_branded_sig: _RA_Branded = { name: () => "x", excited: true };
 void _ra_branded;
 void _ra_branded_sig;
 
-// 2) empty constructor param → falls back to Props<C>
+// 2) empty constructor param → falls back to PropsOf<C>
 type _RA_Empty = ResolveProps<typeof Toggle, {}>;
 const _ra_empty: _RA_Empty = { open: () => true };
 void _ra_empty;
@@ -343,11 +477,10 @@ const _div_prop_unknown_rejected: _DivAttrs = {
 };
 void _div_prop_unknown_rejected;
 
-// `slot:foo` is NOT accepted on plain intrinsics — only on elements that
-// declare `[SLOTS]` (typed via `SlotsOf<C>`). Runtime ignores `slot:` on
-// plain HTML, so the type system rejects it at compile time.
+// There is no `slot:` namespace — slots are plain properties (`@slot()`
+// accessors) and unknown `slot:*` keys are rejected like any unknown prop.
 const _div_slot_rejected: _DivAttrs = {
-  // @ts-expect-error — `<div>` has no declared slots
+  // @ts-expect-error — no `slot:` namespace exists
   "slot:header": "title",
 };
 void _div_slot_rejected;
@@ -355,6 +488,36 @@ void _div_slot_rejected;
 // `ref` callback receives the concrete element (HTMLDivElement on <div>)
 const _div_ref: _DivAttrs = { ref: (_el: HTMLDivElement) => void 0 };
 void _div_ref;
+
+// `ref` param is contextually inferred — no annotation needed. Guards the
+// contextual signature: wrapping `ref` in MaybeReactive (or intersecting a
+// second declaration) collapses inference to implicit any.
+const _div_ref_inferred: _DivAttrs = {
+  ref: (el) => {
+    type _RefEl = Assert<Equal<typeof el, HTMLDivElement>>;
+    void el;
+  },
+};
+void _div_ref_inferred;
+
+// `children` admits getters and arrays nested to any depth — the runtime
+// flattens with `.flat(Infinity)` (see children.test.tsx).
+const _div_children_nested: _DivAttrs = {
+  children: ["a", 1, ["b", () => "c", [() => 0]]],
+};
+void _div_children_nested;
+const _div_children_rejected: _DivAttrs = {
+  // @ts-expect-error — plain objects are not valid children
+  children: { not: "a child" },
+};
+void _div_children_rejected;
+
+// SVG-only namespace attrs: present on SVG tags, absent on HTML tags
+const _use_xlink: JSX.IntrinsicElements["use"] = { "xlink:href": "#icon" };
+const _svg_xml: JSX.IntrinsicElements["svg"] = { "xml:lang": "en" };
+void _use_xlink;
+void _svg_xml;
+type _NoXlinkOnDiv = Assert<Equal<HasKey<_DivAttrs, "xlink:href">, false>>;
 
 // Input value/checked are reactive
 type _InputAttrs = JSX.IntrinsicElements["input"];
@@ -368,6 +531,12 @@ const _btn_click: JSX.IntrinsicElements["button"] = {
   "on:click": (_e: MouseEvent) => void 0,
 };
 void _btn_click;
+// `on:click` also accepts a computed-of-handler (runtime re-subscribes on
+// change; see element.test.ts).
+const _btn_click_computed: JSX.IntrinsicElements["button"] = {
+  "on:click": computed(() => (_e: MouseEvent) => void 0),
+};
+void _btn_click_computed;
 // Standard HTML intrinsics don't expose `on:custom-event` — that's
 // custom-element territory (declared via `static events` on the class).
 const _btn_custom_rejected: JSX.IntrinsicElements["button"] = {
@@ -395,12 +564,42 @@ const _xr_prop_ns: _XRangeAttrs = { "prop:value": 42 };
 const _xr_event: _XRangeAttrs = {
   "on:commit": (_e: CustomEvent<void>) => void 0,
 };
-const _xr_slot: _XRangeAttrs = { "slot:header": "title" };
+// Slot-backed props are flat properties — pass a Node (or a reactive of one).
+const _xr_slot: _XRangeAttrs = { header: document.createElement("h1") };
+const _xr_slot_sig: _XRangeAttrs = {
+  header: computed(() => document.createElement("h1")),
+};
 void _xr_min;
 void _xr_min_sig;
 void _xr_prop_ns;
 void _xr_event;
 void _xr_slot;
+void _xr_slot_sig;
+
+// Namespaced props on registered custom elements accept reactive values —
+// same wrap order as intrinsics (namespaces first, MaybeReactiveProps after).
+const _xr_ns_sig: _XRangeAttrs = {
+  "class:active": () => false,
+  "style:color": () => "red",
+  "prop:value": () => 42,
+};
+void _xr_ns_sig;
+
+// `on:` handlers accept a computed-of-handler (runtime re-subscribes).
+const _xr_event_computed: _XRangeAttrs = {
+  "on:commit": computed(() => (_e: CustomEvent<void>) => void 0),
+};
+void _xr_event_computed;
+
+// `ref` receives the concrete instance, contextually inferred, and stays
+// outside the reactive wrap.
+const _xr_ref: _XRangeAttrs = {
+  ref: (el) => {
+    type _RefEl = Assert<Equal<typeof el, XRange>>;
+    void el;
+  },
+};
+void _xr_ref;
 
 // ─ HTMLElement subclass with reactive-shaped fields ────────────────────────
 
@@ -408,7 +607,7 @@ interface Probe extends HTMLElement {
   name: string;
   excited: boolean;
 }
-type _PI = InstanceProps<Probe>;
+type _PI = PropertiesOf<Probe>;
 type _PI_Excited = Assert<Equal<_PI["excited"], boolean | undefined>>;
 type _PI_Name = Assert<Equal<_PI["name"], string | undefined>>;
 
@@ -432,6 +631,39 @@ void _tag_create;
 
 type _JsxElement_NonNull = Assert<Equal<Extract<JSX.Element, null>, never>>;
 type _JsxElement_IsNode = Assert<Extends<JSX.Element, Node>>;
+
+// ─ Raw custom-element extractors (framework-agnostic, no JSX vocabulary) ─────
+// PropertiesOf / AttributesOf / EventsOf from elements-kit/custom-elements —
+// the surfaces host frameworks (React/Svelte/Vue/vanilla) consume directly.
+
+type _Raw_Props = Assert<
+  Equal<
+    PropertiesOf<typeof XRange>,
+    { min?: number; max?: number; value?: number; header?: Node | null }
+  >
+>;
+type _Raw_Attrs = Assert<
+  Equal<
+    AttributesOf<typeof XRange>,
+    { min?: string | null; max?: string | null; variant?: string | null }
+  >
+>;
+type _Raw_Events = Assert<
+  Equal<
+    EventsOf<typeof XRange>,
+    { commit: CustomEvent<void>; ready: CustomEvent<number> }
+  >
+>;
+
+// Slots-as-properties: `@slot()` accessor — read type is `Node | null` (the
+// last assigned node), so the key flows through PropertiesOf like any field.
+class XCard extends HTMLElement {
+  @slot() header: Node | null = null;
+  count = 0;
+}
+type _Raw_SlotProp = Assert<
+  Equal<PropertiesOf<typeof XCard>, { header?: Node | null; count?: number }>
+>;
 
 // ─ Tiny runtime anchor so vitest picks the file up ───────────────────────────
 

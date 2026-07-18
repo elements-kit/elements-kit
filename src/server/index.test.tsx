@@ -5,6 +5,7 @@ import { describe, it, expect, vi } from "vitest";
 import { jsx } from "../jsx-runtime";
 import { renderToString } from "./index";
 import { effect, signal } from "../signals";
+import type { Props } from "../jsx-runtime/infer";
 import { For } from "../for";
 
 describe("renderToString — elements and attributes", () => {
@@ -22,7 +23,7 @@ describe("renderToString — elements and attributes", () => {
     expect(html).toBe('<span>&lt;b>&amp;"</span>');
   });
 
-  it("escapes attribute values (minimal safe set: & and \")", async () => {
+  it('escapes attribute values (minimal safe set: & and ")', async () => {
     const html = await renderToString(() => <div title={'a"b<'} />);
     expect(html).toBe('<div title="a&quot;b<"></div>');
   });
@@ -73,9 +74,7 @@ describe("renderToString — elements and attributes", () => {
   });
 
   it("skips prop: namespace (no attribute representation)", async () => {
-    expect(await renderToString(() => <div prop:id="x" />)).toBe(
-      "<div></div>",
-    );
+    expect(await renderToString(() => <div prop:id="x" />)).toBe("<div></div>");
   });
 
   it("merges class prop with class: namespace toggles", async () => {
@@ -87,7 +86,7 @@ describe("renderToString — elements and attributes", () => {
 
   it("merges style prop objects and style: namespace entries", async () => {
     const html = await renderToString(() => (
-      <div style={{ "background-color": "blue" }} style:color="red" />
+      <div style={{ backgroundColor: "blue" }} style:color="red" />
     ));
     expect(html).toBe('<div style="background-color:blue;color:red"></div>');
   });
@@ -203,8 +202,8 @@ describe("renderToString — composition", () => {
   });
 
   it("renders function components with getter props as dynamic bindings", async () => {
-    const Greet = (props: { name: () => string }) => <p>{props.name}</p>;
-    const html = await renderToString(() => <Greet name={"wael" as never} />);
+    const Greet = (props: Props<{ name: string }>) => <p>{props.name}</p>;
+    const html = await renderToString(() => <Greet name="wael" />);
     expect(html).toBe("<p><!--{-->wael<!--}--></p>");
   });
 

@@ -1,4 +1,4 @@
-import type { Disposer } from "./types";
+export type Disposer = () => void;
 
 const DISPOSABLES = new WeakMap<object, Set<Disposer>>();
 

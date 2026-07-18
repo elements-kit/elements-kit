@@ -9,30 +9,29 @@ Derive JSX prop types from your components — attributes, events, slots, childr
 
 | You have | Use |
 |---|---|
-| `HTMLElement` subclass, want the full JSX shape | [`ElementProps<typeof Cls>`](#elementpropsc) |
-| Class component with public instance fields | [`Props<Cls<T>>`](#propsc) |
-| Class component with `constructor(props: P)` | [`ComponentProps<typeof Cls>`](#componentpropsc) |
-| Function component | [`Props<typeof Fn>`](#propsc) |
-| Wrap caller-passed props in reactive | [`MaybeReactiveProps<P>`](#maybereactivepropsp) |
-| Function-component received props (auto-wrapped) | [`ReactiveProps<P>`](#reactivepropsp) |
-| Recover raw `P` from a branded `ReactiveProps<P>` | [`RawProps<R>`](#rawpropsr) |
-| Translate any component to its JSX call-site shape | [`ResolveProps<C, P>`](#resolvepropsc-p) |
+| `HTMLElement` subclass, want the full JSX shape | [`PropsOf<typeof Cls>`](#custom-element-surface) |
+| Class component with public instance fields | [`PropsOf<Cls<T>>`](#propsofc) |
+| Class component with `constructor(props: P)` | `ConstructorParameters<typeof Cls>[0]` (built-in) |
+| Function component | [`PropsOf<typeof Fn>`](#propsofc) |
+| Function-component received props (auto-wrapped) | [`Props<P>`](#propsp) |
+| Hand-write a caller-facing shape (class ctor param) | [`MaybeReactiveProps<P>`](#maybereactivepropsp) |
+| Recover raw `P` from a branded `Props<P>` | [`RawProps<R>`](#rawpropsr) |
 | Scalar value-or-getter | [`MaybeReactive<T>`](#maybereactivet) |
 | Manual prop bag → getters (non-JSX) | [`resolveProps`](/components#function-components) |
 | Make optional keys required | [`Require<P, K>`](#requirep-k) |
 
 All type helpers are re-exported from `elements-kit/jsx-runtime`. `MaybeReactive` also lives in `elements-kit/signals`.
 
-## `ElementProps<C>`
+## Custom-element surface
 
-Raw JSX surface for a custom element. Composes attributes, flat properties, `prop:*`, events, slots, and children — **without** `MaybeReactive` wrapping. Use this when you need the underlying property/handler types directly (testing, manual property assignment, deriving sub-types).
+`PropsOf<typeof Cls>` on a custom-element class returns the full raw JSX surface: attributes, flat properties, `prop:*`, events, slots, and children — **without** `MaybeReactive` wrapping. Use this when you need the underlying property/handler types directly (testing, deriving sub-types).
 
 ```tsx twoslash
 // @noErrors
 import { attributes, ATTRIBUTES, type Attributes } from "elements-kit/attributes";
 import { reactive } from "elements-kit/signals";
-import { SLOTS, Slot } from "elements-kit/slot";
-import type { ElementProps } from "elements-kit/jsx-runtime";
+import { slot } from "elements-kit/slot";
+import type { PropsOf } from "elements-kit/jsx-runtime";
 
 @attributes
 class XRange extends HTMLElement {
@@ -40,90 +39,91 @@ class XRange extends HTMLElement {
     min(this: XRange, v) { this.min = Number(v ?? 0); },
   };
   declare static events: { commit: CustomEvent<number> };
-  [SLOTS] = { label: new Slot() } as const;
+  @slot() label!: Node;
 
   @reactive() min = 0;
 }
 
-type XRangeProps = ElementProps<typeof XRange>;
+type XRangeProps = PropsOf<typeof XRange>;
 // {
 //   min?: number;                                    // raw property type
 //   "prop:min"?: number;
 //   "on:commit"?: (e: CustomEvent<number>) => void;
-//   onCommit?:   (e: CustomEvent<number>) => void;
-//   "slot:label"?: Child;
-//   children?: Child;
+//   label?: Node;                                    // @slot property
+//   children?: Children;
 // }
 ```
 
 Attribute keys that also appear on the instance are removed from the attribute slot, so the flat key carries the **property** type (e.g. `number`) rather than the handler's string type.
 
-At the JSX call site, the runtime wraps `ElementProps<C>` in `MaybeReactiveProps<...>` so parents may pass static values *or* signals/computed:
+For consuming a custom element **outside** elements-kit JSX (React, Svelte, Vue, vanilla DOM), use the framework-agnostic extractors from `elements-kit/custom-elements` instead — `PropertiesOf`, `AttributesOf`, `EventsOf` — see [Custom Elements](/custom-elements#using-your-element-outside-elements-kit).
+
+At the JSX call site, the runtime widens every key to value-or-getter, so parents may pass static values *or* signals/computed:
 
 ```tsx
-// JSX layer wraps via `MaybeReactiveProps<ElementProps<C>>`
 <x-range min={0} />              // static
 <x-range min={() => 0} />        // getter
 <x-range min={signal(0)} />      // signal (a getter)
 ```
 
-Plus the namespaced extras (`class:`, `style:`, `prop:`, `slot:`, `ref`) are layered on every intrinsic element via `JsxNamespaces` in [src/jsx-runtime/index.ts](https://github.com/wbettayeb/elements-kit/blob/main/src/jsx-runtime/index.ts).
+Plus the namespaced extras (`class:`, `style:`, `prop:`, `ref`) are layered on every intrinsic element via [src/jsx-runtime/properties.ts](https://github.com/wbettayeb/elements-kit/blob/main/src/jsx-runtime/properties.ts).
 
-:::note[Slot keys need `as const`]
-`{ label: new Slot(), footer: new Slot() }` without `as const` widens — the key literals are lost. Always trail with `as const` so `ElementProps` can synthesize `slot:${K}` entries.
-:::
 
-## `Props<C>`
+## `PropsOf<C>`
 
-Unified helper. Works on class instances, class constructors, or function components. Does **not** synthesize attribute / event / slot surfaces — use `ElementProps` for those.
+Unified helper. Works on class instances, class constructors, function components, and custom-element constructors.
 
 ```ts twoslash
-import type { Props } from "elements-kit/jsx-runtime";
+import type { PropsOf } from "elements-kit/jsx-runtime";
 
 // 1. Class instance (lets a generic flow)
 class For<T> {
   each: T[] = [];
   render() { return null; }
 }
-type ForProps<T> = Props<For<T>>;
-// { each?: MaybeReactive<T[]> }
+type ForProps<T> = PropsOf<For<T>>;
+// { each?: T[] }
 
 // 2. Function component
 const Greeting = (_p: { name: string; excited?: boolean }) => null;
-type GreetingProps = Props<typeof Greeting>;
-// { name: MaybeReactive<string>; excited?: MaybeReactive<boolean> }
+type GreetingProps = PropsOf<typeof Greeting>;
+// { name: string; excited?: boolean }
 
 // 3. Class constructor
 class Counter { count = 0; render() { return null; } }
-type CounterProps = Props<typeof Counter>;
-// { count?: MaybeReactive<number> }
+type CounterProps = PropsOf<typeof Counter>;
+// { count?: number }
+
+// 4. Custom-element constructor → the FULL JSX surface
+//    (attrs, prop:*, on:*,
+//     named slots, children)
+class XRange extends HTMLElement { min = 0; }
+type XRangeProps = PropsOf<typeof XRange>;
 ```
 
-For `HTMLElement` subclasses, `Props<C>` returns only the user's public fields (no DOM surface). For plain classes, it returns all own fields.
+For `HTMLElement` **instances**, `PropsOf<C>` returns only the user's public fields (no DOM surface); the **constructor** form returns the [full custom-element surface](#custom-element-surface) (attributes / events / slots). For plain classes, it returns all own fields.
 
-## `ComponentProps<C>`
+`PropsOf` accepts **components only** — a plain prop shape like `PropsOf<{ name: string }>` is a type error. It returns the **raw** shapes; the JSX call site widens each key to value-or-getter automatically. Note `PropsOf` makes every instance field optional (class fields carry initializers, so there is no requiredness signal to preserve).
 
-For class components that accept props via the constructor parameter. Reads `ConstructorParameters<C>[0]`. Does not wrap reactively.
+For class components that accept props via the constructor parameter (`class Card { constructor(props: P) }`), use TypeScript's built-in `ConstructorParameters<typeof Card>[0]` — the param shape passes through to the JSX call site unchanged.
 
-```tsx twoslash
-// @noErrors
-import type { ComponentProps } from "elements-kit/jsx-runtime";
-import type { Child } from "elements-kit/jsx-runtime";
+## `Props<P>`
 
-class Card {
-  constructor(public props: { title: string; children?: Child }) {}
-  render() { return <div>{this.props.title}</div>; }
+Component-facing — every prop becomes a callable `Computed<T>` getter. The JSX runtime auto-wraps function-component props into this shape, so you read `props.count()` and the read subscribes. This is the type you'll reach for most when authoring function components.
+
+```tsx
+import type { Props } from "elements-kit/jsx-runtime";
+
+function Counter(props: Props<{ count: number }>) {
+  return <p>{() => props.count()}</p>;
 }
-
-type P = ComponentProps<typeof Card>;
-// { title: string; children?: Child }
 ```
 
-Use `Props<C>` instead when props live on public instance fields.
+`Props<P>` carries a phantom `RAW_PROPS` brand so the JSX layer (`JSX.LibraryManagedAttributes`) can recover the original `P` and let parents pass each prop as a static value *or* a signal/computed — callers never wrap anything by hand.
 
 ## `MaybeReactiveProps<P>`
 
-Caller-facing — wrap every prop in `MaybeReactive`. Describes what parents pass into a component (a value or a signal/computed per key).
+Caller-facing — wrap every prop in `MaybeReactive`. The JSX checker applies this automatically to component props, so you rarely write it for plain components. Name it directly when hand-writing a call-site shape — the main case is a class component's constructor param (the shape passes through to the JSX call site verbatim, like `For`'s):
 
 ```ts twoslash
 import type { MaybeReactiveProps } from "elements-kit/jsx-runtime";
@@ -137,41 +137,19 @@ type Wrapped = MaybeReactiveProps<Raw>;
 // }
 ```
 
-## `ReactiveProps<P>`
-
-Component-facing — every prop becomes a callable `Computed<T>` getter. The JSX runtime auto-wraps function-component props into this shape, so you read `props.count()` and the read subscribes.
-
-```tsx
-import type { ReactiveProps } from "elements-kit/jsx-runtime";
-
-function Counter(props: ReactiveProps<{ count: number }>) {
-  return <p>{() => props.count()}</p>;
-}
-```
-
-`ReactiveProps<P>` carries a phantom `RAW_PROPS` brand so the JSX layer (`ResolveProps`) can recover the original `P` and translate the call-site type back to `MaybeReactiveProps<P>` for parents.
+Unlike `PropsOf`, it preserves required keys.
 
 ## `RawProps<R>`
 
-Recovers the raw prop shape `P` from a branded `ReactiveProps<P>`. For non-branded inputs returns the input unchanged. Mostly useful internally inside `ResolveProps`, but exported for advanced typing.
+Recovers the raw prop shape `P` from a branded `Props<P>`. For non-branded inputs returns the input unchanged. Mostly useful internally in the JSX layer, but exported for advanced typing.
 
 ```ts
-import type { RawProps, ReactiveProps } from "elements-kit/jsx-runtime";
+import type { RawProps, Props } from "elements-kit/jsx-runtime";
 
-type Branded = ReactiveProps<{ name: string }>;
+type Branded = Props<{ name: string }>;
 type Raw = RawProps<Branded>;     // { name: string }
 type Plain = RawProps<{ a: 1 }>;  // { a: 1 }  (passes through)
 ```
-
-## `ResolveProps<C, P>`
-
-The JSX call-site translator wired into `JSX.LibraryManagedAttributes`. Decides what attributes the parent is allowed to write for any component (function or class):
-
-- Branded `ReactiveProps<P>` (function components) → `MaybeReactiveProps<P>`.
-- Empty constructor param (instance-field classes) → `Props<C>`.
-- Otherwise (e.g. `For<T>` with `constructor(_props?: ForProps<T>)`) → pass through, preserving generic inference.
-
-You rarely need to use `ResolveProps` directly — it runs implicitly for every component JSX expression. Custom-element JSX types come from `ElementProps<C>` instead (different code path).
 
 ## `MaybeReactive<T>`
 

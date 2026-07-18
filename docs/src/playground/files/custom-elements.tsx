@@ -78,9 +78,9 @@ class TemperatureElement extends HTMLElement {
 customElements.define("x-temperature", TemperatureElement);
 
 declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      "x-temperature": { celsius?: number | string };
+  namespace ElementsKit {
+    interface CustomElementRegistry {
+      "x-temperature": typeof TemperatureElement;
     }
   }
 }

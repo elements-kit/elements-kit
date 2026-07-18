@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { Slot } from "./slot";
+import { resolveNode } from "./jsx-runtime/children";
 
 // ---------------------------------------------------------------------------
 // Slot — direct API tests
@@ -24,7 +25,7 @@ describe("Slot — pre-mount (markers not yet created)", () => {
 
   it("get() returns null before render()", () => {
     const s = new Slot();
-    expect(s.get()).toBeNull();
+    expect(s.current()).toBeNull();
   });
 
   it("clear() is a no-op before render()", () => {
@@ -42,7 +43,7 @@ describe("Slot — pre-mount (markers not yet created)", () => {
 
     // First render() flushes the buffer between fresh markers.
     const host = document.createElement("div");
-    host.appendChild(s.render());
+    host.appendChild(s.get());
     expect(host.textContent).toBe("buffered");
     expect(s.isMounted()).toBe(true);
   });
@@ -52,7 +53,7 @@ describe("Slot — render() lazily creates markers", () => {
   it("first render() inserts the '{' / '}' marker comments", () => {
     const s = new Slot();
     const host = document.createElement("div");
-    host.appendChild(s.render());
+    host.appendChild(s.get());
     const start = Array.from(host.childNodes).find(
       (n) => n.nodeType === Node.COMMENT_NODE && (n as Comment).data === "{",
     );
@@ -70,11 +71,11 @@ describe("Slot — render() lazily creates markers", () => {
   it("second render() extracts current content and reuses the same markers", () => {
     const s = new Slot();
     const host = document.createElement("div");
-    host.appendChild(s.render());
+    host.appendChild(s.get());
     s.set(document.createTextNode("v1"));
     expect(host.textContent).toBe("v1");
 
-    const extracted = s.render();
+    const extracted = s.get();
     expect(extracted).toBeInstanceOf(DocumentFragment);
     expect(extracted.textContent).toBe("v1");
 
@@ -88,7 +89,7 @@ describe("Slot — render() lazily creates markers", () => {
   it("default content is used when no value buffered", () => {
     const s = new Slot();
     const host = document.createElement("div");
-    host.appendChild(s.render("fallback"));
+    host.appendChild(s.get(resolveNode("fallback")));
     expect(host.textContent).toBe("fallback");
   });
 
@@ -96,7 +97,7 @@ describe("Slot — render() lazily creates markers", () => {
     const s = new Slot();
     s.set(document.createTextNode("buffered"));
     const host = document.createElement("div");
-    host.appendChild(s.render("fallback"));
+    host.appendChild(s.get(document.createTextNode("fallback")));
     expect(host.textContent).toBe("buffered");
   });
 });
@@ -105,7 +106,7 @@ describe("Slot — set() after mount", () => {
   it("replaces content between markers", () => {
     const s = new Slot();
     const host = document.createElement("div");
-    host.appendChild(s.render());
+    host.appendChild(s.get());
 
     s.set(document.createTextNode("a"));
     expect(host.textContent).toBe("a");
@@ -116,7 +117,7 @@ describe("Slot — set() after mount", () => {
   it("set() with the same node is a no-op (identity guard)", () => {
     const s = new Slot();
     const host = document.createElement("div");
-    host.appendChild(s.render());
+    host.appendChild(s.get());
 
     const node = document.createTextNode("x");
     s.set(node);
@@ -130,7 +131,7 @@ describe("Slot — clear() after mount", () => {
   it("removes everything between markers but keeps the markers", () => {
     const s = new Slot();
     const host = document.createElement("div");
-    host.appendChild(s.render());
+    host.appendChild(s.get());
     s.set(document.createTextNode("content"));
     expect(host.textContent).toBe("content");
 
@@ -148,10 +149,10 @@ describe("Slot — get()", () => {
   it("returns a DocumentFragment with the slot's current content", () => {
     const s = new Slot();
     const host = document.createElement("div");
-    host.appendChild(s.render());
+    host.appendChild(s.get());
     s.set(document.createTextNode("hello"));
 
-    const got = s.get();
+    const got = s.current();
     expect(got).toBeInstanceOf(DocumentFragment);
     expect(got!.textContent).toBe("hello");
     // get() extracts — host now empty (between markers).

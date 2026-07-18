@@ -27,7 +27,11 @@ jobs:
         run: pnpm build
 
       - name: Typecheck (includes the Astro renderer contract pin)
-        run: pnpm exec tsc --noEmit
+        # Root tsconfig references ./storybook (composite); build it first so
+        # its .tscache outputs exist — this also typechecks all *.stories.tsx.
+        run: |
+          pnpm exec tsc --build storybook
+          pnpm exec tsc --noEmit
 
       - name: Unit, property & fuzz tests
         run: pnpm test

@@ -1,7 +1,6 @@
 import { effect, MaybeReactive, onCleanup } from "@/signals";
-import { mountChild } from "./children";
-import type { Child } from "./types";
-import type { Props } from ".";
+import { mountChild, Children } from "./children";
+import type { Props } from "./infer";
 import { Slot } from "@/slot";
 
 /**
@@ -33,14 +32,14 @@ export function parseHtml(html: string): DocumentFragment {
  */
 export function Fragment(
   props:
-    | Props<{ children: Child }>
+    | Props<{ children?: Children }>
     | { html: true; children: MaybeReactive<string> },
 ): DocumentFragment {
   const fragment = document.createDocumentFragment();
 
   if ("html" in props && props.html) {
     const slot = new Slot();
-    fragment.appendChild(slot.render());
+    fragment.appendChild(slot.get());
     const source = props.children as unknown;
     if (typeof source === "function") {
       // Signal, computed, or resolveProps getter — a live region either way;
@@ -56,12 +55,13 @@ export function Fragment(
     return fragment;
   }
 
-  const children = (props as { children?: unknown }).children;
-  const raw = typeof children === "function" ? (children as () => Child)() : children;
+  const children = props.children;
+  const raw =
+    typeof children === "function" ? (children as () => Children)() : children;
   if (raw == null) return fragment;
 
   const nodes = Array.isArray(raw) ? (raw as unknown[]).flat(Infinity) : [raw];
-  for (const child of nodes) mountChild(fragment, child as Child);
+  for (const child of nodes) mountChild(fragment, child as Children);
 
   return fragment;
 }

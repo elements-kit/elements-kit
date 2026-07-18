@@ -1,13 +1,98 @@
 import { effect, isReactive } from "../signals";
 import { on } from "../utilities/event-listener.ts";
-import { Child, PropsTarget } from "./types";
 import {
   ChildProperties,
   Properties,
   ReservedNameSpaces,
   svgNamespace,
 } from "./constants";
-import { applyChildren, isChildrenProperty } from "./children";
+import { applyChildren, Children, isChildrenProperty } from "./children";
+import * as CSS from "csstype";
+import { JSX } from "elements-kit/jsx-runtime";
+
+/** A resolved runtime node — what `applyProps` / `applyChildren` operate on. */
+export type PropsTarget = JSX.Element | JSX.ElementClass;
+
+// ─ JSX namespaces — extras layered onto every intrinsic element ─────────────
+interface CSSProperties extends CSS.PropertiesHyphen {
+  [key: `-${string}`]: string | number | undefined;
+}
+
+type CssStyleKey =
+  Extract<keyof CSSProperties, string> extends infer K
+    ? K extends `-${string}`
+      ? never
+      : K
+    : never;
+
+type StyleNamespace = {
+  [K in CssStyleKey as `style:${K}`]?: CSSProperties[K] | null;
+};
+
+type PropNamespace<E> = {
+  [K in keyof E as K extends string ? `prop:${K}` : never]?: E[K];
+};
+
+type XlinkAttrs = {
+  "xlink:href"?: string | undefined;
+  "xlink:title"?: string | undefined;
+  "xlink:show"?: "new" | "replace" | "embed" | "other" | "none" | undefined;
+  "xlink:role"?: string | undefined;
+  "xlink:type"?:
+    | "simple"
+    | "extended"
+    | "locator"
+    | "arc"
+    | "resource"
+    | "title"
+    | undefined;
+  "xlink:arcrole"?: string | undefined;
+  "xlink:actuate"?: "onLoad" | "onRequest" | "other" | "none" | undefined;
+};
+
+type ClassNamespace = {
+  [K in `class:${string}`]?: boolean;
+};
+type XmlAttrs = {
+  "xml:lang"?: string | undefined;
+  "xml:space"?: "default" | "preserve" | undefined;
+  "xml:base"?: string | undefined;
+};
+
+// SVG-only namespaced attributes. The runtime routes any `xlink:*` / `xml:*`
+// key through `setAttributeNS` (see `applyProps` below), but spec-wise these
+// only apply to SVG content — so the types are only intersected onto
+// IntrinsicElements whose concrete element type extends SVGElement.
+export type SvgNamespaceAttrs = XlinkAttrs & XmlAttrs;
+
+// Object form of the `style` ATTRIBUTE is applied with
+// `Object.assign(el.style, value)` (see `applyStyle`) — CSSStyleDeclaration
+// fields are camelCase, so the object type is csstype's camelCase
+// `Properties` (hyphenated keys would silently no-op). The `style:prop`
+// NAMESPACE goes through `setProperty` instead, hence hyphenated keys there.
+interface StyleAttrObject extends CSS.Properties {}
+
+// Style props only exist on elements that carry inline style —
+// `ElementCSSInlineStyle` is the DOM interface providing `.style`
+// (HTML/SVG/MathML). A bare `Element` gets neither form.
+type JsxNamespaces<E extends Element = Element> =
+  (E extends ElementCSSInlineStyle
+    ? { style?: string | StyleAttrObject } & StyleNamespace
+    : {}) &
+    PropNamespace<Omit<E, "children">> &
+    ClassNamespace;
+
+type JsxNamespaceKeys =
+  | "style"
+  | `class:${string}`
+  | `style:${string}`
+  | `prop:${string}`;
+
+export type WithJsxNamespaces<T, E extends Element = Element> = Omit<
+  T,
+  JsxNamespaceKeys
+> &
+  JsxNamespaces<E>;
 
 export function applyProps(
   node: PropsTarget,
@@ -16,9 +101,9 @@ export function applyProps(
   const entries = Object.entries(props);
   if (entries.length === 0) return;
   for (const [key, value] of entries) {
-    // ─ Children (slot:name, Slot properties) ──────────────────────────────────
+    // ─ Children
     if (isChildrenProperty(node, key)) {
-      applyChildren(node, key, value as Child);
+      applyChildren(node, key, value as Children);
       continue;
     }
 
@@ -30,10 +115,10 @@ export function applyProps(
       const evName = key.slice(colonIdx + 1);
       if (isReactive(value)) {
         effect(() => {
-          on(node as Element, evName, value() as EventListener);
+          on(node as EventTarget, evName, value() as EventListener);
         });
       } else {
-        on(node as Element, evName, value as EventListener);
+        on(node as EventTarget, evName, value as EventListener);
       }
       continue;
     }

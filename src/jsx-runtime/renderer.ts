@@ -1,4 +1,4 @@
-import type { Component } from "./types";
+import type { JSX } from ".";
 
 /**
  * Alternative jsx handler installed by `elements-kit/server` (string
@@ -6,7 +6,7 @@ import type { Component } from "./types";
  * jsx/jsxs/h call routes here instead of the default DOM path.
  */
 export interface Renderer {
-  jsx(type: string | Component, props: Record<string, unknown>): unknown;
+  jsx(type: JSX.ElementType, props: Record<string, unknown>): unknown;
 }
 
 // The active renderer lives on globalThis so duplicate runtime copies (dev

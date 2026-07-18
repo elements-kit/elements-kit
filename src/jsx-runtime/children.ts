@@ -1,86 +1,82 @@
 import { effect, onCleanup } from "../signals";
-import { PropsTarget, Child, Disposer } from "./types";
-import { SLOTS, Slot } from "../slot";
-import { PrimitiveNodeType, resolveNode } from "../lib";
+import { Slot } from "../slot";
+import type { Disposer } from "./dispose";
+import { PropsTarget } from "./properties";
 
-// ─ Typed SLOTS accessor ──────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// Child Types
+// ═══════════════════════════════════════════════════════════════════════════════
 
-type SlotsMap = Record<string, Slot>;
-type WithSlots = PropsTarget & { [SLOTS]: SlotsMap };
+export type PrimitiveNodeType =
+  | Node
+  | string
+  | boolean
+  | number
+  | bigint
+  | symbol
+  | Date
+  | RegExp
+  | null
+  | undefined;
 
-function hasSlots(node: PropsTarget): node is WithSlots {
-  return SLOTS in node;
+export class UnsupportedChildError extends Error {
+  constructor(value: unknown) {
+    super(`Unsupported child type: ${typeof value}`);
+    this.name = "UnsupportedChildError";
+  }
 }
+
+export function resolveNode(c: PrimitiveNodeType): Node {
+  if (c instanceof Node) return c;
+  if (c === null || c === undefined || typeof c === "boolean")
+    return document.createComment("");
+  if (
+    typeof c === "string" ||
+    typeof c === "number" ||
+    typeof c === "bigint" ||
+    typeof c === "symbol" ||
+    c instanceof Date ||
+    c instanceof RegExp
+  )
+    return document.createTextNode(String(c));
+
+  throw new UnsupportedChildError(c);
+}
+
+export type AnyFn = (...args: any[]) => Children;
+export type Children =
+  | PrimitiveNodeType
+  | AnyFn
+  | Element
+  | DocumentFragment
+  | Children[];
 
 // ─ Public API ─────────────────────────────────────────────────────────────────
 
 export function isChildrenProperty(node: PropsTarget, key: string): boolean {
-  if (
+  return (
     key === "children" &&
     (node instanceof Element || node instanceof DocumentFragment)
-  )
-    return true;
-
-  if (hasSlots(node)) {
-    const slotName = key.replace(/^slot:/, "");
-    if (slotName in node[SLOTS]) return true;
-    // fall through — still check "children" and direct Slot properties
-  }
-
-  return key in node && (node as Record<string, any>)[key] instanceof Slot;
+  );
 }
 
 export function applyChildren(
   node: PropsTarget,
   key: string,
-  value: Child,
+  value: Children,
 ): void {
-  // ─ SLOTS ─────────────────────────────────────────────────────────────────
-  if (hasSlots(node)) {
-    const slotName = key.replace(/^slot:/, "");
-    if (slotName in node[SLOTS]) {
-      applySlot(node[SLOTS][slotName], value);
-      return;
-    }
-  }
-
-  // ─ Children ─────────────────────────────────────────────────────────────────
+  // Slot-backed props (`@slot()` accessors) are NOT handled here — they're
+  // plain properties now; `applyProps` assigns them and the accessor's setter
+  // forwards to the backing Slot.
   if (
     key === "children" &&
     (node instanceof Element || node instanceof DocumentFragment)
   ) {
     mountChildren(node as Element | DocumentFragment, value);
-    return;
-  }
-
-  // ─ Slots ─────────────────────────────────────────────────────────────────
-  if (key in node) {
-    const slot = (node as unknown as Record<typeof key, unknown>)[key];
-    if (!(slot instanceof Slot)) return;
-    applySlot(slot, value);
   }
 }
 
 // ─ Helpers ────────────────────────────────────────────────────────────────────
-
-function applySlot(slot: Slot, value: Child): void {
-  // Relies on the caller's effectScope (every JSX render sits inside one).
-  // The signals lib supports multiple onCleanup per scope (push to array), so
-  // sibling slots don't clobber each other. Intermediate replacements are
-  // handled by slot.set() → slot.clear(); this onCleanup covers final teardown.
-  let dispose: (() => void) | undefined;
-  if (typeof value === "function") {
-    effect(() => slot.set(resolveChild(value())));
-  } else {
-    const node = resolveChild(value);
-    dispose = (node as unknown as Partial<Disposable>)[Symbol.dispose];
-    slot.set(node);
-  }
-  onCleanup(() => {
-    dispose?.();
-    slot.clear();
-  });
-}
 
 // Pool of reusable DocumentFragments. After `el.appendChild(buffer)` the
 // buffer's children transfer to `el` and the fragment is empty — safe to
@@ -97,8 +93,8 @@ function releaseFragment(frag: DocumentFragment): void {
   if (fragmentPool.length < FRAGMENT_POOL_MAX) fragmentPool.push(frag);
 }
 
-function mountChildren(el: Element | DocumentFragment, value: Child): void {
-  const list = ensureFlatArray<Child>(value);
+function mountChildren(el: Element | DocumentFragment, value: Children): void {
+  const list = ensureFlatArray(value);
   if (list.length === 0) return;
   if (list.length === 1) {
     mountChild(el, list[0]);
@@ -132,7 +128,7 @@ const enum StaticKind {
   Mixed = 3,
 }
 
-function classifyStatic(list: readonly Child[]): StaticKind {
+function classifyStatic(list: readonly Children[]): StaticKind {
   let kind = StaticKind.AllNode | StaticKind.AllPrimitive;
   for (const c of list) {
     if (c == null || c === false || c === true) continue;
@@ -156,7 +152,7 @@ function classifyStatic(list: readonly Child[]): StaticKind {
 
 function mountStatic(
   el: Element | DocumentFragment,
-  list: readonly Child[],
+  list: readonly Children[],
   kind: StaticKind,
 ): void {
   const buffer = acquireFragment();
@@ -210,10 +206,13 @@ function mountStatic(
  * getter or primitive — keeps the component's `effectScope` alive for the
  * lifetime of the fragment it mounts into.
  */
-export function mountChild(el: Element | DocumentFragment, child: Child): void {
+export function mountChild(
+  el: Element | DocumentFragment,
+  child: Children,
+): void {
   if (typeof child === "function") {
     const slot = new Slot();
-    el.appendChild(slot.render());
+    el.appendChild(slot.get());
     effect(() => slot.set(resolveChild(child())));
     onCleanup(() => slot.clear());
     return;
@@ -226,7 +225,7 @@ export function mountChild(el: Element | DocumentFragment, child: Child): void {
   if (dispose) onCleanup(dispose);
 }
 
-export function resolveChild(value: Child): Node {
+export function resolveChild(value: Children): Node {
   // Hot order: Node → primitive → function → array. Most JSX expressions
   // resolve to a Node (already-rendered element) or a primitive (text from a
   // signal); reactive thunks and arrays trail.
@@ -235,7 +234,8 @@ export function resolveChild(value: Child): Node {
     return document.createTextNode(String(value));
   if (value == null || typeof value === "boolean")
     return document.createComment("");
-  if (typeof value === "function") return resolveChild((value as () => Child)());
+  if (typeof value === "function")
+    return resolveChild((value as () => Children)());
   if (Array.isArray(value)) {
     const fragment = document.createDocumentFragment();
     for (const item of value as any[]) {
