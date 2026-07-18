@@ -73,7 +73,7 @@ Every feature is a separate subpath export — import only what you use.
 | `elements-kit/integrations/react` | `useSignal`, `useScope` React bridge hooks |
 | `elements-kit/integrations/astro` | `elementsKit()` Astro integration — elements-kit components as server-rendered, hydrated islands *(experimental)* |
 | `elements-kit/utilities/*` | Reactive browser-API utilities — see [src/utilities/README.md](src/utilities/README.md) |
-| `elements-kit/ui/*` | Headless, accessible custom elements — overlay, checkbox, select, slider, otp-input, and more (`elements-kit/ui/<name>`); optional theme at `elements-kit/ui/styles.css`. Catalog in [src/ui/README.md](src/ui/README.md) |
+| `elements-kit/ui/*` | Accessible UI component styles (CSS) + an optional base theme (`elements-kit/ui/styles.css`); plus the `otp-input` custom element and `overlay` positioning/interaction behaviors. Catalog in [src/ui/README.md](src/ui/README.md) |
 
 ## Signals
 
