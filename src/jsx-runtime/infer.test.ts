@@ -249,6 +249,18 @@ type _IE_OnColonEvent = Assert<
   HasKey<JSX.IntrinsicElements["button"], "on:click">
 >;
 
+// dom-expressions' Solid-only surface the runtime doesn't wire is stripped too:
+// `classList` (object form — we use `class:`) and the `$ServerOnly` SSR marker
+// were concrete keys on every intrinsic; they must no longer be present.
+type _IE_NoClassList = Assert<
+  Equal<HasKey<JSX.IntrinsicElements["div"], "classList">, false>
+>;
+type _IE_NoServerOnly = Assert<
+  Equal<HasKey<JSX.IntrinsicElements["div"], "$ServerOnly">, false>
+>;
+// `aria-*` / `role` are valid HTML attributes — kept.
+type _IE_AriaKept = Assert<HasKey<JSX.IntrinsicElements["div"], "aria-hidden">>;
+
 // ─ PropsOf<C> — unified helper (assignment-based checks) ──────────────────────
 
 // Class constructor — takes InstanceType's public fields

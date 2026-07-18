@@ -51,6 +51,30 @@ void _noCamelEvent;
 void _noLowerEvent;
 void _onColonEvent;
 
+// Solid-only forms the runtime never wires are stripped from intrinsics too:
+// `classList` (object form — was a concrete key) and the empty `use:`/`attr:`/
+// `bool:`/`oncapture:` namespaces. All must be rejected; `class:`, `on:`, and
+// `aria-*` remain the supported surface.
+// @ts-expect-error — classList object form removed; use class:name={bool}
+const _noClassList = <div classList={{ active: true }} />;
+// @ts-expect-error — Solid `use:` directives are not implemented
+const _noUse = <div use:x={1} />;
+// @ts-expect-error — forced `attr:` namespace is not implemented
+const _noAttr = <div attr:foo="x" />;
+// @ts-expect-error — boolean `bool:` namespace is not implemented
+const _noBool = <div bool:foo={true} />;
+// @ts-expect-error — capture-phase `oncapture:` events are not implemented
+const _noCapture = <div oncapture:click={() => void 0} />;
+const _supported = (
+  <div aria-hidden="true" class:active={true} on:click={() => void 0} />
+);
+void _noClassList;
+void _noUse;
+void _noAttr;
+void _noBool;
+void _noCapture;
+void _supported;
+
 // ─ Registered custom elements ────────────────────────────────────────────────
 
 const _xr = (
