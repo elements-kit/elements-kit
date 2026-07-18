@@ -6,7 +6,7 @@ import {
 import { computed, effect, signal } from "@/signals/index.ts";
 import { render } from "@/render.ts";
 import { on } from "@/utilities/event-listener.ts";
-import { isBrowser } from "@/utilities/environment.ts";
+import { HTMLElementBase, isBrowser } from "@/utilities/environment.ts";
 import shadowCss from "./otp-input.shadow.css?inline";
 
 function toggleAttr(el: Element, name: string, on: boolean): void {
@@ -51,7 +51,7 @@ SHADOW_SHEET?.replaceSync(shadowCss);
  * </x-otp-input>
  * ```
  */
-export class XOtpInput extends HTMLElement {
+export class XOtpInput extends HTMLElementBase {
   static formAssociated = true;
 
   // Attribute → property map. `@attributes` isn't used as a decorator (oxc's
