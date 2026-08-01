@@ -46,6 +46,11 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       # A tag can point at any commit, including one that never ran CI.
+      # Build first: stories import subpaths like `elements-kit/signals`, which resolve
+      # through package.json exports to dist/*.d.mts. Typechecking before dist exists fails.
+      - name: Build library
+        run: pnpm build
+
       - name: Typecheck
         run: |
           pnpm exec tsc --build storybook
@@ -53,9 +58,6 @@ jobs:
 
       - name: Unit, property & fuzz tests
         run: pnpm test
-
-      - name: Build library
-        run: pnpm build
 
       # OIDC supplies both the credential and the provenance attestation.
       - name: Publish
