@@ -1,0 +1,90 @@
+---
+title: Vite
+description: Hot module replacement for elements-kit components in any Vite app.
+---
+
+Editing a component normally costs a full page reload. The Vite plugin gives component modules an accept boundary, so an edit replaces just that component's subtree and leaves the rest of the page — scroll position, open panels, sibling state — exactly where it was.
+
+```ts
+// vite.config.ts
+import { defineConfig } from "vite";
+import elementsKit from "elements-kit/integrations/vite";
+
+export default defineConfig({
+  plugins: [elementsKit()],
+});
+```
+
+Using Astro? The [Astro integration](/integrations/astro) registers this for you — don't add it twice.
+
+## Setup
+
+The plugin needs the JSX transform pointed at elements-kit, which is the same `tsconfig.json` you already need for JSX:
+
+```json
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "elements-kit"
+  }
+}
+```
+
+That is the whole setup. The plugin is dev-only (`apply: "serve"`) — production builds and SSR transforms emit nothing, so no HMR code ships.
+
+## What gets swapped
+
+In dev the compiler imports `elements-kit/jsx-dev-runtime`, which renders every component through a signal holding its current implementation. An edit re-points that signal, one effect re-runs, and the old subtree is disposed and rebuilt.
+
+The unit is the **component**, not the page or the mount root. Edit a child and its parent's signals keep their values:
+
+```tsx
+// Panel.tsx — editing this swaps Panel only
+export function Panel({ rows }: Props<{ rows: string[] }>) {
+  const open = signal(false);
+  return <ul>{() => rows().map((r) => <Row label={r} />)}</ul>;
+}
+```
+
+A swapped component re-runs, so its own state resets. Anything that must survive an edit goes in a module the edit doesn't invalidate:
+
+```ts
+// transcript.ts — not re-evaluated when Panel.tsx changes
+import { signal } from "elements-kit/signals";
+export const turns = signal<Turn[]>([]);
+```
+
+Components the module doesn't export — `Row` above — have no name to match against, so they rebuild when their parent does rather than on their own.
+
+## Mount through JSX
+
+A component only gets a boundary if the JSX runtime rendered it. Calling it yourself bypasses the runtime entirely:
+
+```tsx
+// before — no boundary, edits reload the page
+document.getElementById("app")!.appendChild(new App().render());
+
+// after — App swaps in place
+render(document.getElementById("app")!, () => <App />);
+```
+
+## What still reloads
+
+Falling back to a reload is always correct, never silent staleness — a module that can't be swapped calls `import.meta.hot.invalidate()` and Vite propagates normally.
+
+- Modules that render no JSX. The plugin keys off the runtime import the JSX transform adds, so a plain `.ts` module has nothing to mark it.
+- `vite.config.ts` and anything else outside the module graph.
+
+:::caution[Custom elements can't be swapped]
+`customElements.define` throws on a repeat registration, so re-evaluating a module that registers a tag fails and forces a reload. Give custom elements their own module — the module that defines the tag is then never re-evaluated, and the components that _use_ the tag still swap.
+:::
+
+:::note[Dev and production DOM differ slightly]
+Each component's output sits between a pair of comment markers in dev so it can be replaced in place. Code that walks `parentNode` or `firstChild` across a component boundary can see a different shape than it will in production.
+:::
+
+## See also
+
+- [Astro](/integrations/astro) — islands, and the HMR behaviour specific to them
+- [Components](/components) — function and class components
+- [JSX & Elements](/elements) — what the runtime builds

@@ -28,13 +28,32 @@ const JSX_RUNTIME_IMPORT = /["']elements-kit\/jsx-(?:dev-)?runtime["']/;
 
 /**
  * Vite plugin: give elements-kit component modules an HMR accept boundary, so
- * editing one swaps its live islands instead of reloading the page.
+ * editing one swaps the components it exports instead of reloading the page.
+ *
+ * The swap itself lives in `elements-kit/jsx-dev-runtime`, which renders every
+ * component through a signal holding its current implementation. This plugin
+ * only supplies the trigger — which module changed, and what it exported
+ * before.
  *
  * Dev only (`apply: "serve"`) and client only — production builds and SSR
  * transforms emit nothing, so no HMR code ships.
  *
- * Registered automatically by the Astro integration. Island state does not
- * survive a swap: the module is re-evaluated and the island re-mounts.
+ * The Astro integration registers this for you; add it by hand in a plain Vite
+ * app. A swapped component re-runs, so its own state resets — keep anything
+ * that must survive in a module the edit doesn't invalidate.
+ *
+ * A module that registers a custom element at top level can't be swapped:
+ * re-evaluating it calls `customElements.define` twice, which throws. Give
+ * those their own module.
+ *
+ * @example
+ * ```ts
+ * // vite.config.ts
+ * import { defineConfig } from "vite";
+ * import elementsKit from "elements-kit/integrations/vite";
+ *
+ * export default defineConfig({ plugins: [elementsKit()] });
+ * ```
  */
 export default function elementsKitHmr(): ElementsKitHmrPlugin {
   return {

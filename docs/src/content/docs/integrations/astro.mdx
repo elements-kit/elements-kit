@@ -3,7 +3,6 @@ title: Astro
 description: Render elements-kit components as Astro islands — server-rendered, hydrated on the client — or use custom elements directly.
 ---
 
-import { Aside } from "@astrojs/starlight/components";
 import AstroCounter from "@/components/AstroCounter.tsx";
 import AstroAsync from "@/components/AstroAsync.tsx";
 import AstroList from "@/components/AstroList.tsx";
@@ -77,27 +76,13 @@ All Astro client directives work (`client:load`, `client:idle`, `client:visible`
 
 ### Hot module replacement
 
-Editing a component swaps it in place — no page reload. The integration installs a dev-only Vite plugin that gives each component module an accept boundary.
+Editing a component swaps it in place — no page reload. The integration installs the [Vite plugin](/integrations/vite) for you, which covers how swapping works and what it costs. Two behaviours are specific to islands.
 
-The swap happens at the **component** that changed, not at the island around it. In dev, `elements-kit/jsx-dev-runtime` renders every component through a signal holding its current implementation, so re-pointing that signal re-runs one effect: the old subtree is disposed and the new one takes its place. Editing a child leaves its parent's signals alone.
+**Island roots re-mount instead of swapping.** Astro mounts the root component itself rather than through JSX, so it has no swappable boundary — editing it rebuilds the island and resets everything under it. Components _inside_ the island swap normally.
 
-The edited component itself re-runs, so its own state resets. Anything that must survive an edit goes in a separate module, which the edit doesn't invalidate:
+**Hydrated islands need one warm-up edit.** Hydration adopts server-rendered DOM instead of rendering it, so nothing inside a `client:load` island has a boundary yet and the first edit re-mounts the island. That re-mount renders normally, so every edit after it is component-level. `client:only` islands skip this — they render from the start.
 
-```ts
-// transcript.ts — not re-evaluated when Chat.tsx changes
-import { signal } from "elements-kit/signals";
-export const turns = signal<Turn[]>([]);
-```
-
-Two cases fall back to re-mounting the whole island, which resets everything under it: the island's **root** component (Astro mounts it directly, so it has no cell), and the first edit to any component inside a hydrated island — hydration adopts server DOM instead of rendering, so no cells exist until something mounts. The re-mount renders normally, so edits after it are component-level.
-
-Edits that reach beyond the island — the parent `.astro` file, `astro.config.mjs` — still reload the page, as does a component module that renders no JSX (nothing marks it as an island).
-
-Production builds import `elements-kit/jsx-runtime`, which has none of this: no indirection, no registry, no plugin output.
-
-<Aside type="caution" title="Dev and production DOM differ slightly">
-Each component's output sits between a pair of comment markers in dev so it can be replaced in place. Code that walks `parentNode` or `firstChild` across a component boundary can see a different shape than it will in production.
-</Aside>
+Edits that reach beyond the island — the parent `.astro` file, `astro.config.mjs` — still reload the page.
 
 ## Lists
 

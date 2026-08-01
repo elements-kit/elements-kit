@@ -11,13 +11,8 @@ import {
   resolve,
 } from "elements-kit/signals";
 import { For } from "elements-kit/for";
-import {
-  attributes,
-  ATTRIBUTES,
-  type Attributes,
-} from "elements-kit/attributes";
-import { defineElement } from "elements-kit/custom-elements";
 import type { MaybeReactiveProps, Props } from "elements-kit/jsx-runtime";
+import "./ce-greeting";
 
 // ============ Demo 1: Counter ============
 const count = signal(0);
@@ -375,40 +370,6 @@ class ClassGreeting {
         {() => (this.excited ? "!" : ".")}
       </p>
     ) as Element;
-  }
-}
-
-// — Custom element — @attributes + @reactive fields, registered globally
-@attributes
-class CeGreeting extends HTMLElement {
-  @reactive() name: string = "world";
-  @reactive() excited: boolean = false;
-  static [ATTRIBUTES]: Attributes<CeGreeting> = {
-    name(v) {
-      this.name = v ?? "world";
-    },
-    excited(v) {
-      this.excited = v != null;
-    },
-  };
-  connectedCallback() {
-    const root = this.attachShadow({ mode: "open" });
-    root.appendChild(
-      (
-        <p style="margin: 0;">
-          <code>[ce]</code> Hello {() => this.name}
-          {() => (this.excited ? "!" : ".")}
-        </p>
-      ) as Element,
-    );
-  }
-}
-defineElement("ce-greeting", CeGreeting);
-declare global {
-  namespace ElementsKit {
-    interface CustomElementRegistry {
-      "ce-greeting": typeof CeGreeting;
-    }
   }
 }
 

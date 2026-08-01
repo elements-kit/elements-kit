@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from "vitest";
-import elementsKitHmr from "./hmr-plugin";
+import elementsKitHmr from "./vite";
 import { HMR_SLOT_NAME } from "./hmr-slot";
 
 const plugin = elementsKitHmr();

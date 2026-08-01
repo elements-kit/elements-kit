@@ -3,7 +3,7 @@
 // shapes are validated against astro's published .d.ts in tests and by the
 // docs site build.
 
-import elementsKitHmr from "./hmr-plugin";
+import elementsKitHmr from "./vite";
 
 interface AstroRendererConfig {
   name: string;
