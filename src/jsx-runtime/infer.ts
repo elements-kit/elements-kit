@@ -1,5 +1,5 @@
 import type { ATTRIBUTES, AttrChangeHandler } from "../attributes";
-import type { Computed, MaybeReactive } from "../signals";
+import type { MaybeReactive } from "../signals";
 import type { JSX as DomJSX } from "dom-expressions/src/jsx";
 import type { JSX } from "elements-kit/jsx-runtime";
 import type { Children } from "./children";
@@ -26,20 +26,11 @@ import type {
  */
 export type Require<P, K extends keyof P> = { [X in K]-?: P[X] } & Omit<P, K>;
 
-declare const RAW_PROPS: unique symbol;
-
-export type Props<P> = {
-  readonly [K in keyof P]: Computed<P[K]>;
-} & { readonly [RAW_PROPS]?: P };
-
-/** Recover the raw prop shape `P` from a `Props<P>`. */
-export type RawProps<R> = R extends { readonly [RAW_PROPS]?: infer P } ? P : R;
-
 /**
  * Caller-facing wrap: each key accepts a plain value OR a reactive getter.
- * The JSX checker applies it automatically to component props; name it
- * directly when typing a call-site shape by hand (e.g. a class component's
- * constructor param, like `For`'s). Function-typed props are wrapped too
+ * Name it when typing a call-site shape by hand (e.g. a class component's
+ * constructor param, like `For`'s); the JSX checker applies it to intrinsic
+ * and custom-element props. Function-typed props are wrapped too
  * (`Computed<F>` is zero-arg, so TS still picks the handler signature by
  * arity for inline arrows). `Signal<F>` must never be added explicitly — its
  * one-arg `Updater` half would collapse inline arrow params to implicit any.
@@ -51,26 +42,43 @@ export type MaybeReactiveProps<P> = {
 };
 
 /**
+ * Props of a function component that accepts reactive values — the same type
+ * as {@link MaybeReactiveProps}, under the name components reach for. Each key
+ * holds a plain value or a reactive source; the runtime hands the prop over
+ * exactly as the caller wrote it.
+ *
+ * Read a key with `resolve(props.x)`, or pass it straight into JSX, which
+ * accepts either form. Omit it and declare the plain value type when a
+ * component takes static props only — callers then cannot pass a signal.
+ *
+ * @example
+ * ```tsx
+ * function Greeting(props: Props<{ name: string; excited?: boolean }>) {
+ *   return <p>Hello, {props.name}{() => (resolve(props.excited) ? "!" : ".")}</p>;
+ * }
+ * ```
+ */
+export type Props<P> = MaybeReactiveProps<P>;
+
+/**
  * @internal Call-site prop resolution for `JSX.LibraryManagedAttributes`:
  * - empty param (instance-field classes, no ctor) → wrap `PropsOf<C>`
- * - branded `Props<P>` param (function components) → wrap the raw `P`
- * - non-empty constructor param → pass through (preserves `For<T>` inference)
+ * - any declared param → pass through verbatim
  *
- * Emptiness is checked FIRST: `{}` structurally matches the optional brand
- * (`{} extends { [RAW_PROPS]?: infer Raw }` with `Raw = unknown`), which
- * would silently type every no-ctor class as `MaybeReactiveProps<unknown>`
- * (= `{}`, accepting anything). A real `Props<P>` is never empty — its
- * `keyof` always contains the brand symbol.
+ * Function components land in the pass-through branch: the runtime no longer
+ * transforms their props, so the declared type is the contract on both sides.
+ * A component opts into reactive props by declaring {@link Props} (or a
+ * per-key `MaybeReactive`) itself.
+ *
+ * Emptiness is checked FIRST so a no-ctor class still gets its instance fields
+ * wrapped; without that branch `<Toggle checked={x}/>` would have no prop type
+ * at all, since TS reads class attributes off the constructor parameter.
  */
 export type ResolveProps<C, P, NN = NonNullable<P>> = [keyof NN] extends [never]
   ? C extends JSX.ElementType | JSX.ElementClass
     ? MaybeReactiveProps<PropsOf<C>>
     : {}
-  : NN extends {
-        readonly [RAW_PROPS]?: infer Raw;
-      }
-    ? MaybeReactiveProps<Raw>
-    : NN;
+  : NN;
 
 // ─ Internal composition pieces ───────────────────────────────────────────────
 
@@ -214,14 +222,14 @@ export type PropsOf<
     : never;
 
 /**
- * Raw props of a function or class COMPONENT (not a custom element):
- * function components use the first parameter (`RawProps` unwraps a branded
- * `Props<P>`); classes use their public instance fields. The custom-element half of `PropsOf` is `ElementProps`.
+ * Props of a function or class COMPONENT (not a custom element): function
+ * components use the first parameter as declared; classes use their public
+ * instance fields. The custom-element half of `PropsOf` is `ElementProps`.
  */
 export type ComponentProps<T extends JSX.ElementType | JSX.ElementClass> =
   T extends (props: infer P, ...rest: any[]) => any
     ? P extends object
-      ? RawProps<P>
+      ? P
       : {}
     : PropertiesOf<T>;
 

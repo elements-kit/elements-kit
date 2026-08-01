@@ -6,7 +6,7 @@ import {
   SVG_NAMESPACE,
   SvgElements,
 } from "./constants";
-import { effectScope, resolveProps, untracked } from "../signals";
+import { effectScope, untracked } from "../signals";
 import { getRenderer } from "./renderer";
 import { attachDisposables } from "./dispose";
 import "../polyfill";
@@ -109,7 +109,7 @@ function createFunctionElement(
 
   untracked(() => {
     dispose = effectScope(() => {
-      el = type(resolveProps(props));
+      el = type(props);
       if (typeof ref === "function" && el instanceof Element) ref(el);
     });
   });

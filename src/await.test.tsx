@@ -81,8 +81,8 @@ describe("code-splitting — async + dynamic import", () => {
     const html = await renderToString(() => (
       <div>{chart as unknown as Element}</div>
     ));
-    // Getter-prop indirection nests one extra marker pair.
-    expect(html).toContain("<span><!--{--><!--{-->w<!--}--><!--}--></span>");
+    // The prop is the thunk itself — one region, no getter indirection.
+    expect(html).toContain("<span><!--{-->w<!--}--></span>");
   });
 });
 

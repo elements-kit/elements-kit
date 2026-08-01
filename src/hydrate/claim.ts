@@ -11,7 +11,6 @@ import {
   effectScope,
   isReactive,
   onCleanup,
-  resolveProps,
   untracked,
 } from "../signals";
 import { ASYNC_REGION } from "../signals/lib";
@@ -92,13 +91,10 @@ export const claimRenderer: Renderer = {
       return { [VNODE]: true, kind: "for", props } as ForVNode;
     }
     if (typeof type === "function" && !type.prototype?.render) {
-      const toGetterProps = resolveProps as unknown as (
-        raw: object,
-      ) => Record<string, unknown>;
       const call = type as unknown as (
         props: Record<string, unknown>,
       ) => unknown;
-      return call(toGetterProps(props));
+      return call(props);
     }
     const name =
       typeof type === "function" ? (type.name ?? "anonymous") : String(type);

@@ -32,13 +32,14 @@ render(document.getElementById("app")!, () => (
   </section>
 ));
 ---
-// 3. Function component. Props arrive as callable getters (Computed<T>).
-import { signal, computed } from "elements-kit/signals";
+// 3. Function component. Props arrive as written — `Props<P>` accepts a value
+//    or a signal per key, and `resolve` reads whichever came.
+import { signal, computed, resolve } from "elements-kit/signals";
 import { render } from "elements-kit/render";
 import type { Props } from "elements-kit/jsx-runtime";
 
 function Counter(props: Props<{ initial?: number }>): Element {
-  const count = signal(props.initial() ?? 0);
+  const count = signal(resolve(props.initial) ?? 0);
   const doubled = computed(() => count() * 2);
 
   return (

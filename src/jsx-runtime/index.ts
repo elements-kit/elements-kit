@@ -1,4 +1,3 @@
-import type { Props } from "./infer";
 import { createElement, DOMIntrinsicElements, DOMElements } from "./element";
 import type { CustomElementRegistry } from "../custom-elements";
 import type {
@@ -11,15 +10,9 @@ import { SvgNamespaceAttrs, WithJsxNamespaces } from "./properties";
 import { Children } from "./children";
 
 export type { Children } from "./children";
-export type {
-  MaybeReactiveProps,
-  PropsOf,
-  RawProps,
-  Props,
-  Require,
-} from "./infer";
+export type { MaybeReactiveProps, PropsOf, Props, Require } from "./infer";
 
-export type { MaybeReactive } from "../signals";
+export type { MaybeReactive, ComputedProps } from "../signals";
 
 export {
   createElement as jsx,
@@ -76,5 +69,5 @@ export type ComponentClass<P extends Record<PropertyKey, unknown> = any> = new (
   props: P,
 ) => JSX.ElementClass;
 export type ComponentFn<P extends Record<PropertyKey, unknown> = any> = (
-  props: Props<P>,
+  props: P,
 ) => JSX.Element | null;

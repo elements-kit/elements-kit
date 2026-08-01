@@ -20,7 +20,6 @@ export {
 } from "./lib";
 import { isSignal, isComputed, signal } from "./lib";
 import "../polyfill";
-import type { Props } from "@/jsx-runtime/infer";
 
 /**
  * Type-guard: `true` when `value` is a reactive source (`signal` or `computed`),
@@ -153,13 +152,20 @@ export function reactive<This extends object, Value>(
 export type MaybeReactive<T> = T | Computed<T>;
 
 /**
- * Resolve a {@link MaybeReactive} to its current value. Calls the getter
- * when reactive; returns the value as-is when static.
+ * Resolve a {@link MaybeReactive} to its current value. Calls the getter when
+ * reactive (a `signal` or `computed`); returns the value as-is otherwise — an
+ * unbranded function is a value, not a source, so a callback survives intact.
+ *
+ * This is how a function component reads a prop it declared `MaybeReactive`:
+ * the runtime hands props over exactly as the caller wrote them, so the value
+ * may be either form. Reading inside an effect or a JSX getter subscribes.
  *
  * @example
  * ```ts
- * resolve(5);              // 5
- * resolve(() => count());  // current count value
+ * resolve(5);            // 5
+ * resolve(count);        // current count value — signal
+ * resolve(props.label);  // current value, whichever form the caller passed
+ * resolve(() => 5);      // the function itself — unbranded, so not a source
  * ```
  */
 export function resolve<T>(value: MaybeReactive<T>): T {
@@ -167,36 +173,68 @@ export function resolve<T>(value: MaybeReactive<T>): T {
 }
 
 /**
- * Turn a reactive-props object into a bag of per-key getters. Callers may
- * pass values or reactive sources (`signal`, `computed`); reading
- * `props.name()` inside an effect or JSX getter subscribes to whatever
- * drives it. Static values become stable thunks, signals and computed pass
- * through unchanged — so identity is preserved (`props.name === props.name`).
+ * A props bag where every key is a getter — what {@link computedProps} produces.
+ * The counterpart to `Props<P>`: that one is what a caller may pass, this is
+ * what a body reads. Optional keys lose their `?`, so `props.excited()` needs
+ * no `?.` — the getter is always there, only its result may be undefined.
  *
- * The JSX runtime auto-applies this to function-component props — call
- * directly only for non-JSX call sites or nested prop bags.
+ * @template P — the raw prop shape.
+ */
+export type ComputedProps<P> = { readonly [K in keyof P]-?: Computed<P[K]> };
+
+/**
+ * Reactive keys become the value they yield. `computedProps` infers its shape
+ * verbatim and unwraps here, because inferring through `T | Computed<T>` picks
+ * the `Computed` branch for any function prop and yields its return type.
+ */
+type Unwrap<P> = { [K in keyof P]: UnwrapValue<P[K]> };
+
+/** Naked parameter so it distributes: `T | Computed<T>` collapses to `T`. */
+type UnwrapValue<V> = V extends Computed<infer T> ? T : V;
+
+/** Arity of a call signature; `0` for anything that is not callable. */
+type ArgCount<F> = F extends (...args: infer A) => unknown ? A["length"] : 0;
+
+type ArgFnPropError =
+  "computedProps: a prop that takes arguments cannot be inferred here — read it off the raw props instead";
+
+/**
+ * Reject props that take arguments — inference cannot tell them from a getter.
+ * Zero-arg ones stay: `Signal` and `Computed` are zero-arg callables too.
+ */
+type NoArgFnProps<P> = {
+  [K in keyof P]: ArgCount<P[K]> extends 0 ? P[K] : ArgFnPropError;
+};
+
+const COMPUTED_PROPS = Symbol.for("elements-kit.computed-props");
+
+/**
+ * Turn props into a bag of per-key getters, so a body reads one shape no matter
+ * which form the caller passed. Opt-in: the JSX runtime hands function
+ * components their props untouched.
+ *
+ * Every key is callable, including one the caller omitted. A getter is always
+ * truthy, so defaults go on the call: `props.excited() ?? "…"`. Read a bag by
+ * calling the key — {@link resolve} is for raw props.
+ *
+ * Function props are the limit: a prop taking arguments is rejected, and a
+ * zero-arg one types as its return value. Read those off the raw props.
  *
  * @example
  * ```ts
- * import { resolveProps } from "elements-kit/signals";
- * import { signal } from "elements-kit/signals";
- *
  * const count = signal(0);
- * const props = resolveProps({ count, label: "n" });
+ * const props = computedProps({ count, label: "n" });
  * props.count();   // 0 — subscribes to count
  * props.label();   // "n"
  * ```
  */
-const RESOLVED_PROPS = Symbol.for("elements-kit.resolved-props");
-
-export function resolveProps<P extends object>(raw: {
-  [K in keyof P]: MaybeReactive<P[K]>;
-}): Props<P> {
-  // Idempotent: forwarding components (e.g. lazy) pass their already-getter
-  // props to createElement again — re-wrapping would turn every read into a
-  // getter-returning-getter.
-  if ((raw as Record<PropertyKey, unknown>)[RESOLVED_PROPS]) {
-    return raw as unknown as Props<P>;
+export function computedProps<P extends object>(
+  raw: P & NoArgFnProps<P>,
+): ComputedProps<Unwrap<P>> {
+  // Idempotent: a bag handed back in stays itself — re-wrapping would turn
+  // every read into a getter returning a getter.
+  if ((raw as Record<PropertyKey, unknown>)[COMPUTED_PROPS]) {
+    return raw as unknown as ComputedProps<Unwrap<P>>;
   }
   // Snapshot the key list once. Proxy traps (`ownKeys`,
   // `getOwnPropertyDescriptor`, `has`) reuse it instead of calling
@@ -216,7 +254,17 @@ export function resolveProps<P extends object>(raw: {
     return getter;
   };
   return new Proxy(raw, {
-    get: (_target, key) => (key === RESOLVED_PROPS ? true : get(key)),
+    get: (target, key, receiver) => {
+      if (key === COMPUTED_PROPS) return true;
+      // Only synthesize for keys that could name a prop; `toJSON` would
+      // otherwise hijack JSON.stringify. Passed keys always win.
+      if (
+        !ownKeySet.has(key) &&
+        (typeof key === "symbol" || key in target || key === "toJSON")
+      )
+        return Reflect.get(target, key, receiver);
+      return get(key);
+    },
     has: (_target, key) => ownKeySet.has(key),
     ownKeys: () => ownKeys,
     getOwnPropertyDescriptor: (_target, key) =>
@@ -228,5 +276,5 @@ export function resolveProps<P extends object>(raw: {
             value: get(key),
           }
         : undefined,
-  }) as unknown as Props<P>;
+  }) as unknown as ComputedProps<Unwrap<P>>;
 }

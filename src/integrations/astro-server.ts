@@ -1,7 +1,6 @@
 import { createElement } from "@/jsx-runtime/element";
 import { setRenderer } from "@/jsx-runtime/renderer";
 import { setInertEffects } from "@/signals/lib";
-import { resolveProps } from "@/signals";
 import { renderToString } from "@/server";
 import { serverJsx, SNode } from "@/server/jsx";
 import { withSlotProps } from "./astro-slots";
@@ -40,11 +39,8 @@ const check: RendererFn<boolean> = async (Component, props) => {
     // Only elements-kit JSX inside the body dispatches to the active
     // renderer, so an elements-kit root returns an SNode; a React component
     // returns a React element object.
-    const toGetterProps = resolveProps as unknown as (
-      raw: object,
-    ) => Record<string, unknown>;
     const call = Component as (p: Record<string, unknown>) => unknown;
-    return call(toGetterProps(props ?? {})) instanceof SNode;
+    return call(props ?? {}) instanceof SNode;
   } catch {
     return false;
   } finally {

@@ -42,8 +42,8 @@ export function Fragment(
     fragment.appendChild(slot.get());
     const source = props.children as unknown;
     if (typeof source === "function") {
-      // Signal, computed, or resolveProps getter — a live region either way;
-      // a static thunk simply tracks nothing and runs once.
+      // Signal, computed, or a plain thunk — a live region either way; a
+      // thunk that tracks nothing simply runs once.
       effect(() => {
         const value = (source as () => unknown)();
         slot.set(parseHtml(value == null ? "" : String(value)));
@@ -55,9 +55,10 @@ export function Fragment(
     return fragment;
   }
 
-  const children = props.children;
-  const raw =
-    typeof children === "function" ? (children as () => Children)() : children;
+  // Children arrive as written. A function child is a reactive child, so hand
+  // it to `mountChild` rather than calling it here — calling would flatten a
+  // live getter into a one-time snapshot.
+  const raw = props.children;
   if (raw == null) return fragment;
 
   const nodes = Array.isArray(raw) ? (raw as unknown[]).flat(Infinity) : [raw];

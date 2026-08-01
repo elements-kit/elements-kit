@@ -201,9 +201,16 @@ describe("renderToString — composition", () => {
     expect(html).toBe("<div>a</div>");
   });
 
-  it("renders function components with getter props as dynamic bindings", async () => {
+  it("renders a static prop as plain text — no dynamic binding", async () => {
     const Greet = (props: Props<{ name: string }>) => <p>{props.name}</p>;
     const html = await renderToString(() => <Greet name="wael" />);
+    expect(html).toBe("<p>wael</p>");
+  });
+
+  it("renders a reactive prop as a dynamic binding", async () => {
+    const Greet = (props: Props<{ name: string }>) => <p>{props.name}</p>;
+    const name = signal("wael");
+    const html = await renderToString(() => <Greet name={name} />);
     expect(html).toBe("<p><!--{-->wael<!--}--></p>");
   });
 

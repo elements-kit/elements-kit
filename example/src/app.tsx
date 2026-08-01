@@ -8,6 +8,7 @@ import {
   untracked,
   trigger,
   reactive,
+  resolve,
 } from "elements-kit/signals";
 import { For } from "elements-kit/for";
 import {
@@ -350,12 +351,12 @@ const propsName = signal("Wael");
 const propsExcited = signal(false);
 const propsNameUpper = computed(() => propsName().toUpperCase());
 
-// — Function component — props auto-wrapped into per-key getters
+// — Function component — props arrive as written; `Props<P>` takes either form
 function FnGreeting(props: Props<{ name: string; excited?: boolean }>) {
   return (
     <p style="margin: 0;">
-      <code>[fn]</code> Hello {() => props.name()}
-      {() => (props.excited?.() ? "!" : ".")}
+      <code>[fn]</code> Hello {props.name}
+      {() => (resolve(props.excited) ? "!" : ".")}
     </p>
   );
 }

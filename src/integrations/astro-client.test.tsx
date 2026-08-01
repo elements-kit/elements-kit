@@ -48,9 +48,11 @@ describe("astro-client hydrator", () => {
     expect(el.querySelector("span")!.textContent).toBe("fresh");
   });
 
-  it("passes island props to the component as getters", async () => {
-    const App = (props: { label: () => string }) => <em>{props.label}</em>;
-    const el = await island(() => <em>{() => "hi"}</em>);
+  it("passes island props to the component as written", async () => {
+    // Island props are serialized JSON, so they arrive static — the same
+    // component and props render on both sides, so the shapes agree.
+    const App = (props: { label: string }) => <em>{props.label}</em>;
+    const el = await island(() => <App label="hi" />);
 
     await hydrator(el)(App, { label: "hi" }, {}, { client: "load" });
 

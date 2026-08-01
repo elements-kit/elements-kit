@@ -140,10 +140,22 @@ For keyed list rendering, use the `For` component — it reconciles a reactive a
 
 ## Function components
 
-A function component is a plain function that returns an `Element`. The JSX runtime auto-wraps the props bag, so every key on `props` arrives as a callable getter — call it to read, pass it (or wrap a call in a getter) into JSX to subscribe.
+A function component is a plain function that returns an `Element`. Props arrive **exactly as the caller wrote them** — the runtime transforms nothing. A prop passed as a signal arrives as that signal; a prop passed as a value arrives as that value.
+
+That makes the declared type the contract on both sides. Declare plain types when a component takes static props only — callers then cannot pass a signal:
 
 ```tsx twoslash
 // @noErrors
+function Greeting(props: { name: string }) {
+  return <p>Hello, {props.name}</p>;
+}
+```
+
+Declare [`Props<P>`](/elements/types) to accept either form on every key. Hand a prop straight to JSX, which subscribes when it is reactive, or read it with `resolve`:
+
+```tsx twoslash
+// @noErrors
+import { resolve } from "elements-kit/signals";
 import type { Props } from "elements-kit/jsx-runtime";
 
 function Greeting(
@@ -152,13 +164,57 @@ function Greeting(
   return (
     <p>
       Hello, {props.name}
-      {() => (props.excited() ? "!" : ".")}
+      {() => (resolve(props.excited) ? "!" : ".")}
     </p>
   );
 }
 ```
 
-Each key on `props` is a `Computed<T>`. Signals and computed pass through with identity preserved; static values become stable thunks. For non-JSX call sites or nested prop bags you can still call [`resolveProps`](/elements/types) manually.
+`Props<P>` is an alias for [`MaybeReactiveProps<P>`](/elements/types) — each key is `T | Computed<T>`. Use `MaybeReactive<T>` on individual keys when only some props should accept a signal.
+
+Because nothing is wrapped, an omitted optional prop is plain `undefined`, so `??` defaults work as written:
+
+```tsx
+const placeholder = resolve(props.placeholder) ?? "Ask anything…";
+```
+
+## Opt into getter props
+
+When a body would rather read one uniform shape than branch on which form arrived, convert the props with `computedProps`. Every key becomes a getter — including keys the caller omitted — so reads never need `resolve`:
+
+```tsx twoslash
+// @noErrors
+import { computedProps } from "elements-kit/signals";
+import type { Props } from "elements-kit/jsx-runtime";
+
+function Chat(raw: Props<{ placeholder?: string; layout?: string }>) {
+  const props = computedProps(raw);
+
+  return (
+    <input
+      placeholder={props.placeholder() ?? "Ask anything…"}
+      data-layout={props.layout}
+    />
+  );
+}
+```
+
+Note where the default sits. A getter is always truthy, so `props.placeholder ?? "…"` would never fall back — inside a bag the default goes **on the call**: `props.placeholder() ?? "…"`.
+
+### Function props
+
+`computedProps` infers its shape from the argument, and a callable cannot be told apart from a getter — `Computed<T>` *is* `() => T`. So a prop that takes arguments (a render prop, a handler with parameters) is rejected rather than mistyped:
+
+```tsx
+// ✗ computedProps: a prop that takes arguments cannot be inferred here
+const props = computedProps({ render: (item: string) => item.length });
+```
+
+Read those off the raw props instead.
+
+A **zero-arg** function prop cannot be rejected — `Signal<T>` and `Computed<T>` are zero-arg callables themselves, so banning them would ban reactive props. It types as its return value while the runtime hands back the function, so read those raw too.
+
+Reach for `computedProps` when a component has several props it reads repeatedly. For one or two props, raw reads and `resolve` are less machinery.
 
 ## See also
 

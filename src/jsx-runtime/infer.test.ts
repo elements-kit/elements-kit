@@ -2,7 +2,13 @@ import { it, expect } from "vitest";
 import { ATTRIBUTES, type Attributes } from "../attributes";
 import { slot } from "../slot";
 import type { Children } from "./children";
-import { computed, signal, type MaybeReactive } from "../signals";
+import {
+  computed,
+  computedProps,
+  signal,
+  type ComputedProps,
+  type MaybeReactive,
+} from "../signals";
 import { For } from "../for";
 import type { JSX } from "./index";
 import type {
@@ -10,7 +16,6 @@ import type {
   ElementProps,
   MaybeReactiveProps,
   PropsOf,
-  RawProps,
   Props,
   Require,
   ResolveProps,
@@ -99,8 +104,8 @@ type _MR = MaybeReactiveProps<{
 type _MR_Count = Assert<Equal<_MR["count"], MaybeReactive<number> | undefined>>;
 type _MR_Label = Assert<Equal<_MR["label"], MaybeReactive<string> | undefined>>;
 // Function-typed props are wrapped too — the runtime accepts a signal/computed
-// for every prop (`applyProps` re-subscribes `on:` listeners in an effect,
-// `resolveProps` passes reactive handlers through as getters).
+// for every prop (`applyProps` re-subscribes `on:` listeners in an effect, and
+// a function component receives the handler exactly as it was passed).
 type _MR_OnClick = Assert<Equal<_MR["onClick"], MaybeReactive<() => void>>>;
 
 // ─ Reactive function-valued props ─────────────────────────────────────────────
@@ -320,27 +325,80 @@ void _p_fn_ok;
 void _p_fn_getter;
 void _p_fn_missing;
 
-// ─ ReactiveProps + LibraryManagedAttributes ─────────────────────────────────
+// ─ Props + LibraryManagedAttributes ─────────────────────────────────────────
 
-// Per-key getter shape inside a function-component body
+// `Props<P>` is the author-facing alias for `MaybeReactiveProps<P>`: each key
+// holds a plain value or a reactive source. The alias must not drift.
 type _RP = Props<{ name: string; excited?: boolean }>;
-type _RP_Name = Assert<Equal<_RP["name"], Computed<string>>>;
-type _RP_Excited = Assert<
-  Equal<_RP["excited"], Computed<boolean | undefined> | undefined>
+type _RP_IsMaybeReactive = Assert<
+  Equal<_RP, MaybeReactiveProps<{ name: string; excited?: boolean }>>
 >;
+type _RP_Name = Assert<Equal<_RP["name"], MaybeReactive<string>>>;
+type _RP_Excited = Assert<
+  Equal<_RP["excited"], MaybeReactive<boolean> | undefined>
+>;
+// A key is readable as a value or called as a getter — that is what `resolve`
+// branches on at runtime.
+const _rp_static: _RP = { name: "x" };
+const _rp_reactive: _RP = { name: () => "x", excited: signal(true) };
+void _rp_static;
+void _rp_reactive;
 
-// RawProps unwraps the brand (assignable both ways)
-type _Raw = RawProps<_RP>;
-const _raw_in: _Raw = { name: "x" };
-const _raw_in2: _Raw = { name: "x", excited: true };
-const _raw_back: { name: string; excited?: boolean } = {} as _Raw;
-void _raw_in;
-void _raw_in2;
-void _raw_back;
-// Without brand, RawProps is the identity
-type _RPP_Plain = Assert<Equal<RawProps<{ a: number }>, { a: number }>>;
+// ─ ComputedProps<P> — the bag `computedProps` produces ───────────────────────
 
-// Function component declared with ReactiveProps — JSX call-site type
+// The counterpart to `Props<P>`: what a body reads, not what a caller passes.
+// Every key is a getter — an optional key loses its `?` because the bag always
+// hands back a getter, so `props.excited()` needs no `?.`; only the result is
+// possibly undefined.
+type _CP = ComputedProps<{ name: string; excited?: boolean }>;
+type _CP_Name = Assert<Equal<_CP["name"], Computed<string>>>;
+type _CP_Excited = Assert<Equal<_CP["excited"], Computed<boolean | undefined>>>;
+type _CP_AlwaysPresent = Assert<Equal<undefined extends _CP["excited"] ? 1 : 2, 2>>;
+
+// The dangerous direction must not typecheck: raw props are NOT a bag, or a
+// plain value would look callable.
+// @ts-expect-error — a value-or-source shape is not a bag of getters
+const _props_is_cp: _CP = {} as _RP;
+void _props_is_cp;
+
+// The reverse holds only where keys are required. With an optional key the two
+// genuinely differ (`Computed<boolean | undefined>` vs `MaybeReactive<boolean>`),
+// so they are not interchangeable in either direction — which is the point.
+const _cp_is_props: Props<{ name: string }> = {} as ComputedProps<{
+  name: string;
+}>;
+void _cp_is_props;
+
+// `computedProps` maps between them: raw in, bag out. The shape is inferred
+// from the argument verbatim and reactive keys are unwrapped in the result, so
+// a signal-backed key reads as its value — not as the signal.
+const _cp_bag = computedProps({ name: "x", excited: signal(true) });
+type _CP_Bag = Assert<
+  Equal<typeof _cp_bag, ComputedProps<{ name: string; excited: boolean }>>
+>;
+const _cp_name: string = _cp_bag.name();
+const _cp_excited: boolean = _cp_bag.excited();
+void _cp_name;
+void _cp_excited;
+
+// A prop that takes arguments cannot be inferred apart from a getter, so the
+// bag form rejects it rather than mistyping it.
+// @ts-expect-error — render props must be read off the raw props instead
+const _cp_render = computedProps({ render: (item: string) => item.length });
+void _cp_render;
+
+// The real call site: props typed `Props<P>`, so every key is a union. Unwrap
+// must distribute, or a read still yields `T | Computed<T>`.
+function _CpFromProps(raw: Props<{ placeholder?: string; rows: number }>) {
+  const props = computedProps(raw);
+  const _p: string | undefined = props.placeholder();
+  const _r: number = props.rows();
+  return [_p, _r];
+}
+void _CpFromProps;
+
+
+// Function component that opts into reactive props — JSX call-site type
 function FnGreeting(
   _props: Props<{ name: string; excited?: boolean }>,
 ): Element | null {
@@ -363,6 +421,23 @@ void _fn_signal;
 void _fn_with_excited;
 void _fn_missing;
 void _fn_wrong;
+
+// The other half of the contract: a component that declares plain value types
+// gets them verbatim at the call site. Nothing wraps them, so a caller may not
+// pass a signal — the component never asked to handle one.
+function FnPlain(_props: { name: string }): Element | null {
+  return null;
+}
+type _PlainAttrs = JSX.LibraryManagedAttributes<
+  typeof FnPlain,
+  Parameters<typeof FnPlain>[0]
+>;
+type _Plain_Verbatim = Assert<Equal<_PlainAttrs, { name: string }>>;
+const _plain_static: _PlainAttrs = { name: "wael" };
+// @ts-expect-error — no auto-wrap: a getter is not a string
+const _plain_signal: _PlainAttrs = { name: () => "wael" };
+void _plain_static;
+void _plain_signal;
 
 // Instance-field class component — JSX attrs derived from public fields
 // (TS extracts `{}` for classes without a constructor signature.) Must have
@@ -417,12 +492,14 @@ void _listy_wrong;
 
 // ─ ResolveProps branches ─────────────────────────────────────────────────────
 
-// 1) branded function-component param → MaybeReactiveProps<Raw>
-type _RA_Branded = ResolveProps<typeof FnGreeting, _RP>;
-const _ra_branded: _RA_Branded = { name: "x" };
-const _ra_branded_sig: _RA_Branded = { name: () => "x", excited: true };
-void _ra_branded;
-void _ra_branded_sig;
+// 1) declared function-component param → passed through verbatim. Whatever the
+//    component asked for is exactly what callers must supply.
+type _RA_Declared = ResolveProps<typeof FnGreeting, _RP>;
+type _RA_Declared_Verbatim = Assert<Equal<_RA_Declared, _RP>>;
+const _ra_declared: _RA_Declared = { name: "x" };
+const _ra_declared_sig: _RA_Declared = { name: () => "x", excited: true };
+void _ra_declared;
+void _ra_declared_sig;
 
 // 2) empty constructor param → falls back to PropsOf<C>
 type _RA_Empty = ResolveProps<typeof Toggle, {}>;

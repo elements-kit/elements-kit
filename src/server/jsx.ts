@@ -1,7 +1,7 @@
 import { isFragmentComponent } from "../jsx-runtime/fragment";
 import type { JSX } from "../jsx-runtime";
 import { isForComponent } from "../for";
-import { isReactive, resolveProps, untracked } from "../signals";
+import { isReactive, untracked } from "../signals";
 import {
   AttrAliases,
   BooleanAttributes,
@@ -98,11 +98,8 @@ export function serverJsx(
   }
   if (isForComponent(type)) return forElement(props);
   if (typeof type === "function" && !type.prototype?.render) {
-    const toGetterProps = resolveProps as unknown as (
-      raw: object,
-    ) => Record<string, unknown>;
     const call = type as unknown as (props: Record<string, unknown>) => unknown;
-    const result = call(toGetterProps(props));
+    const result = call(props);
     return new SNode(child(result));
   }
   const name =

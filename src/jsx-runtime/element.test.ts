@@ -1,5 +1,12 @@
 import { describe, it, expect, vi } from "vitest";
-import { signal, computed, effect, effectScope, onCleanup } from "../signals";
+import {
+  signal,
+  computed,
+  effect,
+  effectScope,
+  onCleanup,
+  resolve,
+} from "../signals";
 import { createElement, disposeElement } from "./element";
 import { For } from "@/for";
 
@@ -299,11 +306,11 @@ describe("createElement (function component) — effectScope lifecycle", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Function component — props auto-resolution
+// Function component — props arrive exactly as the caller wrote them
 // ---------------------------------------------------------------------------
 
-describe("createElement (function component) — props are auto-wrapped", () => {
-  it("each prop is exposed as a callable getter that subscribes effects", () => {
+describe("createElement (function component) — props pass through raw", () => {
+  it("a signal prop arrives as the signal and subscribes effects", () => {
     const count = signal(0);
     const seen: number[] = [];
 
@@ -320,16 +327,46 @@ describe("createElement (function component) — props are auto-wrapped", () => 
     expect(seen).toEqual([0, 1, 2]);
   });
 
-  it("static prop becomes a stable thunk", () => {
+  it("a static prop arrives as the plain value, not a getter", () => {
     let captured: unknown;
     mount(
-      (props: { name: () => string }) => {
-        captured = props.name();
+      (props: { name: string }) => {
+        captured = props.name;
         return document.createElement("div");
       },
       { name: "hi" },
     );
     expect(captured).toBe("hi");
+  });
+
+  it("resolve() reads either form", () => {
+    const count = signal(7);
+    let captured: unknown;
+
+    mount(
+      (props: any) => {
+        captured = { name: resolve(props.name), count: resolve(props.count) };
+        return document.createElement("div");
+      },
+      { name: "wael", count },
+    );
+
+    expect(captured).toEqual({ name: "wael", count: 7 });
+  });
+
+  it("a function-valued prop arrives uncalled", () => {
+    const render = (item: string) => item;
+    let captured: unknown;
+
+    mount(
+      (props: any) => {
+        captured = props.render;
+        return document.createElement("div");
+      },
+      { render },
+    );
+
+    expect(captured).toBe(render);
   });
 
   it("forwarding a getter through a child function component stays reactive", () => {
@@ -368,7 +405,7 @@ describe("createElement (function component) — props are auto-wrapped", () => 
     expect(seen).toEqual([4, 10]);
   });
 
-  it("signal/computed identity is preserved through resolveProps", () => {
+  it("signal/computed identity is preserved", () => {
     const count = signal(0);
     const double = computed(() => count() * 2);
     let captured: any;
@@ -385,13 +422,13 @@ describe("createElement (function component) — props are auto-wrapped", () => 
     expect(captured.double).toBe(double);
   });
 
-  it("mixed static + signal props both resolve correctly", () => {
+  it("mixed static + signal props keep their own forms", () => {
     const count = signal(0);
     let captured: any;
 
     mount(
       (props: any) => {
-        captured = { name: props.name(), count: props.count() };
+        captured = { name: props.name, count: props.count() };
         return document.createElement("div");
       },
       { name: "wael", count },
@@ -400,18 +437,18 @@ describe("createElement (function component) — props are auto-wrapped", () => 
     expect(captured).toEqual({ name: "wael", count: 0 });
   });
 
-  it("omitted optional prop yields a getter returning undefined", () => {
+  it("omitted optional prop is undefined, so `??` defaults apply", () => {
     let captured: unknown = "untouched";
 
     mount(
       (props: any) => {
-        captured = props.excited?.();
+        captured = props.excited ?? "fallback";
         return document.createElement("div");
       },
       {},
     );
 
-    expect(captured).toBeUndefined();
+    expect(captured).toBe("fallback");
   });
 });
 

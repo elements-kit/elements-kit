@@ -13,11 +13,10 @@ Derive JSX prop types from your components — attributes, events, slots, childr
 | Class component with public instance fields | [`PropsOf<Cls<T>>`](#propsofc) |
 | Class component with `constructor(props: P)` | `ConstructorParameters<typeof Cls>[0]` (built-in) |
 | Function component | [`PropsOf<typeof Fn>`](#propsofc) |
-| Function-component received props (auto-wrapped) | [`Props<P>`](#propsp) |
+| Function component that accepts signals | [`Props<P>`](#propsp) |
+| Props converted to per-key getters | [`ComputedProps<P>`](#computedpropsp) |
 | Hand-write a caller-facing shape (class ctor param) | [`MaybeReactiveProps<P>`](#maybereactivepropsp) |
-| Recover raw `P` from a branded `Props<P>` | [`RawProps<R>`](#rawpropsr) |
 | Scalar value-or-getter | [`MaybeReactive<T>`](#maybereactivet) |
-| Manual prop bag → getters (non-JSX) | [`resolveProps`](/components#function-components) |
 | Make optional keys required | [`Require<P, K>`](#requirep-k) |
 
 All type helpers are re-exported from `elements-kit/jsx-runtime`. `MaybeReactive` also lives in `elements-kit/signals`.
@@ -109,21 +108,54 @@ For class components that accept props via the constructor parameter (`class Car
 
 ## `Props<P>`
 
-Component-facing — every prop becomes a callable `Computed<T>` getter. The JSX runtime auto-wraps function-component props into this shape, so you read `props.count()` and the read subscribes. This is the type you'll reach for most when authoring function components.
+Declares that every prop accepts a plain value **or** a reactive source. It is an alias for [`MaybeReactiveProps<P>`](#maybereactivepropsp) under the name function components reach for.
+
+Function-component props are never transformed by the runtime — they arrive exactly as the caller wrote them — so this type is how a component *opts in* to receiving signals. Read a key with [`resolve`](/signals), or hand it to JSX, which subscribes when the value is reactive:
 
 ```tsx
+import { resolve } from "elements-kit/signals";
 import type { Props } from "elements-kit/jsx-runtime";
 
 function Counter(props: Props<{ count: number }>) {
-  return <p>{() => props.count()}</p>;
+  return <p>{props.count}</p>;            // live when a signal was passed
+}
+
+function Doubler(props: Props<{ count: number }>) {
+  return <p>{() => resolve(props.count) * 2}</p>;
 }
 ```
 
-`Props<P>` carries a phantom `RAW_PROPS` brand so the JSX layer (`JSX.LibraryManagedAttributes`) can recover the original `P` and let parents pass each prop as a static value *or* a signal/computed — callers never wrap anything by hand.
+Omit it and declare plain value types when a component takes static props only — callers then cannot pass a signal, and the component never has to handle one.
+
+## `ComputedProps<P>`
+
+The mirror of `Props<P>`. `Props<P>` describes what a caller may **pass** (value *or* source); `ComputedProps<P>` describes what a body **reads** after converting with [`computedProps`](/components#opt-into-getter-props) — every key is a `Computed<T>`.
+
+```ts twoslash
+import { computedProps, signal } from "elements-kit/signals";
+
+const props = computedProps({ count: signal(0), label: "n" });
+props.count();   // 0 — subscribes
+props.label();   // "n"
+```
+
+Optional keys lose their `?`. The bag hands back a getter for every key, including one the caller omitted, so the getter is never missing — only its result is:
+
+```ts
+type Bag = ComputedProps<{ name: string; excited?: boolean }>;
+// {
+//   readonly name:    Computed<string>;
+//   readonly excited: Computed<boolean | undefined>;   // present, not optional
+// }
+```
+
+That is what lets you write `props.excited()` with no `?.`. It also means a key is always truthy, so defaults go on the call — `props.excited() ?? false`, never `props.excited ?? false`.
+
+`computedProps` infers its shape from the argument and unwraps reactive keys in the result, so a signal-backed key reads as its value. Function props are the limit of that inference: one taking arguments is rejected, and a zero-arg one types as its return value. See [function props](/components#function-props).
 
 ## `MaybeReactiveProps<P>`
 
-Caller-facing — wrap every prop in `MaybeReactive`. The JSX checker applies this automatically to component props, so you rarely write it for plain components. Name it directly when hand-writing a call-site shape — the main case is a class component's constructor param (the shape passes through to the JSX call site verbatim, like `For`'s):
+Wrap every prop in `MaybeReactive` — the same type as `Props<P>`, under its descriptive name. The JSX checker applies it automatically to intrinsic and custom-element attributes, so you rarely write it there. Name it directly when hand-writing a call-site shape — the main case is a class component's constructor param (the shape passes through to the JSX call site verbatim, like `For`'s):
 
 ```ts twoslash
 import type { MaybeReactiveProps } from "elements-kit/jsx-runtime";
@@ -138,18 +170,6 @@ type Wrapped = MaybeReactiveProps<Raw>;
 ```
 
 Unlike `PropsOf`, it preserves required keys.
-
-## `RawProps<R>`
-
-Recovers the raw prop shape `P` from a branded `Props<P>`. For non-branded inputs returns the input unchanged. Mostly useful internally in the JSX layer, but exported for advanced typing.
-
-```ts
-import type { RawProps, Props } from "elements-kit/jsx-runtime";
-
-type Branded = Props<{ name: string }>;
-type Raw = RawProps<Branded>;     // { name: string }
-type Plain = RawProps<{ a: 1 }>;  // { a: 1 }  (passes through)
-```
 
 ## `MaybeReactive<T>`
 
@@ -167,7 +187,7 @@ const b: MaybeReactive<number> = count;   // signal
 const c: MaybeReactive<number> = double;  // computed
 ```
 
-Resolve with `resolve(value)`, detect with `isReactive(value)`. For a whole props object in a function component, see [`resolveProps`](/components#function-components).
+Resolve with `resolve(value)`, detect with `isReactive(value)`. To accept either form on every key of a function component's props, see [`Props<P>`](#propsp).
 
 ## `Require<P, K>`
 
