@@ -456,6 +456,88 @@ describe("createElement (function component) — props pass through raw", () => 
 // Event handlers: only `on:event` syntax is supported
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Bare `class`/`style` must not clobber their namespaces
+// ---------------------------------------------------------------------------
+
+describe("class and style vs their namespaces", () => {
+  const classOf = (p: Record<string, unknown>) =>
+    (createElement("div", p as never) as HTMLElement).className;
+
+  it("keeps class:* when a bare class is applied, either source order", () => {
+    expect(classOf({ "class:active": true, class: "w-full" })).toBe(
+      "w-full active",
+    );
+    expect(classOf({ class: "w-full", "class:active": true })).toBe(
+      "w-full active",
+    );
+  });
+
+  it("keeps class:* across reactive class updates", () => {
+    const cls = signal("w-full");
+    const el = createElement("div", {
+      "class:active": true,
+      class: cls,
+    } as never) as HTMLElement;
+    expect(el.className).toBe("w-full active");
+
+    cls("w-1/2");
+    // Order is not meaningful; both must be present and the old token gone.
+    expect([...el.classList].sort()).toEqual(["active", "w-1/2"]);
+  });
+
+  it("drops only the tokens the bare class owns", () => {
+    const cls = signal("a b");
+    const el = createElement("div", {
+      class: cls,
+      "class:active": true,
+    } as never) as HTMLElement;
+
+    cls("a");
+    expect(el.className).toBe("a active");
+  });
+
+  it("keeps style:* when a bare style is applied, either source order", () => {
+    const a = createElement("div", {
+      "style:color": "red",
+      style: "width: 100%",
+    } as never) as HTMLElement;
+    const b = createElement("div", {
+      style: "width: 100%",
+      "style:color": "red",
+    } as never) as HTMLElement;
+
+    for (const el of [a, b]) {
+      expect(el.style.getPropertyValue("color")).toBe("red");
+      expect(el.style.getPropertyValue("width")).toBe("100%");
+    }
+  });
+
+  it("keeps style:* across reactive style updates, string and object", () => {
+    const css = signal("width: 100%");
+    const el = createElement("div", {
+      "style:color": "red",
+      style: css,
+    } as never) as HTMLElement;
+
+    css("width: 50%");
+    expect(el.style.getPropertyValue("color")).toBe("red");
+    expect(el.style.getPropertyValue("width")).toBe("50%");
+
+    const obj = signal<Record<string, string>>({ top: "1px", left: "2px" });
+    const el2 = createElement("div", {
+      "style:color": "red",
+      style: obj,
+    } as never) as HTMLElement;
+
+    obj({ top: "3px" });
+    expect(el2.style.getPropertyValue("color")).toBe("red");
+    expect(el2.style.getPropertyValue("top")).toBe("3px");
+    // Object form merges, so a key that leaves the object is not cleared.
+    expect(el2.style.getPropertyValue("left")).toBe("2px");
+  });
+});
+
 describe("event handlers", () => {
   it("attaches a listener for `on:click={fn}`", () => {
     const spy = vi.fn();

@@ -100,6 +100,10 @@ export function applyProps(
 ): void {
   const entries = Object.entries(props);
   if (entries.length === 0) return;
+  // Bare `class`/`style` first, whatever the source order: they seed the tokens
+  // that `class:*` and `style:*` add to, which is the order the server emits.
+  const base = (k: string) => (k === "class" || k === "style" ? 0 : 1);
+  entries.sort((a, b) => base(a[0]) - base(b[0]));
   for (const [key, value] of entries) {
     // ─ Children
     if (isChildrenProperty(node, key)) {
@@ -149,9 +153,9 @@ function setProp(node: PropsTarget, key: string, value: unknown): void {
         return;
       }
       if (ns === "style") {
-        if (value == null || value === false)
-          (node as HTMLElement).style.removeProperty(name);
-        else (node as HTMLElement).style.setProperty(name, String(value));
+        const css = value == null || value === false ? null : String(value);
+        setStyleProperty(node as HTMLElement, name, css);
+        nsStyles(node as Element).set(name, css);
         return;
       }
       // "on" namespace: handled above by isEventKey
@@ -168,7 +172,7 @@ function setProp(node: PropsTarget, key: string, value: unknown): void {
 
   // ─ Special props ──────────────────────────────────────────────────────────
   if (key === "class") {
-    (node as HTMLElement).className = String(value ?? "");
+    applyClass(node as HTMLElement, value);
     return;
   }
   if (key === "style") {
@@ -208,11 +212,56 @@ function setProp(node: PropsTarget, key: string, value: unknown): void {
   setAttribute(node, key, value);
 }
 
+/** Tokens the bare `class` prop last wrote, per element. */
+const ownedClasses = new WeakMap<Element, string[]>();
+
+/**
+ * Apply the bare `class` prop without clobbering `class:*` toggles. Assigning
+ * `className` would drop them — and drop them again on every reactive update —
+ * so only the tokens this prop owns are diffed. Matches the server renderer,
+ * which merges `class` and `class:*` into one attribute.
+ */
+function applyClass(el: HTMLElement, value: unknown): void {
+  const next = String(value ?? "")
+    .split(/\s+/)
+    .filter(Boolean);
+  const prev = ownedClasses.get(el);
+  if (prev) for (const c of prev) if (!next.includes(c)) el.classList.remove(c);
+  for (const c of next) el.classList.add(c);
+  ownedClasses.set(el, next);
+}
+
+// `class` can diff its own tokens because a class string splits on whitespace.
+// CSS text does not parse that cheaply, so `style` records what `style:*` set
+// and re-applies it after the base write instead.
+
+/** Properties set through `style:*`, per element, so they can be re-applied. */
+const styleNamespaces = new WeakMap<Element, Map<string, string | null>>();
+
+function nsStyles(el: Element): Map<string, string | null> {
+  let m = styleNamespaces.get(el);
+  if (!m) styleNamespaces.set(el, (m = new Map()));
+  return m;
+}
+
+function setStyleProperty(el: HTMLElement, name: string, css: string | null) {
+  if (css === null) el.style.removeProperty(name);
+  else el.style.setProperty(name, css);
+}
+
+/**
+ * Apply the bare `style` prop, then restore any `style:*` properties. The string
+ * form assigns `cssText`, which drops them — and would drop them again on every
+ * reactive update. Matches the server, which merges `style` and `style:*`.
+ */
 function applyStyle(el: Element, value: unknown): void {
   const s = (el as HTMLElement).style;
   if (!s) return;
   if (typeof value === "string") s.cssText = value;
   else if (value && typeof value === "object") Object.assign(s, value);
+  const ns = styleNamespaces.get(el);
+  if (ns)
+    for (const [name, css] of ns) setStyleProperty(el as HTMLElement, name, css);
 }
 
 function setAttribute(el: Element, key: string, value: unknown): void {
