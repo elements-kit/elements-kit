@@ -31,6 +31,7 @@ describe("elementsKit() Astro integration factory", () => {
         esbuild: { jsx: string; jsxImportSource: string };
         optimizeDeps: { include: string[] };
         resolve: { dedupe: string[] };
+        plugins: Array<{ name: string; apply: string }>;
       };
     };
     expect(config.vite.esbuild.jsx).toBe("automatic");
@@ -46,5 +47,28 @@ describe("elementsKit() Astro integration factory", () => {
       "elements-kit/utilities/*",
     );
     expect(config.vite.resolve.dedupe).toContain("elements-kit");
+  });
+
+  it("installs the dev HMR plugin and keeps its runtime on one graph", () => {
+    const addRenderer = vi.fn();
+    const updateConfig = vi.fn();
+
+    elementsKit().hooks["astro:config:setup"]({ addRenderer, updateConfig });
+
+    const config = updateConfig.mock.calls[0]![0] as {
+      vite: {
+        optimizeDeps: { include: string[] };
+        plugins: Array<{ name: string; apply: string }>;
+      };
+    };
+    const hmr = config.vite.plugins.find((p) => p.name === "elements-kit:hmr");
+    expect(hmr).toBeDefined();
+    // Dev only — a production build must not carry an accept boundary.
+    expect(hmr!.apply).toBe("serve");
+    // The registry re-mounts through `render`, so it has to resolve to the
+    // same runtime instance the islands were built with.
+    expect(config.vite.optimizeDeps.include).toContain(
+      "elements-kit/integrations/hmr-runtime",
+    );
   });
 });

@@ -75,6 +75,20 @@ All Astro client directives work (`client:load`, `client:idle`, `client:visible`
 - `async`/`promise` values render on the server, serialize, and [seed the client instance](/server-rendering#async-data) — with `async` + `.run()`, the client fetch is skipped entirely.
 - Props must serialize (Astro's island contract) and the component must render the same tree on server and client.
 
+### Hot module replacement
+
+Editing an island component swaps it in place — no page reload. The integration installs a dev-only Vite plugin that gives each component module an accept boundary; the edited island is disposed and re-mounted with the new code.
+
+The island **re-mounts**, so its state resets. Anything that must survive an edit goes in a separate module, which the edit doesn't invalidate:
+
+```ts
+// transcript.ts — not re-evaluated when Chat.tsx changes
+import { signal } from "elements-kit/signals";
+export const turns = signal<Turn[]>([]);
+```
+
+Edits that reach beyond the island — the parent `.astro` file, `astro.config.mjs` — still reload the page, as does a component module that renders no JSX (nothing marks it as an island). Production builds carry no HMR code.
+
 ## Lists
 
 `<For>` rows are adopted at hydration and reconciled in place afterwards — reordering moves the existing DOM nodes:
