@@ -137,16 +137,31 @@ it("is idempotent — a bag handed back in stays itself", () => {
   expect(twice.label()).toBe("n");
 });
 
-// ─ A bag is read by calling, not by resolve ───────────────────────────────────
+// ─ Every key is a source, so getters survive leaving the bag ─────────────────
 
-it("a static key is a plain thunk — call it, do not resolve it", () => {
+it("every key is a reactive source, signal-backed or not", () => {
   const count = signal(7);
   const props = computedProps({ count, label: "n" });
-  // A signal passes through branded, so resolve still reads it.
-  expect(resolve(props.count)).toBe(7);
   expect(isReactive(props.count)).toBe(true);
-  // A static key is an unbranded thunk — not a source. Call the key instead.
-  expect(isReactive(props.label)).toBe(false);
-  expect(resolve(props.label)).toBe(props.label);
-  expect(props.label()).toBe("n");
+  expect(isReactive(props.label)).toBe(true);
+  expect(resolve(props.count)).toBe(7);
+  expect(resolve(props.label)).toBe("n");
+});
+
+it("a getter passed to a child stays readable", () => {
+  const name = signal("sig");
+  const parent = computedProps({ name, label: "static" });
+  // What JSX hands a child component when a parent forwards bag getters.
+  const childRaw = { name: parent.name, label: parent.label };
+
+  expect(resolve(childRaw.name)).toBe("sig");
+  expect(resolve(childRaw.label)).toBe("static");
+
+  // Re-wrapping in the child must not double-wrap the static key.
+  const child = computedProps(childRaw);
+  expect(child.name()).toBe("sig");
+  expect(child.label()).toBe("static");
+
+  name("changed");
+  expect(child.name()).toBe("changed");
 });

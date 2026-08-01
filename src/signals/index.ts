@@ -18,7 +18,7 @@ export {
   SEED,
   CLAIM,
 } from "./lib";
-import { isSignal, isComputed, signal } from "./lib";
+import { isSignal, isComputed, signal, computed } from "./lib";
 import "../polyfill";
 
 /**
@@ -214,8 +214,8 @@ const COMPUTED_PROPS = Symbol.for("elements-kit.computed-props");
  * components their props untouched.
  *
  * Every key is callable, including one the caller omitted. A getter is always
- * truthy, so defaults go on the call: `props.excited() ?? "…"`. Read a bag by
- * calling the key — {@link resolve} is for raw props.
+ * truthy, so defaults go on the call: `props.excited() ?? "…"`. Keys are
+ * branded sources, so they keep working when forwarded to a child component.
  *
  * Function props are the limit: a prop taking arguments is rejected, and a
  * zero-arg one types as its return value. Read those off the raw props.
@@ -247,8 +247,8 @@ export function computedProps<P extends object>(
     if (!getter) {
       const v = (raw as Record<PropertyKey, unknown>)[key];
       getter = isReactive(v as MaybeReactive<unknown>)
-        ? (v as () => unknown)
-        : () => v;
+        ? (v as Computed<unknown>)
+        : computed(() => v);
       cache.set(key, getter);
     }
     return getter;

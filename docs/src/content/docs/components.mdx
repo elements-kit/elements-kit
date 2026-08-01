@@ -201,6 +201,8 @@ function Chat(raw: Props<{ placeholder?: string; layout?: string }>) {
 
 Note where the default sits. A getter is always truthy, so `props.placeholder ?? "…"` would never fall back — inside a bag the default goes **on the call**: `props.placeholder() ?? "…"`.
 
+Every key is a reactive source, whether the caller passed a signal or a plain value. That means a getter keeps working when you forward it to a child component — the child can call it, `resolve` it, or convert its own props with `computedProps` without wrapping it twice.
+
 ### Function props
 
 `computedProps` infers its shape from the argument, and a callable cannot be told apart from a getter — `Computed<T>` *is* `() => T`. So a prop that takes arguments (a render prop, a handler with parameters) is rejected rather than mistyped:
