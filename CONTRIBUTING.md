@@ -46,13 +46,28 @@ Package manager: **pnpm 10.33**, workspaces defined in [pnpm-workspace.yaml](pnp
 
 ## Versioning & stability
 
-- Semver. Pre-1.0 (currently `0.0.x`): minor version bumps may include breaking changes; patch versions are bug fixes only. Post-1.0 will follow standard semver.
+- Semver. Pre-1.0 (currently `0.x`): minor version bumps may include breaking changes; patch versions are bug fixes only. Post-1.0 will follow standard semver.
 - Stability tiers in [ARCHITECTURE.md §2](ARCHITECTURE.md) mean:
   - **stable** — breaking changes require a major bump (or, pre-1.0, a minor bump with changelog note).
   - **stable per module** — utilities may be deprecated individually; the subpath contract (`elements-kit/utilities/<name>` → single primary export) is stable.
 - Deprecation: deprecated exports stay exported for at least one minor version with a `@deprecated` JSDoc tag pointing at the replacement before removal.
 - Release artifact: `dist/` is the only directory published (`files: ["dist"]` in [package.json](package.json)). `src/` is not shipped.
 - TypeScript floor: the version pinned in [package.json](package.json) devDependencies is the minimum supported (currently TS 6.x). Decorator syntax: Stage 3 TC39 decorators (not legacy `experimentalDecorators`).
+
+## Releasing
+
+- Publishing is automated. Pushing a `v<version>` tag runs [.github/workflows/release.yml](.github/workflows/release.yml), which re-verifies (typecheck, tests, build), publishes to npm, and cuts a GitHub Release. Nothing is published by hand.
+- The tag must equal `version` in [package.json](package.json) — `v0.26.0` ↔ `0.26.0`. The workflow fails fast otherwise. `npm version` keeps the two in sync:
+
+  ```sh
+  npm version minor        # bumps package.json, commits, tags
+  git push --follow-tags
+  ```
+
+- Prereleases: a tag containing a hyphen (`v0.30.0-rc.1`) publishes under the `next` dist-tag and is marked a GitHub prerelease. `npm install elements-kit` keeps resolving the stable version; testers opt in with `elements-kit@next`.
+- npm auth is trusted publishing (OIDC) — no tokens are stored in the repo. The npm-side record pins the workflow **filename**; renaming `release.yml` breaks publishing until npm is updated to match.
+- npm versions are immutable. A bad publish is corrected by publishing a new patch, never by moving a tag.
+- [ci.yml](.github/workflows/ci.yml) covers PRs and `main`; `release.yml` only ever fires on tags. A tag can point at a commit `ci.yml` never saw, which is why the release workflow re-runs verification.
 
 ## Extending utilities
 

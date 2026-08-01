@@ -26,7 +26,7 @@ jobs:
       - name: Update npm
         run: npm i -g npm@latest
 
-      - name: Tag must match package.json version
+      - name: Resolve tag
         run: |
           tag="${GITHUB_REF_NAME#v}"
           pkg="$(node -p 'require("./package.json").version')"
@@ -34,6 +34,13 @@ jobs:
             echo "tag $tag does not match package.json $pkg" >&2
             exit 1
           fi
+          # Semver puts a hyphen before the prerelease component: 0.30.0-rc.1
+          case "$tag" in
+            *-*) echo "NPM_TAG=next"   >> "$GITHUB_ENV"
+                 echo "GH_FLAGS=--prerelease" >> "$GITHUB_ENV" ;;
+            *)   echo "NPM_TAG=latest" >> "$GITHUB_ENV"
+                 echo "GH_FLAGS=" >> "$GITHUB_ENV" ;;
+          esac
 
       - name: Install
         run: pnpm install --frozen-lockfile
@@ -52,9 +59,10 @@ jobs:
 
       # OIDC supplies both the credential and the provenance attestation.
       - name: Publish
-        run: npm publish
+        run: npm publish --tag "$NPM_TAG"
 
+      # GH_FLAGS unquoted on purpose — must expand to zero words for a stable release.
       - name: GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" --generate-notes
+        run: gh release create "$GITHUB_REF_NAME" --generate-notes $GH_FLAGS
