@@ -1,6 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 import { signal, onCleanup } from "@/signals";
 import { render } from "@/render";
+// Importing the registry installs it, which is what makes the wrapper active —
+// without an accept boundary anywhere, `createHotElement` stays a passthrough.
+import "@/integrations/hmr-runtime";
+import { HMR_SLOT } from "@/integrations/hmr-slot";
 import { setRenderer } from "./renderer";
 import { createHotElement, updateCells } from "./hot";
 
@@ -245,6 +249,23 @@ describe("createHotElement", () => {
     expect(host.textContent).toBe("new chat");
 
     unmount();
+  });
+
+  it("delegates untouched when no HMR registry is installed", () => {
+    // No plugin means no accept boundary, so a swap can never be triggered —
+    // the wrapper has to get out of the way rather than wrap every component
+    // in a slot for nothing. This is what an in-browser sandbox sees.
+    const slot = globalThis as Record<symbol, unknown>;
+    const registry = slot[HMR_SLOT];
+    slot[HMR_SLOT] = undefined;
+    try {
+      const Comp = () => <p>plain</p>;
+      const node = createHotElement(Comp);
+      expect(node).toBeInstanceOf(HTMLParagraphElement);
+      expect((node as Element).textContent).toBe("plain");
+    } finally {
+      slot[HMR_SLOT] = registry;
+    }
   });
 
   it("delegates untouched while a renderer is installed", () => {

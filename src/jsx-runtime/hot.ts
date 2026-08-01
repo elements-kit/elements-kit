@@ -1,6 +1,6 @@
 import { effect, onCleanup, signal, type Signal } from "../signals";
 import { Slot } from "../slot";
-import { HMR_CELLS_SLOT } from "../integrations/hmr-slot";
+import { HMR_CELLS_SLOT, HMR_SLOT } from "../integrations/hmr-slot";
 import { createElement } from "./element";
 import { getRenderer } from "./renderer";
 import type { JSX } from ".";
@@ -49,7 +49,17 @@ export function createHotElement(
 ): JSX.Element | null {
   // A renderer means the server or hydrate pass is active; both return
   // non-DOM values that a Slot can't hold, and neither is ever hot-swapped.
-  if (typeof type !== "function" || getRenderer()) {
+  //
+  // An empty registry means no module got an accept boundary, so no swap can
+  // ever be triggered and the indirection would be pure cost — the case for
+  // any dev environment without the Vite plugin (an in-browser sandbox, say).
+  // The plugin's injected import loads the registry at module scope, ahead of
+  // the first render, so this is settled by the time anything mounts.
+  if (
+    typeof type !== "function" ||
+    getRenderer() ||
+    !(globalThis as Record<symbol, unknown>)[HMR_SLOT]
+  ) {
     return createElement(type, allProps);
   }
 
