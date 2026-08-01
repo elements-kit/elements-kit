@@ -1,4 +1,5 @@
 import { createElement } from "@/jsx-runtime/element";
+import { updateCells } from "@/jsx-runtime/hot";
 import { render } from "@/render";
 import { HMR_SLOT } from "./hmr-slot";
 
@@ -49,7 +50,11 @@ function swap(
   prev: Record<string, unknown>,
   next: Record<string, unknown>,
 ): boolean {
-  let swapped = false;
+  // Components rendered through JSX swap themselves via their cell, which
+  // replaces only that subtree. Islands are the remainder: an island root
+  // reaches `createElement` straight from the Astro client rather than through
+  // `jsxDEV`, so it never has a cell and needs the coarse re-mount below.
+  let swapped = updateCells(prev, next);
 
   for (const record of records) {
     const key = Object.keys(prev).find((name) => prev[name] === record.Component);

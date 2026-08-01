@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { render } from "@/render";
+import { createHotElement } from "@/jsx-runtime/hot";
 import { HMR_SLOT } from "./hmr-slot";
 import hmr, { type IslandRecord } from "./hmr-runtime";
 
@@ -62,6 +63,25 @@ describe("hmr registry", () => {
   it("reports false when no live island came from the module", () => {
     const Unrelated = () => <p>unrelated</p>;
     expect(hmr.swap({ default: Unrelated }, { default: New })).toBe(false);
+  });
+
+  it("reports success from a component swap with no island involved", () => {
+    // Components inside an island swap through their cell, so `swap` has to
+    // report success for them too — a `false` here would send the caller to
+    // `import.meta.hot.invalidate()` and reload a page that just updated.
+    // Own fixtures: `createHotElement` gives a component a cell that outlives
+    // the mount, which would make the shared `Old`/`New` match here forever.
+    const Before = () => <p>before</p>;
+    const After = () => <p>after</p>;
+
+    const host = document.createElement("div");
+    document.body.append(host);
+    const unmount = render(host, () => createHotElement(Before));
+
+    expect(hmr.swap({ default: Before }, { default: After })).toBe(true);
+    expect(host.textContent).toBe("after");
+
+    unmount();
   });
 
   it("reports true without re-rendering when the export is unchanged", () => {

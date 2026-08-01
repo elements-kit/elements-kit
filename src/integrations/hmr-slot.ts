@@ -13,3 +13,11 @@
 export const HMR_SLOT_NAME = "elements-kit.hmr";
 
 export const HMR_SLOT = Symbol.for(HMR_SLOT_NAME);
+
+/**
+ * Where the dev JSX runtime keeps its component cells. Separate from the
+ * island registry above because the two are populated by different entrypoints
+ * — `jsx-dev-runtime` for cells, the Astro client for islands — and either can
+ * load without the other.
+ */
+export const HMR_CELLS_SLOT = Symbol.for("elements-kit.hmr-cells");
