@@ -179,7 +179,7 @@
 }
 
 .section-heading-1 {
-  font-size: calc(48px * var(--scaling, 1));
+  font-size: calc(40px * var(--scaling, 1));
   line-height: 1;
   font-weight: 550;
   letter-spacing: -0.04em;
