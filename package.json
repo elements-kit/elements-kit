@@ -1,7 +1,7 @@
 {
   "name": "elements-kit",
   "type": "module",
-  "version": "0.26.3",
+  "version": "0.26.4",
   "description": "A lightweight reactive UI library that transforms native HTMLElements into reactive components with signals. Ideal for framework-agnostic applications and web components.",
   "keywords": [
     "webcomponents",
@@ -31,13 +31,17 @@
   "main": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
   "files": [
-    "dist"
+    "dist",
+    "client.d.ts"
   ],
   "exports": {
     ".": {
       "source": "./src/index.ts",
       "import": "./dist/index.mjs",
       "types": "./dist/index.d.mts"
+    },
+    "./client": {
+      "types": "./client.d.ts"
     },
     "./signals": {
       "source": "./src/signals/index.ts",
