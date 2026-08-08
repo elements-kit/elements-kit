@@ -67,7 +67,9 @@ Padding is symmetric (`padding-inline`). The trigger uses `appearance: auto`, so
 
 ## Chevron
 
-The chevron is the browser's native dropdown indicator (`appearance: auto`). Visuals vary slightly per browser — Chrome / Firefox draw a small triangle, Safari draws a chunkier double-arrow — but every chevron is correctly positioned, accessibly labelled, and synced with the OS picker. This is the trade-off that buys us correct width sizing (fits widest option) and vertical centering of long option text without CSS hacks.
+The chevron is ours, not the browser's — the trigger sets `appearance: none` and paints an SVG as a `background-image`. Size and offset come from `--select-chevron-size` and `--select-chevron-inset`, both set per `data-size`.
+
+Its stroke is a literal colour, not `currentColor`. A `data:` URI SVG renders as its own document, so `currentColor` inside it resolves against the SVG's own colour — initial black — and never sees the select's. The stroke therefore tracks `--gray-12` as a hard-coded value, and the whole URL is swapped between light and dark via `--select-chevron-image`. Two colours is all this buys: the chevron does not follow the accent on `soft` / `text`, nor dim on `:disabled`.
 
 ## Accessibility
 

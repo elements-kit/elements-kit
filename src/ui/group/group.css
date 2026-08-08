@@ -36,12 +36,6 @@
   isolation: isolate;
 }
 
-/* Fields grow to fill; buttons/toggles keep their intrinsic width. */
-.x-group > :is(.x-text-input, .x-select) {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
 /***************************************************************************************************
  *                                                                                                 *
  * STACKING — lift the interacted control above its overlapped neighbour so its border + focus      *
@@ -68,7 +62,8 @@
  *                                                                                                 *
  ***************************************************************************************************/
 
-.x-group > :is(.x-button, .x-text-input, .x-select, .x-toggle):not(:first-child) {
+.x-group
+  > :is(.x-button, .x-text-input, .x-select, .x-toggle):not(:first-child) {
   margin-inline-start: -1px;
 }
 
@@ -81,13 +76,15 @@
  ***************************************************************************************************/
 
 /* All but the last — flatten the trailing (logical-end) corners. */
-.x-group > :is(.x-button, .x-text-input, .x-select, .x-toggle):not(:last-child) {
+.x-group
+  > :is(.x-button, .x-text-input, .x-select, .x-toggle):not(:last-child) {
   border-start-end-radius: 0;
   border-end-end-radius: 0;
 }
 
 /* All but the first — flatten the leading (logical-start) corners. */
-.x-group > :is(.x-button, .x-text-input, .x-select, .x-toggle):not(:first-child) {
+.x-group
+  > :is(.x-button, .x-text-input, .x-select, .x-toggle):not(:first-child) {
   border-start-start-radius: 0;
   border-end-start-radius: 0;
 }
@@ -112,9 +109,7 @@
  *                                                                                                 *
  ***************************************************************************************************/
 
-.x-group
-  > .x-button[data-variant="solid"]
-  + .x-button[data-variant="solid"] {
+.x-group > .x-button[data-variant="solid"] + .x-button[data-variant="solid"] {
   box-shadow: inset 1px 0 0 0
     color-mix(in srgb, var(--accent-contrast) 20%, transparent);
 }
