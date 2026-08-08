@@ -55,6 +55,16 @@
   --select-chevron-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path fill='none' stroke='%23eeeeee' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' d='M3 5l3 3 3-3'/></svg>");
 }
 
+/* Disabled dims to --gray-11. Order matters: these sit after the dark rule
+   above, and every selector here is specificity 0,1,0, so the later one wins. */
+.x-select:where(:disabled) {
+  --select-chevron-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path fill='none' stroke='%23646464' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' d='M3 5l3 3 3-3'/></svg>");
+}
+:where(.dark, .dark-theme) .x-select:where(:disabled),
+.x-select:where(.dark, .dark-theme):where(:disabled) {
+  --select-chevron-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path fill='none' stroke='%23b4b4b4' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' d='M3 5l3 3 3-3'/></svg>");
+}
+
 .x-select:where(:focus-visible) {
   outline: 2px solid var(--focus-8);
   outline-offset: -1px;
