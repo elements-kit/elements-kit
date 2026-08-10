@@ -1,17 +1,51 @@
 import { effect, MaybeReactive, onCleanup } from "@/signals";
 import { mountChild, Children } from "./children";
 import type { Props } from "./infer";
+import { MATHML_NAMESPACE, SVG_NAMESPACE } from "./constants";
 import { Slot } from "@/slot";
 
 /**
- * Parse an HTML string script-inertly: markup renders, `<script>` tags are
- * created but never execute (template parsing sets the "already started"
- * flag). Sanitizing the input is the caller's responsibility.
+ * The two namespaces the HTML parser can enter from within HTML content. It
+ * switches on seeing an `<svg>` or `<math>` start tag and switches back at the
+ * matching close, so an interior fragment on its own never triggers it.
  */
-export function parseHtml(html: string): DocumentFragment {
-  const template = document.createElement("template");
-  template.innerHTML = html;
-  return template.content;
+export type ForeignNamespace = "svg" | "mathml";
+
+const ForeignRoots: Record<ForeignNamespace, [ns: string, root: string]> = {
+  svg: [SVG_NAMESPACE, "svg"],
+  mathml: [MATHML_NAMESPACE, "math"],
+};
+
+/**
+ * Parse an HTML string script-inertly: markup renders, `<script>` tags are
+ * created but never execute (fragment parsing sets the "already started"
+ * flag). Sanitizing the input is the caller's responsibility.
+ *
+ * `ns` marks the string as an interior fragment of an SVG or MathML subtree.
+ * Without it a bare `<path/>` parses into the XHTML namespace and never paints
+ * — the parser only enters SVG mode within an `<svg>` ancestor, and a detached
+ * `<template>` gives it none.
+ *
+ * The foreign path parses against a detached root element rather than wrapping
+ * the string in `<svg>…</svg>` text: the element IS the parser's context, so
+ * there is no wrapper for markup like `"</svg><p>"` to close early and no
+ * per-parse string concatenation.
+ */
+export function parseHtml(
+  html: string,
+  ns?: ForeignNamespace,
+): DocumentFragment {
+  if (ns === undefined) {
+    const template = document.createElement("template");
+    template.innerHTML = html;
+    return template.content;
+  }
+  const [namespace, root] = ForeignRoots[ns];
+  const host = document.createElementNS(namespace, root);
+  host.innerHTML = html;
+  const fragment = document.createDocumentFragment();
+  fragment.append(...host.childNodes);
+  return fragment;
 }
 
 /**
@@ -29,15 +63,23 @@ export function parseHtml(html: string): DocumentFragment {
  * region boundary. Reactive sources re-render the region on change. This is
  * the library's only raw-HTML sink: the string is NOT escaped — sanitize
  * untrusted input at the call site. `<script>` tags never execute.
+ *
+ * `ns` marks the markup as the interior of an SVG or MathML subtree, which the
+ * parser cannot infer from a fragment on its own:
+ * `<svg><Fragment html ns="svg">{interior}</Fragment></svg>`. Generated code
+ * is the expected caller — the SVG plugin knows the namespace at build time,
+ * the same way Solid's and Svelte's compilers pass their `isSVG` flags. The
+ * server renderer ignores it; the string is already inside its parent there.
  */
 export function Fragment(
   props:
     | Props<{ children?: Children }>
-    | { html: true; children: MaybeReactive<string> },
+    | { html: true; ns?: ForeignNamespace; children: MaybeReactive<string> },
 ): DocumentFragment {
   const fragment = document.createDocumentFragment();
 
   if ("html" in props && props.html) {
+    const ns = "ns" in props ? props.ns : undefined;
     const slot = new Slot();
     fragment.appendChild(slot.get());
     const source = props.children as unknown;
@@ -46,11 +88,11 @@ export function Fragment(
       // thunk that tracks nothing simply runs once.
       effect(() => {
         const value = (source as () => unknown)();
-        slot.set(parseHtml(value == null ? "" : String(value)));
+        slot.set(parseHtml(value == null ? "" : String(value), ns));
       });
       onCleanup(() => slot.clear());
     } else if (source != null) {
-      slot.set(parseHtml(String(source)));
+      slot.set(parseHtml(String(source), ns));
     }
     return fragment;
   }

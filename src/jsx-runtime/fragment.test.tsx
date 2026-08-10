@@ -327,3 +327,121 @@ describe("Fragment html — raw HTML region", () => {
     expect(host.querySelector("i")).toBeNull();
   });
 });
+
+describe("Fragment html ns — foreign content", () => {
+  const SVG_NS = "http://www.w3.org/2000/svg";
+
+  function svgHost(frag: DocumentFragment): SVGElement {
+    const host = document.createElementNS(SVG_NS, "svg");
+    host.appendChild(frag);
+    return host;
+  }
+
+  it("parses the interior in the SVG namespace", () => {
+    const host = svgHost(
+      (
+        <Fragment html ns="svg">
+          {'<path d="M0 0"/>'}
+        </Fragment>
+      ) as unknown as DocumentFragment,
+    );
+
+    const path = host.querySelector("path")!;
+    expect(path.namespaceURI).toBe(SVG_NS);
+    expect(path.getAttribute("d")).toBe("M0 0");
+  });
+
+  it("drops the wrapper root, keeping only the interior", () => {
+    const host = svgHost(
+      (
+        <Fragment html ns="svg">
+          {"<g/><circle r=\"1\"/>"}
+        </Fragment>
+      ) as unknown as DocumentFragment,
+    );
+
+    // A nested <svg> would mean the wrapper leaked into the output.
+    expect(host.querySelector("svg")).toBeNull();
+    expect([...host.children].map((c) => c.localName)).toEqual([
+      "g",
+      "circle",
+    ]);
+  });
+
+  it("cannot be escaped by a premature closing tag", () => {
+    // Parsing against a real root element rather than a `<svg>…</svg>` text
+    // wrapper: there is no wrapper for the string to close out of, so the
+    // trailing markup stays inside the region instead of being dropped.
+    const host = svgHost(
+      (
+        <Fragment html ns="svg">
+          {'<path d="M0 0"/></svg><circle r="1"/>'}
+        </Fragment>
+      ) as unknown as DocumentFragment,
+    );
+
+    expect(host.querySelector("path")).not.toBeNull();
+    expect(host.querySelector("circle")!.namespaceURI).toBe(SVG_NS);
+  });
+
+  it("leaves foreign content in the XHTML namespace without ns", () => {
+    const frag = (
+      <Fragment html>{'<path d="M0 0"/>'}</Fragment>
+    ) as unknown as DocumentFragment;
+    const host = document.createElement("div");
+    host.appendChild(frag);
+
+    expect(host.querySelector("path")!.namespaceURI).toBe(
+      "http://www.w3.org/1999/xhtml",
+    );
+  });
+
+  it("keeps the slot markers around the interior", () => {
+    const host = svgHost(
+      (
+        <Fragment html ns="svg">
+          {"<g/>"}
+        </Fragment>
+      ) as unknown as DocumentFragment,
+    );
+
+    const comments = [...host.childNodes].filter(
+      (n) => n.nodeType === Node.COMMENT_NODE,
+    );
+    expect(comments.map((c) => (c as Comment).data)).toEqual(["{", "}"]);
+  });
+
+  it("re-parses in the namespace when a reactive source changes", () => {
+    const markup = signal('<path d="M0 0"/>');
+    const host = svgHost(
+      (
+        <Fragment html ns="svg">
+          {markup}
+        </Fragment>
+      ) as unknown as DocumentFragment,
+    );
+
+    markup('<circle r="1"/>');
+    expect(host.querySelector("path")).toBeNull();
+    expect(host.querySelector("circle")!.namespaceURI).toBe(SVG_NS);
+  });
+
+  // No MathML coverage: happy-dom's parser never enters MathML foreign content
+  // — `<math><mi>x</mi></math>` comes back fully XHTML-namespaced, by every
+  // route (wrapper, MathML-namespaced template, or `mathEl.innerHTML`). The
+  // `ns: "mathml"` path is browser-correct but cannot be asserted here.
+  it("wraps a mathml region in <math>", () => {
+    const host = document.createElement("div");
+    host.appendChild(
+      (
+        <Fragment html ns="mathml">
+          {"<mi>x</mi>"}
+        </Fragment>
+      ) as unknown as DocumentFragment,
+    );
+
+    // Namespace is unassertable; the wrapper still must not leak.
+    expect(host.querySelector("math")).toBeNull();
+    expect(host.querySelector("mi")!.textContent).toBe("x");
+  });
+});

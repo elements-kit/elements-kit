@@ -17,7 +17,7 @@ import { ASYNC_REGION } from "../signals/lib";
 import type { AsyncRegionMeta } from "../await";
 import { isReactivePromiseLike } from "../utilities/promise";
 import { isAsyncLike } from "../utilities/async";
-import { parseHtml } from "../jsx-runtime/fragment";
+import { parseHtml, type ForeignNamespace } from "../jsx-runtime/fragment";
 
 export interface MismatchInfo {
   expected: string;
@@ -62,6 +62,7 @@ interface FragVNode {
   kind: "frag";
   children: unknown;
   html?: boolean;
+  ns?: ForeignNamespace;
 }
 interface ForVNode {
   [VNODE]: true;
@@ -85,6 +86,7 @@ export const claimRenderer: Renderer = {
         kind: "frag",
         children: props.children,
         html: (props as { html?: boolean }).html === true,
+        ns: (props as { ns?: ForeignNamespace }).ns,
       } as FragVNode;
     }
     if (isForComponent(type)) {
@@ -144,7 +146,7 @@ function walkChild(cur: Cursor, c: unknown, om?: OnMismatch): void {
   if (c == null || typeof c === "boolean") return;
   if (isVNode(c)) {
     if (c.kind === "frag") {
-      if (c.html) return claimRawRegion(cur, c.children, om);
+      if (c.html) return claimRawRegion(cur, c.children, c.ns, om);
       return walkList(cur, c.children, om);
     }
     if (c.kind === "for") return claimFor(cur, c, om);
@@ -345,7 +347,12 @@ function claimMarkerRange(
 // ─ Raw HTML ───────────────────────────────────────────────────────────────────
 
 /** `<Fragment html>` region: adopt the server markup between the markers. */
-function claimRawRegion(cur: Cursor, source: unknown, om?: OnMismatch): void {
+function claimRawRegion(
+  cur: Cursor,
+  source: unknown,
+  ns: ForeignNamespace | undefined,
+  om?: OnMismatch,
+): void {
   const claimed =
     cur.node?.nodeType === Node.COMMENT_NODE &&
     (cur.node as Comment).data === "{";
@@ -353,7 +360,7 @@ function claimRawRegion(cur: Cursor, source: unknown, om?: OnMismatch): void {
   if (typeof source !== "function") {
     // Claimed static region: server content is already correct. Fresh-built
     // (mismatch) region: fill it.
-    if (!claimed && source != null) slot.set(parseHtml(String(source)));
+    if (!claimed && source != null) slot.set(parseHtml(String(source), ns));
     return;
   }
   // Reactive: keep the server content on the tracking first run, re-render
@@ -366,7 +373,7 @@ function claimRawRegion(cur: Cursor, source: unknown, om?: OnMismatch): void {
       first = false;
       return;
     }
-    slot.set(parseHtml(value == null ? "" : String(value)));
+    slot.set(parseHtml(value == null ? "" : String(value), ns));
   });
   onCleanup(() => slot.clear());
 }
@@ -491,6 +498,17 @@ function buildVNode(v: VNode): Node {
     return createElement(v.tag, props) as Node;
   }
   if (v.kind === "frag") {
+    // A raw-HTML region rebuilds as one: dropping `html` would re-render the
+    // markup string as text, and dropping `ns` would land it in XHTML. The
+    // source passes through untouched — Fragment resolves static and reactive
+    // forms itself, and wrapping it in a thunk would stringify a getter.
+    if (v.html) {
+      return Fragment({
+        html: true,
+        ns: v.ns,
+        children: v.children as never,
+      });
+    }
     return Fragment({
       children: (() => buildChildValue(v.children)) as never,
     });
