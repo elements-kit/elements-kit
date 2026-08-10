@@ -40,7 +40,7 @@
      the stroke resolved against the SVG's initial colour (black) and the chevron
      stayed black in dark mode. `url()` can't take a `var()` either, so the colour
      is a literal tracking --gray-12, and the whole URL swaps per theme below. */
-  --select-chevron-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path fill='none' stroke='%23202020' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' d='M3 5l3 3 3-3'/></svg>");
+  --select-chevron-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path fill='none' stroke='%23202020' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' d='M3 5l3 3 3-3'/></svg>");
 
   background-image: var(--select-chevron-image);
   background-repeat: no-repeat;
@@ -52,17 +52,17 @@
    select carrying the theme class itself. */
 :where(.dark, .dark-theme) .x-select,
 .x-select:where(.dark, .dark-theme) {
-  --select-chevron-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path fill='none' stroke='%23eeeeee' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' d='M3 5l3 3 3-3'/></svg>");
+  --select-chevron-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path fill='none' stroke='%23eeeeee' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' d='M3 5l3 3 3-3'/></svg>");
 }
 
 /* Disabled dims to --gray-11. Order matters: these sit after the dark rule
    above, and every selector here is specificity 0,1,0, so the later one wins. */
 .x-select:where(:disabled) {
-  --select-chevron-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path fill='none' stroke='%23646464' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' d='M3 5l3 3 3-3'/></svg>");
+  --select-chevron-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path fill='none' stroke='%23646464' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' d='M3 5l3 3 3-3'/></svg>");
 }
 :where(.dark, .dark-theme) .x-select:where(:disabled),
 .x-select:where(.dark, .dark-theme):where(:disabled) {
-  --select-chevron-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path fill='none' stroke='%23b4b4b4' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' d='M3 5l3 3 3-3'/></svg>");
+  --select-chevron-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path fill='none' stroke='%23b4b4b4' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' d='M3 5l3 3 3-3'/></svg>");
 }
 
 .x-select:where(:focus-visible) {
