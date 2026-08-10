@@ -425,20 +425,6 @@ describe("Fragment html ns — foreign content", () => {
     expect(host.querySelector("circle")!.namespaceURI).toBe(SVG_NS);
   });
 
-  // No namespace assertion: happy-dom's parser never enters MathML by any
-  // route, so `ns: "mathml"` is browser-correct but unverifiable here.
-  it("wraps a mathml region in <math>", () => {
-    const host = document.createElement("div");
-    host.appendChild(
-      (
-        <Fragment html ns="mathml">
-          {"<mi>x</mi>"}
-        </Fragment>
-      ) as unknown as DocumentFragment,
-    );
-
-    // Namespace is unassertable; the wrapper still must not leak.
-    expect(host.querySelector("math")).toBeNull();
-    expect(host.querySelector("mi")!.textContent).toBe("x");
-  });
+  // MathML lives in fragment-foreign.test.tsx — happy-dom's parser never
+  // enters MathML, so those assertions need jsdom.
 });
