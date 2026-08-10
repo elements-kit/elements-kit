@@ -4,11 +4,7 @@ import type { Props } from "./infer";
 import { MATHML_NAMESPACE, SVG_NAMESPACE } from "./constants";
 import { Slot } from "@/slot";
 
-/**
- * The two namespaces the HTML parser can enter from within HTML content. It
- * switches on seeing an `<svg>` or `<math>` start tag and switches back at the
- * matching close, so an interior fragment on its own never triggers it.
- */
+/** Namespaces the HTML parser enters only on seeing an `<svg>`/`<math>` tag. */
 export type ForeignNamespace = "svg" | "mathml";
 
 const ForeignRoots: Record<ForeignNamespace, [ns: string, root: string]> = {
@@ -17,19 +13,12 @@ const ForeignRoots: Record<ForeignNamespace, [ns: string, root: string]> = {
 };
 
 /**
- * Parse an HTML string script-inertly: markup renders, `<script>` tags are
- * created but never execute (fragment parsing sets the "already started"
- * flag). Sanitizing the input is the caller's responsibility.
+ * Parse an HTML string script-inertly — `<script>` never executes. Sanitizing
+ * the input is the caller's responsibility.
  *
- * `ns` marks the string as an interior fragment of an SVG or MathML subtree.
- * Without it a bare `<path/>` parses into the XHTML namespace and never paints
- * — the parser only enters SVG mode within an `<svg>` ancestor, and a detached
- * `<template>` gives it none.
- *
- * The foreign path parses against a detached root element rather than wrapping
- * the string in `<svg>…</svg>` text: the element IS the parser's context, so
- * there is no wrapper for markup like `"</svg><p>"` to close early and no
- * per-parse string concatenation.
+ * `ns` parses against a detached root of that namespace, so an interior
+ * fragment lands in SVG/MathML rather than XHTML. The element is the parser's
+ * context, not a text wrapper, so a stray `</svg>` can't escape the region.
  */
 export function parseHtml(
   html: string,
@@ -64,12 +53,10 @@ export function parseHtml(
  * the library's only raw-HTML sink: the string is NOT escaped — sanitize
  * untrusted input at the call site. `<script>` tags never execute.
  *
- * `ns` marks the markup as the interior of an SVG or MathML subtree, which the
- * parser cannot infer from a fragment on its own:
- * `<svg><Fragment html ns="svg">{interior}</Fragment></svg>`. Generated code
- * is the expected caller — the SVG plugin knows the namespace at build time,
- * the same way Solid's and Svelte's compilers pass their `isSVG` flags. The
- * server renderer ignores it; the string is already inside its parent there.
+ * `ns` marks the markup as interior foreign content —
+ * `<svg><Fragment html ns="svg">{interior}</Fragment></svg>`. Generated code is
+ * the expected caller (the SVG plugin knows the namespace at build time). The
+ * server ignores it; the string is already inside its parent there.
  */
 export function Fragment(
   props:

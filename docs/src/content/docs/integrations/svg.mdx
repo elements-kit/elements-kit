@@ -29,10 +29,15 @@ import Close from "@material-symbols/svg-300/outlined/close.svg?ek";
 </button>;
 ```
 
-Add the ambient types once, in your project's `env.d.ts`:
+TypeScript doesn't know the `?ek` suffix, so declare it once in your project's `env.d.ts`:
 
 ```ts
-/// <reference types="elements-kit/client" />
+declare module "*.svg?ek" {
+  const Component: (
+    props?: import("elements-kit/jsx-runtime").JSX.IntrinsicElements["svg"],
+  ) => SVGSVGElement;
+  export default Component;
+}
 ```
 
 ## The root takes props

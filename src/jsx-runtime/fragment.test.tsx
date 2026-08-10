@@ -369,9 +369,8 @@ describe("Fragment html ns — foreign content", () => {
   });
 
   it("cannot be escaped by a premature closing tag", () => {
-    // Parsing against a real root element rather than a `<svg>…</svg>` text
-    // wrapper: there is no wrapper for the string to close out of, so the
-    // trailing markup stays inside the region instead of being dropped.
+    // A real root element is the parse context, so there is no text wrapper
+    // to close out of and the trailing markup survives.
     const host = svgHost(
       (
         <Fragment html ns="svg">
@@ -426,10 +425,8 @@ describe("Fragment html ns — foreign content", () => {
     expect(host.querySelector("circle")!.namespaceURI).toBe(SVG_NS);
   });
 
-  // No MathML coverage: happy-dom's parser never enters MathML foreign content
-  // — `<math><mi>x</mi></math>` comes back fully XHTML-namespaced, by every
-  // route (wrapper, MathML-namespaced template, or `mathEl.innerHTML`). The
-  // `ns: "mathml"` path is browser-correct but cannot be asserted here.
+  // No namespace assertion: happy-dom's parser never enters MathML by any
+  // route, so `ns: "mathml"` is browser-correct but unverifiable here.
   it("wraps a mathml region in <math>", () => {
     const host = document.createElement("div");
     host.appendChild(

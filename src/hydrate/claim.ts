@@ -498,10 +498,8 @@ function buildVNode(v: VNode): Node {
     return createElement(v.tag, props) as Node;
   }
   if (v.kind === "frag") {
-    // A raw-HTML region rebuilds as one: dropping `html` would re-render the
-    // markup string as text, and dropping `ns` would land it in XHTML. The
-    // source passes through untouched — Fragment resolves static and reactive
-    // forms itself, and wrapping it in a thunk would stringify a getter.
+    // A raw region rebuilds as one, or its markup would render as text. The
+    // source passes through raw — a thunk would stringify a reactive getter.
     if (v.html) {
       return Fragment({
         html: true,
