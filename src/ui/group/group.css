@@ -47,12 +47,19 @@
   position: relative;
   z-index: 0;
 
-  /* Seam pixels this control gives up — see SEAM. Logical, mapped to physical
-   * sides here because clip-path takes no logical inset. */
-  --seam-start: 0px;
-  --seam-end: 0px;
+  /* Seam pixels this control gives up — see SEAM. `1px` clips that edge away,
+   * --seam-open leaves it alone (and every other edge with it: a 0 inset would
+   * clip at the border box and eat outside rings/shadows). Logical, mapped to
+   * physical sides here because clip-path takes no logical inset. */
+  --seam-open: -100vmax;
+  --seam-start: var(--seam-open);
+  --seam-end: var(--seam-open);
   --seam-left: var(--seam-start);
   --seam-right: var(--seam-end);
+
+  clip-path: inset(
+    var(--seam-open) var(--seam-right) var(--seam-open) var(--seam-left)
+  );
 }
 
 [dir="rtl"] .x-group > :is(.x-button, .x-text-input, .x-select, .x-toggle) {
@@ -101,7 +108,7 @@
     :hover,
     :focus-within
   ) {
-  --seam-end: 0px;
+  --seam-end: var(--seam-open);
 }
 
 /* …so the control after it yields the shared pixel. Both interacted at once
@@ -119,24 +126,7 @@
 /* Solid pairs draw their divider on the leading pixel (see SOLID DIVIDER) —
  * never clip that away. */
 .x-group > .x-button[data-variant="solid"] + .x-button[data-variant="solid"] {
-  --seam-start: 0px;
-}
-
-/* Apply — only to controls that actually yield a pixel, so an untouched control
- * keeps outside focus rings (solid button, toggle) unclipped. */
-.x-group
-  > :is(.x-button, .x-text-input, .x-select, .x-toggle):not(
-    :last-child,
-    :hover,
-    :focus-within
-  ),
-.x-group
-  > :is(.x-button, .x-text-input, .x-select, .x-toggle):is(:hover, :focus-within)
-  + :is(.x-button, .x-text-input, .x-select, .x-toggle):not(
-    :hover,
-    :focus-within
-  ) {
-  clip-path: inset(0 var(--seam-right) 0 var(--seam-left));
+  --seam-start: var(--seam-open);
 }
 
 /***************************************************************************************************
