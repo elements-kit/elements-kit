@@ -46,6 +46,18 @@
 .x-group > :is(.x-button, .x-text-input, .x-select, .x-toggle) {
   position: relative;
   z-index: 0;
+
+  /* Seam pixels this control gives up — see SEAM. Logical, mapped to physical
+   * sides here because clip-path takes no logical inset. */
+  --seam-start: 0px;
+  --seam-end: 0px;
+  --seam-left: var(--seam-start);
+  --seam-right: var(--seam-end);
+}
+
+[dir="rtl"] .x-group > :is(.x-button, .x-text-input, .x-select, .x-toggle) {
+  --seam-left: var(--seam-end);
+  --seam-right: var(--seam-start);
 }
 
 .x-group
@@ -60,11 +72,71 @@
  *                                                                                                 *
  * SEAM — overlap the 1px inset-box-shadow borders of adjacent controls into one hairline.          *
  *                                                                                                 *
+ * The borders are alpha (--accent-a8 / --neutral-a7), so two of them landing in the overlapped     *
+ * column composite into a line heavier than the group's outer edge. Clip one of the pair away so   *
+ * exactly one border paints there.                                                                 *
+ *                                                                                                 *
+ * Default: each control gives up its trailing pixel, and its neighbour's leading border is the     *
+ * seam. Hovered/focused: the interacted control keeps a whole box — clipping it would nick its     *
+ * focus ring — and the control after it gives up its leading pixel instead.                         *
+ *                                                                                                 *
+ * Only interior corners are clipped, and those are already flattened to radius 0 below.            *
+ *                                                                                                 *
  ***************************************************************************************************/
 
 .x-group
   > :is(.x-button, .x-text-input, .x-select, .x-toggle):not(:first-child) {
   margin-inline-start: -1px;
+}
+
+.x-group
+  > :is(.x-button, .x-text-input, .x-select, .x-toggle):not(:last-child) {
+  --seam-end: 1px;
+}
+
+/* Interacted control keeps its border and ring whole; order matters — this
+ * outranks the rule above only by coming later. */
+.x-group
+  > :is(.x-button, .x-text-input, .x-select, .x-toggle):is(
+    :hover,
+    :focus-within
+  ) {
+  --seam-end: 0px;
+}
+
+/* …so the control after it yields the shared pixel. Both interacted at once
+ * (mouse on one, keyboard focus on the next) keeps both rings and doubles that
+ * one seam — the rarer, quieter failure. */
+.x-group
+  > :is(.x-button, .x-text-input, .x-select, .x-toggle):is(:hover, :focus-within)
+  + :is(.x-button, .x-text-input, .x-select, .x-toggle):not(
+    :hover,
+    :focus-within
+  ) {
+  --seam-start: 1px;
+}
+
+/* Solid pairs draw their divider on the leading pixel (see SOLID DIVIDER) —
+ * never clip that away. */
+.x-group > .x-button[data-variant="solid"] + .x-button[data-variant="solid"] {
+  --seam-start: 0px;
+}
+
+/* Apply — only to controls that actually yield a pixel, so an untouched control
+ * keeps outside focus rings (solid button, toggle) unclipped. */
+.x-group
+  > :is(.x-button, .x-text-input, .x-select, .x-toggle):not(
+    :last-child,
+    :hover,
+    :focus-within
+  ),
+.x-group
+  > :is(.x-button, .x-text-input, .x-select, .x-toggle):is(:hover, :focus-within)
+  + :is(.x-button, .x-text-input, .x-select, .x-toggle):not(
+    :hover,
+    :focus-within
+  ) {
+  clip-path: inset(0 var(--seam-right) 0 var(--seam-left));
 }
 
 /***************************************************************************************************
@@ -133,5 +205,9 @@
     > :is(.x-button, .x-text-input, .x-select, .x-toggle):not(:first-child) {
     margin-inline-start: 0;
     border-inline-start: 1px solid ButtonText;
+  }
+  /* Nothing overlaps here, so the seam clip would eat a real border. */
+  .x-group > :is(.x-button, .x-text-input, .x-select, .x-toggle) {
+    clip-path: none;
   }
 }
