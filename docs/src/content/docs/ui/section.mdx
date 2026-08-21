@@ -67,6 +67,8 @@ No data attributes. Place directly inside `.page-section`.
 | `--page-padding-right` | right gutter | `1rem` |
 | `--page-max-width` | max width | `72rem` |
 
+`--page-gutter-left` / `--page-gutter-right` are derived from the three above: the distance from the viewport edge to the container's content box. Read them to line an element outside the container up with the content inside it. `100cqi` reads the viewport unless an ancestor sets `container-type: inline-size` — set that on a page wrapper (never on `body`, which would trap `position: fixed` children) to drop the classic scrollbar width from the math.
+
 ## Section header
 
 Heading + paragraph + optional CTA cluster. Sits above rivers in a section.

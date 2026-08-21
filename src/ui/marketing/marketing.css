@@ -135,6 +135,37 @@
 }
 
 /* * * * * * * * * * * * * * * * * * * */
+/*             Page gutter             */
+/* * * * * * * * * * * * * * * * * * * */
+
+/* Gutter: viewport edge → `.page-container` content box. Half the leftover
+ * space once the max-width cap bites, plus the container's own padding; below
+ * the cap there is no leftover and it collapses to the padding alone. Derived
+ * from the `--page-*` variables above rather than authored — it exists so an
+ * element outside the container can line up with the content inside it.
+ *
+ * `100cqi` reads the viewport unless an ancestor sets `container-type:
+ * inline-size` — do that on a page wrapper to drop the classic scrollbar width
+ * from the math, but not on `body` (it would trap `position: fixed` children).
+ */
+:root {
+  --page-gutter-left: max(
+    calc(
+      (100cqi - var(--page-max-width, 72rem)) / 2 +
+        var(--page-padding-left, 1rem)
+    ),
+    var(--page-padding-left, 1rem)
+  );
+  --page-gutter-right: max(
+    calc(
+      (100cqi - var(--page-max-width, 72rem)) / 2 +
+        var(--page-padding-right, 1rem)
+    ),
+    var(--page-padding-right, 1rem)
+  );
+}
+
+/* * * * * * * * * * * * * * * * * * * */
 /*       Section header / type         */
 /* * * * * * * * * * * * * * * * * * * */
 
