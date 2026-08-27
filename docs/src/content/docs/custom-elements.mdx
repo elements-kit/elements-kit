@@ -354,6 +354,116 @@ The same pattern applies when registering with `customElements.define` directly 
 
 ---
 
+## Using your element outside elements-kit
+
+A custom element is a platform object — React, Svelte, Vue, Angular, or vanilla DOM can all consume it with zero elements-kit involvement. Three raw type helpers describe its surfaces, derived straight from the class:
+
+```ts
+import type {
+  PropertiesOf,
+  AttributesOf,
+  EventsOf,
+} from "elements-kit/custom-elements";
+
+type P = PropertiesOf<typeof XRange>; // { min?: number; value?: number }
+type A = AttributesOf<typeof XRange>; // { min?: string | null; variant?: string | null }
+type E = EventsOf<typeof XRange>;     // { commit: CustomEvent<number> }
+```
+
+| Helper | Shape | Consume via |
+|---|---|---|
+| `PropertiesOf<C>` | Public instance fields, `HTMLElement` surface dropped | property assignment / framework prop binding |
+| `AttributesOf<C>` | `static [ATTRIBUTES]` keys → `string \| null` | `setAttribute`, HTML markup |
+| `EventsOf<C>` | `static events` map, verbatim | `addEventListener`, framework event bindings |
+
+Typed listeners fall out of an `HTMLElementEventMap` augmentation:
+
+```ts
+declare global {
+  interface HTMLElementEventMap extends EventsOf<typeof XRange> {}
+}
+
+el.addEventListener("commit", (e) => e.detail); // e: CustomEvent<number>
+```
+
+Compose them however your host needs — see the [framework integration guides](/integrations/react) for per-framework augmentations.
+
+### Slots
+
+**Inside elements-kit JSX, slots are just properties — no decorator needed.**
+This holds for both plain class components and custom elements: elements-kit
+JSX assigns each prop to the instance, and your `render()` places it.
+
+```tsx
+class Card extends HTMLElement {
+  header!: Children;
+  children!: Children;
+
+  render() {
+    return (
+      <article>
+        <header>{this.header}</header>
+        <main>{this.children}</main>
+      </article>
+    );
+  }
+}
+
+// <Card header={<h1>Title</h1>}>body content…</Card>
+```
+
+`applyProps` sets `this.header = <h1>Title</h1>` and `{this.header}` places it.
+Make the field `@reactive` and read it as `{() => this.header}` if you want a
+*reassignment* to update live.
+
+#### `@slot()` — filling slots from plain, imperative DOM
+
+Everything above relies on elements-kit JSX doing the property assignment and
+your `render()` placing the value. Reach for `@slot()` when the element's slots
+are filled by **imperative DOM code** rather than elements-kit JSX — a vanilla
+script, a `document.createElement` builder, or any place you hold a DOM node
+and want it to appear (and later be swapped) inside the mounted element.
+
+`@slot()` turns the property into a **live comment-marker region**: assigning a
+node replaces the slot's content directly in the DOM, with no elements-kit
+reactive context.
+
+```ts
+import { slot, type SlotContent } from "elements-kit/slot";
+
+// Authored with plain DOM — no elements-kit rendering. Reading a @slot()
+// property returns its live region; `append()` places it and mounts the markers.
+class XCard extends HTMLElement {
+  @slot() header!: SlotContent;
+
+  connectedCallback() {
+    const article = document.createElement("article");
+    article.append(this.header);
+    this.replaceChildren(article);
+  }
+}
+
+// vanilla consumer — no elements-kit rendering, no framework:
+const el = document.querySelector("x-card")!;
+el.header = document.createElement("h1"); // fills the slot, in the live DOM
+el.header = "plain text";                 // native append() content
+el.header = "updated";                    // replaces the previous content in place
+el.header = null;                         // clears it
+```
+
+- **Reading places the region.** The getter yields the slot's comment-marker fragment — append it wherever the content should live. Any renderer that can append a fragment works. Reads are for *placement*, not inspection (a later read extracts the current content — the re-render semantic).
+- **Assigning fills it.** Native `append()` content — a `Node`, a string, or an array; `null` clears. The swap happens directly in the DOM, so it works with **no effect, scope, or reactive context** — that's the whole reason `@slot()` exists. Assignments before the region is placed are buffered and flush on mount.
+
+Other JSX frameworks (React, Vue, Svelte) each have their *own* children model
+and don't pass DOM nodes as props, so they rarely set slots this way directly.
+When they need to, they do it through the same imperative escape hatch — a
+`ref` (or equivalent) to the element, then `el.header = node`. `@slot()` is
+what makes that assignment update the live DOM.
+
+Rule of thumb: **all-elements-kit → plain (or `@reactive`) fields; slots driven from another framework → `@slot()`.** `PropertiesOf` types the key by its declared field type either way.
+
+---
+
 ## When NOT to use custom elements
 
 Custom elements are the right tool for **reusable, framework-agnostic UI**. They're the wrong tool when:

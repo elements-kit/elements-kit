@@ -3,6 +3,8 @@
 // shapes are validated against astro's published .d.ts in tests and by the
 // docs site build.
 
+import elementsKitHmr from "./vite";
+
 interface AstroRendererConfig {
   name: string;
   clientEntrypoint: string;
@@ -33,6 +35,11 @@ export interface ElementsKitAstroIntegration {
  * <Counter client:load />          // server-rendered, hydrated on load
  * <Widget client:only="elements-kit" />  // client-rendered only
  * ```
+ *
+ * In dev it also installs an HMR plugin: editing an island component swaps it
+ * in place instead of reloading the page. The island re-mounts, so its state
+ * resets — hoist anything that must survive into a module the edit doesn't
+ * invalidate.
  *
  * Coexists with other framework renderers (React, etc.); scope their JSX
  * transform with the framework integration's `include` option.
@@ -84,10 +91,19 @@ export default function elementsKit(): ElementsKitAstroIntegration {
                 "elements-kit/custom-elements",
                 "elements-kit/attributes",
                 "elements-kit/integrations/astro-client",
+                // Dev-only, but it must join the same optimizer graph as
+                // everything else — the registry re-mounts islands through
+                // `render`, which has to be the runtime instance the islands
+                // were built with.
+                "elements-kit/integrations/hmr-runtime",
                 "elements-kit/utilities/*",
               ],
             },
             resolve: { dedupe: ["elements-kit"] },
+            // Dev-only (`apply: "serve"`): gives component modules an HMR
+            // accept boundary so an edit swaps the island instead of
+            // reloading the page.
+            plugins: [elementsKitHmr()],
           },
         });
       },

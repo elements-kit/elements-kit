@@ -48,14 +48,16 @@ describe("astro-server renderer", () => {
       {},
       { default: "<p>body</p>" },
     );
+    // One region, not two: the slot prop is already a reactive node, and props
+    // are no longer wrapped in a getter on the way into the component.
     expect(html).toBe(
-      "<section><!--{--><!--{--><astro-slot><!--{--><p>body</p><!--}--></astro-slot><!--}--><!--}--></section>",
+      "<section><!--{--><astro-slot><!--{--><p>body</p><!--}--></astro-slot><!--}--></section>",
     );
   });
 
-  it("maps named slots to slot:<name> props", async () => {
-    const Card = (props: { "slot:header"?: unknown }) => (
-      <header>{props["slot:header"] as never}</header>
+  it("maps named slots to plain <name> props", async () => {
+    const Card = (props: { header?: unknown }) => (
+      <header>{props.header as never}</header>
     );
     const { html } = await renderer.renderToStaticMarkup(
       Card,
@@ -63,7 +65,7 @@ describe("astro-server renderer", () => {
       { header: "<h1>t</h1>" },
     );
     expect(html).toBe(
-      '<header><!--{--><!--{--><astro-slot name="header"><!--{--><h1>t</h1><!--}--></astro-slot><!--}--><!--}--></header>',
+      '<header><!--{--><astro-slot name="header"><!--{--><h1>t</h1><!--}--></astro-slot><!--}--></header>',
     );
   });
 

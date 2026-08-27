@@ -119,6 +119,22 @@ const markdown = signal("<h2>rendered</h2><p>from a CMS</p>");
 
 The region lives between slot markers, so it server-renders, hydrates (server content is kept until the source changes), and re-renders when the signal updates. Parsing is **script-inert** — `<script>` tags in the string never execute.
 
+### Foreign content — `ns`
+
+The client parses the string in a detached `<template>`, which is always HTML. The parser only enters SVG or MathML mode when it *sees* an `<svg>` / `<math>` start tag, so an interior fragment on its own gets neither — a bare `<path/>` lands in the XHTML namespace, sits in the DOM with the right tag name and attributes, and paints nothing.
+
+`ns` marks the string as interior content of one of those subtrees:
+
+```tsx
+<svg viewBox="0 0 24 24">
+  <Fragment html ns="svg">{'<path d="M0 0"/>'}</Fragment>
+</svg>
+```
+
+The markup is parsed against a detached root element of that namespace and the root is then dropped, so only the interior reaches the DOM. Because the element itself is the parser's context — not an `<svg>…</svg>` wrapper pasted around the string — markup like `"</svg><p>"` has nothing to close out of. Accepts `"svg"` or `"mathml"`; the server renderer ignores it, since the string is already inside its parent there.
+
+Generated code is the expected caller — a compiler knows the namespace at build time, which is how [the SVG plugin](/integrations/svg) uses it. Reach for it by hand only when you are handing raw markup to an `<svg>` or `<math>` parent yourself.
+
 **Sanitize untrusted input at the call site.** The string is emitted verbatim on the server and parsed as markup on the client; attribute-based XSS (`onerror=…`, `javascript:` URLs) is your responsibility to strip. Everywhere else strings remain text-only, and the `innerHTML` prop still throws.
 
 ## Lazy loading & Await

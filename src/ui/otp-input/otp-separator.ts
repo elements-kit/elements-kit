@@ -1,10 +1,10 @@
-import { isBrowser } from "@/utilities/environment.ts";
+import { HTMLElementBase, isBrowser } from "@/utilities/environment.ts";
 
 /**
  * `<x-otp-separator>` — decorative divider authored between OTP groups (e.g. a
  * dash between a 3-3 split). Purely visual: `aria-hidden`, glyph drawn in CSS.
  */
-export class XOtpSeparator extends HTMLElement {
+export class XOtpSeparator extends HTMLElementBase {
   connectedCallback(): void {
     this.setAttribute("aria-hidden", "true");
   }

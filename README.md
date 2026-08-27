@@ -3,12 +3,12 @@
 **Universal reactive primitives for the web.** Signals, JSX, custom elements, and browser-API helpers. Import one at a time, compose them, or use any of them inside vanilla JS, React, Vue, or any framework.
 
 ```tsx
-import { signal, computed } from "elements-kit/signals";
+import { signal, computed, resolve } from "elements-kit/signals";
 import { render } from "elements-kit/render";
-import type { ReactiveProps } from "elements-kit/jsx-runtime";
+import type { Props } from "elements-kit/jsx-runtime";
 
-function Counter(props: ReactiveProps<{ initial?: number }>) {
-  const count = signal(props.initial() ?? 0);
+function Counter(props: Props<{ initial?: number }>) {
+  const count = signal(resolve(props.initial) ?? 0);
   const doubled = computed(() => count() * 2);
 
   return (
@@ -52,7 +52,7 @@ ElementsKit is a library of reactive primitives, not a framework. Each piece is 
 
 - **Designed for the AI age.** Code is cheap; maintenance still isn't. Primitives compose into higher-level blocks. Swap one block at a time instead of maintaining long lines of code.
 
-- **Bundler-friendly.** Every primitive is its own subpath — `elements-kit/signals`, `elements-kit/utilities/*`, `elements-kit/integrations/*`. Import only what you need.
+- **Bundler-friendly.** Every primitive is its own subpath — `elements-kit/signals`, `elements-kit/utilities/*`, `elements-kit/ui/*`, `elements-kit/integrations/*`. Import only what you need.
 
 ## Packages
 
@@ -60,19 +60,20 @@ Every feature is a separate subpath export — import only what you use.
 
 | Entry | Purpose |
 |-------|---------|
-| `elements-kit/signals` | `signal`, `computed`, `effect`, `effectScope`, `batch`, `untracked`, `trigger`, `onCleanup`, `MaybeReactive`, `resolve`, `resolveProps`, `@reactive` |
+| `elements-kit/signals` | `signal`, `computed`, `effect`, `effectScope`, `batch`, `untracked`, `trigger`, `onCleanup`, `MaybeReactive`, `resolve`, `computedProps`, `@reactive` |
 | `elements-kit/render` | `render(target, setup)` — mount a node with a scoped lifetime; returns `unmount` |
 | `elements-kit/attributes` | `@attributes` decorator + `ATTRIBUTES` symbol |
-| `elements-kit/slot` | `Slot`, `Slots`, `SLOTS` symbol — comment-marker DOM regions |
-| `elements-kit/custom-elements` | `defineElement`, `CustomElementRegistry` |
+| `elements-kit/slot` | `Slot` class + `@slot()` decorator + `SlotContent` type — comment-marker DOM regions as plain properties |
+| `elements-kit/custom-elements` | `defineElement`, `CustomElementRegistry`, `PropertiesOf`, `AttributesOf`, `EventsOf`, `PublicPropKeys` — raw framework-agnostic extractors for a custom element's properties/attributes/events |
 | `elements-kit/for` | `For` keyed-list component |
-| `elements-kit/jsx-runtime` | JSX factory + type helpers (`ElementProps`, `Props`, `ComponentProps`, `MaybeReactiveProps`, `ReactiveProps`, `Require`) — configure via `jsxImportSource` |
+| `elements-kit/jsx-runtime` | JSX factory + type helpers (`PropsOf`, `MaybeReactiveProps`, `Props`, `Require`) — configure via `jsxImportSource` |
 | `elements-kit/server` | `renderToStream`, `renderToString` — streaming HTML rendering in any JS runtime (Node, edge/Workers), no DOM required *(experimental)* |
 | `elements-kit/hydrate` | `hydrate(container, () => <App/>)` — adopt server-rendered DOM and make it interactive *(experimental)* |
 | `elements-kit/await` | `Await` — loading boundary (Suspense equivalent); code splitting = `async` + dynamic import *(experimental)* |
 | `elements-kit/integrations/react` | `useSignal`, `useScope` React bridge hooks |
 | `elements-kit/integrations/astro` | `elementsKit()` Astro integration — elements-kit components as server-rendered, hydrated islands *(experimental)* |
 | `elements-kit/utilities/*` | Reactive browser-API utilities — see [src/utilities/README.md](src/utilities/README.md) |
+| `elements-kit/ui/*` | Accessible UI component styles (CSS) + an optional base theme (`elements-kit/ui/styles.css`); plus the `otp-input` custom element and `overlay` positioning/interaction behaviors. Catalog in [src/ui/README.md](src/ui/README.md) |
 
 ## Signals
 
@@ -340,7 +341,7 @@ await op;     // awaitable (delegates to .then/.catch/.finally via .raw)
 op.stop();    // halt reruns + fire registered cleanup
 ```
 
-Reactive state getters: `.state`, `.value`, `.reason`, `.result`, `.pending`, `.raw` (the underlying `ComputedPromise`).
+Reactive state getters: `.state` (`"idle" | "pending" | "fulfilled" | "rejected"` — `idle` before the first run, so `.pending` is `false` until you trigger one), `.value`, `.reason`, `.result`, `.pending`, `.raw` (the underlying `ComputedPromise`).
 
 One-shot mutation (no tracking):
 
@@ -412,29 +413,46 @@ import { For } from "elements-kit/for";
 
 ## Prop types
 
-Six type helpers derive JSX prop shapes from your components — no parallel `declare global` block to maintain. Full guide at [docs/src/content/docs/elements/types.mdx](docs/src/content/docs/elements/types.mdx).
+A small set of type helpers derives JSX prop shapes from your components — no parallel `declare global` block to maintain. Full guide at [docs/src/content/docs/elements/types.mdx](docs/src/content/docs/elements/types.mdx).
 
 | Helper | For |
 | ------ | --- |
-| `ElementProps<typeof Cls>` | `HTMLElement` subclass — full surface (attrs, events, slots, children) |
-| `Props<C>` | Class instance, constructor, or function component — unified |
-| `ComponentProps<typeof Cls>` | Class components with `constructor(props: P)` |
-| `MaybeReactiveProps<P>` | Caller-facing — wrap every prop in `MaybeReactive` (what parents pass) |
-| `ReactiveProps<P>` | Component-facing — every prop becomes a `Computed<T>` getter (what function components receive) |
+| `PropsOf<C>` | Unified — fn/class components give raw prop shapes; custom-element ctors give the full JSX surface (attrs, events, slots, children) |
+| `Props<P>` | Every prop accepts a value *or* a reactive source — declare it on a function component that should take signals (alias of `MaybeReactiveProps<P>`) |
+| `MaybeReactiveProps<P>` | The same wrap under its descriptive name — used for class constructor params and the intrinsic-element surface |
+| `ComputedProps<P>` | The mirror of `Props<P>` — what a body *reads* after `computedProps`: every key a `Computed<T>`, optional keys included |
 | `MaybeReactive<T>` | Scalar value-or-getter (from `elements-kit/signals`) |
 | `Require<P, K>` | Promote optional keys to required |
 
-The JSX runtime auto-wraps function-component props — each key arrives as a callable getter that subscribes on read. Pair the signature with `ReactiveProps<P>` and read `props.x()`:
+Intrinsic and custom-element attributes accept a static value *or* a signal at every JSX call site — the runtime's `LibraryManagedAttributes` handles that wrap for you.
+
+Function components are different: props arrive **exactly as the caller wrote them**, so the declared type is the contract on both sides. Declare plain types for static-only props; declare `Props<P>` (or `MaybeReactive<T>` per key) to accept signals, and read with `resolve` or by handing the prop to JSX:
 
 ```tsx
-import type { ReactiveProps } from "elements-kit/jsx-runtime";
+import { resolve } from "elements-kit/signals";
+import type { Props } from "elements-kit/jsx-runtime";
 
-function Greeting(props: ReactiveProps<{ name: string }>) {
-  return <p>Hello, {props.name}</p>;
+function Greeting(props: Props<{ name: string }>) {
+  return <p>Hello, {props.name}</p>; // JSX accepts either form
+}
+
+function Plain(props: { name: string }) {
+  return <p>Hello, {props.name}</p>; // callers may not pass a signal
 }
 ```
 
-`resolveProps` stays exported for non-JSX call sites or nested prop bags.
+To read one uniform shape instead, convert the props with `computedProps` — every key becomes a getter, so no read needs `resolve`. Defaults go on the call, since a getter is always truthy:
+
+```tsx
+import { computedProps } from "elements-kit/signals";
+
+function Chat(raw: Props<{ placeholder?: string }>) {
+  const props = computedProps(raw);
+  return <input placeholder={props.placeholder() ?? "Ask anything…"} />;
+}
+```
+
+A prop that takes arguments (a render prop, a handler with parameters) is rejected there — a callable cannot be told apart from a getter, since `Computed<T>` *is* `() => T`. Read those off the raw props instead.
 
 ## `@reactive()` Decorator
 
@@ -472,15 +490,15 @@ class MyElement extends HTMLElement {
 }
 ```
 
-For typed slots, attach a `[SLOTS]` instance field — pass the key list with `as const` so TS can narrow:
+For named slots, declare `@slot()` properties — reading places the region in your template, assigning fills it (from any framework, or none):
 
 ```ts
-import { SLOTS, Slots } from "elements-kit/slot";
+import { slot } from "elements-kit/slot";
 
 class Card extends HTMLElement {
-  [SLOTS] = Slots.new(["header", "footer"] as const);
+  @slot() header!: Node
+  @slot() footer!: Node
 }
-// ElementProps<typeof Card> now includes `slot:header` / `slot:footer`
 ```
 
 For typed events, declare a `static events` map:
@@ -489,7 +507,7 @@ For typed events, declare a `static events` map:
 class XPicker extends HTMLElement {
   declare static events: { commit: CustomEvent<number> };
 }
-// ElementProps<typeof XPicker> now includes `on:commit`
+// PropsOf<typeof XPicker> now includes `on:commit`
 ```
 
 ## Roadmap

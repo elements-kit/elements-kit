@@ -27,7 +27,7 @@ const debounced = createDebounced(query, 250);
 
 const search = async(() => {
   const q = debounced();
-  if (!q) return [] as string[];
+  if (!q) return Promise.resolve([] as string[]);
   const ctrl = new AbortController();
   onCleanup(() => ctrl.abort());
   return fakeFetch(q, ctrl.signal);

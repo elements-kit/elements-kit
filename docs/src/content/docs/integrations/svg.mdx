@@ -1,0 +1,90 @@
+---
+title: SVG
+description: Import an SVG file as an elements-kit component, server rendering included.
+---
+
+Importing an `.svg` file usually hands you a URL or a component built for another framework's runtime. The SVG plugin compiles the file into an elements-kit component instead, so the root `<svg>` is a real element you can pass props to.
+
+```ts
+// vite.config.ts
+import { defineConfig } from "vite";
+import elementsKitSvg from "elements-kit/integrations/svg";
+
+export default defineConfig({
+  plugins: [elementsKitSvg()],
+});
+```
+
+Using Astro? Add it to `vite.plugins` in `astro.config` yourself — the [Astro integration](/integrations/astro) does not register it. Keep `enforce: "pre"` (the plugin sets it) so the `?ek` id is claimed before Astro's asset pipeline sees the file.
+
+## Import with `?ek`
+
+The query is what claims the file. A bare `.svg` import keeps whatever meaning your framework gives it, so existing asset imports keep working:
+
+```tsx
+import Close from "@material-symbols/svg-300/outlined/close.svg?ek";
+
+<button class="unset x-button" aria-label="Close" on:click={dismiss}>
+  <Close class="icon" />
+</button>;
+```
+
+TypeScript doesn't know the `?ek` suffix, so declare it once in your project's `env.d.ts`:
+
+```ts
+declare module "*.svg?ek" {
+  const Component: (
+    props?: import("elements-kit/jsx-runtime").JSX.IntrinsicElements["svg"],
+  ) => SVGSVGElement;
+  export default Component;
+}
+```
+
+## The root takes props
+
+The file's root `<svg>` is built through the JSX runtime like any other element, so every prop namespace works on it — `class`, `style:`, `on:`, `ref`, and reactive values:
+
+```tsx
+const tint = signal("red");
+
+<Close fill={tint} class:active={isOpen} on:click={dismiss} />;
+```
+
+Props win over the file's own attributes, so a `fill` prop overrides a `fill` baked into the source. `children` is the exception: the file's markup always wins, and a `children` prop is ignored rather than blanking the icon.
+
+## Normalization
+
+By default the plugin drops the root's `width` and `height` and sets `fill="currentColor"` unless the file already paints itself. An icon then sizes with the font and follows text color:
+
+```css
+.icon {
+  width: 1em;
+  height: 1em;
+}
+```
+
+`viewBox` is always preserved — without it there is no aspect ratio to scale by. Turn the pass off for artwork that carries its own palette and intrinsic size:
+
+```ts
+elementsKitSvg({ normalize: false });
+```
+
+## Server rendering
+
+Nothing to configure. The generated module builds its tree through the JSX runtime, which dispatches to whichever renderer is active, so the same import works under [`renderToString`](/server-rendering) and hydrates without rebuilding the icon.
+
+:::note[One module per file, one subtree per use]
+Ten call sites importing the same file share one module, but each rendered instance is its own DOM subtree — the plugin emits no `<symbol>` / `<use>` sprite. For a handful of icons this is the cheaper trade; for hundreds of instances on one page, measure.
+:::
+
+:::caution[The file is trusted input]
+The interior markup is inlined verbatim, unescaped — the same contract as [`<Fragment html>`](/server-rendering#raw-html---fragment-html). Only point the plugin at SVGs you control or vendor from a package you trust.
+:::
+
+The plugin emits that region with [`ns="svg"`](/server-rendering#foreign-content--ns), so the interior parses in the SVG namespace and paints. It knows the namespace at build time, which is why nothing needs passing at the call site.
+
+## See also
+
+- [Astro](/integrations/astro) — islands; register this plugin there by hand
+- [Vite](/integrations/vite) — the HMR plugin that ships beside it
+- [JSX & Elements](/elements) — prop namespaces the root accepts

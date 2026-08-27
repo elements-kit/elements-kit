@@ -64,6 +64,8 @@ export const examplesSidebar: SidebarItem[] = [
 
 export const integrationsSidebar: SidebarItem[] = [
   { label: "Overview", slug: "integrations" },
+  { label: "Vite", slug: "integrations/vite" },
+  { label: "SVG", slug: "integrations/svg" },
   {
     label: "Frameworks",
     collapsed: false,

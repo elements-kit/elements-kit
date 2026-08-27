@@ -175,9 +175,11 @@
 
   background-color: var(--seg-indicator-bg);
   border-radius: var(--seg-indicator-radius);
-  box-shadow:
-    0 0 0 0.5px var(--neutral-a3),
-    0 1px 2px var(--neutral-a4);
+  /* A flat 1px ring, no drop shadow — matches Radix Themes' surface variant.
+   * A y-offset shadow puts ring + shadow on the bottom edge and ring alone on
+   * the top; a 0.5px spread lands on a half-pixel and rounds unevenly between
+   * the two. Either one reads as a thicker bottom border. */
+  box-shadow: 0 0 0 1px var(--neutral-a4);
 
   opacity: 0;
   transition: opacity var(--seg-transition-duration) ease-out;
@@ -210,16 +212,17 @@
     top: var(--seg-inset);
     bottom: var(--seg-inset);
     /* Anchor BOTH edges so the indicator stretches between them with no
-     * width interpolation — keeps motion smooth in LTR and RTL. */
-    left: anchor(--x-seg-active left);
-    right: anchor(--x-seg-active right);
+     * width interpolation — keeps motion smooth in LTR and RTL.
+     * `--seg-inset` on each side matches Tier 1's `inset` — without it the
+     * indicator sits flush against the track on the first/last segment and its
+     * ring straddles the track's rounded corner. */
+    left: calc(anchor(--x-seg-active left) + var(--seg-inset));
+    right: calc(anchor(--x-seg-active right) + var(--seg-inset));
     width: auto;
 
     background-color: var(--seg-indicator-bg);
     border-radius: var(--seg-indicator-radius);
-    box-shadow:
-      0 0 0 0.5px var(--neutral-a3),
-      0 1px 2px var(--neutral-a4);
+    box-shadow: 0 0 0 1px var(--neutral-a4);
 
     transition:
       left var(--seg-transition-duration) cubic-bezier(0.45, 0.05, 0.55, 0.95),

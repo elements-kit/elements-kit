@@ -1,5 +1,12 @@
 import { describe, it, expect, vi } from "vitest";
-import { signal, computed, effect, effectScope, onCleanup } from "../signals";
+import {
+  signal,
+  computed,
+  effect,
+  effectScope,
+  onCleanup,
+  resolve,
+} from "../signals";
 import { createElement, disposeElement } from "./element";
 import { For } from "@/for";
 
@@ -299,11 +306,11 @@ describe("createElement (function component) — effectScope lifecycle", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Function component — props auto-resolution
+// Function component — props arrive exactly as the caller wrote them
 // ---------------------------------------------------------------------------
 
-describe("createElement (function component) — props are auto-wrapped", () => {
-  it("each prop is exposed as a callable getter that subscribes effects", () => {
+describe("createElement (function component) — props pass through raw", () => {
+  it("a signal prop arrives as the signal and subscribes effects", () => {
     const count = signal(0);
     const seen: number[] = [];
 
@@ -320,16 +327,46 @@ describe("createElement (function component) — props are auto-wrapped", () => 
     expect(seen).toEqual([0, 1, 2]);
   });
 
-  it("static prop becomes a stable thunk", () => {
+  it("a static prop arrives as the plain value, not a getter", () => {
     let captured: unknown;
     mount(
-      (props: { name: () => string }) => {
-        captured = props.name();
+      (props: { name: string }) => {
+        captured = props.name;
         return document.createElement("div");
       },
       { name: "hi" },
     );
     expect(captured).toBe("hi");
+  });
+
+  it("resolve() reads either form", () => {
+    const count = signal(7);
+    let captured: unknown;
+
+    mount(
+      (props: any) => {
+        captured = { name: resolve(props.name), count: resolve(props.count) };
+        return document.createElement("div");
+      },
+      { name: "wael", count },
+    );
+
+    expect(captured).toEqual({ name: "wael", count: 7 });
+  });
+
+  it("a function-valued prop arrives uncalled", () => {
+    const render = (item: string) => item;
+    let captured: unknown;
+
+    mount(
+      (props: any) => {
+        captured = props.render;
+        return document.createElement("div");
+      },
+      { render },
+    );
+
+    expect(captured).toBe(render);
   });
 
   it("forwarding a getter through a child function component stays reactive", () => {
@@ -368,7 +405,7 @@ describe("createElement (function component) — props are auto-wrapped", () => 
     expect(seen).toEqual([4, 10]);
   });
 
-  it("signal/computed identity is preserved through resolveProps", () => {
+  it("signal/computed identity is preserved", () => {
     const count = signal(0);
     const double = computed(() => count() * 2);
     let captured: any;
@@ -385,13 +422,13 @@ describe("createElement (function component) — props are auto-wrapped", () => 
     expect(captured.double).toBe(double);
   });
 
-  it("mixed static + signal props both resolve correctly", () => {
+  it("mixed static + signal props keep their own forms", () => {
     const count = signal(0);
     let captured: any;
 
     mount(
       (props: any) => {
-        captured = { name: props.name(), count: props.count() };
+        captured = { name: props.name, count: props.count() };
         return document.createElement("div");
       },
       { name: "wael", count },
@@ -400,24 +437,106 @@ describe("createElement (function component) — props are auto-wrapped", () => 
     expect(captured).toEqual({ name: "wael", count: 0 });
   });
 
-  it("omitted optional prop yields a getter returning undefined", () => {
+  it("omitted optional prop is undefined, so `??` defaults apply", () => {
     let captured: unknown = "untouched";
 
     mount(
       (props: any) => {
-        captured = props.excited?.();
+        captured = props.excited ?? "fallback";
         return document.createElement("div");
       },
       {},
     );
 
-    expect(captured).toBeUndefined();
+    expect(captured).toBe("fallback");
   });
 });
 
 // ---------------------------------------------------------------------------
 // Event handlers: only `on:event` syntax is supported
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Bare `class`/`style` must not clobber their namespaces
+// ---------------------------------------------------------------------------
+
+describe("class and style vs their namespaces", () => {
+  const classOf = (p: Record<string, unknown>) =>
+    (createElement("div", p as never) as HTMLElement).className;
+
+  it("keeps class:* when a bare class is applied, either source order", () => {
+    expect(classOf({ "class:active": true, class: "w-full" })).toBe(
+      "w-full active",
+    );
+    expect(classOf({ class: "w-full", "class:active": true })).toBe(
+      "w-full active",
+    );
+  });
+
+  it("keeps class:* across reactive class updates", () => {
+    const cls = signal("w-full");
+    const el = createElement("div", {
+      "class:active": true,
+      class: cls,
+    } as never) as HTMLElement;
+    expect(el.className).toBe("w-full active");
+
+    cls("w-1/2");
+    // Order is not meaningful; both must be present and the old token gone.
+    expect([...el.classList].sort()).toEqual(["active", "w-1/2"]);
+  });
+
+  it("drops only the tokens the bare class owns", () => {
+    const cls = signal("a b");
+    const el = createElement("div", {
+      class: cls,
+      "class:active": true,
+    } as never) as HTMLElement;
+
+    cls("a");
+    expect(el.className).toBe("a active");
+  });
+
+  it("keeps style:* when a bare style is applied, either source order", () => {
+    const a = createElement("div", {
+      "style:color": "red",
+      style: "width: 100%",
+    } as never) as HTMLElement;
+    const b = createElement("div", {
+      style: "width: 100%",
+      "style:color": "red",
+    } as never) as HTMLElement;
+
+    for (const el of [a, b]) {
+      expect(el.style.getPropertyValue("color")).toBe("red");
+      expect(el.style.getPropertyValue("width")).toBe("100%");
+    }
+  });
+
+  it("keeps style:* across reactive style updates, string and object", () => {
+    const css = signal("width: 100%");
+    const el = createElement("div", {
+      "style:color": "red",
+      style: css,
+    } as never) as HTMLElement;
+
+    css("width: 50%");
+    expect(el.style.getPropertyValue("color")).toBe("red");
+    expect(el.style.getPropertyValue("width")).toBe("50%");
+
+    const obj = signal<Record<string, string>>({ top: "1px", left: "2px" });
+    const el2 = createElement("div", {
+      "style:color": "red",
+      style: obj,
+    } as never) as HTMLElement;
+
+    obj({ top: "3px" });
+    expect(el2.style.getPropertyValue("color")).toBe("red");
+    expect(el2.style.getPropertyValue("top")).toBe("3px");
+    // Object form merges, so a key that leaves the object is not cleared.
+    expect(el2.style.getPropertyValue("left")).toBe("2px");
+  });
+});
 
 describe("event handlers", () => {
   it("attaches a listener for `on:click={fn}`", () => {
@@ -443,6 +562,25 @@ describe("event handlers", () => {
     spy.mockClear();
     el.dispatchEvent(new CustomEvent("myevent"));
     expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("accepts a signal-of-handler for `on:click` and re-subscribes on change", () => {
+    const first = vi.fn();
+    const second = vi.fn();
+    const handler = signal<(e: Event) => void>(first);
+    const btn = createElement("button", {
+      "on:click": handler,
+    }) as HTMLButtonElement;
+
+    btn.click();
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(second).not.toHaveBeenCalled();
+
+    handler(second);
+    btn.click();
+    expect(second).toHaveBeenCalledTimes(1);
+    // Old handler detached — not called again.
+    expect(first).toHaveBeenCalledTimes(1);
   });
 });
 

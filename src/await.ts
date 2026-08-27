@@ -1,11 +1,11 @@
-import type { Child } from "@/jsx-runtime/types";
-import { isReactive } from "@/signals";
+import type { Children } from "@/jsx-runtime/children";
+import type { Props } from "@/jsx-runtime/infer";
 import { ASYNC_REGION, effectsInert } from "@/signals/lib";
 import { isReactivePromiseLike, promise } from "@/utilities/promise";
 import { isAsyncLike } from "@/utilities/async";
 
 interface AwaitableLike {
-  state: "pending" | "fulfilled" | "rejected";
+  state: "idle" | "pending" | "fulfilled" | "rejected";
 }
 
 /** @internal Metadata stamped on an Await region getter (see claim walk). */
@@ -24,8 +24,12 @@ function isThenable(value: unknown): value is PromiseLike<unknown> {
   );
 }
 
-function toAwaitables(value: unknown): (AwaitableLike & PromiseLike<unknown>)[] {
-  const list = Array.isArray(value) ? (value as unknown[]).flat(Infinity) : [value];
+function toAwaitables(
+  value: unknown,
+): (AwaitableLike & PromiseLike<unknown>)[] {
+  const list = Array.isArray(value)
+    ? (value as unknown[]).flat(Infinity)
+    : [value];
   const out: (AwaitableLike & PromiseLike<unknown>)[] = [];
   for (const item of list) {
     if (isReactivePromiseLike(item) || isAsyncLike(item)) {
@@ -73,21 +77,24 @@ function toAwaitables(value: unknown): (AwaitableLike & PromiseLike<unknown>)[] 
  * </Await>
  * ```
  */
-export function Await(props: {
-  fallback?: Child | (() => Child);
-  when?: unknown;
-  children?: Child;
-}): Element {
-  // Props arrive as resolveProps getters. Branded values (a ComputedPromise
-  // or Async child, a signal) pass through resolveProps unchanged — keep the
-  // object itself; plain thunks unwrap.
-  const read = (value: unknown): unknown =>
-    typeof value === "function" && !isReactive(value as never)
-      ? (value as () => unknown)()
-      : value;
+// Await's children may also be raw awaitables (promise()/async() values, or
+// arrays mixing them with regular children) — `toAwaitables` picks them out.
+type AwaitChildren =
+  | Children
+  | PromiseLike<Children>
+  | (Children | PromiseLike<Children>)[];
 
-  const children = read(props.children);
-  const when = read(props.when);
+export function Await(
+  props: Props<{
+    fallback?: Children;
+    when?: unknown;
+    children?: AwaitChildren;
+  }>,
+): Element {
+  // Props arrive exactly as written, so an awaitable child, a signal, or a
+  // plain value is already the thing itself — nothing to unwrap.
+  const children = props.children;
+  const when = props.when;
   const fromChildren = toAwaitables(children);
   const awaitables = when != null ? toAwaitables(when) : fromChildren;
 
@@ -102,9 +109,14 @@ export function Await(props: {
   }
 
   const fallback = props.fallback as unknown;
-  const pending = () => awaitables.some((a) => a.state === "pending");
+  // Not-yet-settled counts as pending — an idle async child (deferred run not
+  // yet fired during hydration) must keep the server content, not swap it out.
+  const pending = () =>
+    awaitables.some((a) => a.state !== "fulfilled" && a.state !== "rejected");
+  // A thunk fallback stays a thunk: `mountChild` calls it, so the fallback
+  // renders fresh each time the boundary re-enters a pending state.
   const region = () =>
-    pending() ? (read(fallback) as Child) : (children as Child);
+    pending() ? (fallback as Children) : (children as Children);
   // Hydration metadata: the server consumed one ek-data id for the boundary
   // (it renders as an async insertion point when awaitables exist) plus one
   // per async child re-emitted inside; the claim walk advances its counter

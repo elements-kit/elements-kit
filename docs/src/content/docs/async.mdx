@@ -79,15 +79,21 @@ sentinelInView.subscribe(() => loadMore.run());
 
 ## Reactive state
 
-`Async` exposes the same reactive state interface as `ReactivePromise`:
+`Async` exposes the same reactive state interface as `ReactivePromise`, plus an
+`"idle"` state for the window before the first `run()` / `start()`:
 
 ```ts
-op.state;   // "pending" | "fulfilled" | "rejected"
+op.state;   // "idle" | "pending" | "fulfilled" | "rejected"
 op.value;   // resolved value (T | undefined)
 op.reason;  // rejection reason (E | undefined)
-op.result;  // value if fulfilled, reason if rejected, undefined if pending
-op.pending; // true while pending
+op.result;  // value if fulfilled, reason if rejected, undefined otherwise
+op.pending; // true only while a run is in flight
 ```
+
+Unlike a bare `ReactivePromise` (which wraps an already in-flight promise and so
+starts `pending`), an `Async` is a lazy runner: with no request yet it starts
+`idle` and `op.pending` is `false` until you trigger a run. Drive loading UI off
+`op.pending` and it stays quiet until then.
 
 All properties are reactive — reading them inside an `effect` or `computed` subscribes to changes.
 

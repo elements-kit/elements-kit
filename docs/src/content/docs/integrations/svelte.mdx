@@ -19,25 +19,30 @@ defineElement("x-counter", XCounter);
 
 ## Source the prop shape from the class
 
-Two helpers exported from `elements-kit/jsx-runtime`:
+Three type helpers exported from `elements-kit/custom-elements` read the raw platform surface off the class. All three take the constructor (`typeof XCounter`); `PropertiesOf` also accepts an instance type.
 
 | Helper | Shape | Use when |
 |---|---|---|
-| `InstanceProps<I>` | Public instance fields only (drops the `HTMLElement` surface) | You want to type just the user-defined props |
-| `ElementProps<C>` | Full elements-kit JSX surface — attrs, fields, events from `static events`, slots from `[SLOTS]`, children | Your element declares typed events or slots and you want callers to see them |
+| `PropertiesOf<typeof XCounter>` | Public instance fields, all optional — the `HTMLElement` surface is dropped; `Slot`-typed fields accept a `Node` | Typing property assignments — prop bindings, wrappers, helper functions |
+| `AttributesOf<typeof XCounter>` | Every key of `static [ATTRIBUTES]`, valued `string \| null` | Typing the raw HTML attribute surface — `setAttribute`, server-rendered markup |
+| `EventsOf<typeof XCounter>` | The `static events` map, verbatim — event name to event type | Typing `addEventListener`, framework event bindings, `HTMLElementEventMap` augmentations |
 
-For most Svelte wiring `InstanceProps<XCounter>` is enough.
+Namespaced JSX props (`on:*`, `class:*`) don't exist in other
+frameworks. Slot content is set at property level (they're regular
+properties — assign to fill, read to inspect; `PropertiesOf` types those
+keys as content), and events attach with `addEventListener`, typed via
+`EventsOf`.
 
 ## Augment Svelte's `SvelteHTMLElements`
 
 ```ts
 import type { HTMLAttributes } from "svelte/elements";
-import type { InstanceProps } from "elements-kit/jsx-runtime";
+import type { PropertiesOf } from "elements-kit/custom-elements";
 import type { XCounter } from "./x-counter";
 
 declare module "svelte/elements" {
   export interface SvelteHTMLElements {
-    "x-counter": HTMLAttributes<XCounter> & InstanceProps<XCounter>;
+    "x-counter": HTMLAttributes<XCounter> & PropertiesOf<typeof XCounter>;
   }
 }
 
@@ -52,10 +57,9 @@ Put the `declare module "svelte/elements"` block in the same file as the element
 
 ```ts
 // x-counter.ts
-import { defineElement } from "elements-kit/custom-elements";
+import { defineElement, type PropertiesOf } from "elements-kit/custom-elements";
 import { reactive } from "elements-kit/signals";
 import type { HTMLAttributes } from "svelte/elements";
-import type { InstanceProps } from "elements-kit/jsx-runtime";
 
 export class XCounter extends HTMLElement {
   @reactive() count = 0;
@@ -65,7 +69,7 @@ defineElement("x-counter", XCounter);
 
 declare module "svelte/elements" {
   export interface SvelteHTMLElements {
-    "x-counter": HTMLAttributes<XCounter> & InstanceProps<XCounter>;
+    "x-counter": HTMLAttributes<XCounter> & PropertiesOf<typeof XCounter>;
   }
 }
 ```

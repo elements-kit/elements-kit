@@ -3,7 +3,6 @@ title: Astro
 description: Render elements-kit components as Astro islands — server-rendered, hydrated on the client — or use custom elements directly.
 ---
 
-import { Aside } from "@astrojs/starlight/components";
 import AstroCounter from "@/components/AstroCounter.tsx";
 import AstroAsync from "@/components/AstroAsync.tsx";
 import AstroList from "@/components/AstroList.tsx";
@@ -75,6 +74,16 @@ All Astro client directives work (`client:load`, `client:idle`, `client:visible`
 - `async`/`promise` values render on the server, serialize, and [seed the client instance](/server-rendering#async-data) — with `async` + `.run()`, the client fetch is skipped entirely.
 - Props must serialize (Astro's island contract) and the component must render the same tree on server and client.
 
+### Hot module replacement
+
+Editing a component swaps it in place — no page reload. The integration installs the [Vite plugin](/integrations/vite) for you, which covers how swapping works and what it costs. Two behaviours are specific to islands.
+
+**Island roots re-mount instead of swapping.** Astro mounts the root component itself rather than through JSX, so it has no swappable boundary — editing it rebuilds the island and resets everything under it. Components _inside_ the island swap normally.
+
+**Hydrated islands need one warm-up edit.** Hydration adopts server-rendered DOM instead of rendering it, so nothing inside a `client:load` island has a boundary yet and the first edit re-mounts the island. That re-mount renders normally, so every edit after it is component-level. `client:only` islands skip this — they render from the start.
+
+Edits that reach beyond the island — the parent `.astro` file, `astro.config.mjs` — still reload the page.
+
 ## Lists
 
 `<For>` rows are adopted at hydration and reconciled in place afterwards — reordering moves the existing DOM nodes:
@@ -102,7 +111,7 @@ export default function Demo() {
 
 ## Slots
 
-Islands accept Astro slot content — the integration delivers it as pre-rendered HTML mapped to `children` (default slot) and `slot:<name>` props:
+Islands accept Astro slot content — the integration delivers it as pre-rendered HTML mapped to `children` (default slot) and named props:
 
 <IslandDemo>
   <AstroCard client:load>
@@ -121,11 +130,11 @@ Islands accept Astro slot content — the integration delivers it as pre-rendere
 ```tsx
 export default function AstroCard(props: {
   children?: unknown;          // default slot
-  "slot:header"?: unknown;     // named slot
+  header?: unknown;            // named slot
 }) {
   return (
     <section>
-      <header>{props["slot:header"]}</header>
+      <header>{props.header}</header>
       {props.children}
     </section>
   );
@@ -224,12 +233,13 @@ The [environment guard](/utilities/environment) (`isBrowser`) is only needed for
 
 ### Source the prop shape from the class
 
-Two helpers exported from `elements-kit/jsx-runtime`:
+Three type helpers exported from `elements-kit/custom-elements` read the raw platform surface off the class. All three take the constructor (`typeof XCounter`); `PropertiesOf` also accepts an instance type.
 
 | Helper | Shape | Use when |
 |---|---|---|
-| `InstanceProps<I>` | Public instance fields only (drops the `HTMLElement` surface) | Annotating setters, wrapper props, or helper functions |
-| `ElementProps<C>` | Full elements-kit JSX surface — attrs, fields, events from `static events`, slots from `[SLOTS]`, children | When you need the full declared surface |
+| `PropertiesOf<typeof XCounter>` | Public instance fields, all optional — the `HTMLElement` surface is dropped; `Slot`-typed fields accept a `Node` | Typing property assignments — prop bindings, wrappers, helper functions |
+| `AttributesOf<typeof XCounter>` | Every key of `static [ATTRIBUTES]`, valued `string \| null` | Typing the raw HTML attribute surface — `setAttribute`, server-rendered markup |
+| `EventsOf<typeof XCounter>` | The `static events` map, verbatim — event name to event type | Typing `addEventListener`, framework event bindings, `HTMLElementEventMap` augmentations |
 
 ### Typed `document.querySelector` and `createElement`
 

@@ -1,7 +1,7 @@
 {
   "name": "elements-kit",
   "type": "module",
-  "version": "0.21.0",
+  "version": "0.27.1",
   "description": "A lightweight reactive UI library that transforms native HTMLElements into reactive components with signals. Ideal for framework-agnostic applications and web components.",
   "keywords": [
     "webcomponents",
@@ -90,9 +90,9 @@
       "types": "./dist/jsx-runtime/index.d.mts"
     },
     "./jsx-dev-runtime": {
-      "source": "./src/jsx-runtime/index.ts",
-      "import": "./dist/jsx-runtime/index.mjs",
-      "types": "./dist/jsx-runtime/index.d.mts"
+      "source": "./src/jsx-runtime/dev.ts",
+      "import": "./dist/jsx-runtime/dev.mjs",
+      "types": "./dist/jsx-runtime/dev.d.mts"
     },
     "./integrations/*": {
       "source": "./src/integrations/*.ts",
@@ -139,6 +139,7 @@
     "happy-dom": "^20.8.9",
     "playwright": "^1.61.1",
     "puppeteer-core": "^24.0.0",
+    "jsdom": "^30.0.1",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "tsdown": "0.22.0",
@@ -147,6 +148,7 @@
   },
   "dependencies": {
     "@floating-ui/dom": "^1.7.6",
+    "csstype": "^3.2.3",
     "dom-expressions": "^0.40.6"
   },
   "peerDependencies": {

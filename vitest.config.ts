@@ -1,13 +1,32 @@
-import { transform } from "esbuild";
 import { playwright } from "@vitest/browser-playwright";
-import { defineConfig } from "vitest/config";
+import { defineConfig, type Plugin } from "vitest/config";
 import { resolve } from "path";
+import { transform } from "esbuild";
+
+// Oxc (the vite 8 transformer) has no standard-decorator lowering (only
+// `legacy`), and Node can't parse `@decorator` syntax — so any test file
+// using TC39 decorators (@slot, @reactive, …) is routed through esbuild.
+const esbuildDecorators: Plugin = {
+  name: "esbuild-standard-decorators",
+  enforce: "pre",
+  async transform(code, id) {
+    if (!/\.tsx?$/.test(id) || id.includes("node_modules")) return;
+    if (!/^\s*@[a-zA-Z]/m.test(code)) return;
+    const result = await transform(code, {
+      loader: id.endsWith(".tsx") ? "tsx" : "ts",
+      target: "es2022",
+      tsconfigRaw: { compilerOptions: { experimentalDecorators: false } },
+    });
+    return { code: result.code, map: result.map };
+  },
+};
 
 /** A decorator at the start of a (possibly indented) line. */
 const DECORATOR = /^\s*@[A-Za-z_$]/m;
 
 export default defineConfig({
   plugins: [
+    esbuildDecorators,
     {
       // Oxc passes standard (2023-11) decorators through UNTRANSFORMED
       // and V8 has no native support — `@reactive()` fields would throw
@@ -81,6 +100,14 @@ export default defineConfig({
           },
         },
       },
+    ],
+    environment: "happy-dom",
+    setupFiles: ["./vitest.setup.ts"],
+    exclude: [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/playground/**",
+      "**/docs/**",
     ],
   },
 });

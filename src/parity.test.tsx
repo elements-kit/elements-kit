@@ -31,7 +31,7 @@ type Spec =
   | { kind: "text"; value: string }
   | { kind: "dynamic"; value: string } // () => value child
   | { kind: "signal"; value: string } // signal child
-  | { kind: "el"; tag: string; attrs: Record<string, string>; toggles: string[]; children: Spec[] }
+  | { kind: "el"; tag: string; attrs: Record<string, string>; toggles: string[];  children: Spec[] }
   | { kind: "frag"; children: Spec[] }
   | { kind: "html"; markup: string }
   | { kind: "cond"; on: boolean; branch: Spec }
@@ -68,6 +68,9 @@ function genSpec(rnd: () => number, depth: number): Spec {
   const attrs: Record<string, string> = {};
   if (rnd() < 0.6) attrs.title = pick(WORDS);
   if (rnd() < 0.4) attrs["data-x"] = pick(WORDS);
+  // Bare `class` alongside `class:` toggles — the server merges both into one
+  // attribute, so the client must not clobber the toggles.
+  if (rnd() < 0.4) attrs.class = pick(["w-full", "base pad", "x-input"]);
   return {
     kind: "el",
     tag: pick(TAGS),
@@ -112,8 +115,11 @@ function build(spec: Spec): unknown {
         children: spec.children.map(build),
       } as never);
     case "el": {
-      const props: Record<string, unknown> = { ...spec.attrs };
+      // Toggles first, so `class:*` precedes a bare `class` — the order in
+      // which a naive className assignment would drop the toggles.
+      const props: Record<string, unknown> = {};
       for (const t of spec.toggles) props[`class:${t}`] = true;
+      Object.assign(props, spec.attrs);
       props.children = spec.children.map(build);
       return createElement(spec.tag, props as never);
     }

@@ -2,7 +2,8 @@
    [data-radius="…"] below; :root defaults it to medium so radius resolves even with
    no data-radius ancestor. Both selectors share one definition. */
 :where(:root),
-[data-radius] {
+[data-radius],
+[data-scaling] {
   --radius-1: calc(3px * var(--scaling) * var(--radius-factor));
   --radius-2: calc(4px * var(--scaling) * var(--radius-factor));
   --radius-3: calc(6px * var(--scaling) * var(--radius-factor));

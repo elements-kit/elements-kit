@@ -35,18 +35,19 @@
 /*       UA margin reset (scoped)      */
 /* * * * * * * * * * * * * * * * * * * */
 
-.hero :is(h1, h2, h3, h4, h5, h6, p),
-.section-header :is(h1, h2, h3, h4, h5, h6, p),
-.section-heading,
-.section-paragraph,
-.river-content :is(h1, h2, h3, h4, h5, h6, p),
-.pillar :is(h1, h2, h3, h4, h5, h6, p, [data-heading], [data-paragraph]),
-.cta-banner :is(h1, h2, h3, h4, h5, h6, p),
-.testimonial :is(blockquote, figcaption, cite, p),
-.statistic :is(p, [data-leading], [data-heading], [data-description]) {
-  margin: 0;
+@layer unset {
+  .hero :is(h1, h2, h3, h4, h5, h6, p),
+  .section-header :is(h1, h2, h3, h4, h5, h6, p),
+  .section-heading,
+  .section-paragraph,
+  .river-content :is(h1, h2, h3, h4, h5, h6, p),
+  .pillar :is(h1, h2, h3, h4, h5, h6, p, [data-heading], [data-paragraph]),
+  .cta-banner :is(h1, h2, h3, h4, h5, h6, p),
+  .testimonial :is(blockquote, figcaption, cite, p),
+  .statistic :is(p, [data-leading], [data-heading], [data-description]) {
+    margin: 0;
+  }
 }
-
 /* * * * * * * * * * * * * * * * * * * */
 /*                Hero                 */
 /* * * * * * * * * * * * * * * * * * * */
@@ -80,7 +81,7 @@
 @media (min-width: 64rem) {
   .hero .section-paragraph {
     font-size: var(--font-size-5);
-    line-height: var(--line-height-5);
+    line-height: var(--line-height-6);
   }
 }
 
@@ -134,6 +135,37 @@
 }
 
 /* * * * * * * * * * * * * * * * * * * */
+/*             Page gutter             */
+/* * * * * * * * * * * * * * * * * * * */
+
+/* Gutter: viewport edge → `.page-container` content box. Half the leftover
+ * space once the max-width cap bites, plus the container's own padding; below
+ * the cap there is no leftover and it collapses to the padding alone. Derived
+ * from the `--page-*` variables above rather than authored — it exists so an
+ * element outside the container can line up with the content inside it.
+ *
+ * `100cqi` reads the viewport unless an ancestor sets `container-type:
+ * inline-size` — do that on a page wrapper to drop the classic scrollbar width
+ * from the math, but not on `body` (it would trap `position: fixed` children).
+ */
+:root {
+  --page-gutter-left: max(
+    calc(
+      (100cqi - var(--page-max-width, 72rem)) / 2 +
+        var(--page-padding-left, 1rem)
+    ),
+    var(--page-padding-left, 1rem)
+  );
+  --page-gutter-right: max(
+    calc(
+      (100cqi - var(--page-max-width, 72rem)) / 2 +
+        var(--page-padding-right, 1rem)
+    ),
+    var(--page-padding-right, 1rem)
+  );
+}
+
+/* * * * * * * * * * * * * * * * * * * */
 /*       Section header / type         */
 /* * * * * * * * * * * * * * * * * * * */
 
@@ -178,7 +210,7 @@
 }
 
 .section-heading-1 {
-  font-size: calc(48px * var(--scaling, 1));
+  font-size: calc(40px * var(--scaling, 1));
   line-height: 1;
   font-weight: 550;
   letter-spacing: -0.04em;

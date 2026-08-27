@@ -1,7 +1,7 @@
-import type { Component, ComponentFn } from "../jsx-runtime/types";
 import { isFragmentComponent } from "../jsx-runtime/fragment";
+import type { JSX } from "../jsx-runtime";
 import { isForComponent } from "../for";
-import { isReactive, resolveProps, untracked } from "../signals";
+import { isReactive, untracked } from "../signals";
 import {
   AttrAliases,
   BooleanAttributes,
@@ -75,7 +75,7 @@ const PropertyAttrAliases: Record<string, string | null> = {
 };
 
 export function serverJsx(
-  type: string | Component,
+  type: JSX.ElementType,
   props: Record<string, unknown>,
 ): SNode {
   if (typeof type === "string") return element(type, props);
@@ -98,11 +98,8 @@ export function serverJsx(
   }
   if (isForComponent(type)) return forElement(props);
   if (typeof type === "function" && !type.prototype?.render) {
-    const toGetterProps = resolveProps as unknown as (
-      raw: object,
-    ) => Record<string, unknown>;
     const call = type as unknown as (props: Record<string, unknown>) => unknown;
-    const result = call(toGetterProps(props));
+    const result = call(props);
     return new SNode(child(result));
   }
   const name =
@@ -194,10 +191,7 @@ function element(tag: string, props: Record<string, unknown>): SNode {
   if (classBase !== undefined || classToggles.length > 0) {
     attrs += attr("class", classes.join(" "));
   }
-  const styles = [
-    ...(styleBase ? [styleBase] : []),
-    ...styleEntries,
-  ];
+  const styles = [...(styleBase ? [styleBase] : []), ...styleEntries];
   if (styles.length > 0) attrs += attr("style", styles.join(";"));
 
   const open = `<${tag}${attrs}>`;
@@ -275,12 +269,9 @@ function forElement(props: Record<string, unknown>): SNode {
     typeof each === "function" ? (each as () => unknown[])() : each,
   ) as unknown[];
   const by =
-    (props.by as ((item: unknown, index: number) => string | number)) ??
+    (props.by as (item: unknown, index: number) => string | number) ??
     ((_item: unknown, index: number) => index);
-  const render = props.children as (
-    item: unknown,
-    index: number,
-  ) => unknown;
+  const render = props.children as (item: unknown, index: number) => unknown;
 
   const chunks: Chunk[] = [FOR_OPEN];
   (items ?? []).forEach((item, index) => {

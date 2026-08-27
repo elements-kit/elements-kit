@@ -1,4 +1,3 @@
-import type { Component } from "../jsx-runtime/types";
 import { Fragment, isFragmentComponent } from "../jsx-runtime/fragment";
 import { For, isForComponent, type Entry } from "../for";
 import { createElement } from "../jsx-runtime/element";
@@ -12,14 +11,13 @@ import {
   effectScope,
   isReactive,
   onCleanup,
-  resolveProps,
   untracked,
 } from "../signals";
 import { ASYNC_REGION } from "../signals/lib";
 import type { AsyncRegionMeta } from "../await";
 import { isReactivePromiseLike } from "../utilities/promise";
 import { isAsyncLike } from "../utilities/async";
-import { parseHtml } from "../jsx-runtime/fragment";
+import { parseHtml, type ForeignNamespace } from "../jsx-runtime/fragment";
 
 export interface MismatchInfo {
   expected: string;
@@ -64,6 +62,7 @@ interface FragVNode {
   kind: "frag";
   children: unknown;
   html?: boolean;
+  ns?: ForeignNamespace;
 }
 interface ForVNode {
   [VNODE]: true;
@@ -87,19 +86,17 @@ export const claimRenderer: Renderer = {
         kind: "frag",
         children: props.children,
         html: (props as { html?: boolean }).html === true,
+        ns: (props as { ns?: ForeignNamespace }).ns,
       } as FragVNode;
     }
     if (isForComponent(type)) {
       return { [VNODE]: true, kind: "for", props } as ForVNode;
     }
     if (typeof type === "function" && !type.prototype?.render) {
-      const toGetterProps = resolveProps as unknown as (
-        raw: object,
-      ) => Record<string, unknown>;
       const call = type as unknown as (
         props: Record<string, unknown>,
       ) => unknown;
-      return call(toGetterProps(props));
+      return call(props);
     }
     const name =
       typeof type === "function" ? (type.name ?? "anonymous") : String(type);
@@ -149,7 +146,7 @@ function walkChild(cur: Cursor, c: unknown, om?: OnMismatch): void {
   if (c == null || typeof c === "boolean") return;
   if (isVNode(c)) {
     if (c.kind === "frag") {
-      if (c.html) return claimRawRegion(cur, c.children, om);
+      if (c.html) return claimRawRegion(cur, c.children, c.ns, om);
       return walkList(cur, c.children, om);
     }
     if (c.kind === "for") return claimFor(cur, c, om);
@@ -251,7 +248,11 @@ function splitProps(props: Record<string, unknown>): {
 
 // ─ Dynamic children (slot markers) ────────────────────────────────────────────
 
-function claimDynamic(cur: Cursor, getter: () => unknown, om?: OnMismatch): void {
+function claimDynamic(
+  cur: Cursor,
+  getter: () => unknown,
+  om?: OnMismatch,
+): void {
   // Await boundaries rendered as async insertion points on the server:
   // mirror the ids the server consumed, and keep the server content for as
   // long as the region is pending — never flash the fallback over it (even
@@ -275,7 +276,7 @@ function claimDynamic(cur: Cursor, getter: () => unknown, om?: OnMismatch): void
 }
 
 interface AsyncLike {
-  state: "pending" | "fulfilled" | "rejected";
+  state: "idle" | "pending" | "fulfilled" | "rejected";
   result: unknown;
 }
 
@@ -298,8 +299,8 @@ function claimAsync(cur: Cursor, p: AsyncLike, om?: OnMismatch): void {
   const slot = claimSlot(cur, om);
   effect(() => {
     // Server content stays visible until the client-side value settles —
-    // hydration does not blank pending async regions.
-    if (p.state === "pending") return;
+    // hydration does not blank pending (or not-yet-run idle) async regions.
+    if (p.state !== "fulfilled" && p.state !== "rejected") return;
     slot.set(resolveChild(p.result as never));
   });
   onCleanup(() => slot.clear());
@@ -310,7 +311,7 @@ function claimSlot(cur: Cursor, om?: OnMismatch): Slot {
   if (range) return Slot.claim(range.start, range.end);
   om?.({ expected: "<!--{-->", found: cur.node });
   const slot = new Slot();
-  cur.parent.insertBefore(slot.render(), cur.node);
+  cur.parent.insertBefore(slot.get(), cur.node);
   return slot;
 }
 
@@ -346,7 +347,12 @@ function claimMarkerRange(
 // ─ Raw HTML ───────────────────────────────────────────────────────────────────
 
 /** `<Fragment html>` region: adopt the server markup between the markers. */
-function claimRawRegion(cur: Cursor, source: unknown, om?: OnMismatch): void {
+function claimRawRegion(
+  cur: Cursor,
+  source: unknown,
+  ns: ForeignNamespace | undefined,
+  om?: OnMismatch,
+): void {
   const claimed =
     cur.node?.nodeType === Node.COMMENT_NODE &&
     (cur.node as Comment).data === "{";
@@ -354,7 +360,7 @@ function claimRawRegion(cur: Cursor, source: unknown, om?: OnMismatch): void {
   if (typeof source !== "function") {
     // Claimed static region: server content is already correct. Fresh-built
     // (mismatch) region: fill it.
-    if (!claimed && source != null) slot.set(parseHtml(String(source)));
+    if (!claimed && source != null) slot.set(parseHtml(String(source), ns));
     return;
   }
   // Reactive: keep the server content on the tracking first run, re-render
@@ -367,7 +373,7 @@ function claimRawRegion(cur: Cursor, source: unknown, om?: OnMismatch): void {
       first = false;
       return;
     }
-    slot.set(parseHtml(value == null ? "" : String(value)));
+    slot.set(parseHtml(value == null ? "" : String(value), ns));
   });
   onCleanup(() => slot.clear());
 }
@@ -492,15 +498,24 @@ function buildVNode(v: VNode): Node {
     return createElement(v.tag, props) as Node;
   }
   if (v.kind === "frag") {
+    // A raw region rebuilds as one, or its markup would render as text. The
+    // source passes through raw — a thunk would stringify a reactive getter.
+    if (v.html) {
+      return Fragment({
+        html: true,
+        ns: v.ns,
+        children: v.children as never,
+      });
+    }
     return Fragment({
       children: (() => buildChildValue(v.children)) as never,
     });
   }
-  return createElement(For as unknown as Component, v.props) as Node;
+  return createElement(For, v.props) as Node;
 }
 
 function buildChildValue(c: unknown): unknown {
-  if (Array.isArray(c)) return (c as unknown[]).map(buildChildValue);
+  if (Array.isArray(c)) return c.map(buildChildValue);
   if (isVNode(c)) return buildVNode(c);
   return c;
 }

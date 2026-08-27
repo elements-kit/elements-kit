@@ -1,0 +1,70 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write # create the GitHub Release
+  id-token: write # mint the OIDC token npm exchanges for publish rights
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4 # version from package.json packageManager
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      # Trusted publishing needs npm >= 11.5.1; the npm bundled with Node 24 may be older.
+      - name: Update npm
+        run: npm i -g npm@latest
+
+      - name: Resolve tag
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg="$(node -p 'require("./package.json").version')"
+          if [ "$tag" != "$pkg" ]; then
+            echo "tag $tag does not match package.json $pkg" >&2
+            exit 1
+          fi
+          # Semver puts a hyphen before the prerelease component: 0.30.0-rc.1
+          case "$tag" in
+            *-*) echo "NPM_TAG=next"   >> "$GITHUB_ENV"
+                 echo "GH_FLAGS=--prerelease" >> "$GITHUB_ENV" ;;
+            *)   echo "NPM_TAG=latest" >> "$GITHUB_ENV"
+                 echo "GH_FLAGS=" >> "$GITHUB_ENV" ;;
+          esac
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # A tag can point at any commit, including one that never ran CI.
+      # Build first: stories import subpaths like `elements-kit/signals`, which resolve
+      # through package.json exports to dist/*.d.mts. Typechecking before dist exists fails.
+      - name: Build library
+        run: pnpm build
+
+      - name: Typecheck
+        run: |
+          pnpm exec tsc --build storybook
+          pnpm exec tsc --noEmit
+
+      - name: Unit, property & fuzz tests
+        run: pnpm test
+
+      # OIDC supplies both the credential and the provenance attestation.
+      - name: Publish
+        run: npm publish --tag "$NPM_TAG"
+
+      # GH_FLAGS unquoted on purpose — must expand to zero words for a stable release.
+      - name: GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --generate-notes $GH_FLAGS

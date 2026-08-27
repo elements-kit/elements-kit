@@ -19,7 +19,6 @@
 | [src/integrations/react.ts](src/integrations/react.ts) | `useSignal`, `useScope` |
 | [src/utilities/](src/utilities/) | Reactive browser-API helpers — [catalog](src/utilities/README.md) |
 | [src/utilities/environment.ts](src/utilities/environment.ts) | `isBrowser` guard |
-| [src/lib.ts](src/lib.ts) | Internal signal engine (not public) |
 | [src/polyfill.ts](src/polyfill.ts) | `Symbol.dispose` shim only |
 | [docs/](docs/) | Astro + Starlight docs |
 | [docs/src/content/docs/](docs/src/content/docs/) | `.mdx` guides |

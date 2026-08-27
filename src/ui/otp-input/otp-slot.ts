@@ -1,5 +1,5 @@
 import { ATTRIBUTES, type AttrChangeHandler } from "@/attributes.ts";
-import { isBrowser } from "@/utilities/environment.ts";
+import { HTMLElementBase, isBrowser } from "@/utilities/environment.ts";
 
 /**
  * `<x-otp-slot index="N">` — one visual cell of an `<x-otp-input>`. Purely
@@ -7,7 +7,7 @@ import { isBrowser } from "@/utilities/environment.ts";
  * `<x-otp-input>` paints its character and active / caret / disabled state by
  * index; all styling lives in the companion CSS.
  */
-export class XOtpSlot extends HTMLElement {
+export class XOtpSlot extends HTMLElementBase {
   // Type-only: gives JSX a typed `index` attribute prop. No property is
   // declared, so the runtime writes a real attribute — which is what the
   // parent `<x-otp-input>` reads (`getAttribute("index")`).

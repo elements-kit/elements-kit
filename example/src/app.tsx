@@ -8,18 +8,11 @@ import {
   untracked,
   trigger,
   reactive,
+  resolve,
 } from "elements-kit/signals";
 import { For } from "elements-kit/for";
-import {
-  attributes,
-  ATTRIBUTES,
-  type Attributes,
-} from "elements-kit/attributes";
-import { defineElement } from "elements-kit/custom-elements";
-import type {
-  MaybeReactiveProps,
-  ReactiveProps,
-} from "elements-kit/jsx-runtime";
+import type { MaybeReactiveProps, Props } from "elements-kit/jsx-runtime";
+import "./ce-greeting";
 
 // ============ Demo 1: Counter ============
 const count = signal(0);
@@ -100,7 +93,7 @@ export class App {
                 style={{
                   padding: "6px 12px",
                   border: "none",
-                  "border-radius": "4px",
+                  borderRadius: "4px",
                   cursor: "pointer",
                 }}
               >
@@ -144,11 +137,11 @@ function DemoCounter() {
           style={{
             background: "#f9fafb",
             padding: "0.5rem",
-            "border-radius": "4px",
-            "max-height": "100px",
+            borderRadius: "4px",
+            maxHeight: "100px",
             overflow: "auto",
-            "font-family": "monospace",
-            "font-size": "0.85em",
+            fontFamily: "monospace",
+            fontSize: "0.85em",
           }}
         >
           <For each={logs} by={(log, i) => i}>
@@ -198,11 +191,11 @@ function DemoBatch() {
           style={{
             background: "#f9fafb",
             padding: "0.5rem",
-            "border-radius": "4px",
-            "max-height": "100px",
+            borderRadius: "4px",
+            maxHeight: "100px",
             overflow: "auto",
-            "font-family": "monospace",
-            "font-size": "0.85em",
+            fontFamily: "monospace",
+            fontSize: "0.85em",
           }}
         >
           <For each={batchLogs} by={(log) => log}>
@@ -234,11 +227,11 @@ function DemoCleanup() {
           style={{
             background: "#f9fafb",
             padding: "0.5rem",
-            "border-radius": "4px",
-            "max-height": "100px",
+            borderRadius: "4px",
+            maxHeight: "100px",
             overflow: "auto",
-            "font-family": "monospace",
-            "font-size": "0.85em",
+            fontFamily: "monospace",
+            fontSize: "0.85em",
           }}
         >
           <For each={fetchLogs} by={(log, i) => i}>
@@ -289,11 +282,11 @@ function DemoEffectScope() {
           style={{
             background: "#f9fafb",
             padding: "0.5rem",
-            "border-radius": "4px",
-            "max-height": "100px",
+            borderRadius: "4px",
+            maxHeight: "100px",
             overflow: "auto",
-            "font-family": "monospace",
-            "font-size": "0.85em",
+            fontFamily: "monospace",
+            fontSize: "0.85em",
           }}
         >
           <For each={scopeLogs} by={(log, i) => i}>
@@ -331,11 +324,11 @@ function DemoUntracked() {
           style={{
             background: "#f9fafb",
             padding: "0.5rem",
-            "border-radius": "4px",
-            "max-height": "100px",
+            borderRadius: "4px",
+            maxHeight: "100px",
             overflow: "auto",
-            "font-family": "monospace",
-            "font-size": "0.85em",
+            fontFamily: "monospace",
+            fontSize: "0.85em",
           }}
         >
           <For each={untrackedLogs} by={(log, i) => i}>
@@ -353,12 +346,12 @@ const propsName = signal("Wael");
 const propsExcited = signal(false);
 const propsNameUpper = computed(() => propsName().toUpperCase());
 
-// — Function component — props auto-wrapped into per-key getters
-function FnGreeting(props: ReactiveProps<{ name: string; excited?: boolean }>) {
+// — Function component — props arrive as written; `Props<P>` takes either form
+function FnGreeting(props: Props<{ name: string; excited?: boolean }>) {
   return (
     <p style="margin: 0;">
-      <code>[fn]</code> Hello {() => props.name()}
-      {() => (props.excited?.() ? "!" : ".")}
+      <code>[fn]</code> Hello {props.name}
+      {() => (resolve(props.excited) ? "!" : ".")}
     </p>
   );
 }
@@ -366,7 +359,7 @@ function FnGreeting(props: ReactiveProps<{ name: string; excited?: boolean }>) {
 // — Class component — constructor-typed props, applyProps assigns each key
 class ClassGreeting {
   constructor(
-    _props?: MaybeReactiveProps<{ name: string; excited?: boolean }>,
+    _props?: MaybeReactiveProps<{ name?: string; excited?: boolean }>,
   ) {}
   @reactive() name: string = "world";
   @reactive() excited: boolean = false;
@@ -377,40 +370,6 @@ class ClassGreeting {
         {() => (this.excited ? "!" : ".")}
       </p>
     ) as Element;
-  }
-}
-
-// — Custom element — @attributes + @reactive fields, registered globally
-@attributes
-class CeGreeting extends HTMLElement {
-  @reactive() name: string = "world";
-  @reactive() excited: boolean = false;
-  static [ATTRIBUTES]: Attributes<CeGreeting> = {
-    name(v) {
-      this.name = v ?? "world";
-    },
-    excited(v) {
-      this.excited = v != null;
-    },
-  };
-  connectedCallback() {
-    const root = this.attachShadow({ mode: "open" });
-    root.appendChild(
-      (
-        <p style="margin: 0;">
-          <code>[ce]</code> Hello {() => this.name}
-          {() => (this.excited ? "!" : ".")}
-        </p>
-      ) as Element,
-    );
-  }
-}
-defineElement("ce-greeting", CeGreeting);
-declare global {
-  namespace ElementsKit {
-    interface CustomElementRegistry {
-      "ce-greeting": typeof CeGreeting;
-    }
   }
 }
 

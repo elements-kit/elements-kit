@@ -32,13 +32,14 @@ render(document.getElementById("app")!, () => (
   </section>
 ));
 ---
-// 3. Function component. Props arrive as callable getters (Computed<T>).
-import { signal, computed } from "elements-kit/signals";
+// 3. Function component. Props arrive as written — `Props<P>` accepts a value
+//    or a signal per key, and `resolve` reads whichever came.
+import { signal, computed, resolve } from "elements-kit/signals";
 import { render } from "elements-kit/render";
-import type { ReactiveProps } from "elements-kit/jsx-runtime";
+import type { Props } from "elements-kit/jsx-runtime";
 
-function Counter(props: ReactiveProps<{ initial?: number }>): Element {
-  const count = signal(props.initial() ?? 0);
+function Counter(props: Props<{ initial?: number }>): Element {
+  const count = signal(resolve(props.initial) ?? 0);
   const doubled = computed(() => count() * 2);
 
   return (
@@ -117,7 +118,7 @@ customElements.define("x-counter", CounterElement);
 
 - **Step 1 — signals.** `signal(0)` holds state; `computed(() => count() * 2)` derives from it. Both are framework-agnostic — no DOM involved.
 - **Step 2 — signals + JSX.** `render(target, setup)` runs `setup` inside an [`effectScope`](/scopes), appends the returned node to `target`, and hands back a single `unmount` thunk. `{count}` creates a live text node that updates in place — no diffing, no re-render.
-- **Step 3 — function component.** Props are typed with `ReactiveProps<T>`; each key on `props` arrives as a `Computed<T>` (callable getter). Return type is `Element` — a real DOM node.
+- **Step 3 — function component.** Props are typed with `Props<T>`; each key on `props` arrives as a `Computed<T>` (callable getter). Return type is `Element` — a real DOM node.
 - **Step 4 — class component.** `@reactive()` turns class fields into signals with natural property access. `render(): Element` returns the same shape, called once when the instance mounts.
 - **Step 5 — custom element.** `@attributes` wires the `static [attr]` map so HTML attributes feed reactive properties. `connectedCallback` mounts; `disconnectedCallback` tears down. Usable as a plain HTML tag in any framework or no framework at all.
 

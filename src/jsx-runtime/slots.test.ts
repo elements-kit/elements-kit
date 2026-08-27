@@ -1,78 +1,128 @@
 import { describe, it, expect, vi } from "vitest";
-import { signal, effect } from "../signals";
+import { signal, computed, effect } from "../signals";
 import { createElement, disposeElement } from "./element";
-import { SLOTS, Slot } from "../slot";
+import { slot } from "../slot";
 
-// ─ Helpers ────────────────────────────────────────────────────────────────────
+// ─ Fixture ────────────────────────────────────────────────────────────────────
 
-/** Class component with SLOTS. */
+/**
+ * Class component with `@slot()` properties. Reading the property yields the
+ * slot's region (a fragment) — the template just places it; assignment fills
+ * it from anywhere, before or after mount.
+ */
 class Card {
-  [SLOTS] = { header: new Slot(), body: new Slot() } as const;
+  @slot() header: Node | null = null;
+  @slot() body: Node | null = null;
 
   render() {
-    const div = document.createElement("div");
-    div.appendChild(this[SLOTS].header.render());
-    div.appendChild(this[SLOTS].body.render());
-    return div;
+    return createElement("div", {
+      children: [this.header, this.body],
+    }) as Element;
   }
 }
 
-/** Class component with direct Slot properties. */
-class Panel {
-  title = new Slot();
-  content = new Slot();
+// ─ Slots as plain props (elements-kit JSX) ───────────────────────────────────
 
-  render() {
-    const div = document.createElement("div");
-    div.appendChild(this.title.render());
-    div.appendChild(this.content.render());
-    return div;
-  }
-}
-
-// ─ SLOTS ─────────────────────────────────────────────────────────────────────
-
-describe("SLOTS — plain object", () => {
+describe("@slot — JSX props", () => {
   it("fills a named slot with a static element", () => {
     const header = document.createElement("h1");
     header.textContent = "Hello";
 
-    const el = createElement(Card, { "slot:header": header }) as Element;
+    const el = createElement(Card, { header }) as Element;
     expect(el.querySelector("h1")?.textContent).toBe("Hello");
   });
 
-  it("fills multiple named slots", () => {
+  it("fills multiple slots", () => {
     const header = document.createElement("h1");
     const body = document.createElement("p");
     header.textContent = "Title";
     body.textContent = "Body";
 
-    const el = createElement(Card, {
-      "slot:header": header,
-      "slot:body": body,
-    }) as Element;
+    const el = createElement(Card, { header, body }) as Element;
 
     expect(el.querySelector("h1")?.textContent).toBe("Title");
     expect(el.querySelector("p")?.textContent).toBe("Body");
   });
 
-  it("fills a slot with a reactive function", () => {
+  it("accepts a reactive (computed) node and re-renders on change", () => {
     const s = signal("initial");
+    const node = computed(() => {
+      const h = document.createElement("h1");
+      h.textContent = s();
+      return h;
+    });
 
-    const el = createElement(Card, {
-      "slot:header": () => {
-        const h = document.createElement("h1");
-        h.textContent = s();
-        return h;
-      },
-    }) as Element;
+    const el = createElement(Card, { header: node }) as Element;
 
     expect(el.querySelector("h1")?.textContent).toBe("initial");
     s("updated");
     expect(el.querySelector("h1")?.textContent).toBe("updated");
   });
 
-  it("slot content is disposed when parent is disposed", () => {
+  it("accepts a string (native append semantics — becomes a text node)", () => {
+    const el = createElement(Card, {
+      header: "plain text" as unknown as Node,
+    }) as Element;
+    expect(el.textContent).toContain("plain text");
+  });
+
+  it("accepts an array of children (JSX multi-children)", () => {
+    const a = document.createElement("em");
+    const b = document.createElement("strong");
+    const el = createElement(Card, {
+      header: [a, b] as unknown as Node,
+    }) as Element;
+    expect(el.querySelector("em")).not.toBeNull();
+    expect(el.querySelector("strong")).not.toBeNull();
+  });
+});
+
+// ─ Slots as plain properties (outside elements-kit JSX) ──────────────────────
+
+describe("@slot — direct property assignment", () => {
+  it("assignment fills the slot after mount", () => {
+    const card = new Card();
+    const host = document.createElement("div");
+    host.appendChild(card.render());
+
+    card.header = Object.assign(document.createElement("h1"), {
+      textContent: "assigned",
+    });
+    expect(host.querySelector("h1")?.textContent).toBe("assigned");
+  });
+
+  it("assignment before mount buffers until the region is placed", () => {
+    const card = new Card();
+    card.header = Object.assign(document.createElement("h1"), {
+      textContent: "early",
+    });
+
+    const host = document.createElement("div");
+    host.appendChild(card.render());
+    expect(host.querySelector("h1")?.textContent).toBe("early");
+  });
+
+  it("the region works in a plain-DOM template (no elements-kit render)", () => {
+    const card = new Card();
+    const host = document.createElement("section");
+    host.append(card.header!); // vanilla placement — just a fragment
+
+    card.header = document.createElement("h1");
+    expect(host.querySelector("h1")).not.toBeNull();
+  });
+
+  it("assigning null clears the slot", () => {
+    const card = new Card();
+    const host = document.createElement("div");
+    host.appendChild(card.render());
+
+    card.header = document.createElement("h1");
+    expect(host.querySelector("h1")).not.toBeNull();
+    card.header = null;
+    expect(host.querySelector("h1")).toBeNull();
+  });
+
+  it("replaced slot content is disposed", () => {
     const spy = vi.fn();
     const s = signal(0);
 
@@ -84,50 +134,16 @@ describe("SLOTS — plain object", () => {
       return document.createElement("span");
     }, {}) as Element;
 
-    const el = createElement(Card, { "slot:header": child }) as Element;
+    const card = new Card();
+    const host = document.createElement("div");
+    host.appendChild(card.render());
+    card.header = child;
 
     spy.mockClear();
-    disposeElement(el);
+    card.header = document.createElement("i");
     s(1);
     expect(spy).not.toHaveBeenCalled();
   });
 });
 
-// ─ Direct Slot properties ──────────────────────────────────────────────────────
-
-describe("Slot properties on component", () => {
-  it("fills a direct Slot property with a static element", () => {
-    const h = document.createElement("h2");
-    h.textContent = "Panel title";
-
-    const el = createElement(Panel, { title: h }) as Element;
-    expect(el.querySelector("h2")?.textContent).toBe("Panel title");
-  });
-
-  it("fills multiple direct Slot properties", () => {
-    const title = document.createElement("h2");
-    const content = document.createElement("p");
-    title.textContent = "T";
-    content.textContent = "C";
-
-    const el = createElement(Panel, { title, content }) as Element;
-    expect(el.querySelector("h2")?.textContent).toBe("T");
-    expect(el.querySelector("p")?.textContent).toBe("C");
-  });
-
-  it("fills a direct Slot property with a reactive function", () => {
-    const s = signal("v1");
-
-    const el = createElement(Panel, {
-      title: () => {
-        const h = document.createElement("h2");
-        h.textContent = s();
-        return h;
-      },
-    }) as Element;
-
-    expect(el.querySelector("h2")?.textContent).toBe("v1");
-    s("v2");
-    expect(el.querySelector("h2")?.textContent).toBe("v2");
-  });
-});
+void disposeElement;
