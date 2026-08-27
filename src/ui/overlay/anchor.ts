@@ -309,14 +309,32 @@ export function resolveArea(
   dir: "ltr" | "rtl" = "ltr",
   selfDir: "ltr" | "rtl" = dir,
 ): Area {
-  const kws = area
+  const tokens = area
     .trim()
     .toLowerCase()
     .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((t) => KEYWORDS[t])
-    .filter(Boolean) as Keyword[];
+    .filter(Boolean);
+  const fallback = (): Area => ({ block: "end", inline: "center" });
+  if (tokens.length === 0 || tokens.length > 2) return fallback();
+
+  const kws: Keyword[] = [];
+  for (const token of tokens) {
+    const keyword = KEYWORDS[token];
+    if (!keyword) return fallback();
+    kws.push(keyword);
+  }
+
+  // Two explicit keywords for the same axis are not a valid area. Do not
+  // silently let the latter win (`top bottom`, `left right`).
+  const [first, second] = kws;
+  if (
+    first &&
+    second &&
+    first.axis !== "ambiguous" &&
+    first.axis === second.axis
+  ) {
+    return fallback();
+  }
 
   let block: Keyword | undefined;
   let inline: Keyword | undefined;
@@ -498,11 +516,16 @@ export class Anchor implements IBox {
     if (typeof target === "function") {
       let rect: ReturnType<typeof createElementRect> | undefined;
       let tracked: Element | undefined;
+      const unbind = () => {
+        rect?.[Symbol.dispose]();
+        rect = undefined;
+        tracked = undefined;
+      };
       this.#read = () => {
         const t = target();
         if (t instanceof Element) {
           if (t !== tracked) {
-            rect?.[Symbol.dispose]();
+            unbind();
             rect = createElementRect(t);
             tracked = t;
           }
@@ -513,9 +536,12 @@ export class Anchor implements IBox {
             h: rect!.height(),
           };
         }
+        // A getter may switch from an element to a box or no target. Stop
+        // observing the old element as soon as it leaves the active branch.
+        unbind();
         return t ? readBox(t) : { x: 0, y: 0, w: 0, h: 0 };
       };
-      this.#dispose = () => rect?.[Symbol.dispose]();
+      this.#dispose = unbind;
     } else if (target instanceof Element) {
       const rect = createElementRect(target);
       this.#read = () => ({

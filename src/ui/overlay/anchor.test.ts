@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { signal } from "@/signals/index.ts";
 import {
   Anchor,
@@ -61,8 +61,17 @@ describe("resolveArea — the position-area grid", () => {
       block: "span-all", inline: "start",
     });
   });
-  it("falls back to bottom-center for unknown/empty", () => {
+  it("falls back to bottom-center for empty or malformed input", () => {
     expect(resolveArea("")).toEqual({ block: "end", inline: "center" });
+    expect(resolveArea("top garbage")).toEqual({
+      block: "end", inline: "center",
+    });
+    expect(resolveArea("top left garbage")).toEqual({
+      block: "end", inline: "center",
+    });
+    expect(resolveArea("top bottom")).toEqual({
+      block: "end", inline: "center",
+    });
   });
 });
 
@@ -155,6 +164,25 @@ describe("Anchor", () => {
     document.body.appendChild(el);
     const a = new Anchor(el);
     expect([a.x, a.y, a.w, a.h]).toEqual([7, 8, 20, 30]);
+    a.dispose();
+    el.remove();
+  });
+
+  it("stops tracking an element when a reactive target changes", () => {
+    const disconnect = vi.fn();
+    vi.stubGlobal("ResizeObserver", function MockRO() {
+      return { observe: vi.fn(), disconnect, unobserve: vi.fn() };
+    });
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    const target = signal<Element | IBox | undefined>(el);
+    const a = new Anchor(() => target());
+
+    void a.x; // starts element tracking
+    target({ x: 10, y: 20, w: 30, h: 40 });
+    expect(a.x).toBe(10); // switches target and tears down the old observer
+    expect(disconnect).toHaveBeenCalledOnce();
+
     a.dispose();
     el.remove();
   });
