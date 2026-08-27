@@ -11,7 +11,7 @@
  *   Draggable/Resizable  pointer→box gestures on the `.x-handle` children
  *
  * Geometry is pure CSS (index.css / overlay.css) driven by the box's channels;
- * JS only writes them. Docking, flip/shift, and gesture bounds are JS
+ * JS only writes them. Docking, position-try flips, and gesture bounds are JS
  * (`Constraint`, `position_area`).
  */
 
@@ -22,18 +22,13 @@ export {
   type Area,
   type AxisRegion,
   type BlockSide,
-  computePlacement,
   type InlineSide,
   type Inset,
   type PhysicalInset,
-  place,
   placeArea,
   placeAxis,
   position_area,
   resolveArea,
-  shift,
-  type Side,
-  SIDES,
   tryFallbacks,
 } from "./anchor.ts";
 export { Constraint, INSTANT_TRANSITIONS } from "./constraint.ts";

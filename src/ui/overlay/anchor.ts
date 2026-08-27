@@ -129,61 +129,13 @@ function resolveInset(inset: Inset): PhysicalInset {
   }
 }
 
-export const SIDES = ["bottom", "top", "right", "left"] as const;
-export type Side = (typeof SIDES)[number];
-
-/** The positioning engine for a single side (cross-axis centered). */
-export function computePlacement(
-  self: IBox,
-  anchor: IBox & Partial<IDirection>,
-  side: Side,
-  gap: number,
-): { x: number; y: number } {
-  switch (side) {
-    case "bottom":
-      return {
-        x: anchor_length(anchor, "left", "center") - self.w / 2,
-        y: anchor_length(anchor, "top", "bottom") + gap,
-      };
-    case "top":
-      return {
-        x: anchor_length(anchor, "left", "center") - self.w / 2,
-        y: anchor_length(anchor, "top", "top") - gap - self.h,
-      };
-    case "right":
-      return {
-        x: anchor_length(anchor, "left", "right") + gap,
-        y: anchor_length(anchor, "top", "center") - self.h / 2,
-      };
-    case "left":
-      return {
-        x: anchor_length(anchor, "left", "left") - gap - self.w,
-        y: anchor_length(anchor, "top", "center") - self.h / 2,
-      };
-  }
-}
-
-/** Follow an anchor on one side, reactively — writes `self.x`/`self.y`. */
-export function place(
-  self: ElementBox,
-  anchor: IBox & Partial<IDirection>,
-  _side: MaybeReactive<Side>,
-  _gap: MaybeReactive<number>,
-): () => void {
-  return effect(() => {
-    const { x, y } = computePlacement(self, anchor, resolve(_side), resolve(_gap));
-    self.x = x;
-    self.y = y;
-  });
-}
-
 /* ================================================================== *
  * position-area — a reactive reimplementation of the CSS property.    *
  *                                                                      *
  * The anchor's four edges tile the plane into a 3×3 grid; a            *
  * `position-area` value names the region the box sits in — the full    *
- * grid vocabulary, plus position-try (flip) fallbacks and a shift-     *
- * clamp against a boundary rect.                                       *
+ * grid vocabulary, plus position-try (flip) fallbacks against a        *
+ * boundary rect.                                                       *
  * ================================================================== */
 
 /** One axis of a `position-area`, as a PHYSICAL (coordinate-space) region. */
@@ -435,33 +387,10 @@ export function tryFallbacks(
   return best;
 }
 
-function clamp(value: number, lo: number, hi: number): number {
-  return hi < lo ? lo : Math.min(Math.max(value, lo), hi);
-}
-
-/** Shift the box to keep it inside `boundary` — the CROSS axis only (like
- * Floating UI). The MAIN axis (the side the box is placed on: block for
- * `start`/`end` block regions, inline for inline regions) is left to `flip`;
- * clamping it would slide the box back over the anchor. `area` names which
- * axes are "main"; without it, both clamp (a plain viewport clamp). */
-export function shift(
-  pos: { x: number; y: number },
-  self: IBox,
-  boundary: IBox,
-  area?: Area,
-): { x: number; y: number } {
-  const blockMain = area?.block === "start" || area?.block === "end";
-  const inlineMain = area?.inline === "start" || area?.inline === "end";
-  return {
-    x: inlineMain ? pos.x : clamp(pos.x, boundary.x, boundary.x + boundary.w - self.w),
-    y: blockMain ? pos.y : clamp(pos.y, boundary.y, boundary.y + boundary.h - self.h),
-  };
-}
-
 /**
  * Place `self` in a `position-area` region of `anchor`, reactively — resolve
- * the area, flip to fit `boundary` (position-try), then shift to stay inside
- * it. Writes `self.x`/`self.y`; returns the effect disposer.
+ * the area, then flip to fit `boundary` (position-try). Writes
+ * `self.x`/`self.y`; returns the effect disposer.
  *
  * `boundary` defaults to the reactive viewport; pass any box (an `ElementBox`
  * container, a `Constraint`) for a `within`-style bound. `pinned` is the
@@ -487,7 +416,7 @@ export function position_area(
     const pref = resolveArea(resolve(area), dir, self.direction ?? dir);
     const g = resolve(gap);
     const chosen = tryFallbacks(self, anchor, pref, g, boundary);
-    const { x, y } = shift(placeArea(self, anchor, chosen, g), self, boundary, chosen);
+    const { x, y } = placeArea(self, anchor, chosen, g);
     self.x = x;
     self.y = y;
   });
@@ -506,7 +435,7 @@ export type AnchorTarget =
  * A reactive `IBox` over a target: an element (its live rect, observed), a
  * `BoxLike` (a fixed or reactive box — a dot when `w`/`h` are omitted), or a
  * getter that re-points to a new target reactively (the shared nav-popover).
- * Feed it to {@link position_area} (or {@link place}) as the anchor.
+ * Feed it to {@link position_area} as the anchor.
  */
 export class Anchor implements IBox {
   #read: () => IBox;

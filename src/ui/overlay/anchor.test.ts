@@ -8,7 +8,6 @@ import {
   placeAxis,
   position_area,
   resolveArea,
-  shift,
   tryFallbacks,
 } from "./anchor.ts";
 import { ElementBox, type IBox } from "./element-box.ts";
@@ -92,7 +91,7 @@ describe("placeAxis / placeArea", () => {
   });
 });
 
-describe("tryFallbacks / shift", () => {
+describe("tryFallbacks — position-try", () => {
   const self: IBox = { x: 0, y: 0, w: 100, h: 100 };
   const anchor: IBox = { x: 400, y: 300, w: 40, h: 40 };
   const pref: Area = { block: "end", inline: "center" };
@@ -101,9 +100,6 @@ describe("tryFallbacks / shift", () => {
     expect(tryFallbacks(self, anchor, pref, 0, { x: 0, y: 0, w: 1000, h: 360 })).toEqual({
       block: "start", inline: "center",
     });
-  });
-  it("clamps a box back inside the boundary", () => {
-    expect(shift({ x: -20, y: 50 }, self, HUGE)).toEqual({ x: 0, y: 50 });
   });
 });
 
