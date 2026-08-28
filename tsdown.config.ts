@@ -1,22 +1,29 @@
 import { defineConfig } from "tsdown";
 import { transform } from "esbuild";
 
-/** Rolldown's Oxc transform currently preserves standard decorators, which
- * leaves `@reactive()` syntax in published JavaScript. Lower only modules that
- * contain a decorator; ordinary modules stay on tsdown's default fast path. */
+/** Rolldown's Oxc transform preserves standard decorators (verified through
+ * oxc-transform 0.147: no `decoratorVersion` option, no lowering at any
+ * target), which leaves `@reactive()` syntax in published JavaScript. esbuild
+ * lowers them. The filters run on rolldown's Rust side, so only the handful of
+ * decorator-bearing modules pay for the extra pass. The `code` filter is
+ * line-anchored because `@` is common in JSDoc; `scripts/assert-dist.mjs`
+ * catches anything it misses. */
 const standardDecorators = {
   name: "lower-standard-decorators",
-  async transform(code: string, id: string) {
-    if (!/\.[cm]?[jt]sx?(?:\?|$)/.test(id) || !/^\s*@[A-Za-z_$]/m.test(code)) {
-      return;
-    }
-    const result = await transform(code, {
-      loader: id.match(/\.tsx(?:\?|$)/) ? "tsx" : "ts",
-      target: "es2022",
-      sourcemap: true,
-      tsconfigRaw: { compilerOptions: { experimentalDecorators: false } },
-    });
-    return { code: result.code, map: result.map };
+  transform: {
+    filter: {
+      id: /\.[cm]?[jt]sx?(?:\?|$)/,
+      code: /^\s*@[A-Za-z_$]/m,
+    },
+    async handler(code: string, id: string) {
+      const result = await transform(code, {
+        loader: /\.tsx(?:\?|$)/.test(id) ? "tsx" : "ts",
+        target: "es2022",
+        sourcemap: true,
+        tsconfigRaw: { compilerOptions: { experimentalDecorators: false } },
+      });
+      return { code: result.code, map: result.map };
+    },
   },
 };
 
