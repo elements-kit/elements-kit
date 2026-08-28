@@ -1,7 +1,7 @@
 {
   "name": "elements-kit",
   "type": "module",
-  "version": "0.27.1",
+  "version": "0.27.2",
   "description": "A lightweight reactive UI library that transforms native HTMLElements into reactive components with signals. Ideal for framework-agnostic applications and web components.",
   "keywords": [
     "webcomponents",
@@ -118,7 +118,7 @@
     "./ui/*": "./dist/ui/*"
   },
   "scripts": {
-    "build": "tsdown",
+    "build": "tsdown && node scripts/assert-dist.mjs",
     "build:docs": "pnpm build && pnpm --filter elements-kit-docs build",
     "build:storybook": "pnpm --filter elements-kit-storybook build",
     "storybook": "pnpm --filter elements-kit-storybook dev",
