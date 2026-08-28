@@ -1,4 +1,24 @@
 import { defineConfig } from "tsdown";
+import { transform } from "esbuild";
+
+/** Rolldown's Oxc transform currently preserves standard decorators, which
+ * leaves `@reactive()` syntax in published JavaScript. Lower only modules that
+ * contain a decorator; ordinary modules stay on tsdown's default fast path. */
+const standardDecorators = {
+  name: "lower-standard-decorators",
+  async transform(code: string, id: string) {
+    if (!/\.[cm]?[jt]sx?(?:\?|$)/.test(id) || !/^\s*@[A-Za-z_$]/m.test(code)) {
+      return;
+    }
+    const result = await transform(code, {
+      loader: id.match(/\.tsx(?:\?|$)/) ? "tsx" : "ts",
+      target: "es2022",
+      sourcemap: true,
+      tsconfigRaw: { compilerOptions: { experimentalDecorators: false } },
+    });
+    return { code: result.code, map: result.map };
+  },
+};
 
 // Two builds: JS and CSS. A single build would collide on the `index.*`
 // output stem (src/ui/overlay/index.ts vs index.css — the JS chunk
@@ -31,6 +51,7 @@ export default defineConfig([
     deps: {
       neverBundle: ["react", "react-dom"],
     },
+    plugins: [standardDecorators],
   },
   {
     // `*.shadow.css` is inlined into JS via `?inline` (adopted stylesheets), not
