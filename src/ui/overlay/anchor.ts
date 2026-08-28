@@ -1,30 +1,5 @@
-import { effect, MaybeReactive, resolve } from "@/signals/index.ts";
 import { WINDOW_BOX } from "./box.ts";
-import type { Box, IDirection } from "./box.ts";
-
-// export type MaybeReactiveAnchorable = {
-//   x: MaybeReactive<number>;
-//   y: MaybeReactive<number>;
-//   w?: MaybeReactive<number>;
-//   h?: MaybeReactive<number>;
-// };
-
-// export type Anchorable = { x: number; y: number; w?: number; h?: number };
-
-// /** Resolve a whole `BoxLike` to plain numbers. */
-// export const readBox = (box: MaybeReactiveAnchorable): Box => ({
-//   x: resolve(box.x),
-//   y: resolve(box.y),
-//   w: resolve(box.w) ?? 0,
-//   h: resolve(box.h) ?? 0,
-// });
-
-// /** Whether any field is a getter (the box re-derives over time). */
-// export const isReactiveBox = (box: MaybeReactiveAnchorable): boolean =>
-//   typeof box.x === "function" ||
-//   typeof box.y === "function" ||
-//   typeof box.w === "function" ||
-//   typeof box.h === "function";
+import type { Box, IDirection, ReadonlyBox } from "./box.ts";
 
 /**
  * The anchor-side vocabulary of the CSS `anchor()` function, reimplemented
@@ -147,17 +122,17 @@ function resolveInset(inset: Inset): PhysicalInset {
   }
 }
 
-/* ================================================================== *
- * position-area — a reactive reimplementation of the CSS property.    *
- *                                                                      *
- * The anchor's four edges tile the plane into a 3×3 grid; a            *
- * `position-area` value names the region the box sits in — the full    *
- * grid vocabulary, plus position-try (flip) fallbacks against a        *
- * boundary rect.                                                       *
- * ================================================================== */
+/* ====================================================================== *
+ * position-area — a reactive reimplementation of the CSS property.       *
+ *                                                                        *
+ * The anchor's four edges tile the plane into a 3×3 grid; a              *
+ * `position-area` value names the region the box sits in. `area_box`     *
+ * resolves one to the containing block — the rect alone; `position_area` *
+ * then aligns the box inside it.                                         *
+ * ====================================================================== */
 
 /** One axis of a `position-area`, as a PHYSICAL (coordinate-space) region. */
-export type AxisRegion =
+type AxisRegion =
   | "start"
   | "center"
   | "end"
@@ -166,7 +141,7 @@ export type AxisRegion =
   | "span-all";
 
 /** A resolved `position-area` value — one physical region per axis. */
-export interface Area {
+interface Area {
   block: AxisRegion;
   inline: AxisRegion;
 }
@@ -274,7 +249,7 @@ function toPhysical(
  * keywords, order-independent; an axis-specific single keyword spans the
  * other axis, an ambiguous one applies to both. Unknown/empty → `block-end`.
  */
-export function resolveArea(
+function resolveArea(
   area: string,
   dir: "ltr" | "rtl" = "ltr",
   selfDir: "ltr" | "rtl" = dir,
@@ -327,111 +302,121 @@ export function resolveArea(
   };
 }
 
-/** A region → the box's start coordinate on one axis. */
-export function placeAxis(
+/** One axis of the position-area containing block, as `[lo, hi]` viewport
+ * coordinates. The anchor's two edges cut `[bLo, bHi]` into before/over/after. */
+function axisSpan(
   lo: number,
   hi: number,
-  size: number,
+  bLo: number,
+  bHi: number,
   region: AxisRegion,
-  gap = 0,
-): number {
+): [number, number] {
   switch (region) {
     case "start":
-      return lo - size - gap;
+      return [bLo, lo];
     case "end":
-      return hi + gap;
+      return [hi, bHi];
+    case "center":
+      return [lo, hi];
     case "span-start":
-      return hi - size;
+      return [bLo, hi];
     case "span-end":
-      return lo;
-    default: // center | span-all
-      return (lo + hi) / 2 - size / 2;
+      return [lo, bHi];
+    default: // span-all
+      return [bLo, bHi];
   }
-}
-
-/** The box for an {@link Area}: `placeAxis` on each axis (inline → x, block → y). */
-export function placeArea(
-  self: Box,
-  anchor: Box,
-  area: Area,
-  gap = 0,
-): { x: number; y: number } {
-  return {
-    x: placeAxis(anchor.x, anchor.x + anchor.w, self.w, area.inline, gap),
-    y: placeAxis(anchor.y, anchor.y + anchor.h, self.h, area.block, gap),
-  };
-}
-
-/** Total overflow of a `size` box at `pos` outside `boundary` (0 = fits). */
-function overflow(
-  pos: { x: number; y: number },
-  self: Box,
-  boundary: Box,
-): number {
-  return (
-    Math.max(0, boundary.x - pos.x) +
-    Math.max(0, boundary.y - pos.y) +
-    Math.max(0, pos.x + self.w - (boundary.x + boundary.w)) +
-    Math.max(0, pos.y + self.h - (boundary.y + boundary.h))
-  );
-}
-
-/** position-try: pick the placement that fits `boundary` (preferred + its
- * block/inline flips); first fully inside wins, else least-overflowing. */
-export function tryFallbacks(
-  self: Box,
-  anchor: Box,
-  pref: Area,
-  gap: number,
-  boundary: Box,
-): Area {
-  const candidates: Area[] = [
-    pref,
-    { block: flipRegion(pref.block), inline: pref.inline },
-    { block: pref.block, inline: flipRegion(pref.inline) },
-    { block: flipRegion(pref.block), inline: flipRegion(pref.inline) },
-  ];
-  let best = pref;
-  let least = Infinity;
-  for (const area of candidates) {
-    const over = overflow(placeArea(self, anchor, area, gap), self, boundary);
-    if (over === 0) return area;
-    if (over < least) ((least = over), (best = area));
-  }
-  return best;
 }
 
 /**
- * Place `self` in a `position-area` region of `anchor`, reactively — resolve
- * the area, then flip to fit `boundary` (position-try). Writes
- * `self.x`/`self.y`; returns the effect disposer.
+ * The CSS `position-area` containing block: the region of the viewport an
+ * overlay anchored to `anchor` may occupy. Nothing is placed or written —
+ * this is the rect alone. Align a box inside it with {@link position_area}, or
+ * use it as a max-size to let the box shrink near an edge.
  *
- * `boundary` defaults to the reactive viewport; pass any box (an `ElementBox`
- * container, a `Constraint`) for a `within`-style bound. `pinned` is the
- * tear-off follow-gate — while false the effect no-ops, so the box's own base
- * (wherever a drag left it) is the fallback; flipping it back re-pins.
+ * Bounded by the window. A tighter bound (a `Constraint`, a scroll container)
+ * is an intersection with the returned rect, so it composes afterwards rather
+ * than being a parameter here.
+ *
+ * There is no gap parameter, for the same reason CSS has none: the offset off
+ * the anchor is the overlay's own `margin`.
+ *
+ * Pure, but reads both boxes' reactive geometry, so calling it inside an
+ * `effect` tracks the anchor.
+ */
+export function area_box(anchor: ReadonlyBox, area: string): Box {
+  return areaBox(anchor, resolveArea(area, rootDirection()));
+}
+
+/** {@link area_box} on an already-resolved area — the shared core, so a
+ * placement parses the value once rather than once per half. */
+function areaBox(anchor: ReadonlyBox, { block, inline }: Area): Box {
+  const [x0, x1] = axisSpan(
+    anchor.x,
+    anchor.x + anchor.w,
+    WINDOW_BOX.x,
+    WINDOW_BOX.x + WINDOW_BOX.w,
+    inline,
+  );
+  const [y0, y1] = axisSpan(
+    anchor.y,
+    anchor.y + anchor.h,
+    WINDOW_BOX.y,
+    WINDOW_BOX.y + WINDOW_BOX.h,
+    block,
+  );
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+
+/** A region's default self-alignment inside its rect, as a fraction — outward
+ * regions hug the anchor's edge, spans go flush against it. `null` is
+ * `anchor-center`, which references the anchor rather than the rect. */
+function alignFraction(region: AxisRegion): number | null {
+  switch (region) {
+    case "start":
+    case "span-start":
+      return 1;
+    case "end":
+    case "span-end":
+      return 0;
+    default: // center | span-all
+      return null;
+  }
+}
+
+/** One axis of {@link position_area}. */
+function alignAxis(
+  rLo: number,
+  rSize: number,
+  aLo: number,
+  aSize: number,
+  size: number,
+  region: AxisRegion,
+): number {
+  const f = alignFraction(region);
+  // anchor-center: centred on the ANCHOR, not the rect, and free to overflow
+  // it — matching CSS, which reacts to that overflow instead of clamping.
+  return f === null ? aLo + aSize / 2 - size / 2 : rLo + (rSize - size) * f;
+}
+
+/**
+ * Place `self` in a `position-area` region of `anchor`: {@link area_box} for
+ * the containing block, then the region's default self-alignment inside it —
+ * outward regions hug the anchor, spans go flush, center is `anchor-center`.
+ * Returns the box's top-left; writing it is the caller's.
+ *
+ * Pure, but reads both boxes' reactive geometry, so calling it inside an
+ * `effect` tracks the anchor.
  */
 export function position_area(
-  self: Box & Partial<IDirection>,
-  anchor: Box & Partial<IDirection>,
-  area: MaybeReactive<string>,
-  gap: MaybeReactive<number> = 0,
-  boundary: Box = WINDOW_BOX,
-  pinned: MaybeReactive<boolean> = true,
-): () => void {
-  return effect(() => {
-    if (!resolve(pinned)) return;
-    // Don't place until the box has a real measured size. At size 0 (just
-    // opened, not yet laid out) `tryFallbacks` can't see the overflow, so it
-    // would land block-end OVER the trigger before flip corrects — a visible
-    // flash. The ResizeObserver re-runs this the moment it measures.
-    if (self.w <= 0 || self.h <= 0) return;
-    const dir = rootDirection();
-    const pref = resolveArea(resolve(area), dir, self.direction ?? dir);
-    const g = resolve(gap);
-    const chosen = tryFallbacks(self, anchor, pref, g, boundary);
-    const { x, y } = placeArea(self, anchor, chosen, g);
-    self.x = x;
-    self.y = y;
-  });
+  self: ReadonlyBox,
+  anchor: ReadonlyBox,
+  area: string,
+): { x: number; y: number } {
+  const resolved = resolveArea(area, rootDirection());
+  const box = areaBox(anchor, resolved);
+  const { block, inline } = resolved;
+  return {
+    x: alignAxis(box.x, box.w, anchor.x, anchor.w, self.w, inline),
+    y: alignAxis(box.y, box.h, anchor.y, anchor.h, self.h, block),
+  };
 }
