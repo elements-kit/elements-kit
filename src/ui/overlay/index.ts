@@ -32,18 +32,3 @@ export {
   type ReadonlyBox,
 } from "./box.ts";
 export { OverlayBox } from "./overlay.ts";
-
-// export { Constraint, INSTANT_TRANSITIONS } from "./constraint.ts";
-// export {
-//   compose,
-//   detent,
-//   Draggable,
-//   type Handle,
-//   HANDLES,
-//   type Modifier,
-//   nearest,
-//   Resizable,
-//   type ResizeConfig,
-//   rubber,
-//   snap,
-// } from "./gestures.ts";
