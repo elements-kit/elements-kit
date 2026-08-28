@@ -207,8 +207,7 @@
 
 @supports (transition-behavior: allow-discrete) {
   .x-overlay {
-    transition-property:
-      translate, width, height, opacity, scale, display;
+    transition-property: translate, width, height, opacity, scale, display;
     transition-duration: var(--overlay-duration);
     transition-timing-function: var(--overlay-easing);
     transition-behavior: allow-discrete;
@@ -383,9 +382,7 @@
     );
   }
 
-  :root:has(
-      .x-overlay[open]:has(> .x-handle[data-placement="block-start"])
-    )
+  :root:has(.x-overlay[open]:has(> .x-handle[data-placement="block-start"]))
     [data-overlay-deck] {
     scale: 0.96;
     translate: 0 var(--space-2);

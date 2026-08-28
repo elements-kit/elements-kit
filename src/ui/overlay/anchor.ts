@@ -1,12 +1,30 @@
 import { effect, MaybeReactive, resolve } from "@/signals/index.ts";
-import { createElementRect } from "@/utilities/element-rect.ts";
-import { readBox, WINDOW_BOX } from "./element-box.ts";
-import type {
-  BoxLike,
-  ElementBox,
-  IBox,
-  IDirection,
-} from "./element-box.ts";
+import { WINDOW_BOX } from "./box.ts";
+import type { Box, IDirection } from "./box.ts";
+
+// export type MaybeReactiveAnchorable = {
+//   x: MaybeReactive<number>;
+//   y: MaybeReactive<number>;
+//   w?: MaybeReactive<number>;
+//   h?: MaybeReactive<number>;
+// };
+
+// export type Anchorable = { x: number; y: number; w?: number; h?: number };
+
+// /** Resolve a whole `BoxLike` to plain numbers. */
+// export const readBox = (box: MaybeReactiveAnchorable): Box => ({
+//   x: resolve(box.x),
+//   y: resolve(box.y),
+//   w: resolve(box.w) ?? 0,
+//   h: resolve(box.h) ?? 0,
+// });
+
+// /** Whether any field is a getter (the box re-derives over time). */
+// export const isReactiveBox = (box: MaybeReactiveAnchorable): boolean =>
+//   typeof box.x === "function" ||
+//   typeof box.y === "function" ||
+//   typeof box.w === "function" ||
+//   typeof box.h === "function";
 
 /**
  * The anchor-side vocabulary of the CSS `anchor()` function, reimplemented
@@ -59,7 +77,7 @@ export type Inset =
  * box's reactive geometry, so calling it inside an `effect` tracks the anchor.
  */
 export function anchor_length(
-  box: IBox & Partial<IDirection>,
+  box: Box & Partial<IDirection>,
   inset: Inset,
   side: BlockSide | InlineSide | number,
 ): number {
@@ -261,11 +279,7 @@ export function resolveArea(
   dir: "ltr" | "rtl" = "ltr",
   selfDir: "ltr" | "rtl" = dir,
 ): Area {
-  const tokens = area
-    .trim()
-    .toLowerCase()
-    .split(/\s+/)
-    .filter(Boolean);
+  const tokens = area.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const fallback = (): Area => ({ block: "end", inline: "center" });
   if (tokens.length === 0 || tokens.length > 2) return fallback();
 
@@ -293,16 +307,16 @@ export function resolveArea(
 
   if (kws.length === 1) {
     const k = kws[0];
-    if (k.axis === "block") (block = k), (inline = SPAN_ALL);
-    else if (k.axis === "inline") (inline = k), (block = SPAN_ALL);
-    else (block = k), (inline = k);
+    if (k.axis === "block") ((block = k), (inline = SPAN_ALL));
+    else if (k.axis === "inline") ((inline = k), (block = SPAN_ALL));
+    else ((block = k), (inline = k));
   } else if (kws.length === 2) {
     for (const k of kws) {
       if (k.axis === "block") block = k;
       else if (k.axis === "inline") inline = k;
     }
     const ambs = kws.filter((k) => k.axis === "ambiguous");
-    if (!block && !inline) (block = ambs[0]), (inline = ambs[1] ?? ambs[0]);
+    if (!block && !inline) ((block = ambs[0]), (inline = ambs[1] ?? ambs[0]));
     else if (!block) block = ambs[0];
     else if (!inline) inline = ambs[0];
   }
@@ -337,8 +351,8 @@ export function placeAxis(
 
 /** The box for an {@link Area}: `placeAxis` on each axis (inline → x, block → y). */
 export function placeArea(
-  self: IBox,
-  anchor: IBox,
+  self: Box,
+  anchor: Box,
   area: Area,
   gap = 0,
 ): { x: number; y: number } {
@@ -351,8 +365,8 @@ export function placeArea(
 /** Total overflow of a `size` box at `pos` outside `boundary` (0 = fits). */
 function overflow(
   pos: { x: number; y: number },
-  self: IBox,
-  boundary: IBox,
+  self: Box,
+  boundary: Box,
 ): number {
   return (
     Math.max(0, boundary.x - pos.x) +
@@ -365,11 +379,11 @@ function overflow(
 /** position-try: pick the placement that fits `boundary` (preferred + its
  * block/inline flips); first fully inside wins, else least-overflowing. */
 export function tryFallbacks(
-  self: IBox,
-  anchor: IBox,
+  self: Box,
+  anchor: Box,
   pref: Area,
   gap: number,
-  boundary: IBox,
+  boundary: Box,
 ): Area {
   const candidates: Area[] = [
     pref,
@@ -382,7 +396,7 @@ export function tryFallbacks(
   for (const area of candidates) {
     const over = overflow(placeArea(self, anchor, area, gap), self, boundary);
     if (over === 0) return area;
-    if (over < least) (least = over), (best = area);
+    if (over < least) ((least = over), (best = area));
   }
   return best;
 }
@@ -398,11 +412,11 @@ export function tryFallbacks(
  * (wherever a drag left it) is the fallback; flipping it back re-pins.
  */
 export function position_area(
-  self: ElementBox,
-  anchor: IBox & Partial<IDirection>,
+  self: Box & Partial<IDirection>,
+  anchor: Box & Partial<IDirection>,
   area: MaybeReactive<string>,
   gap: MaybeReactive<number> = 0,
-  boundary: IBox = WINDOW_BOX,
+  boundary: Box = WINDOW_BOX,
   pinned: MaybeReactive<boolean> = true,
 ): () => void {
   return effect(() => {
@@ -420,88 +434,4 @@ export function position_area(
     self.x = x;
     self.y = y;
   });
-}
-
-/* ================================================================== *
- * Anchor — a reactive IBox over a target the overlay follows.         *
- * ================================================================== */
-
-export type AnchorTarget =
-  | Element
-  | BoxLike
-  | (() => Element | BoxLike | undefined);
-
-/**
- * A reactive `IBox` over a target: an element (its live rect, observed), a
- * `BoxLike` (a fixed or reactive box — a dot when `w`/`h` are omitted), or a
- * getter that re-points to a new target reactively (the shared nav-popover).
- * Feed it to {@link position_area} as the anchor.
- */
-export class Anchor implements IBox {
-  #read: () => IBox;
-  #dispose: () => void = () => {};
-
-  constructor(target: AnchorTarget) {
-    if (typeof target === "function") {
-      let rect: ReturnType<typeof createElementRect> | undefined;
-      let tracked: Element | undefined;
-      const unbind = () => {
-        rect?.[Symbol.dispose]();
-        rect = undefined;
-        tracked = undefined;
-      };
-      this.#read = () => {
-        const t = target();
-        if (t instanceof Element) {
-          if (t !== tracked) {
-            unbind();
-            rect = createElementRect(t);
-            tracked = t;
-          }
-          return {
-            x: rect!.left(),
-            y: rect!.top(),
-            w: rect!.width(),
-            h: rect!.height(),
-          };
-        }
-        // A getter may switch from an element to a box or no target. Stop
-        // observing the old element as soon as it leaves the active branch.
-        unbind();
-        return t ? readBox(t) : { x: 0, y: 0, w: 0, h: 0 };
-      };
-      this.#dispose = unbind;
-    } else if (target instanceof Element) {
-      const rect = createElementRect(target);
-      this.#read = () => ({
-        x: rect.left(),
-        y: rect.top(),
-        w: rect.width(),
-        h: rect.height(),
-      });
-      this.#dispose = () => rect[Symbol.dispose]();
-    } else {
-      this.#read = () => readBox(target);
-    }
-  }
-
-  get x(): number {
-    return this.#read().x;
-  }
-  get y(): number {
-    return this.#read().y;
-  }
-  get w(): number {
-    return this.#read().w;
-  }
-  get h(): number {
-    return this.#read().h;
-  }
-
-  dispose(): void {
-    this.#dispose();
-  }
-  [Symbol.dispose](): void {
-    this.dispose();
-  }
 }

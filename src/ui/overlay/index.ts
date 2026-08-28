@@ -16,8 +16,6 @@
  */
 
 export {
-  Anchor,
-  type AnchorTarget,
   anchor_length,
   type Area,
   type AxisRegion,
@@ -31,29 +29,27 @@ export {
   resolveArea,
   tryFallbacks,
 } from "./anchor.ts";
-export { Constraint, INSTANT_TRANSITIONS } from "./constraint.ts";
 export {
-  AUTO,
-  type Axis,
-  type BoxLike,
-  Box,
-  ElementBox,
-  type IBox,
-  type IDirection,
-  type PlainBox,
   WINDOW_BOX,
-} from "./element-box.ts";
-export {
-  compose,
-  detent,
-  Draggable,
-  type Handle,
-  HANDLES,
-  type Modifier,
-  nearest,
-  Resizable,
-  type ResizeConfig,
-  rubber,
-  snap,
-} from "./gestures.ts";
-export { Overlay, type OverlayOptions } from "./overlay.ts";
+  ElementBox,
+  WindowBox,
+  type Axis,
+  type IDirection,
+  type ReadonlyBox,
+} from "./box.ts";
+export { OverlayBox } from "./overlay.ts";
+
+// export { Constraint, INSTANT_TRANSITIONS } from "./constraint.ts";
+// export {
+//   compose,
+//   detent,
+//   Draggable,
+//   type Handle,
+//   HANDLES,
+//   type Modifier,
+//   nearest,
+//   Resizable,
+//   type ResizeConfig,
+//   rubber,
+//   snap,
+// } from "./gestures.ts";
