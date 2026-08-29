@@ -117,14 +117,34 @@ Components only re-render when **their** signal dependencies change — not on e
 
 ### Server rendering
 
-React runs the *server* snapshot for the hydration render on the client too. A signal that reads browser state — `matchMedia`, `localStorage`, `location` — therefore returns a value the server HTML never had, and hydration mismatches. Pass a second argument with what the server rendered:
+React calls `getServerSnapshot` on the server, and again in the browser for the
+hydration render. Both runs must return the same thing — whatever the server put
+in the HTML — so it cannot read browser state.
 
 ```tsx
-// `theme` resolves to "light" on the server — say so.
-const mode = useSignal(theme, "light");
+// `theme` is "light" on the server: no matchMedia, no localStorage.
+const mode = useSignal(theme, () => "light");
 ```
 
-React re-renders with the live value immediately after hydration. Omit the argument for signals that read the same on both sides, and for client-only components — their server snapshot is never called.
+Immediately after hydration React re-reads the live value and re-renders, so a
+dark-mode user ends up on `"dark"`; the first paint is what the server sent.
+
+It is **required** for any component React renders on the server. Omit it there
+and React throws:
+
+```
+Missing getServerSnapshot, which is required for server-rendered content.
+```
+
+Omit it only for client-only components — an Astro island marked
+`client:only`, for instance — where the server snapshot is never called.
+
+Passing the *live* signal is the common mistake, and it type-checks:
+
+```tsx
+useSignal(theme, () => theme()); // ✗ reads the browser during hydration
+useSignal(theme, () => "light"); // ✓ a value the server committed to
+```
 
 ---
 

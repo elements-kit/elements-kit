@@ -12,7 +12,7 @@ const prefersDark = signal(false);
 const theme = computed(() => (prefersDark() ? "dark" : "light"));
 
 function WithServerValue() {
-  return <span>{useSignal(theme, "light")}</span>;
+  return <span>{useSignal(theme, () => "light")}</span>;
 }
 
 function WithoutServerValue() {
@@ -45,8 +45,11 @@ describe("useSignal hydration", () => {
     expect(text).toBe("dark"); // re-rendered after hydration
   });
 
-  it("mismatches without a server value", async () => {
-    const { errors } = await hydrate(WithoutServerValue);
-    expect(errors.length).toBeGreaterThan(0);
+  // React requires a server snapshot for anything it renders on the server, so
+  // omitting it is a hard failure rather than a mismatch to recover from.
+  it("throws on the server without a server snapshot", () => {
+    expect(() => renderToString(<WithoutServerValue />)).toThrow(
+      /Missing getServerSnapshot/,
+    );
   });
 });
