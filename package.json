@@ -1,7 +1,7 @@
 {
   "name": "elements-kit",
   "type": "module",
-  "version": "0.27.2",
+  "version": "0.27.3",
   "description": "A lightweight reactive UI library that transforms native HTMLElements into reactive components with signals. Ideal for framework-agnostic applications and web components.",
   "keywords": [
     "webcomponents",
@@ -144,7 +144,8 @@
     "react-dom": "^19.2.5",
     "tsdown": "0.22.0",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.2"
+    "vitest": "^4.1.2",
+    "puppeteer-core": "^24.0.0"
   },
   "dependencies": {
     "csstype": "^3.2.3",
