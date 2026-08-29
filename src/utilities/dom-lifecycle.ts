@@ -1,5 +1,5 @@
 import { effectScope } from "@/signals/index.ts";
-import { isBrowser } from "./environment.ts";
+import { HTMLElementBase, isBrowser } from "./environment.ts";
 
 type LifecycleCallback = (self: DomLifecycleElement) => void;
 type AdoptedCallback = (oldDocument: Document, newDocument: Document) => void;
@@ -62,7 +62,7 @@ type AdoptedCallback = (oldDocument: Document, newDocument: Document) => void;
  * </div>
  * ```
  */
-export class DomLifecycleElement extends HTMLElement {
+export class DomLifecycleElement extends HTMLElementBase {
   #onConnect: LifecycleCallback | null = null;
   #onDisconnect: LifecycleCallback | null = null;
   #onMove: LifecycleCallback | null = null;

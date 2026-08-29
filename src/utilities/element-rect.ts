@@ -57,10 +57,12 @@ export function createElementRect(
   });
 
   onCleanup(stop);
-  const rect = computed(() => {
-    cache();
-    return resolve(target).getBoundingClientRect();
-  }) as Computed<DOMRect> & Disposable;
+  // Hand back what the observers measured, rather than re-measuring here. A
+  // read must not be a measurement: reading after dispose (or between source
+  // events) would otherwise report a rect no observer ever saw, and every read
+  // would force a layout. `cache` is refreshed on observe, on scroll/resize,
+  // and synchronously when a reactive `target` swaps, so it is never stale.
+  const rect = computed(() => cache()) as Computed<DOMRect> & Disposable;
   rect[Symbol.dispose] = stop;
 
   return rect;

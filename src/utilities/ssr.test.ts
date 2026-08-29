@@ -5,6 +5,8 @@ const utilityModules = [
   "./active-element.ts",
   "./async.ts",
   "./debounced.ts",
+  "./direction.ts",
+  "./dom-lifecycle.ts",
   "./element-rect.ts",
   "./element-scroll.ts",
   "./environment.ts",
