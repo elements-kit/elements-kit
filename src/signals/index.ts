@@ -160,6 +160,10 @@ export type MaybeReactive<T> = T | Computed<T>;
  * the runtime hands props over exactly as the caller wrote them, so the value
  * may be either form. Reading inside an effect or a JSX getter subscribes.
  *
+ * Only branded handles created by `signal`/`computed` are called — a
+ * plain function is treated as a static VALUE and returned as-is (so
+ * `T` itself may be a function type).
+ *
  * @example
  * ```ts
  * resolve(5);            // 5

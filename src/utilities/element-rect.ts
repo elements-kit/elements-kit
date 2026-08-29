@@ -1,61 +1,69 @@
-import { type Computed, signal } from "@/signals/index.ts";
+import {
+  computed,
+  type Computed,
+  effect,
+  effectScope,
+  onCleanup,
+  type MaybeReactive,
+  resolve,
+  signal,
+} from "@/signals/index.ts";
 import { createResizeObserver } from "./resize-observer.ts";
 
-type RectResult = {
-  x: Computed<number>;
-  y: Computed<number>;
-  width: Computed<number>;
-  height: Computed<number>;
-  top: Computed<number>;
-  right: Computed<number>;
-  bottom: Computed<number>;
-  left: Computed<number>;
-} & Disposable;
-
 /**
- * Observes the full bounding rect of `target` using a `ResizeObserver` (which
- * fires on size changes) and returns all eight DOMRect properties as reactive
- * computeds.
+ * Observes the full bounding rect of `target` and returns it as ONE reactive
+ * `DOMRect`, so every field a reader sees was measured at the same instant.
+ * Change sources: a `ResizeObserver` for size, plus capture-phase `scroll` and
+ * window `resize` for position — a `ResizeObserver` stays silent when an
+ * element merely moves.
+ *
+ * `target` may be a getter, in which case the observer follows it: the previous
+ * element is unobserved before the new one is observed. The returned computed
+ * keeps its identity across a swap, so consumers never rebind.
+ *
+ * The value is CACHED, not measured per read: it refreshes when one of the
+ * sources above fires, not at the moment you read it. Dispose explicitly, or
+ * let the enclosing scope do it.
  */
-export function createElementRect(target: Element): RectResult {
-  const x = signal(0);
-  const y = signal(0);
-  const width = signal(0);
-  const height = signal(0);
-  const top = signal(0);
-  const right = signal(0);
-  const bottom = signal(0);
-  const left = signal(0);
+export function createElementRect(
+  target: MaybeReactive<Element>,
+): Computed<DOMRect> & Disposable {
+  const cache = signal(resolve(target).getBoundingClientRect());
 
   const updateRect = (el: Element) => {
-    const rect = el.getBoundingClientRect();
-    x(rect.x);
-    y(rect.y);
-    width(rect.width);
-    height(rect.height);
-    top(rect.top);
-    right(rect.right);
-    bottom(rect.bottom);
-    left(rect.left);
+    cache(el.getBoundingClientRect());
   };
 
-  const observer = createResizeObserver(target, (entries) => {
-    for (const entry of entries) {
-      updateRect(entry.target as Element);
-    }
+  const stop = effectScope(() => {
+    effect(() => {
+      const el = resolve(target);
+      createResizeObserver(el, (entries) => {
+        for (const entry of entries) {
+          updateRect(entry.target as Element);
+        }
+      });
+      const remeasure = () => updateRect(el);
+      window.addEventListener("scroll", remeasure, {
+        capture: true,
+        passive: true,
+      });
+      window.addEventListener("resize", remeasure, { passive: true });
+      onCleanup(() => {
+        window.removeEventListener("scroll", remeasure, { capture: true });
+        window.removeEventListener("resize", remeasure);
+      });
+      updateRect(el);
+    });
   });
 
-  updateRect(target);
+  onCleanup(stop);
+  // Hand back what the observers measured, rather than re-measuring here. A
+  // read must not be a measurement: reading after dispose (or between source
+  // events) would otherwise report a rect no observer ever saw, and every read
+  // would force a layout. `cache` is refreshed on observe, on scroll/resize,
+  // and synchronously when a reactive `target` swaps, so it is never stale.
+  const rect = computed(() => cache()) as Computed<DOMRect> & Disposable;
+  rect[Symbol.dispose] = stop;
 
-  return {
-    x: x as Computed<number>,
-    y: y as Computed<number>,
-    width: width as Computed<number>,
-    height: height as Computed<number>,
-    top: top as Computed<number>,
-    right: right as Computed<number>,
-    bottom: bottom as Computed<number>,
-    left: left as Computed<number>,
-    [Symbol.dispose]: observer[Symbol.dispose],
-  };
+  return rect;
 }
