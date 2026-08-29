@@ -1,4 +1,4 @@
-import { MaybeReactive, reactive } from "@/signals";
+import { MaybeReactive } from "@/signals";
 import { direction } from "@/utilities/direction";
 import { createElementRect } from "@/utilities/element-rect.ts";
 import { windowSize } from "@/utilities/window-size.ts";
