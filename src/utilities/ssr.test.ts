@@ -69,3 +69,17 @@ test("isBrowser is false in Node", async () => {
   const { isBrowser } = await import("./environment.ts");
   expect(isBrowser).toBe(false);
 });
+
+test("storage signals fall back to in-memory state in Node", async () => {
+  const { createLocalStorage, createSessionStorage } = await import(
+    "./storage.ts"
+  );
+
+  const theme = createLocalStorage("theme", "light");
+  expect(theme()).toBe("light");
+  theme("dark");
+  expect(theme()).toBe("dark");
+
+  const draft = createSessionStorage("draft", { title: "" });
+  expect(draft()).toEqual({ title: "" });
+});

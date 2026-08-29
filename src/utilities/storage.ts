@@ -1,4 +1,5 @@
-import type { Signal } from "../signals/index.ts";
+import { type Signal, signal } from "../signals/index.ts";
+import { isBrowser } from "./environment.ts";
 import { type Subscribe, sync } from "./event-driven.ts";
 
 type StorageOptions<T> = {
@@ -7,6 +8,19 @@ type StorageOptions<T> = {
   /** Custom deserialiser (default `JSON.parse`). */
   deserialise?: (raw: string) => T;
 };
+
+/**
+ * The requested `Storage`, or `null` outside a browser and when access throws
+ * (sandboxed iframes, blocked site data).
+ */
+function getStorage(area: "local" | "session"): Storage | null {
+  if (!isBrowser) return null;
+  try {
+    return area === "local" ? localStorage : sessionStorage;
+  } catch {
+    return null;
+  }
+}
 
 function readOrDefault<T>(
   storage: Storage,
@@ -23,37 +37,31 @@ function readOrDefault<T>(
   return initialValue;
 }
 
-/**
- * Returns a `Signal` persisted to `localStorage`.
- *
- * Changes made in other tabs/windows are synchronised automatically via
- * the `StorageEvent`.
- *
- * @example
- * ```ts
- * import { createLocalStorage } from "elements-kit/utilities/storage";
- *
- * const theme = createLocalStorage<"light" | "dark">("theme", "light");
- * theme();         // read current
- * theme("dark");   // write — persists and notifies
- * ```
- */
-export function createLocalStorage<T>(
+function createStorageSignal<T>(
+  area: "local" | "session",
   key: string,
   initialValue: T,
-  options?: StorageOptions<T>,
+  options: StorageOptions<T> | undefined,
+  crossTab: boolean,
 ): Signal<T> {
+  const storage = getStorage(area);
+  // No storage (SSR, blocked) — degrade to a plain in-memory signal.
+  if (!storage) return signal(initialValue);
+
   const serialise = options?.serialise ?? ((v: T) => JSON.stringify(v));
   const deserialise =
     options?.deserialise ?? ((raw: string) => JSON.parse(raw) as T);
-
-  const storage = localStorage;
 
   // StorageEvent only fires in *other* tabs, so we need a manual notify
   // to trigger a re-read after same-tab writes.
   let notify: (() => void) | undefined;
   const subscribe: Subscribe = (cb) => {
     notify = cb;
+    if (!crossTab) {
+      return () => {
+        notify = undefined;
+      };
+    }
     const handler = (e: StorageEvent) => {
       if (e.key === key && e.storageArea === storage) cb();
     };
@@ -81,9 +89,38 @@ export function createLocalStorage<T>(
 }
 
 /**
+ * Returns a `Signal` persisted to `localStorage`.
+ *
+ * Changes made in other tabs/windows are synchronised automatically via
+ * the `StorageEvent`.
+ *
+ * Outside a browser — or when `localStorage` is unavailable — the signal is
+ * plain in-memory state seeded with `initialValue`; nothing is persisted.
+ *
+ * @example
+ * ```ts
+ * import { createLocalStorage } from "elements-kit/utilities/storage";
+ *
+ * const theme = createLocalStorage<"light" | "dark">("theme", "light");
+ * theme();         // read current
+ * theme("dark");   // write — persists and notifies
+ * ```
+ */
+export function createLocalStorage<T>(
+  key: string,
+  initialValue: T,
+  options?: StorageOptions<T>,
+): Signal<T> {
+  return createStorageSignal("local", key, initialValue, options, true);
+}
+
+/**
  * Returns a `Signal` persisted to `sessionStorage`.
  *
  * Session storage is scoped to the current tab — no cross-tab sync.
+ *
+ * Outside a browser — or when `sessionStorage` is unavailable — the signal is
+ * plain in-memory state seeded with `initialValue`; nothing is persisted.
  *
  * @example
  * ```ts
@@ -98,32 +135,5 @@ export function createSessionStorage<T>(
   initialValue: T,
   options?: StorageOptions<T>,
 ): Signal<T> {
-  const serialise = options?.serialise ?? ((v: T) => JSON.stringify(v));
-  const deserialise =
-    options?.deserialise ?? ((raw: string) => JSON.parse(raw) as T);
-
-  const storage = sessionStorage;
-
-  let notify: (() => void) | undefined;
-  const subscribe: Subscribe = (cb) => {
-    notify = cb;
-    return () => {
-      notify = undefined;
-    };
-  };
-
-  const [s] = sync(
-    subscribe,
-    () => readOrDefault(storage, key, initialValue, deserialise),
-    (v) => {
-      try {
-        storage.setItem(key, serialise(v));
-      } catch {
-        /* quota exceeded */
-      }
-      notify?.();
-    },
-  );
-
-  return s;
+  return createStorageSignal("session", key, initialValue, options, false);
 }
