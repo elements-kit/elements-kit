@@ -12,9 +12,9 @@ import { createElementRect } from "@/utilities/element-rect.ts";
  * quantizes one, `rubber()` resists at its edges.
  */
 
-/** A reactive rect — the shape `createElementRect` returns, so an
- * `Element` works directly and custom rects (a static region, a virtual
- * area) can be supplied too. */
+/** A reactive rect. `createElementRect` returns one reactive `DOMRect`,
+ * so the element branch projects its fields onto this shape; custom
+ * rects (a static region, a virtual area) can be supplied too. */
 export interface Region {
   top(): number;
   left(): number;
@@ -48,7 +48,12 @@ export function constraint(source?: Element | RectInit): Region {
   if (source instanceof Element) {
     const rect = createElementRect(source);
     onCleanup(() => rect[Symbol.dispose]());
-    return rect;
+    return {
+      top: () => rect().top,
+      left: () => rect().left,
+      width: () => rect().width,
+      height: () => rect().height,
+    };
   }
   return {
     top: () => source.top,

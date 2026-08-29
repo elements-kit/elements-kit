@@ -25,7 +25,7 @@ Utilities are pre-built factories that wrap common browser APIs in signals — s
 | `onClickOutside` | `utilities/on-click-outside` | `() => void` |
 | `createLongPress` | `utilities/long-press` | `() => void` |
 | `activeElement` | `utilities/active-element` | `Computed<Element \| null>` |
-| `createElementRect` | `utilities/element-rect` | `{ x, y, width, height, … } & Disposable` |
+| `createElementRect` | `utilities/element-rect` | `Computed<DOMRect> & Disposable` |
 | `createElementScroll` | `utilities/element-scroll` | `{ x: Signal, y: Signal } & Disposable` |
 | `createResizeObserver` | `utilities/resize-observer` | `Disposable` |
 | `createIntersectionObserver` | `utilities/intersection-observer` | `Disposable` |
@@ -375,23 +375,24 @@ effect(() => console.log("focused:", activeElement()));
 
 ### createElementRect
 
-Observes the full bounding rect of `target` via `ResizeObserver`. All eight `DOMRect` properties are reactive computeds.
+Observes the full bounding rect of `target` and returns it as ONE reactive `DOMRect`, so every field a reader sees was measured at the same instant. Size changes come from a `ResizeObserver`; position changes from capture-phase `scroll` and window `resize`, since a `ResizeObserver` stays silent when an element merely moves.
+
+`target` may be a getter, in which case the observer follows it and the returned computed keeps its identity across the swap.
+
+The value is cached, not measured per read — it refreshes when a source fires, so reading never forces a layout.
 
 ```ts
 import { createElementRect } from "elements-kit/utilities/element-rect";
 
-const { width, height, top } = createElementRect(document.querySelector("#box")!);
+const rect = createElementRect(document.querySelector("#box")!);
 
-effect(() => console.log(width(), height()));
+effect(() => console.log(rect().width, rect().height));
 ```
 
 ```ts
-function createElementRect(target: Element): {
-  x: Computed<number>; y: Computed<number>;
-  width: Computed<number>; height: Computed<number>;
-  top: Computed<number>; right: Computed<number>;
-  bottom: Computed<number>; left: Computed<number>;
-} & Disposable
+function createElementRect(
+  target: MaybeReactive<Element>,
+): Computed<DOMRect> & Disposable
 ```
 
 ### createElementScroll
