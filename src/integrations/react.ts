@@ -9,8 +9,18 @@ import { useEffect, useMemo, useSyncExternalStore, useRef } from "react";
  * `Computed<T>`. Using `() => T` instead of `Computed<T>` prevents TypeScript from
  * picking the write overload of `Signal<T>` during type inference.
  *
+ * **Hydration:** pass `serverValue` whenever the signal reads browser state
+ * (`matchMedia`, `localStorage`, `location`, …) inside a server-rendered
+ * component. React runs the *server* snapshot for the hydration render on the
+ * client too, so reading the live signal there yields a value the server HTML
+ * never had — a hydration mismatch. A constant `serverValue` matching what the
+ * server rendered keeps the two in step; React re-renders with the real value
+ * immediately after hydration. Omit it for signals that read the same on both
+ * sides, and for client-only components (the server snapshot is never called).
+ *
  * @template T - The type of the signal value.
  * @param value - A writable `Signal<T>` or a derived `Computed<T>`.
+ * @param serverValue - Value to use for the server and hydration renders.
  * @returns The current value, updated on every signal change.
  *
  * @example
@@ -24,8 +34,22 @@ import { useEffect, useMemo, useSyncExternalStore, useRef } from "react";
  *   return <div>{countValue} × 2 = {doubleValue}</div>;
  * }
  * ```
+ *
+ * @example
+ * Server-rendered component reading a browser-only signal:
+ * ```tsx
+ * // `theme` resolves to "light" on the server — say so, or hydration mismatches.
+ * const mode = useSignal(theme, "light");
+ * ```
  */
-export function useSignal<T>(value: () => T): T {
+export function useSignal<T>(value: () => T): T;
+export function useSignal<T>(value: () => T, serverValue: NoInfer<T>): T;
+export function useSignal<T>(value: () => T, ...serverValue: [T?]): T {
+  // Rest arg, not a default: it distinguishes "not passed" from an explicit
+  // `undefined` server value.
+  const getServerSnapshot =
+    serverValue.length > 0 ? () => serverValue[0] as T : () => value();
+
   return useSyncExternalStore(
     (callback) =>
       effect(() => {
@@ -33,7 +57,7 @@ export function useSignal<T>(value: () => T): T {
         callback(); // tell React to re-render
       }),
     () => value(), // getSnapshot (client)
-    () => value(), // getServerSnapshot (SSR)
+    getServerSnapshot,
   );
 }
 

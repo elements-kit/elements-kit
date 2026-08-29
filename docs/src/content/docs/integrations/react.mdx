@@ -115,6 +115,17 @@ useSignal(() => items().length) // inline expression
 
 Components only re-render when **their** signal dependencies change — not on every signal write in the app.
 
+### Server rendering
+
+React runs the *server* snapshot for the hydration render on the client too. A signal that reads browser state — `matchMedia`, `localStorage`, `location` — therefore returns a value the server HTML never had, and hydration mismatches. Pass a second argument with what the server rendered:
+
+```tsx
+// `theme` resolves to "light" on the server — say so.
+const mode = useSignal(theme, "light");
+```
+
+React re-renders with the live value immediately after hydration. Omit the argument for signals that read the same on both sides, and for client-only components — their server snapshot is never called.
+
 ---
 
 ## useScope
