@@ -339,6 +339,7 @@ const op = async(() => fetch("/api/items").then((r) => r.json()));
 op.start();   // run with reactive tracking — reruns when tracked signals change
 await op;     // awaitable (delegates to .then/.catch/.finally via .raw)
 op.stop();    // halt reruns + fire registered cleanup
+op.reset();   // stop + clear state back to `idle`
 ```
 
 Reactive state getters: `.state` (`"idle" | "pending" | "fulfilled" | "rejected"` — `idle` before the first run, so `.pending` is `false` until you trigger one), `.value`, `.reason`, `.result`, `.pending`, `.raw` (the underlying `ComputedPromise`).

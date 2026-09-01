@@ -209,6 +209,18 @@ export class Async<TInput = undefined, TOutput = unknown> {
     return this;
   }
 
+  /**
+   * Stops the current operation and returns to the idle state — `state` is
+   * `"idle"` again and `value` / `reason` / `result` read `undefined`. Unlike
+   * {@link stop}, which leaves the last settled operation in place.
+   */
+  reset(): this {
+    this.stop();
+    deferredRuns.delete(this);
+    this.#current(IDLE as ComputedPromise<TOutput | undefined>);
+    return this;
+  }
+
   [Symbol.dispose](): void {
     this.stop();
   }
@@ -251,6 +263,7 @@ const ASYNC_KEYS = new Set<PropertyKey>([
   "pending",
   "start",
   "stop",
+  "reset",
   "run",
   "fn",
   "raw",
