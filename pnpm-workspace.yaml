@@ -5,4 +5,8 @@ packages:
   - "example"
   - "storybook"
 allowBuilds:
+  '@swc/core': true
+  es5-ext: false
   esbuild: true
+  sharp: true
+  workerd: true
