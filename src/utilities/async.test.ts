@@ -234,6 +234,119 @@ describe("Async", () => {
     expect(calls).toEqual([1]);
   });
 
+  it("reset() returns to the idle state", async () => {
+    const op = asyncOp((x: number) => Promise.resolve(x * 2));
+    op.run(2);
+    await op;
+    expect(op.state).toBe("fulfilled");
+    expect(op.result).toBe(4);
+    op.reset();
+    expect(op.state).toBe("idle");
+    expect(op.pending).toBe(false);
+    expect(op.value).toBeUndefined();
+    expect(op.reason).toBeUndefined();
+    expect(op.result).toBeUndefined();
+  });
+
+  it("reset() stops reactive reruns and allows a fresh run", async () => {
+    const id = signal(1);
+    const calls: number[] = [];
+    const op = asyncOp(() => {
+      calls.push(id());
+      return Promise.resolve(id());
+    });
+    op.start();
+    await op;
+    op.reset();
+    id(2); // no rerun — the tracking effect is gone
+    await Promise.resolve();
+    expect(calls).toEqual([1]);
+    op.run();
+    await op;
+    expect(op.state).toBe("fulfilled");
+    expect(calls).toEqual([1, 2]);
+    op.stop();
+  });
+
+  it("reset() is reactive — dependents see the cleared result", async () => {
+    const op = asyncOp((x: number) => Promise.resolve(x * 2));
+    const values: (number | undefined)[] = [];
+    const stop = effect(() => {
+      values.push(op());
+    });
+    op.run(2);
+    await op;
+    op.reset();
+    stop();
+    expect(values.at(-1)).toBeUndefined();
+  });
+
+  it("reset() clears a rejected run", async () => {
+    const err = new Error("fail");
+    const op = asyncOp(() => Promise.reject(err));
+    op.run();
+    await op.catch(() => {});
+    expect(op.state).toBe("rejected");
+    op.reset();
+    expect(op.state).toBe("idle");
+    expect(op.reason).toBeUndefined();
+    expect(op.result).toBeUndefined();
+  });
+
+  it("reset() while pending — the in-flight run cannot resurrect state", async () => {
+    const d = deferred<number>();
+    const op = asyncOp(() => d.promise);
+    op.run();
+    expect(op.pending).toBe(true);
+    op.reset();
+    expect(op.state).toBe("idle");
+    d.resolve(7); // late settle of the abandoned operation
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(op.state).toBe("idle");
+    expect(op.value).toBeUndefined();
+  });
+
+  it("onCleanup inside run() fires when reset() is called", () => {
+    const cleaned: number[] = [];
+    const op = asyncOp(() => {
+      onCleanup(() => cleaned.push(1));
+      return Promise.resolve();
+    });
+    op.run();
+    expect(cleaned).toEqual([]);
+    op.reset();
+    expect(cleaned).toEqual([1]);
+  });
+
+  it("start() after reset() tracks again", async () => {
+    const id = signal(1);
+    const calls: number[] = [];
+    const op = asyncOp(() => {
+      calls.push(id());
+      return Promise.resolve(id());
+    });
+    op.start();
+    await op;
+    op.reset();
+    op.start();
+    await op;
+    id(2);
+    await op;
+    op.stop();
+    expect(calls).toEqual([1, 1, 2]);
+  });
+
+  it("reset() on the class form clears state", async () => {
+    const op = new Async((x: number) => Promise.resolve(x * 2));
+    op.run(2);
+    await op;
+    expect(op.state).toBe("fulfilled");
+    op.reset();
+    expect(op.state).toBe("idle");
+    expect(op.result).toBeUndefined();
+  });
+
   it("onCleanup inside run() fires when stop() is called", () => {
     const cleaned: number[] = [];
     const op = asyncOp(() => {

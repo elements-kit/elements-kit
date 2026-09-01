@@ -32,12 +32,13 @@ fetchItems.start(); // begin reactive execution
 
 ## Control methods
 
-Start for reactive execution, run for one-shot, stop to tear down.
+Start for reactive execution, run for one-shot, stop to tear down, reset to clear.
 
 ```ts
 op.start(); // run and track reactive dependencies — reruns when signals change
 op.run();   // run once without tracking — does not rerun on signal changes
 op.stop();  // stop reactive reruns and run cleanup logic
+op.reset(); // stop, then clear state back to `idle`
 ```
 
 ### When to `start()` vs `run()`

@@ -71,6 +71,23 @@ describe("hydrate — deferred Async.run()", () => {
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
+  it("reset() during hydration drops the deferred run", async () => {
+    const container = document.createElement("div");
+    container.innerHTML = "<div>static</div>";
+
+    const fetcher = vi.fn(() => Promise.resolve("side"));
+    const op = async(fetcher);
+    const App = () => {
+      op.run();
+      op.reset(); // discards the recorded intent — the flush must not fire it
+      return <div>static</div>;
+    };
+    hydrate(container, () => <App />);
+
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(op.state).toBe("idle");
+  });
+
   it("run() after hydration completes executes immediately", async () => {
     const container = document.createElement("div");
     container.innerHTML = "<div>static</div>";
