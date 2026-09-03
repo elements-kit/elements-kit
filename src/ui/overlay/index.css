@@ -1,8 +1,8 @@
 /*
  * Overlay core — the geometry of `.x-overlay`.
  *
- * Position and size are driven by the JS box model (`ElementBox`, which sets
- * `top:0; left:0; translate; width; height` INLINE): position rides
+ * Position and size are driven by the JS box model (`OverlayBox`, which sets
+ * `top:0; left:0; translate` INLINE and writes the channels): position rides
  * `translate` (base `--x/--y` + drag `--dx/--dy` + enter/exit slide
  * `--_ex/--_ey`), size the real `--w/--h`. This file owns the frame, the
  * display/modality guard, and the morph transition; presentation (backdrop,
@@ -22,7 +22,7 @@
   padding: 0;
   border: 0;
 
-  /* ElementBox positions by top-left + `translate` (set inline). Override the
+  /* OverlayBox positions by top-left + `translate` (set inline). Override the
    * UA modal/popover placement so translate is the SOLE positioner: kill the
    * `margin: auto` centering (else the box double-positions and flies
    * off-center), and keep the far insets auto so the definite `width`/`height`
@@ -31,13 +31,18 @@
   right: auto;
   bottom: auto;
 
+  /* Size from the box channels. Unset (AUTO) falls back to the authored
+   * `--overlay-w/-h`, then to content sizing. */
+  width: var(--w, var(--overlay-w, auto));
+  height: var(--h, var(--overlay-h, auto));
+
   /* The open frame is a flex column: the card grows into a definite frame and
    * shrinks below it (scrolling), tracking morphs frame-by-frame. */
   flex-direction: column;
 
-  /* Morph — committed base/size writes glide. `translate`/`width`/`height` are
-   * set inline by ElementBox; `transition` is a separate property, so a
-   * stylesheet rule composes with the inline values. Live gestures suppress
+  /* Morph — committed base/size writes glide. `translate` is set inline by
+   * OverlayBox and `width`/`height` resolve from its channels; `transition` is
+   * a separate property, so it composes with both. Live gestures suppress
    * this with an inline `transition: none`. overlay.css's Tier 2 extends the
    * list for enter/exit (opacity, scale, display). */
   transition:
