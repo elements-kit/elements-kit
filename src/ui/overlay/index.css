@@ -43,12 +43,18 @@
   /* Morph — committed base/size writes glide. `translate` is set inline by
    * OverlayBox and `width`/`height` resolve from its channels; `transition` is
    * a separate property, so it composes with both. Live gestures suppress
-   * this with an inline `transition: none`. overlay.css's Tier 2 extends the
-   * list for enter/exit (opacity, scale, display). */
+   * this with `data-no-transition`. overlay.css's Tier 2 extends the list for
+   * enter/exit (opacity, scale, display). */
   transition:
     translate var(--overlay-duration) var(--overlay-easing),
     width var(--overlay-duration) var(--overlay-easing),
     height var(--overlay-duration) var(--overlay-easing);
+}
+
+/* Direct manipulation must track the pointer instead of interpolating toward
+ * each update. Remove the attribute on release to restore normal morphs. */
+.x-overlay[data-no-transition] {
+  transition: none;
 }
 
 .x-overlay:not([open], :popover-open) {

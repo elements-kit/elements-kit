@@ -67,6 +67,8 @@ The frame positions its **center** at a point inside a constraint rect, clamped 
 
 Changing any channel on an open overlay morphs it — every value is an interpolable length. The recipes are just points in this space:
 
+Add `data-no-transition` while directly manipulating an overlay so pointer-driven position or size updates render immediately. Remove it on release to restore normal morph transitions.
+
 Each recipe's resize grip is an `.x-handle` child (omitted below for brevity — e.g. `<div class="x-handle" data-placement="block-start"></div>` inside the bottom sheet):
 
 ```html
