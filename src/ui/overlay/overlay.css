@@ -27,7 +27,7 @@
  *     end-start | end-end         (block side first, inline second)
  *     move                        top-center grab pill, x/y window move
  *   An edge handle also picks the enter/exit slide (it implies the
- *   opposite edge is docked); no edge handle → fade + settle.
+ *   opposite edge is docked); no edge handle → scale + settle.
  *
  *   ANCHOR — `data-anchor="element"`, element-relative placement for
  *   popovers (menus, tooltips, pickers). The zero-JS recipe uses the
@@ -200,21 +200,24 @@
  * the sheet rests at the bottom), so the closed state slides one box                              *
  * length toward that edge via the --_ex/--_ey channels index.css                                  *
  * composes into its translate. Windows (no handle, or a corner grip)                              *
- * fade + settle instead. Gestures (which only add --overlay-dx/-dy)                               *
- * compose cleanly.                                                                                *
+ * settle in from a scale instead. Gestures (which only add                                        *
+ * --overlay-dx/-dy) compose cleanly.                                                              *
+ *                                                                                                 *
+ * The frame never animates `opacity` — an ancestor below 1 is a BACKDROP                          *
+ * ROOT, killing a translucent card's blur until the last frame.                                   *
  *                                                                                                 *
  ***************************************************************************************************/
 
 @supports (transition-behavior: allow-discrete) {
   .x-overlay {
-    transition-property: translate, width, height, opacity, scale, display;
+    transition-property: translate, width, height, scale, display;
     transition-duration: var(--overlay-duration);
     transition-timing-function: var(--overlay-easing);
     transition-behavior: allow-discrete;
   }
 
   /* windows (no edge handle — none, a corner grip, or move-only) —
-   * fade + settle */
+   * settle in from a scale (no opacity — backdrop root, see above) */
   .x-overlay:where(
     :not(
       :has(
@@ -223,16 +226,13 @@
       )
     )
   ) {
-    opacity: 0;
-    scale: 0.97;
+    scale: 0.94;
 
     &:where([open], :popover-open) {
-      opacity: 1;
       scale: 1;
 
       @starting-style {
-        opacity: 0;
-        scale: 0.97;
+        scale: 0.94;
       }
     }
   }
@@ -353,7 +353,7 @@
   @supports (overlay: auto) {
     .x-overlay {
       transition-property:
-        translate, width, height, opacity, scale, display, overlay;
+        translate, width, height, scale, display, overlay;
     }
     .x-overlay::backdrop {
       transition-property: opacity, display, overlay;
