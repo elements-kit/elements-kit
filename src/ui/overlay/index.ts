@@ -7,17 +7,18 @@
  *                        `displacement`
  *     └─ Overlay         the surface — constrain/dock, markup gestures, anchor
  *   Constraint           a region the overlay stays inside (`constrain`/`dock`)
- *   position_area        places a box in a region of an anchor's 3×3 grid
+ *   Region               somewhere a box may go — `place(box)` positions it
+ *   PositionArea         an anchor's `position-area` region, live
  *   Draggable/Resizable  pointer→box gestures on the `.x-handle` children
  *
  * Geometry is pure CSS (index.css / overlay.css) driven by the box's channels;
  * JS only writes them. Docking, anchor regions, and gesture bounds are JS
- * (`Constraint`, `position_area`).
+ * (`Constraint`, `PositionArea`).
  */
 
 export {
   anchor_length,
-  position_area,
+  PositionArea,
   type BlockSide,
   type InlineSide,
   type Inset,
@@ -32,3 +33,15 @@ export {
   type ReadonlyBox,
 } from "./box.ts";
 export { OverlayBox } from "./overlay.ts";
+export {
+  MutableRegion,
+  inset,
+  placeAxis,
+  type Align,
+  type Boundary,
+  type Pin,
+  type Region,
+} from "./area.ts";
+
+export * as Gestures from "./gestures.ts";
+export { Motion, type IMotion } from "./motion.ts";

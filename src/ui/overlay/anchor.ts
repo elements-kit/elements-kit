@@ -1,3 +1,5 @@
+import { inset, placeAxis } from "./area.ts";
+import type { Pin, Region } from "./area.ts";
 import { WINDOW_BOX } from "./box.ts";
 import type { Box, IDirection, ReadonlyBox } from "./box.ts";
 
@@ -126,9 +128,9 @@ function resolveInset(inset: Inset): PhysicalInset {
  * position-area — a reactive reimplementation of the CSS property.       *
  *                                                                        *
  * The anchor's four edges tile the plane into a 3×3 grid; a              *
- * `position-area` value names the region the box sits in. `area_box`     *
- * resolves one to the containing block — the rect alone; `position_area` *
- * then aligns the box inside it.                                         *
+ * `position-area` value names the region the box sits in. `PositionArea` *
+ * is that region, live: the containing block, plus the region's default  *
+ * self-alignment as `place`.                                             *
  * ====================================================================== */
 
 /** One axis of a `position-area`, as a PHYSICAL (coordinate-space) region. */
@@ -328,95 +330,108 @@ function axisSpan(
 }
 
 /**
- * The CSS `position-area` containing block: the region of the viewport an
- * overlay anchored to `anchor` may occupy. Nothing is placed or written —
- * this is the rect alone. Align a box inside it with {@link position_area}, or
- * use it as a max-size to let the box shrink near an edge.
+ * The reactive `position-area` property: the region of the viewport an
+ * overlay anchored to `anchor` may occupy, with the region's default
+ * self-alignment as {@link Region.place} — outward regions hug the anchor,
+ * spans go flush against its far edge, center is `anchor-center`. Nothing is
+ * written; the caller takes what it wants from `place`:
+ *
+ *   const area = new PositionArea(a, "top span-left");
+ *   effect(() => { overlay.x = area.place(overlay).x; });
+ *
+ * The value is parsed once, at construction; the geometry reads the anchor
+ * and window on every access, so reading it inside an `effect` tracks both.
  *
  * Bounded by the window. A tighter bound (a `Constraint`, a scroll container)
- * is an intersection with the returned rect, so it composes afterwards rather
- * than being a parameter here.
+ * is an intersection with the region, so it composes afterwards rather than
+ * being a parameter here.
  *
  * There is no gap parameter, for the same reason CSS has none: the offset off
  * the anchor is the overlay's own `margin`.
- *
- * Pure, but reads both boxes' reactive geometry, so calling it inside an
- * `effect` tracks the anchor.
  */
-export function area_box(anchor: ReadonlyBox, area: string): Box {
-  return areaBox(anchor, resolveArea(area, rootDirection()));
-}
+export class PositionArea implements Region, ReadonlyBox {
+  readonly #area: Area;
 
-/** {@link area_box} on an already-resolved area — the shared core, so a
- * placement parses the value once rather than once per half. */
-function areaBox(anchor: ReadonlyBox, { block, inline }: Area): Box {
-  const [x0, x1] = axisSpan(
-    anchor.x,
-    anchor.x + anchor.w,
-    WINDOW_BOX.x,
-    WINDOW_BOX.x + WINDOW_BOX.w,
-    inline,
-  );
-  const [y0, y1] = axisSpan(
-    anchor.y,
-    anchor.y + anchor.h,
-    WINDOW_BOX.y,
-    WINDOW_BOX.y + WINDOW_BOX.h,
-    block,
-  );
-  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
-}
+  constructor(
+    readonly anchor: ReadonlyBox,
+    area: string,
+  ) {
+    this.#area = resolveArea(area, rootDirection());
+  }
 
-/** A region's default self-alignment inside its rect, as a fraction — outward
- * regions hug the anchor's edge, spans go flush against it. `null` is
- * `anchor-center`, which references the anchor rather than the rect. */
-function alignFraction(region: AxisRegion): number | null {
-  switch (region) {
-    case "start":
-    case "span-start":
-      return 1;
-    case "end":
-    case "span-end":
-      return 0;
-    default: // center | span-all
-      return null;
+  /** The inline axis as `[lo, hi]`, re-read from the anchor and window. */
+  get #ix() {
+    const a = this.anchor;
+    const w = WINDOW_BOX;
+    return axisSpan(a.x, a.x + a.w, w.x, w.x + w.w, this.#area.inline);
+  }
+  /** The block axis as `[lo, hi]`. */
+  get #iy() {
+    const a = this.anchor;
+    const w = WINDOW_BOX;
+    return axisSpan(a.y, a.y + a.h, w.y, w.y + w.h, this.#area.block);
+  }
+  get #px() {
+    const a = this.anchor;
+    return pinOf(this.#area.inline, a.x, a.x + a.w);
+  }
+  get #py() {
+    const a = this.anchor;
+    return pinOf(this.#area.block, a.y, a.y + a.h);
+  }
+
+  get x() {
+    return this.#ix[0];
+  }
+  get y() {
+    return this.#iy[0];
+  }
+  get w() {
+    const [lo, hi] = this.#ix;
+    return hi - lo;
+  }
+  get h() {
+    const [lo, hi] = this.#iy;
+    return hi - lo;
+  }
+
+  get left() {
+    return inset(this.#px, "start");
+  }
+  get right() {
+    return inset(this.#px, "end");
+  }
+  get top() {
+    return inset(this.#py, "start");
+  }
+  get bottom() {
+    return inset(this.#py, "end");
+  }
+
+  place(box: ReadonlyBox): Box {
+    return {
+      x: placeAxis(this.#px, box.x, box.w),
+      y: placeAxis(this.#py, box.y, box.h),
+      w: box.w,
+      h: box.h,
+    };
   }
 }
 
-/** One axis of {@link position_area}. */
-function alignAxis(
-  rLo: number,
-  rSize: number,
-  aLo: number,
-  aSize: number,
-  size: number,
-  region: AxisRegion,
-): number {
-  const f = alignFraction(region);
-  // anchor-center: centred on the ANCHOR, not the rect, and free to overflow
-  // it — matching CSS, which reacts to that overflow instead of clamping.
-  return f === null ? aLo + aSize / 2 - size / 2 : rLo + (rSize - size) * f;
-}
-
-/**
- * Place `self` in a `position-area` region of `anchor`: {@link area_box} for
- * the containing block, then the region's default self-alignment inside it —
- * outward regions hug the anchor, spans go flush, center is `anchor-center`.
- * Returns the box's top-left; writing it is the caller's.
- *
- * Pure, but reads both boxes' reactive geometry, so calling it inside an
- * `effect` tracks the anchor.
- */
-export function position_area(
-  self: ReadonlyBox,
-  anchor: ReadonlyBox,
-  area: string,
-): { x: number; y: number } {
-  const resolved = resolveArea(area, rootDirection());
-  const box = areaBox(anchor, resolved);
-  const { block, inline } = resolved;
-  return {
-    x: alignAxis(box.x, box.w, anchor.x, anchor.w, self.w, inline),
-    y: alignAxis(box.y, box.h, anchor.y, anchor.h, self.h, block),
-  };
+/** A region's default self-alignment as a pin on the anchor's `[lo, hi]` —
+ * outward regions hug the anchor's near edge, spans its far edge; `center`
+ * and `span-all` are `anchor-center`, which may overflow the rect. */
+function pinOf(region: AxisRegion, lo: number, hi: number): Pin {
+  switch (region) {
+    case "start":
+      return { align: "end", at: lo };
+    case "span-start":
+      return { align: "end", at: hi };
+    case "end":
+      return { align: "start", at: hi };
+    case "span-end":
+      return { align: "start", at: lo };
+    default:
+      return { align: "center", at: (lo + hi) / 2 };
+  }
 }

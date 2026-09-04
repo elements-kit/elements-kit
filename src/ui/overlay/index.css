@@ -8,7 +8,7 @@
  * display/modality guard, and the morph transition; presentation (backdrop,
  * enter/exit, affordances) lives in the companion overlay.css. Clamping,
  * docking, flip/shift, and gesture bounds are JS (`Constraint`,
- * `position_area`) — there is no CSS constraint clamp.
+ * `PositionArea`) — there is no CSS constraint clamp.
  */
 
 .x-overlay {

@@ -9,7 +9,7 @@ import {
   ElementBox,
   OverlayBox,
   anchor_length,
-  position_area,
+  PositionArea as PositionAreaRegion,
 } from "./index.ts";
 
 /**
@@ -126,9 +126,9 @@ interface AreaArgs {
 }
 
 /**
- * The same anchoring through `position_area` — one call resolves the area to
- * its containing-block rect and aligns the panel inside it. The offset off the
- * anchor is the panel's own `margin`, as in CSS.
+ * The same anchoring through `PositionArea` — a live region of the anchor,
+ * and `place` aligns the panel inside it. The offset off the anchor is the
+ * panel's own `margin`, as in CSS.
  *
  * Changing an arg re-runs `render`, and Storybook's HTML renderer wipes the
  * canvas whenever the returned node differs from the one already mounted
@@ -165,7 +165,7 @@ export const PositionArea: StoryObj<AreaArgs> = {
           </button>
           <dialog id={id} class:unset class:x-overlay popover="manual">
             <div class:unset class:x-card data-variant="elevated" data-size="2">
-              <strong>position_area</strong>
+              <strong>PositionArea</strong>
               <p>area: {() => live().area}</p>
             </div>
             <dom-lifecycle
@@ -180,7 +180,8 @@ export const PositionArea: StoryObj<AreaArgs> = {
                   const { area } = live();
                   if (overlay.w <= 0 || overlay.h <= 0) return;
 
-                  const { x, y } = position_area(overlay, anchor_box, area);
+                  const region = new PositionAreaRegion(anchor_box, area);
+                  const { x, y } = region.place(overlay);
                   overlay.x = x;
                   overlay.y = y;
                 });
