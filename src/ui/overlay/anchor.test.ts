@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { effect } from "@/signals/index.ts";
 import { anchor_length, PositionArea } from "./anchor.ts";
 import type { PositionAreaValue } from "./anchor.ts";
 import type { Box } from "./box.ts";
@@ -79,6 +80,50 @@ describe("PositionArea — a live region", () => {
       x: 310,
       y: 540,
     });
+  });
+});
+
+describe("PositionArea — re-aiming the region", () => {
+  it("re-resolves when the area is assigned", () => {
+    const region = new PositionArea(ANCHOR, "bottom");
+    expect({ y: region.y, origin: region.origin }).toEqual({
+      y: 300,
+      origin: { x: "center", y: "top" },
+    });
+
+    region.area = "top";
+    expect({ y: region.y, origin: region.origin }).toEqual({
+      y: 260,
+      origin: { x: "center", y: "bottom" },
+    });
+  });
+
+  it("re-pins when the anchor is swapped", () => {
+    const region = new PositionArea(ANCHOR, "bottom");
+    expect({ x: region.x, y: region.y }).toEqual({ x: 360, y: 300 });
+
+    // Edges at x 0→100, y 0→20.
+    region.anchor = { x: 0, y: 0, w: 100, h: 20 };
+    expect({ x: region.x, y: region.y }).toEqual({ x: 50, y: 20 });
+    expect(region.place({ w: 40, h: 10 })).toEqual({ x: 30, y: 20 });
+  });
+
+  it("re-runs an effect on either assignment", () => {
+    const region = new PositionArea(ANCHOR, "bottom");
+    const seen: number[] = [];
+    effect(() => seen.push(region.y));
+
+    region.area = "top";
+    region.anchor = { x: 0, y: 0, w: 100, h: 20 };
+    expect(seen).toEqual([300, 260, 0]);
+  });
+
+  it("resolves logical keywords against the anchor's own direction", () => {
+    // Anchor edges: x 300→420. `inline-start` is the left edge in LTR, the
+    // right one in RTL — the anchor stands in for the containing block.
+    const rtl = { ...ANCHOR, direction: "rtl" as const };
+    expect(new PositionArea(ANCHOR, "inline-start").x).toBe(300);
+    expect(new PositionArea(rtl, "inline-start").x).toBe(420);
   });
 });
 

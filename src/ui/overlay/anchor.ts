@@ -1,3 +1,4 @@
+import { type Computed, computed, reactive } from "@/signals";
 import { originX, originY, placePinned } from "./area.ts";
 import type { Origin, Pin, Region } from "./area.ts";
 import type { Box, IDirection, Point, ReadonlyBox } from "./box.ts";
@@ -372,29 +373,38 @@ function resolveArea(
  * anchor's near edge, spans its far edge, center is `anchor-center`. Not a
  * box: a pin per axis, with no geometry of its own.
  *
- * Parsed once, at construction; the pins read the anchor on every access, so
- * reading them in an `effect` tracks it.
+ * The area is assignable — reassigning re-aims the region in place, so a menu
+ * can flip side without a new one. Parsed on assignment; the pins read the
+ * anchor on every access, so an `effect` tracks both.
  *
  * No gap parameter, for the same reason CSS has none: the offset off the
  * anchor is the overlay's own `margin`.
  */
 export class PositionArea implements Region {
-  readonly #area: Area;
+  @reactive() area: PositionAreaValue;
+  @reactive() anchor: ReadonlyBox & Partial<IDirection>;
+  #resolved: Computed<Area>;
 
   constructor(
-    readonly anchor: ReadonlyBox,
+    anchor: ReadonlyBox & Partial<IDirection>,
     area: PositionAreaValue,
   ) {
-    this.#area = resolveArea(area, rootDirection());
+    this.anchor = anchor;
+    this.area = area;
+    this.#resolved = computed(() =>
+      resolveArea(this.area, this.anchor.direction ?? rootDirection()),
+    );
   }
 
   get #px() {
     const a = this.anchor;
-    return pinOf(this.#area.inline, a.x, a.x + a.w);
+    const area = this.#resolved();
+    return pinOf(area.inline, a.x, a.x + a.w);
   }
   get #py() {
     const a = this.anchor;
-    return pinOf(this.#area.block, a.y, a.y + a.h);
+    const area = this.#resolved();
+    return pinOf(area.block, a.y, a.y + a.h);
   }
 
   /** The pin lines — the viewport point {@link origin} lands on. */
