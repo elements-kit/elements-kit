@@ -125,16 +125,21 @@
     "watch": "tsdown -w",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:engines": "node scripts/engine-matrix.mjs"
+    "test:engines": "node scripts/engine-matrix.mjs",
+    "test:browser": "vitest run --project browser"
   },
   "packageManager": "pnpm@11.25.0",
   "devDependencies": {
     "@tsdown/css": "^0.22.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@vitest/browser": "^4.1.10",
+    "@vitest/browser-playwright": "^4.1.9",
     "esbuild": "^0.28.1",
     "happy-dom": "^20.8.9",
     "jsdom": "^30.0.1",
+    "playwright": "^1.61.1",
+    "puppeteer-core": "^24.0.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "tsdown": "0.22.0",
@@ -142,7 +147,6 @@
     "vitest": "^4.1.2"
   },
   "dependencies": {
-    "@floating-ui/dom": "^1.7.6",
     "csstype": "^3.2.3",
     "dom-expressions": "^0.40.6"
   },

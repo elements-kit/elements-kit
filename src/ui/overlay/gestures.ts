@@ -1,160 +1,53 @@
-import { onCleanup } from "@/signals/index.ts";
-import {
-  detectEngagement,
-  type FrameIO,
-  type MoveDeps,
-  parseResize,
-  type Resizer,
-  type Session,
-  type Snapshot,
-} from "./gesture-model.ts";
-import { moveSession } from "./move-session.ts";
-import { createFrameIO, createGestureRecognizer } from "./overlay-dom.ts";
-import { resizeHeightSession } from "./resize-height-session.ts";
-import { resizeSession } from "./resize-session.ts";
-import { resizeWidthSession } from "./resize-width-session.ts";
-import { freeResize, type ResizeStrategy } from "./resize-strategy.ts";
+/** A pure display-time shaper: raw scalar → constrained scalar. */
+export type Modifier = (value: number) => number;
 
-export interface OverlayGestureOptions {
-  /** How a resize drag rests. Default: `freeResize()`. */
-  resize?: ResizeStrategy;
-  /** Allow a drag/flick past the minimum to close. Default `true`. */
-  dismissible?: boolean;
-  /** Release velocity (px/ms, shrinking) that dismisses. Default `0.5`. */
-  velocityThreshold?: number;
+// ── rubber ──────────────────────────────────────────────────────────────
+
+/** iOS rubber-band curve: sub-linear overshoot, asymptotes to
+ * `dimension * constant` — pull but never escape. */
+function resist(overshoot: number, dimension: number, constant: number): number {
+  return (
+    (overshoot * dimension * constant) / (dimension + constant * overshoot)
+  );
 }
 
-export interface OverlayGestures {
-  /** Resize to a size (px) along the resize axis — animated by CSS. */
-  resize(size: number): void;
-  dispose(): void;
-  [Symbol.dispose](): void;
+/** Elastic resistance past `[min, max]`. The true value stays in `Motion`, so
+ * release settles back cleanly. `dimension` = axis extent; `constant` = iOS
+ * tension (higher = looser). */
+export function rubber(
+  min: number,
+  max: number,
+  dimension: number,
+  constant = 0.55,
+): Modifier {
+  return (x) =>
+    x < min
+      ? min - resist(min - x, dimension, constant)
+      : x > max
+        ? max + resist(x - max, dimension, constant)
+        : x;
 }
 
-type ParsedResize = ReturnType<typeof parseResize>;
+// ── detents ─────────────────────────────────────────────────────────────
 
-/** The size a `data-resize` value persists: block edges drive the height,
- * everything else (inline edges, corners) the width. */
-const resizeKey = (parsed: ParsedResize): "w" | "h" =>
-  parsed.block !== null && parsed.inline === null ? "h" : "w";
-
-/** Build the drag session for an engaged zone. */
-function selectSession(
-  key: "block" | "inline" | "resize" | "move",
-  parsed: ParsedResize,
-  snapshot: Snapshot,
-  resizer: Resizer,
-  move: MoveDeps,
-  io: FrameIO,
-): Session {
-  if (key === "block")
-    return resizeHeightSession(snapshot, resizer, io, parsed.block!);
-  if (key === "inline")
-    return resizeWidthSession(snapshot, resizer, io, parsed.inline!);
-  if (key === "resize")
-    return resizeSession(snapshot, resizer, io, parsed.block!, parsed.inline!);
-  return moveSession(snapshot, move, io);
+/** The nearest detent to `value`. */
+export function nearest(value: number, points: number[]): number {
+  return points.reduce((a, b) =>
+    Math.abs(b - value) < Math.abs(a - value) ? b : a,
+  );
 }
 
-/**
- * Opt-in pointer gestures for `.x-overlay`, dispatched by the gesture
- * attributes (structure stays in markup; policy is options):
- *
- * - An edge word (`block-*` / `inline-*`) is a whole-surface size drag
- *   along that axis — block drags the height (sheets), inline the width
- *   (drawers), `:dir(rtl)` flips the inline sign. The side names the
- *   handle; the opposite edge stays put.
- * - A corner word (`start-start` / … — block side first) is a desktop-
- *   window resize from a square zone at that corner, anchored at the
- *   opposite corner so the surface never grows past the constraint. The
- *   width follows the `resize` strategy; the height is a free clamp.
- * - `data-draggable` moves the surface in x/y from the top strip,
- *   rubber-banding at the edges; flinging it off the constraint dismisses
- *   (when `dismissible`).
- *
- * Layered for testability: `gesture-model` owns the pure mode reducers +
- * math, and `overlay-dom` owns all DOM contact (pointer plumbing + channel
- * I/O). This function is the wiring — it picks a pure `Session` from
- * `detectEngagement` and adapts it to the recognizer through the io.
- * The `resize` strategy (`freeResize` by default, or `detents`) decides the
- * rested size, written to the public `--overlay-w`/`--overlay-h` channels;
- * CSS renders and animates them. JS never touches `translate`/`top`/`left`.
- *
- * Registers its cleanup with the current scope (`onCleanup`) and also
- * returns it as `dispose` / `Symbol.dispose`.
- *
- * @example
- * ```ts
- * import { constraint, createOverlayGestures, detents } from "elements-kit/ui/overlay";
- *
- * const el = document.querySelector("dialog.x-overlay")!;
- * createOverlayGestures(el, { resize: detents(constraint(), [0.25, 0.6, 0.9]) });
- * el.addEventListener("resizechange", (e) => console.log(e.detail));
- * ```
- */
-export function createOverlayGestures(
-  overlay: HTMLElement,
-  options?: OverlayGestureOptions,
-): OverlayGestures {
-  const io = createFrameIO(overlay, {
-    strategy: options?.resize ?? freeResize(),
-    dismissible: options?.dismissible ?? true,
-    velocityThreshold: options?.velocityThreshold ?? 0.5,
-  });
+/** Magnetic pull toward the nearest detent during a drag (0 = free, 1 = snap). */
+export function detent(points: number[], strength = 0): Modifier {
+  return (x) => x + (nearest(x, points) - x) * strength;
+}
 
-  const canEngage = (event: PointerEvent): boolean => {
-    const resize = overlay.getAttribute("data-resize") ?? "";
-    const draggable = overlay.hasAttribute("data-draggable");
-    if (!resize && !draggable) return false;
-    // Anchored overlays are driven by anchor()/draggable() — the markup
-    // gestures stay off them (drag the ANCHOR, not the overlay).
-    if (overlay.getAttribute("data-anchor") === "element") return false;
-    // Leave interactive elements alone — capturing the pointer would
-    // retarget the pointerup to the overlay and swallow their click.
-    const target = event.target as Element | null;
-    if (
-      target?.closest(
-        "button, a, label, input, select, textarea, [contenteditable]",
-      )
-    ) {
-      return false;
-    }
-    // Don't hijack a scroll-back gesture inside scrolled content.
-    for (
-      let el = target;
-      el !== null && el !== overlay;
-      el = el.parentElement
-    ) {
-      if (el.scrollTop > 0) return false;
-    }
-    return true;
-  };
-
-  const engage = (event: PointerEvent): Session | null => {
-    const parsed = parseResize(overlay.getAttribute("data-resize") ?? "");
-    const draggable = overlay.hasAttribute("data-draggable");
-    const { snapshot, resizer, move } = io.engage();
-    const key = detectEngagement({
-      ...parsed,
-      draggable,
-      rect: snapshot.rect,
-      pointer: { x: event.clientX, y: event.clientY },
-      dir: snapshot.dir,
-    });
-    if (!key) return null;
-    return selectSession(key, parsed, snapshot, resizer, move, io);
-  };
-
-  const recognizer = createGestureRecognizer(overlay, { canEngage, engage });
-  const dispose = () => recognizer.dispose();
-  onCleanup(dispose);
-
-  return {
-    resize(size) {
-      const key = resizeKey(parseResize(overlay.getAttribute("data-resize") ?? ""));
-      io.commit({ [key]: size });
-    },
-    dispose,
-    [Symbol.dispose]: dispose,
-  };
+/** Release target: project by velocity (`reach` ms of carry), then nearest detent. */
+export function snap(
+  value: number,
+  velocity: number,
+  points: number[],
+  reach = 150,
+): number {
+  return nearest(value + velocity * reach, points);
 }

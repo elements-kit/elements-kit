@@ -58,6 +58,7 @@ export default defineConfig([
     deps: {
       neverBundle: ["react", "react-dom"],
     },
+    plugins: [standardDecorators],
   },
   {
     // `*.shadow.css` is inlined into JS via `?inline` (adopted stylesheets), not

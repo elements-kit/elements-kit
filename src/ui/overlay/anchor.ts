@@ -1,577 +1,437 @@
-import { effect, onCleanup } from "@/signals/index.ts";
-import {
-  arrow as floatingArrow,
-  autoUpdate,
-  computePosition,
-  flip,
-  offset,
-  type Placement,
-  shift,
-} from "@floating-ui/dom";
-import {
-  type RectInit,
-  type Region,
-  resolveConstraint,
-  resolveVarPx,
-} from "./constraint.ts";
+import { inset, placeAxis } from "./area.ts";
+import type { Pin, Region } from "./area.ts";
+import { WINDOW_BOX } from "./box.ts";
+import type { Box, IDirection, ReadonlyBox } from "./box.ts";
 
 /**
- * The anchor — one of the two spatial primitives (with the constraint).
- * `anchor(overlay, follow?)` gives the overlay an anchor ELEMENT it
- * follows for its whole life; the anchor element follows `follow` until
- * something else moves it (a `draggable()` service, author code). The
- * overlay itself has no states — dragging, tearing off, re-pinning are
- * all things that happen to the anchor.
+ * The anchor-side vocabulary of the CSS `anchor()` function, reimplemented
+ * reactively — the JS tier speaks the same words as the native one:
  *
- * Two engines, chosen once at wire time, never switched:
+ *   overlay.y = anchor_length(a, "top", "bottom")   ≡   top: anchor(bottom)
  *
- * - Native CSS anchor positioning (compound gate, no `within`/`arrow`):
- *   the overlay's `position-anchor` points at the anchor element; when
- *   `follow` is an element the anchor pins itself to it through a second
- *   native hop (`[data-follow]` rule in index.css mirrors the followed
- *   box via `anchor()`/`anchor-size()`). Placement, flip and scroll
- *   tracking are compositor-side through both hops — zero JS.
- * - Floating UI (below the gate, or `within`/`arrow` requested — native
- *   CSS has no boundary control and no flip signal): `autoUpdate` writes
- *   the box center into the `--overlay-x`/`-y` channels while the
- *   overlay is open; a `dragmove` event from the drag service triggers
- *   an immediate reposition. The initial positioning write is instant;
- *   geometry transitions re-enable after it (Base UI's `data-instant`
- *   semantics), so re-pins and live area changes morph by the
- *   stylesheet. During an anchor drag, writes suppress geometry
- *   transitions again — the overlay must not ease behind the finger.
- *
- * `data-anchor="element"` is a static wiring marker (stamped here,
- * removed on dispose, never toggled). `data-placed` is output state —
- * the settled side, feeding the arrow and `transform-origin` (a hint
- * from `--overlay-area` under the native engine, the real side under
- * Floating UI). A first pointer-down from `draggable()` tears the
- * follow pin (the `data-follow` contract); a fresh open re-pins.
+ * Horizontal writing modes only: the block axis always starts at the top;
+ * only the inline axis consults `direction`.
  */
 
-export interface AnchorOptions {
-  /** Flip/shift boundary — placement confined to this region instead of
-   * the viewport. Forces the Floating UI engine. */
-  within?: Region;
-  /** Caret pointing at the anchor (`.x-overlay-arrow`, injected when not
-   * authored; a number sets `--overlay-arrow-size` in px). Forces the
-   * Floating UI engine. */
-  arrow?: number | boolean;
+/** Sides valid in a block-axis inset (`top` / `bottom`). */
+export type BlockSide =
+  | "top"
+  | "bottom"
+  | "inside"
+  | "outside"
+  | "start"
+  | "end"
+  | "self-start"
+  | "self-end"
+  | "center";
+
+/** Sides valid in an inline-axis inset (`left` / `right`). */
+export type InlineSide =
+  | "left"
+  | "right"
+  | "inside"
+  | "outside"
+  | "start"
+  | "end"
+  | "self-start"
+  | "self-end"
+  | "center";
+
+/** The physical inset longhands. */
+export type PhysicalInset = "top" | "right" | "bottom" | "left";
+
+/** Every inset property `anchor()` may sit in. */
+export type Inset =
+  | PhysicalInset
+  | "inset-block-start"
+  | "inset-block-end"
+  | "inset-inline-start"
+  | "inset-inline-end";
+
+/**
+ * The reactive `anchor()` function: the viewport coordinate of an anchor line
+ * on `box`, in the context of the inset property being computed. Reads the
+ * box's reactive geometry, so calling it inside an `effect` tracks the anchor.
+ */
+export function anchor_length(
+  box: Box & Partial<IDirection>,
+  inset: Inset,
+  side: BlockSide | InlineSide | number,
+): number {
+  const physical = resolveInset(inset);
+  const block = physical === "top" || physical === "bottom";
+  const lo = block ? box.y : box.x;
+  const size = block ? box.h : box.w;
+  return lo + fraction(box, block, physical, side) * size;
 }
 
-/** The same compound gate as the index.css ANCHORED MODE block — both
- * halves or neither, so the CSS and JS tiers can never disagree. */
-const nativeAnchorSupport = (): boolean =>
-  typeof CSS !== "undefined" &&
-  CSS.supports("anchor-name: --x") &&
-  CSS.supports("position-area: block-end");
-
-/** Measure whether the chain rule actually lands on the anchor's VISUAL
- * box — `CSS.supports` is a parser check, and Firefox 151 passes it
- * while resolving `anchor()` against the pre-transform layout box (a
- * `translate`d trigger pins half a box off). The probe host is
- * deliberately translated to catch exactly that. Inconclusive without a
- * layout engine (tests) — then trust the declared support. */
-let chainMeasured: boolean | undefined;
-function probeChain(): boolean {
-  const host = document.createElement("div");
-  host.style.cssText =
-    "position:fixed;top:80px;left:60px;width:40px;height:20px;" +
-    "translate:10px 5px;" + // visual box at (70, 85)
-    "visibility:hidden;pointer-events:none;anchor-name:--ek-chain-probe";
-  const pin = document.createElement("div");
-  pin.style.cssText =
-    "position:fixed;visibility:hidden;pointer-events:none;" +
-    "position-anchor:--ek-chain-probe;top:anchor(top);left:anchor(left);" +
-    "width:anchor-size(width);height:anchor-size(height)";
-  document.body.append(host, pin);
-  const hostRect = host.getBoundingClientRect();
-  const rect = pin.getBoundingClientRect();
-  host.remove();
-  pin.remove();
-  if (Math.abs(hostRect.top - 85) > 1) return true; // no layout engine
-  return (
-    Math.abs(rect.top - 85) < 1 &&
-    Math.abs(rect.left - 70) < 1 &&
-    Math.abs(rect.width - 40) < 1
-  );
-}
-
-/** The follow pin needs more than the placement gate — the chain rule
- * mirrors the followed box with `anchor()`/`anchor-size()`. A browser
- * that places but can't chain falls back to the JS rect copy. */
-const chainSupport = (): boolean => {
-  if (
-    !nativeAnchorSupport() ||
-    !CSS.supports("top: anchor(top)") ||
-    !CSS.supports("width: anchor-size(width)")
-  ) {
-    return false;
+/** A side, as a fraction of the axis measured from its top/left edge. */
+function fraction(
+  box: Partial<IDirection>,
+  block: boolean,
+  inset: PhysicalInset,
+  side: BlockSide | InlineSide | number,
+): number {
+  switch (side) {
+    case "top":
+    case "left":
+      return 0;
+    case "bottom":
+    case "right":
+      return 1;
+    case "inside":
+      return inset === "top" || inset === "left" ? 0 : 1;
+    case "outside":
+      return inset === "top" || inset === "left" ? 1 : 0;
+    case "center":
+      return 0.5;
   }
-  chainMeasured ??= probeChain();
-  return chainMeasured;
+
+  const logical =
+    typeof side === "number" ? side : side.endsWith("end") ? 1 : 0;
+  const selfSide = side === "self-start" || side === "self-end";
+  const rtl = selfSide
+    ? (box.direction ?? rootDirection()) === "rtl"
+    : rootDirection() === "rtl";
+  return !block && rtl ? 1 - logical : logical;
+}
+
+/** The document root's direction — the fallback when a box has no own. */
+function rootDirection(): "ltr" | "rtl" {
+  return getComputedStyle(document.documentElement).direction === "rtl"
+    ? "rtl"
+    : "ltr";
+}
+
+/** A logical inset longhand → its physical side, through the containing
+ * block's direction (horizontal writing modes — only inline flips). */
+function resolveInset(inset: Inset): PhysicalInset {
+  switch (inset) {
+    case "inset-block-start":
+      return "top";
+    case "inset-block-end":
+      return "bottom";
+    case "inset-inline-start":
+      return getComputedStyle(document.documentElement).direction === "rtl"
+        ? "right"
+        : "left";
+    case "inset-inline-end":
+      return getComputedStyle(document.documentElement).direction === "rtl"
+        ? "left"
+        : "right";
+    default:
+      return inset;
+  }
+}
+
+/* ====================================================================== *
+ * position-area — a reactive reimplementation of the CSS property.       *
+ *                                                                        *
+ * The anchor's four edges tile the plane into a 3×3 grid; a              *
+ * `position-area` value names the region the box sits in. `PositionArea` *
+ * is that region, live: the containing block, plus the region's default  *
+ * self-alignment as `place`.                                             *
+ * ====================================================================== */
+
+/** One axis of a `position-area`, as a PHYSICAL (coordinate-space) region. */
+type AxisRegion =
+  | "start"
+  | "center"
+  | "end"
+  | "span-start"
+  | "span-end"
+  | "span-all";
+
+/** A resolved `position-area` value — one physical region per axis. */
+interface Area {
+  block: AxisRegion;
+  inline: AxisRegion;
+}
+
+interface Keyword {
+  axis: "block" | "inline" | "ambiguous";
+  region: AxisRegion;
+  physical: boolean;
+  self: boolean;
+}
+
+const B = (region: AxisRegion, physical = false): Keyword => ({
+  axis: "block",
+  region,
+  physical,
+  self: false,
+});
+const I = (region: AxisRegion, physical = false): Keyword => ({
+  axis: "inline",
+  region,
+  physical,
+  self: false,
+});
+const A = (region: AxisRegion, self = false): Keyword => ({
+  axis: "ambiguous",
+  region,
+  physical: false,
+  self,
+});
+
+/** The full `position-area` keyword grammar → axis + physical region. */
+const KEYWORDS: Record<string, Keyword> = {
+  top: B("start", true),
+  bottom: B("end", true),
+  "span-top": B("span-start", true),
+  "span-bottom": B("span-end", true),
+  left: I("start", true),
+  right: I("end", true),
+  "span-left": I("span-start", true),
+  "span-right": I("span-end", true),
+  center: { axis: "ambiguous", region: "center", physical: true, self: false },
+  "span-all": {
+    axis: "ambiguous",
+    region: "span-all",
+    physical: true,
+    self: false,
+  },
+  "block-start": B("start"),
+  "block-end": B("end"),
+  "span-block-start": B("span-start"),
+  "span-block-end": B("span-end"),
+  "y-start": B("start"),
+  "y-end": B("end"),
+  "span-y-start": B("span-start"),
+  "span-y-end": B("span-end"),
+  "inline-start": I("start"),
+  "inline-end": I("end"),
+  "span-inline-start": I("span-start"),
+  "span-inline-end": I("span-end"),
+  "x-start": I("start"),
+  "x-end": I("end"),
+  "span-x-start": I("span-start"),
+  "span-x-end": I("span-end"),
+  start: A("start"),
+  end: A("end"),
+  "span-start": A("span-start"),
+  "span-end": A("span-end"),
+  "self-start": A("start", true),
+  "self-end": A("end", true),
+  "span-self-start": A("span-start", true),
+  "span-self-end": A("span-end", true),
 };
 
-/** While the Floating UI loop tracks, geometry writes must land
- * instantly — but ONLY geometry. Enter/exit (opacity, scale) and
- * close (display) keep transitioning, so `@starting-style` still plays. */
-const TRACKING_TRANSITIONS = "opacity, scale, display";
+const SPAN_ALL = KEYWORDS["span-all"];
 
-let anchorNames = 0;
+function flipRegion(r: AxisRegion): AxisRegion {
+  return r === "start"
+    ? "end"
+    : r === "end"
+      ? "start"
+      : r === "span-start"
+        ? "span-end"
+        : r === "span-end"
+          ? "span-start"
+          : r;
+}
 
-/**
- * Maps a `position-area` value to the Floating UI placement. Spanning
- * toward an edge leaves the box flush with the *opposite* edge, so
- * `span-*-end` is a `-start` alignment (and vice versa) — Floating UI
- * resolves `-start`/`-end` logically, so the span tokens need no dir
- * check; only the physical inline sides do. Unknown values fall back to
- * `bottom` (the CSS default, `block-end`).
- */
-export function areaToPlacement(area: string, rtl = false): Placement {
-  const tokens = area.trim().split(/\s+/);
-  const main = tokens.find((t) => !t.startsWith("span-"));
-  const span = tokens.find((t) => t.startsWith("span-")) ?? "";
-  const side =
-    main === "block-start"
-      ? "top"
-      : main === "inline-start"
-        ? rtl
-          ? "right"
-          : "left"
-        : main === "inline-end"
-          ? rtl
-            ? "left"
-            : "right"
-          : "bottom";
-  const align = span.endsWith("-end")
-    ? "-start"
-    : span.endsWith("-start")
-      ? "-end"
-      : "";
-  return `${side}${align}` as Placement;
+/** Resolve a keyword to a physical region: block never flips; inline flips
+ * in RTL unless the keyword is physical. */
+function toPhysical(
+  kw: Keyword,
+  axis: "block" | "inline",
+  dir: "ltr" | "rtl",
+  selfDir: "ltr" | "rtl",
+): AxisRegion {
+  const r = kw.region;
+  if (r === "center" || r === "span-all" || axis === "block" || kw.physical) {
+    return r;
+  }
+  return (kw.self ? selfDir : dir) === "rtl" ? flipRegion(r) : r;
 }
 
 /**
- * Gives `overlay` its anchor element and returns it. The overlay follows
- * the anchor for life; the anchor follows `follow` (element or rect)
- * until something moves it. Pass the returned element to `draggable()`
- * to make the composition tearable — dragging moves the anchor.
- *
- * `follow` may be a getter reading a signal — re-pinning on change is
- * how a shared popover slides between nav triggers: the native chain
- * glides there on the anchor element's CSS transition; the channel
- * engine lets that one write animate.
- *
- * Registers all cleanup with the current scope (`onCleanup`): the anchor
- * element, the wiring, and the stamped attributes are removed together.
- *
- * @example
- * ```ts
- * import { anchor, draggable, rubber } from "elements-kit/ui/overlay";
- *
- * const a = anchor(panel, trigger);
- * draggable(a, undefined, rubber()).attach(panel);
- *
- * // shared nav popover — re-anchors (and glides) when the signal changes
- * const active = signal(firstTrigger);
- * anchor(menu, () => active(), { arrow: true });
- * ```
+ * Parse a `position-area` value into a physical {@link Area}. One or two
+ * keywords, order-independent; an axis-specific single keyword spans the
+ * other axis, an ambiguous one applies to both. Unknown/empty → `block-end`.
  */
-export function anchor(
-  overlay: HTMLElement,
-  follow?: Element | RectInit | (() => Element | RectInit | null | undefined),
-  opts: AnchorOptions = {},
-): HTMLElement {
-  const native = nativeAnchorSupport() && !opts.within && !opts.arrow;
-  let disposed = false;
+function resolveArea(
+  area: string,
+  dir: "ltr" | "rtl" = "ltr",
+  selfDir: "ltr" | "rtl" = dir,
+): Area {
+  const tokens = area.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const fallback = (): Area => ({ block: "end", inline: "center" });
+  if (tokens.length === 0 || tokens.length > 2) return fallback();
 
-  const resolveFollow = (): Element | RectInit | undefined =>
-    (typeof follow === "function" ? follow() : follow) ?? undefined;
-
-  // --- the anchor element ---------------------------------------------
-  const el = document.createElement("span");
-  el.className = "x-overlay-anchor";
-  el.setAttribute("aria-hidden", "true");
-  // Under the CHANNEL engine the proxy is a measured reference — its
-  // CSS glide transition must not ease JS writes, or the overlay
-  // positions against a mid-flight rect (the channel morph provides the
-  // glide there). Under the native engine the overlay follows the proxy
-  // continuously, so the transition stays and IS the glide — even when
-  // the follow is a JS rect copy (chain probe failed, e.g. Firefox).
-  if (!native) el.style.transitionProperty = "none";
-  document.body.append(el);
-
-  const proxyName = `--overlay-anchor-${anchorNames++}`;
-  const followName = `--overlay-follow-${anchorNames++}`;
-
-  const placeAtRect = (rect: RectInit) => {
-    el.style.top = `${rect.top}px`;
-    el.style.left = `${rect.left}px`;
-    el.style.width = `${rect.width}px`;
-    el.style.height = `${rect.height}px`;
-  };
-
-  /** Pin the anchor element to a follow target (the `data-follow`
-   * contract — `draggable()` tears it on the first pointer-down).
-   * Re-pinning to another element keeps the SAME `position-anchor` name,
-   * so under the native chain the proxy's `anchor()` insets resolve to
-   * the new box and its CSS transition GLIDES there — the nav slide. */
-  let pinnedEl: HTMLElement | undefined;
-  let hasPinned = false;
-  let stopFollowSync: (() => void) | undefined;
-  const releasePinMachinery = () => {
-    stopFollowSync?.();
-    stopFollowSync = undefined;
-    pinnedEl?.style.removeProperty("anchor-name");
-    pinnedEl = undefined;
-  };
-  const pin = (target: Element | RectInit | undefined) => {
-    // FLIP handoff for a re-pin under the chain: freeze the current rect
-    // inline BEFORE touching the names (same pixels — no motion), so the
-    // release below transitions px → anchor() px on the same properties.
-    // Anchor-reference changes alone don't reliably interpolate.
-    const repositioning = hasPinned;
-    const flip = repositioning && target instanceof Element && chainSupport();
-    if (flip) placeAtRect(el.getBoundingClientRect());
-    releasePinMachinery();
-    if (!target) {
-      // Unfollowed anchor — start at the viewport center.
-      el.style.top = "50vh";
-      el.style.left = "50vw";
-      return;
-    }
-    hasPinned = true;
-    if (!(target instanceof Element)) {
-      el.removeAttribute("data-follow"); // a rect pin is one-shot
-      placeAtRect(target);
-      return;
-    }
-    el.setAttribute("data-follow", "");
-    if (chainSupport()) {
-      // Native chain — index.css [data-follow] mirrors the followed box.
-      (target as HTMLElement).style?.setProperty("anchor-name", followName);
-      pinnedEl = target as HTMLElement;
-      el.style.setProperty("position-anchor", followName);
-      // Commit the frozen state before releasing it, then clear the
-      // inline geometry — the chain rule takes over and the proxy's CSS
-      // transition glides there (the overlay follows natively).
-      if (flip) void el.offsetTop;
-      el.style.removeProperty("top");
-      el.style.removeProperty("left");
-      el.style.removeProperty("width");
-      el.style.removeProperty("height");
-    } else {
-      // JS rect copy. The very first placement must not animate (the
-      // proxy would glide in from wherever it was created) — but a
-      // RE-pin glides from its valid position; later copies ride the
-      // proxy's transition under the native engine — that's the glide.
-      let first = !repositioning;
-      const sync = () => {
-        if (first) {
-          first = false;
-          const prev = el.style.transitionProperty;
-          el.style.transitionProperty = "none";
-          placeAtRect(target.getBoundingClientRect());
-          void el.offsetTop;
-          if (prev) el.style.transitionProperty = prev;
-          else el.style.removeProperty("transition-property");
-          return;
-        }
-        placeAtRect(target.getBoundingClientRect());
-      };
-      stopFollowSync = autoUpdate(target, el, sync);
-    }
-  };
-  const unpinCleanup = () => releasePinMachinery();
-  // The drag service removes [data-follow] when it takes over — release
-  // the pinning machinery (the chain is inert without the attribute, but
-  // the below-gate sync loop must stop).
-  const followObserver = new MutationObserver(() => {
-    if (!el.hasAttribute("data-follow")) unpinCleanup();
-  });
-  followObserver.observe(el, {
-    attributes: true,
-    attributeFilter: ["data-follow"],
-  });
-
-  const stampPlacedHint = () => {
-    const style = getComputedStyle(overlay);
-    const hint = areaToPlacement(
-      style.getPropertyValue("--overlay-area"),
-      style.direction === "rtl",
-    );
-    overlay.setAttribute("data-placed", hint.split("-")[0]);
-  };
-
-  const isOpen = (): boolean => {
-    if (overlay.hasAttribute("open")) return true;
-    try {
-      return overlay.matches(":popover-open");
-    } catch {
-      return false;
-    }
-  };
-
-  // --- wiring the overlay to the anchor element ------------------------
-  let haltLoop: (() => void) | undefined;
-  let engineDispose: (() => void) | undefined;
-  /** Channel engine only: reposition against a re-pinned target, letting
-   * that one write animate (the morph to the new anchor). */
-  let onRepoint: (() => void) | undefined;
-
-  if (native) {
-    // data-anchor selects the native scheme (index.css) — stamped only
-    // here, statically; the Floating UI engine renders through the
-    // centered scheme's channels and must NOT activate the native block.
-    overlay.setAttribute("data-anchor", "element");
-    el.style.setProperty("anchor-name", proxyName);
-    overlay.style.setProperty("position-anchor", proxyName);
-    engineDispose = () => {
-      // Leave the overlay where it was: seed the location channels from
-      // the rendered rect (inert while the native block still applies,
-      // pixel-identical when the attribute drops) — releasing a binding
-      // must not snap the box to the centered default.
-      const rect = overlay.getBoundingClientRect();
-      if (isOpen() && rect.width > 0) {
-        const c = resolveConstraint(overlay);
-        overlay.style.setProperty(
-          "--overlay-x",
-          `${rect.left + rect.width / 2 - c.left}px`,
-        );
-        overlay.style.setProperty(
-          "--overlay-y",
-          `${rect.top + rect.height / 2 - c.top}px`,
-        );
-      }
-      overlay.style.removeProperty("position-anchor");
-      overlay.removeAttribute("data-anchor");
-    };
-  } else {
-    // Floating UI engine — reference is the anchor element itself.
-    let arrowEl: HTMLElement | null = null;
-    let arrowOwned = false;
-    if (opts.arrow) {
-      arrowEl = overlay.querySelector(":scope > .x-overlay-arrow");
-      if (!arrowEl) {
-        arrowEl = document.createElement("span");
-        arrowEl.className = "x-overlay-arrow";
-        arrowEl.setAttribute("aria-hidden", "true");
-        overlay.append(arrowEl);
-        arrowOwned = true;
-      }
-      if (typeof opts.arrow === "number")
-        overlay.style.setProperty("--overlay-arrow-size", `${opts.arrow}px`);
-    }
-
-    const boundaryRect = () => {
-      const w = opts.within;
-      if (!w) return undefined;
-      return { x: w.left(), y: w.top(), width: w.width(), height: w.height() };
-    };
-
-    const update = async () => {
-      const style = getComputedStyle(overlay);
-      const placementHint = areaToPlacement(
-        style.getPropertyValue("--overlay-area"),
-        style.direction === "rtl",
-      );
-      const gapPx = resolveVarPx(
-        overlay,
-        "--overlay-gap",
-        "width",
-        "var(--space-2, 8px)",
-      );
-      const boundary = boundaryRect();
-      const middleware = [
-        offset(gapPx),
-        flip(boundary ? { boundary } : undefined),
-        shift(boundary ? { boundary } : undefined),
-      ];
-      if (arrowEl) middleware.push(floatingArrow({ element: arrowEl }));
-      const { x, y, placement, middlewareData } = await computePosition(
-        el,
-        overlay,
-        { strategy: "fixed", placement: placementHint, middleware },
-      );
-      if (disposed) return;
-      const constraint = resolveConstraint(overlay);
-      // The channels hold the box CENTER relative to the constraint
-      // origin (index.css LOCATION) — convert the viewport top-left.
-      // Layout size, NOT getBoundingClientRect: the enter animation has
-      // the box at scale(0.97) and a scaled measurement skews the write.
-      overlay.style.setProperty(
-        "--overlay-x",
-        `${x + overlay.offsetWidth / 2 - constraint.left}px`,
-      );
-      overlay.style.setProperty(
-        "--overlay-y",
-        `${y + overlay.offsetHeight / 2 - constraint.top}px`,
-      );
-      if (placement)
-        overlay.setAttribute("data-placed", placement.split("-")[0]);
-      const a = middlewareData.arrow;
-      if (a) {
-        if (a.x !== undefined)
-          overlay.style.setProperty("--overlay-arrow-x", `${a.x}px`);
-        if (a.y !== undefined)
-          overlay.style.setProperty("--overlay-arrow-y", `${a.y}px`);
-      }
-    };
-
-    let stop: (() => void) | undefined;
-    // Bound while already visible → the arrival write should morph, not
-    // snap (a later fresh open still positions instantly).
-    let morphIn = isOpen();
-    const suppress = () =>
-      overlay.style.setProperty("transition-property", TRACKING_TRANSITIONS);
-    const release = () =>
-      overlay.style.removeProperty("transition-property");
-    const startLoop = () => {
-      if (stop) return;
-      // Base UI semantics: the INITIAL positioning write is instant
-      // (their `data-instant`); geometry transitions re-enable after it,
-      // so every later reposition — a re-pinned follow, a live area
-      // change — morphs by the stylesheet. Enter/exit (opacity, scale,
-      // display) stay live throughout. Exception: an overlay VISIBLE at
-      // bind time (a recipe switch re-anchoring it) morphs to the anchor
-      // instead of snapping — seeding the rendered position first when
-      // no channels exist yet, so the morph has a starting point.
-      const instant = !morphIn;
-      morphIn = false;
-      if (instant) suppress();
-      else if (!overlay.style.getPropertyValue("--overlay-x")) {
-        const rect = overlay.getBoundingClientRect();
-        const c = resolveConstraint(overlay);
-        overlay.style.setProperty(
-          "--overlay-x",
-          `${rect.left + rect.width / 2 - c.left}px`,
-        );
-        overlay.style.setProperty(
-          "--overlay-y",
-          `${rect.top + rect.height / 2 - c.top}px`,
-        );
-      }
-      let pending = instant;
-      stop = autoUpdate(el, overlay, () =>
-        update().then(() => {
-          if (pending && !disposed) {
-            pending = false;
-            release();
-          }
-        }),
-      );
-    };
-    haltLoop = () => {
-      stop?.();
-      stop = undefined;
-      release();
-    };
-    onRepoint = () => {
-      if (stop) void update(); // transitions are on — the write morphs
-    };
-
-    const sync = () => {
-      if (disposed) return;
-      if (isOpen()) startLoop();
-      else haltLoop?.();
-    };
-    // While the anchor is being dragged the overlay must track the
-    // pointer instantly — eased geometry would lag behind the finger.
-    const onDragMove = () => {
-      suppress();
-      void update();
-    };
-    const onDragEnd = () => {
-      if (disposed || !stop) return;
-      release();
-      // Settle: the drag service may have snapped the anchor to a rest
-      // point — reposition with transitions live so the overlay morphs
-      // there (autoUpdate alone observes anchor movement too coarsely).
-      void update();
-    };
-
-    overlay.addEventListener("toggle", sync);
-    overlay.addEventListener("close", sync);
-    el.addEventListener("dragmove", onDragMove);
-    el.addEventListener("dragend", onDragEnd);
-    // show()/showModal() flip [open] without firing an event everywhere.
-    const openObserver = new MutationObserver(sync);
-    openObserver.observe(overlay, {
-      attributes: true,
-      attributeFilter: ["open"],
-    });
-    sync();
-
-    engineDispose = () => {
-      haltLoop?.();
-      openObserver.disconnect();
-      overlay.removeEventListener("toggle", sync);
-      overlay.removeEventListener("close", sync);
-      el.removeEventListener("dragmove", onDragMove);
-      el.removeEventListener("dragend", onDragEnd);
-      // --overlay-x/-y stay — releasing a binding leaves the overlay
-      // where it was (the binding model's own rule).
-      overlay.style.removeProperty("--overlay-arrow-x");
-      overlay.style.removeProperty("--overlay-arrow-y");
-      if (typeof opts.arrow === "number")
-        overlay.style.removeProperty("--overlay-arrow-size");
-      if (arrowOwned) arrowEl?.remove();
-    };
+  const kws: Keyword[] = [];
+  for (const token of tokens) {
+    const keyword = KEYWORDS[token];
+    if (!keyword) return fallback();
+    kws.push(keyword);
   }
 
-  // A fresh open re-pins a torn-off anchor to its followed element.
-  const repin = (event: Event) => {
-    if (disposed) return;
-    const target = resolveFollow();
-    if (!target) return;
-    const opening =
-      (event as { newState?: string }).newState === "open" ||
-      (event.type !== "toggle" && isOpen());
-    if (opening && !el.hasAttribute("data-follow")) {
-      el.style.removeProperty("top");
-      el.style.removeProperty("left");
-      el.style.removeProperty("width");
-      el.style.removeProperty("height");
-      pin(target);
-    }
-  };
-  overlay.addEventListener("toggle", repin);
-  const repinObserver = new MutationObserver((mutations) => {
-    if (mutations.some((m) => m.attributeName === "open"))
-      repin(new Event("open"));
-  });
-  repinObserver.observe(overlay, {
-    attributes: true,
-    attributeFilter: ["open"],
-  });
-
-  stampPlacedHint();
-  let stopFollowEffect: (() => void) | undefined;
-  if (typeof follow === "function") {
-    // Reactive follow — a signal-driven getter re-pins on change; the
-    // native chain glides there, the channel engine morphs one write.
-    let first = true;
-    stopFollowEffect = effect(() => {
-      pin(resolveFollow());
-      if (!first) onRepoint?.();
-      first = false;
-    });
-  } else {
-    pin(resolveFollow());
+  // Two explicit keywords for the same axis are not a valid area. Do not
+  // silently let the latter win (`top bottom`, `left right`).
+  const [first, second] = kws;
+  if (
+    first &&
+    second &&
+    first.axis !== "ambiguous" &&
+    first.axis === second.axis
+  ) {
+    return fallback();
   }
 
-  const dispose = () => {
-    disposed = true;
-    stopFollowEffect?.();
-    engineDispose?.();
-    unpinCleanup();
-    followObserver.disconnect();
-    repinObserver.disconnect();
-    overlay.removeEventListener("toggle", repin);
-    overlay.removeAttribute("data-placed");
-    el.remove();
-  };
-  onCleanup(dispose);
+  let block: Keyword | undefined;
+  let inline: Keyword | undefined;
 
-  return el;
+  if (kws.length === 1) {
+    const k = kws[0];
+    if (k.axis === "block") ((block = k), (inline = SPAN_ALL));
+    else if (k.axis === "inline") ((inline = k), (block = SPAN_ALL));
+    else ((block = k), (inline = k));
+  } else if (kws.length === 2) {
+    for (const k of kws) {
+      if (k.axis === "block") block = k;
+      else if (k.axis === "inline") inline = k;
+    }
+    const ambs = kws.filter((k) => k.axis === "ambiguous");
+    if (!block && !inline) ((block = ambs[0]), (inline = ambs[1] ?? ambs[0]));
+    else if (!block) block = ambs[0];
+    else if (!inline) inline = ambs[0];
+  }
+
+  return {
+    block: block ? toPhysical(block, "block", dir, selfDir) : "end",
+    inline: inline ? toPhysical(inline, "inline", dir, selfDir) : "center",
+  };
+}
+
+/** One axis of the position-area containing block, as `[lo, hi]` viewport
+ * coordinates. The anchor's two edges cut `[bLo, bHi]` into before/over/after. */
+function axisSpan(
+  lo: number,
+  hi: number,
+  bLo: number,
+  bHi: number,
+  region: AxisRegion,
+): [number, number] {
+  switch (region) {
+    case "start":
+      return [bLo, lo];
+    case "end":
+      return [hi, bHi];
+    case "center":
+      return [lo, hi];
+    case "span-start":
+      return [bLo, hi];
+    case "span-end":
+      return [lo, bHi];
+    default: // span-all
+      return [bLo, bHi];
+  }
+}
+
+/**
+ * The reactive `position-area` property: the region of the viewport an
+ * overlay anchored to `anchor` may occupy, with the region's default
+ * self-alignment as {@link Region.place} — outward regions hug the anchor,
+ * spans go flush against its far edge, center is `anchor-center`. Nothing is
+ * written; the caller takes what it wants from `place`:
+ *
+ *   const area = new PositionArea(a, "top span-left");
+ *   effect(() => { overlay.x = area.place(overlay).x; });
+ *
+ * The value is parsed once, at construction; the geometry reads the anchor
+ * and window on every access, so reading it inside an `effect` tracks both.
+ *
+ * Bounded by the window. A tighter bound (a `Constraint`, a scroll container)
+ * is an intersection with the region, so it composes afterwards rather than
+ * being a parameter here.
+ *
+ * There is no gap parameter, for the same reason CSS has none: the offset off
+ * the anchor is the overlay's own `margin`.
+ */
+export class PositionArea implements Region, ReadonlyBox {
+  readonly #area: Area;
+
+  constructor(
+    readonly anchor: ReadonlyBox,
+    area: string,
+  ) {
+    this.#area = resolveArea(area, rootDirection());
+  }
+
+  /** The inline axis as `[lo, hi]`, re-read from the anchor and window. */
+  get #ix() {
+    const a = this.anchor;
+    const w = WINDOW_BOX;
+    return axisSpan(a.x, a.x + a.w, w.x, w.x + w.w, this.#area.inline);
+  }
+  /** The block axis as `[lo, hi]`. */
+  get #iy() {
+    const a = this.anchor;
+    const w = WINDOW_BOX;
+    return axisSpan(a.y, a.y + a.h, w.y, w.y + w.h, this.#area.block);
+  }
+  get #px() {
+    const a = this.anchor;
+    return pinOf(this.#area.inline, a.x, a.x + a.w);
+  }
+  get #py() {
+    const a = this.anchor;
+    return pinOf(this.#area.block, a.y, a.y + a.h);
+  }
+
+  get x() {
+    return this.#ix[0];
+  }
+  get y() {
+    return this.#iy[0];
+  }
+  get w() {
+    const [lo, hi] = this.#ix;
+    return hi - lo;
+  }
+  get h() {
+    const [lo, hi] = this.#iy;
+    return hi - lo;
+  }
+
+  get left() {
+    return inset(this.#px, "start");
+  }
+  get right() {
+    return inset(this.#px, "end");
+  }
+  get top() {
+    return inset(this.#py, "start");
+  }
+  get bottom() {
+    return inset(this.#py, "end");
+  }
+
+  place(box: ReadonlyBox): Box {
+    return {
+      x: placeAxis(this.#px, box.x, box.w),
+      y: placeAxis(this.#py, box.y, box.h),
+      w: box.w,
+      h: box.h,
+    };
+  }
+}
+
+/** A region's default self-alignment as a pin on the anchor's `[lo, hi]` —
+ * outward regions hug the anchor's near edge, spans its far edge; `center`
+ * and `span-all` are `anchor-center`, which may overflow the rect. */
+function pinOf(region: AxisRegion, lo: number, hi: number): Pin {
+  switch (region) {
+    case "start":
+      return { align: "end", at: lo };
+    case "span-start":
+      return { align: "end", at: hi };
+    case "end":
+      return { align: "start", at: hi };
+    case "span-end":
+      return { align: "start", at: lo };
+    default:
+      return { align: "center", at: (lo + hi) / 2 };
+  }
 }

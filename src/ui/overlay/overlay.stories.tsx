@@ -1,401 +1,111 @@
 import type { Meta, StoryObj } from "@storybook/html-vite";
-import { computed, effectScope, signal } from "elements-kit/signals";
+import { effect, signal } from "elements-kit/signals";
 import "@/utilities/dom-lifecycle.ts";
 import "../card/card.css";
 import "../button/button.css";
-import "../toggle/toggle.css";
 import "./index.css";
 import "./overlay.css";
 import {
-  anchor,
-  confine,
-  constraint,
-  createOverlayGestures,
-  detents,
-  draggable,
-  rubber,
+  ElementBox,
+  OverlayBox,
+  anchor_length,
+  PositionArea as PositionAreaRegion,
 } from "./index.ts";
 
-const RESIZES = [
-  "none",
-  "block-start",
-  "block-end",
-  "inline-start",
-  "inline-end",
-  "start-start",
-  "start-end",
-  "end-start",
-  "end-end",
-] as const;
+/**
+ * Reduced to the surface that currently exists: `OverlayBox` (geometry
+ * projected to CSS), `ElementBox` (an element's live rect), and the
+ * `anchor()` vocabulary. The gesture, constraint and `Overlay` stories are in
+ * git history — restore them when those modules are re-exported.
+ */
+const meta = {
+  title: "UI/Overlay",
+  parameters: { layout: "centered" },
+} satisfies Meta;
 
-interface Args {
-  resize: (typeof RESIZES)[number];
-  draggable: boolean;
-  x: string;
-  y: string;
-  w: string;
-  h: string;
-  snap: boolean;
-  modal: boolean;
-  gestures: boolean;
-}
+export default meta;
+
+const ITEMS = ["Products", "Solutions", "Pricing", "About"];
+const COPY: Record<string, string> = {
+  Products: "Design primitives, overlays, and reactive utilities.",
+  Solutions: "Recipes for sheets, drawers, menus, and windows.",
+  Pricing: "Free and open source — the best kind of pricing.",
+  About: "A tiny reactive UI kit built on the platform.",
+};
 
 let uid = 0;
 
-/** Inline style string feeding the public geometry channels. */
-function channelStyle(args: Pick<Args, "x" | "y" | "w" | "h">): string {
-  return [
-    args.x && `--overlay-x: ${args.x}`,
-    args.y && `--overlay-y: ${args.y}`,
-    args.w && `--overlay-w: ${args.w}`,
-    args.h && `--overlay-h: ${args.h}`,
-  ]
-    .filter(Boolean)
-    .join("; ");
-}
-
-const meta = {
-  title: "UI/Overlay",
-  // Not production ready — surfaces an "Experimental" sidebar badge + a canvas
-  // banner (see .storybook/manager.ts renderLabel and preview.ts decorator).
-  tags: ["experimental"],
-  argTypes: {
-    resize: {
-      control: "select",
-      options: [...RESIZES],
-      description:
-        "data-resize — the side the resize handle sits on; a start/end pair (block first) for a corner grip",
-    },
-    draggable: {
-      control: "boolean",
-      description: "data-draggable — x/y move gesture from the top strip",
-    },
-    x: {
-      control: "text",
-      description:
-        "--overlay-x — center's distance from the constraint's left (empty = centered; 9999px docks right)",
-    },
-    y: {
-      control: "text",
-      description:
-        "--overlay-y — center's distance from the constraint's top (empty = centered; 9999px docks bottom)",
-    },
-    w: {
-      control: "text",
-      description: "--overlay-w — width channel (empty = --overlay-width, 480px)",
-    },
-    h: {
-      control: "text",
-      description: "--overlay-h — height channel (empty = fit-content)",
-    },
-    snap: {
-      control: "boolean",
-      description:
-        "Pass detents([0.25, 0.6, 0.9]) so the resize snaps to fractions of the constraint axis instead of free resize",
-    },
-    modal: {
-      control: "boolean",
-      description:
-        "Open with showModal() (backdrop, inert page) instead of popover (light dismiss, page interactive)",
-    },
-    gestures: {
-      control: "boolean",
-      description:
-        "Attach createOverlayGestures — resize from edge/corner handles, move when draggable, flick to dismiss",
-    },
-  },
-  args: {
-    resize: "end-end",
-    draggable: true,
-    x: "",
-    y: "",
-    w: "",
-    h: "",
-    snap: false,
-    modal: true,
-    gestures: true,
-  },
-  render: (args) => {
+/**
+ * One popover shared by a nav of triggers. Hovering another trigger re-points
+ * the anchor while the panel stays open, so it GLIDES — `OverlayBox` writes
+ * `--x/--y` into a single `translate`, and one CSS transition interpolates the
+ * move. `showPopover({ source })` (never `popovertarget`, which would toggle
+ * an open popover shut).
+ */
+export const NavPopover: StoryObj = {
+  render: () => {
     const id = `overlay-story-${uid++}`;
-    const overlay = signal<HTMLDialogElement | null>();
+    const active = signal(ITEMS[0]);
+
+    const wire = (self: HTMLElement) => {
+      const nav = self.parentElement as HTMLElement;
+      const panel = document.getElementById(id) as HTMLDialogElement;
+      const links = nav.querySelectorAll<HTMLElement>("button[data-item]");
+      const first = links[0];
+      if (!panel || !first) return;
+
+      const anchor = signal<HTMLElement>(first);
+      const open = signal(false);
+
+      for (const link of links) {
+        link.addEventListener("pointerenter", () => {
+          active(link.dataset.item ?? "");
+          anchor(link);
+          open(true);
+        });
+      }
+      nav.addEventListener("pointerleave", () => open(false));
+
+      const overlay = new OverlayBox(panel);
+      const anchor_box = new ElementBox(anchor);
+
+      effect(() => {
+        const showing = panel.matches(":popover-open");
+        if (open() && !showing) panel.showPopover({ source: anchor() });
+        else if (!open() && showing) panel.hidePopover();
+      });
+
+      effect(() => {
+        if (!open()) return;
+        // `overlay.w` is 0 on the run that opens the panel — a closed popover
+        // is `display: none` and the ResizeObserver has not delivered yet.
+        // Reading it still subscribes, so a later content resize re-centres.
+        const self_w = overlay.w || panel.getBoundingClientRect().width;
+        overlay.y = anchor_length(anchor_box, "top", "bottom") + 8;
+        overlay.x = anchor_length(anchor_box, "left", "center") - self_w / 2;
+      });
+    };
+
     return (
       <>
-        <button
-          class:unset
-          class:x-button
-          data-variant="solid"
-          data-size="2"
-          popovertarget={args.modal ? undefined : id}
-          on:click={() => {
-            if (args.modal) overlay()?.showModal();
-          }}
-        >
-          Open overlay
-        </button>
-        <dialog
-          ref={overlay}
-          id={id}
-          class:unset
-          class:x-overlay
-          popover={args.modal ? undefined : "auto"}
-          data-resize={args.resize === "none" ? undefined : args.resize}
-          data-draggable={args.draggable ? "" : undefined}
-          style={channelStyle(args)}
-        >
-          {/* Auto-open + gestures on mount; the onConnect effectScope
-              disposes the gestures on disconnect (story re-render). */}
-          <dom-lifecycle
-            onConnect={(self) => {
-              const el = self.parentElement as HTMLDialogElement;
-              if (args.gestures)
-                createOverlayGestures(
-                  el,
-                  args.snap
-                    ? { resize: detents(constraint(), [0.25, 0.6, 0.9]) }
-                    : undefined,
-                );
-              if (args.modal) el.showModal();
-              else el.showPopover();
-            }}
-          />
-          <div class:unset class:x-card data-variant="elevated" data-size="3">
-            <strong>Overlay</strong>
-            <p>
-              Native &lt;dialog&gt; frame wrapping a card.{" "}
-              {args.modal
-                ? "Modal: the page is inert behind the backdrop."
-                : "Popover: light dismiss, the page stays interactive."}
-            </p>
+        <nav style="display: flex; gap: var(--space-2)">
+          {ITEMS.map((label) => (
             <button
               class:unset
               class:x-button
               data-variant="soft"
-              data-size="1"
-              on:click={() => {
-                const el = overlay();
-                if (!el) return;
-                if (el.open) el.close();
-                else el.hidePopover();
-              }}
+              data-size="2"
+              data-item={label}
             >
-              Close
+              {label}
             </button>
-          </div>
-        </dialog>
-      </>
-    );
-  },
-} satisfies Meta<Args>;
-
-export default meta;
-type Story = StoryObj<Args>;
-
-/** Centered window: move from the top strip, corner grip resize. */
-export const Window: Story = {};
-
-/** Bottom edge, full constraint width, height drag from the top handle
- * (snapped). */
-export const BottomSheet: Story = {
-  args: {
-    resize: "block-start",
-    draggable: false,
-    y: "9999px",
-    w: "var(--overlay-constraint-width)",
-    h: "60svh",
-    snap: true,
-  },
-};
-
-export const TopSheet: Story = {
-  args: {
-    resize: "block-end",
-    draggable: false,
-    y: "-9999px",
-    w: "var(--overlay-constraint-width)",
-    h: "60svh",
-    snap: true,
-  },
-};
-
-/** Right drawer: docked at the inline end, width drag from the inner
- * handle. */
-export const Drawer: Story = {
-  args: {
-    resize: "inline-start",
-    draggable: false,
-    x: "9999px",
-    w: "480px",
-    h: "var(--overlay-constraint-height)",
-    snap: true,
-  },
-};
-
-/** Floating panel docked at the bottom-right corner — saturated x/y, a
- * corner grip facing inward (top-left), persistent popover. */
-export const CornerPanel: Story = {
-  args: {
-    resize: "start-start",
-    x: "9999px",
-    y: "9999px",
-    h: "60svh",
-    modal: false,
-  },
-};
-
-const FULL_W = "var(--overlay-constraint-width)";
-const FULL_H = "var(--overlay-constraint-height)";
-
-/**
- * The in-card 3×3 grid — each arrow is a full recipe (location point +
- * resize handle + size channels), so clicking one morphs the panel into
- * a distinct shape:
- *   edges  → full-width sheets / full-height drawers (handle on the
- *            non-docked side, so the drag grows from the dock)
- *   center → a free-resize window
- *   corners→ docked panels whose corner grip faces inward (the opposite,
- *            docked corner stays anchored)
- * Every length is interpolable, so each switch morphs with a plain CSS
- * transition.
- */
-interface Cell {
-  label: string;
-  x: string;
-  y: string;
-  resize: string;
-  w: string;
-  h: string;
-}
-
-const GRID: Cell[] = [
-  { label: "↖", x: "-9999px", y: "-9999px", resize: "end-end", w: "", h: "" },
-  { label: "↑", x: "", y: "-9999px", resize: "block-end", w: FULL_W, h: "" },
-  { label: "↗", x: "9999px", y: "-9999px", resize: "end-start", w: "", h: "" },
-  { label: "←", x: "-9999px", y: "", resize: "inline-end", w: "", h: FULL_H },
-  { label: "●", x: "", y: "", resize: "end-end", w: "", h: "" },
-  { label: "→", x: "9999px", y: "", resize: "inline-start", w: "", h: FULL_H },
-  { label: "↙", x: "-9999px", y: "9999px", resize: "start-end", w: "", h: "" },
-  { label: "↓", x: "", y: "9999px", resize: "block-start", w: FULL_W, h: "" },
-  { label: "↘", x: "9999px", y: "9999px", resize: "start-start", w: "", h: "" },
-];
-
-/** The center window — the mount default both morph stories start on. */
-const CENTER = GRID[4];
-
-/**
- * Applies a grid cell's full recipe to the live overlay element. Writes
- * are imperative — a reactive `style` attribute would replace the whole
- * attribute and wipe the constraint vars / gesture-persisted channels.
- */
-function applyCell(el: HTMLDialogElement | null | undefined, cell: Cell) {
-  if (!el) return;
-  for (const [name, value] of [
-    ["--overlay-x", cell.x],
-    ["--overlay-y", cell.y],
-    ["--overlay-w", cell.w],
-    ["--overlay-h", cell.h],
-  ] as const) {
-    if (value) el.style.setProperty(name, value);
-    else el.style.removeProperty(name);
-  }
-  if (cell.resize) el.setAttribute("data-resize", cell.resize);
-  else el.removeAttribute("data-resize");
-}
-
-/** The grid cell matching an authored shape, or `""` (no arrow lit). */
-function matchCell(shape: {
-  resize: string;
-  x: string;
-  y: string;
-  w: string;
-  h: string;
-}): string {
-  const resize = shape.resize === "none" ? "" : shape.resize;
-  return (
-    GRID.find(
-      (c) =>
-        c.resize === resize &&
-        c.x === shape.x &&
-        c.y === shape.y &&
-        c.w === shape.w &&
-        c.h === shape.h,
-    )?.label ?? ""
-  );
-}
-
-/**
- * `popover="manual"` keeps the panel in the top layer while the page stays
- * fully interactive (Apple Maps style). The buttons inside morph the open
- * overlay between shapes — sheet, drawer, window, corner panel — by
- * flipping the location point, the resize handle, and the size channels.
- * Every length is interpolable, so each switch animates with a plain CSS
- * transition.
- */
-export const Morph: Story = {
-  argTypes: {
-    // Location, resize, and size are driven by the in-card grid.
-    resize: { control: false },
-    x: { control: false },
-    y: { control: false },
-    w: { control: false },
-    h: { control: false },
-  },
-  args: { modal: false, draggable: false },
-  render: (args) => {
-    const id = `overlay-story-${uid++}`;
-    const overlay = signal<HTMLDialogElement | null>();
-    const selected = signal(CENTER.label);
-    const moveTo = (cell: Cell) => {
-      selected(cell.label);
-      applyCell(overlay(), cell);
-    };
-    return (
-      <>
-        <button
-          class:unset
-          class:x-button
-          data-variant="solid"
-          data-size="2"
-          popovertarget={id}
-        >
-          Toggle panel
-        </button>
-        <dialog
-          ref={overlay}
-          id={id}
-          class:unset
-          class:x-overlay
-          popover="manual"
-          data-resize={CENTER.resize}
-        >
-          <dom-lifecycle
-            onConnect={(self) => {
-              const el = self.parentElement as HTMLDialogElement;
-              if (args.gestures) createOverlayGestures(el);
-              el.showPopover();
-            }}
-          />
-          <div class:unset class:x-card data-variant="elevated" data-size="3">
-            <strong>Morph</strong>
-            <p>Persistent panel — morph it between shapes while it stays open.</p>
-            <div
-              role="radiogroup"
-              aria-label="Shape"
-              style="display: grid; grid-template-columns: repeat(3, max-content); gap: var(--space-1); justify-content: start"
-            >
-              {GRID.map((cell) => (
-                <label class="x-toggle" data-icon data-size="2" title={cell.resize}>
-                  <input
-                    type="radio"
-                    class:unset
-                    name={`${id}-shape`}
-                    aria-label={cell.label}
-                    checked={computed(() => cell.label === selected())}
-                    on:change={() => moveTo(cell)}
-                  />
-                  {cell.label}
-                </label>
-              ))}
-            </div>
+          ))}
+          <dom-lifecycle onConnect={wire} />
+        </nav>
+        <dialog id={id} class:unset class:x-overlay popover="manual">
+          <div class:unset class:x-card data-variant="elevated" data-size="2">
+            <strong>{() => active()}</strong>
+            <p>{() => COPY[active()]}</p>
           </div>
         </dialog>
       </>
@@ -404,652 +114,83 @@ export const Morph: Story = {
 };
 
 const AREAS = [
-  "block-end",
   "block-start",
-  "inline-end",
+  "block-end",
   "inline-start",
+  "inline-end",
   "block-end span-inline-end",
-  "block-end span-inline-start",
-  "block-start span-inline-end",
-  "inline-end span-block-start",
-  "inline-start span-block-end",
 ] as const;
 
-type AnchoredArgs = Args & { area: (typeof AREAS)[number]; arrow: boolean };
-
-const ANCHORED_CONTROLS = {
-  resize: { control: false },
-  draggable: { control: false },
-  x: { control: false },
-  y: { control: false },
-  w: { control: false },
-  h: { control: false },
-  snap: { control: false },
-  modal: { control: false },
-  gestures: { control: false },
-} as const;
+interface AreaArgs {
+  area: (typeof AREAS)[number];
+}
 
 /**
- * `anchor(overlay, trigger)` — the popover follows its anchor element,
- * which follows whichever trigger you click. Where CSS anchor
- * positioning exists everything (placement, flip near the viewport
- * edge, scroll tracking) is compositor-side; with `arrow` the Floating
- * UI engine drives the same channels and the caret tracks the settled
- * side. Browsers below the gate always use the Floating UI engine.
+ * The same anchoring through `PositionArea` — a live region of the anchor,
+ * and `place` aligns the panel inside it. The offset off the anchor is the
+ * panel's own `margin`, as in CSS.
+ *
+ * Changing an arg re-runs `render`, and Storybook's HTML renderer wipes the
+ * canvas whenever the returned node differs from the one already mounted
+ * (`canvasElement.innerHTML = ""`). A rebuilt panel has no previous `--x/--y`
+ * to transition from, so the move would jump. Returning ONE cached element
+ * hits the renderer's early-out, the DOM survives, and the args flow in
+ * through a signal — so the box morphs to the new area instead of popping.
  */
-export const Anchored: StoryObj<AnchoredArgs> = {
+export const PositionArea: StoryObj<AreaArgs> = {
   argTypes: {
-    area: {
-      control: "select",
-      options: [...AREAS],
-      description:
-        "--overlay-area — the position-area region the popover occupies relative to its trigger",
-    },
-    arrow: {
-      control: "boolean",
-      description:
-        "anchor(…, { arrow: true }) — caret pointing at the trigger (Floating UI engine)",
-    },
-    ...ANCHORED_CONTROLS,
+    area: { control: "select", options: AREAS },
   },
-  args: {
-    area: "block-end",
-    arrow: false,
-    resize: "none",
-    draggable: false,
-    modal: false,
-    gestures: false,
-  },
-  render: (args) => {
-    const id = `overlay-story-${uid++}`;
-    const overlay = signal<HTMLDialogElement | null>();
-    // ONE anchor for the story's life; clicking a trigger re-points the
-    // reactive follow — the open popover morphs there instead of closing.
-    const target = signal<Element | null>(null);
-    const wire = (ev: Event) => {
-      const el = overlay();
-      if (!el) return;
-      target(ev.currentTarget as Element);
-      if (!el.matches(":popover-open")) el.showPopover();
-    };
-    const trigger = (inset: string, label: string) => (
-      <button
-        class:unset
-        class:x-button
-        data-variant="solid"
-        data-size="2"
-        on:click={wire}
-        style={`position: fixed; ${inset}`}
-      >
-        {label}
-      </button>
-    );
-    return (
-      <>
-        {trigger("top: 96px; left: 48px", "Top start")}
-        {trigger("top: 96px; right: 48px", "Top end")}
-        {trigger("top: 50%; left: 50%; translate: -50% -50%", "Center")}
-        {trigger("bottom: 48px; left: 48px", "Bottom start")}
-        {trigger("bottom: 48px; right: 48px", "Bottom end")}
-        <dialog
-          ref={overlay}
-          id={id}
-          class:unset
-          class:x-overlay
-          popover="manual"
-          style={`--overlay-area: ${args.area}; --overlay-w: 260px`}
-        >
-          <dom-lifecycle
-            onConnect={(self) => {
-              const el = self.parentElement as HTMLDialogElement;
-              anchor(
-                el,
-                () => target() ?? undefined,
-                args.arrow ? { arrow: true } : undefined,
-              );
-            }}
-          />
-          <div class:unset class:x-card data-variant="elevated" data-size="3">
-            <strong>Anchored</strong>
-            <p>
-              Opens in the <code>{args.area}</code> region of the clicked
-              trigger — click another trigger and it morphs there; edge
-              triggers flip instead of overflowing.
-            </p>
-            <button
-              class:unset
-              class:x-button
-              data-variant="soft"
-              data-size="1"
-              on:click={() => overlay()?.hidePopover()}
-            >
-              Close
-            </button>
-          </div>
-        </dialog>
-      </>
-    );
-  },
-};
+  args: { area: "block-end" },
+  render: (() => {
+    // Per-story state, created once. `render` runs on every arg change.
+    let root: HTMLElement | undefined;
+    const live = signal<AreaArgs>({ area: "block-end" });
 
-/**
- * Tear-off: `anchor()` + `draggable()` — the panel follows its trigger
- * until you drag it (the pointer moves the ANCHOR, the panel follows;
- * the overlay never changes state). `rubber()` resists at the viewport
- * edges; reopening re-pins to the trigger.
- */
-export const TearOff: StoryObj<Args> = {
-  argTypes: ANCHORED_CONTROLS,
-  args: { resize: "none", draggable: false, modal: false, gestures: false },
-  render: () => {
-    const id = `overlay-story-${uid++}`;
-    return (
-      <>
-        <button
-          class:unset
-          class:x-button
-          data-variant="solid"
-          data-size="2"
-          popovertarget={id}
-          style="position: fixed; top: 96px; left: 48px"
-        >
-          Open panel
-        </button>
-        <dialog
-          id={id}
-          class:unset
-          class:x-overlay
-          popover="manual"
-          style="--overlay-w: 280px"
-        >
-          <dom-lifecycle
-            onConnect={(self) => {
-              const el = self.parentElement as HTMLDialogElement;
-              const trigger = document.querySelector(
-                `[popovertarget="${id}"]`,
-              )!;
-              const a = anchor(el, trigger);
-              draggable(a, undefined, rubber()).attach(el);
-            }}
-          />
-          <div class:unset class:x-card data-variant="elevated" data-size="3">
-            <strong>Tear-off</strong>
-            <p>
-              Anchored to its trigger — drag this card anywhere (the drag
-              moves the anchor). Close and reopen to re-pin.
-            </p>
-            <button
-              class:unset
-              class:x-button
-              data-variant="soft"
-              data-size="1"
-              popovertarget={id}
-            >
-              Close
-            </button>
-          </div>
-        </dialog>
-      </>
-    );
-  },
-};
+    return (args: AreaArgs) => {
+      live({ ...args });
+      if (root) return root;
 
-/**
- * `within` — the constraint as the flip boundary: `confine()` caps size
- * and clamps the location to the dashed container, and `anchor(…,
- * { within })` flips/shifts at ITS edges instead of the viewport's
- * (Floating UI engine in every browser — native CSS anchor positioning
- * has no boundary control).
- */
-export const AnchoredWithin: StoryObj<AnchoredArgs> = {
-  argTypes: {
-    area: {
-      control: "select",
-      options: [...AREAS],
-      description: "--overlay-area — the preferred region",
-    },
-    arrow: { control: "boolean" },
-    ...ANCHORED_CONTROLS,
-  },
-  args: {
-    area: "block-end",
-    arrow: true,
-    resize: "none",
-    draggable: false,
-    modal: false,
-    gestures: false,
-  },
-  render: (args) => {
-    const id = `overlay-story-${uid++}`;
-    const container = signal<HTMLElement | null>();
-    return (
-      <>
-        <div
-          ref={container}
-          style="position: fixed; inset: 96px 48px 48px 48px; border: 2px dashed var(--neutral-a8); border-radius: var(--radius-4)"
-        />
-        <button
-          class:unset
-          class:x-button
-          data-variant="solid"
-          data-size="2"
-          popovertarget={id}
-          style="position: fixed; bottom: 64px; right: 64px"
-        >
-          Open near the corner
-        </button>
-        <dialog
-          id={id}
-          class:unset
-          class:x-overlay
-          popover="auto"
-          style={`--overlay-area: ${args.area}; --overlay-w: 260px`}
-        >
-          <dom-lifecycle
-            onConnect={(self) => {
-              const el = self.parentElement as HTMLDialogElement;
-              const region = constraint(container()!);
-              confine(el, region);
-              anchor(el, document.querySelector(`[popovertarget="${id}"]`)!, {
-                within: region,
-                arrow: args.arrow,
-              });
-            }}
-          />
-          <div class:unset class:x-card data-variant="elevated" data-size="3">
-            <strong>Within</strong>
-            <p>
-              Flips and shifts at the dashed container's edges — not the
-              viewport's.
-            </p>
-          </div>
-        </dialog>
-      </>
-    );
-  },
-};
-
-/**
- * The Base UI nav-popover pattern: one popover shared by a nav of
- * triggers. Clicking another trigger re-anchors while open — the first
- * write of the new bind animates, so the popup slides and resizes to
- * the new trigger; enter/exit scales from the anchor's side
- * (`data-placed` → `transform-origin`). The caret keeps the Floating UI
- * engine driving in every browser, so the morph is uniform.
- */
-export const AnimatedPopover: StoryObj<Args> = {
-  argTypes: ANCHORED_CONTROLS,
-  args: { resize: "none", draggable: false, modal: false, gestures: false },
-  render: () => {
-    const id = `overlay-story-${uid++}`;
-    const overlay = signal<HTMLDialogElement | null>();
-    const content = signal<HTMLElement | null>();
-    const active = signal("Products");
-    const target = signal<Element | null>(null);
-    const PANELS: Record<string, string> = {
-      Products: "Design primitives, overlays, and reactive utilities.",
-      Solutions: "Recipes for sheets, drawers, menus, and windows.",
-      Pricing: "Free and open source — the best kind of pricing.",
-      About: "A tiny reactive UI kit built on the platform.",
-    };
-    const ITEMS = Object.keys(PANELS);
-    // ONE anchor, reactive follow — clicking another item re-points it
-    // and the popup GLIDES there (no scope swap, no reopen). No
-    // popovertarget: a toggle would close the open popover instead.
-    const wire = (ev: Event) => {
-      const el = overlay();
-      if (!el) return;
-      const trigger = ev.currentTarget as HTMLButtonElement;
-      const label = trigger.textContent ?? "";
-      const open = el.matches(":popover-open");
-      const switching = open && active() !== label;
-      const host = content();
-      // The Base UI Viewport effect: the previous panel (a ghost clone)
-      // slides out toward the old item, the new one slides in from the
-      // new item's direction; opacity crosses at half duration.
-      let ghost: HTMLElement | null = null;
-      let dir = 1;
-      if (switching && host) {
-        dir = ITEMS.indexOf(label) > ITEMS.indexOf(active()) ? 1 : -1;
-        ghost = host.cloneNode(true) as HTMLElement;
-        Object.assign(ghost.style, { position: "absolute", inset: "0" });
-      }
-      active(label);
-      target(trigger);
-      if (!open) {
-        el.showPopover();
-        return;
-      }
-      if (switching && host && ghost) {
-        host.parentElement?.append(ghost);
-        const timing = {
-          duration: 300,
-          easing: "cubic-bezier(0.22, 1, 0.36, 1)",
-        };
-        ghost
-          .animate(
-            [
-              { translate: "0 0", opacity: 1 },
-              { opacity: 0, offset: 0.5 },
-              { translate: `${dir * -50}% 0`, opacity: 0 },
-            ],
-            timing,
-          )
-          .finished.finally(() => ghost.remove());
-        host.animate(
-          [
-            { translate: `${dir * 50}% 0`, opacity: 0 },
-            { opacity: 1, offset: 0.5 },
-            { translate: "0 0", opacity: 1 },
-          ],
-          timing,
-        );
-      }
-    };
-    const item = (label: string) => (
-      <button
-        class:unset
-        class:x-button
-        data-variant="soft"
-        data-size="2"
-        on:click={wire}
-      >
-        {label}
-      </button>
-    );
-    return (
-      <>
-        <nav style="position: fixed; top: 96px; left: 50%; translate: -50%; display: flex; gap: var(--space-2)">
-          {item("Products")}
-          {item("Solutions")}
-          {item("Pricing")}
-          {item("About")}
-        </nav>
-        <dialog
-          ref={overlay}
-          id={id}
-          class:unset
-          class:x-overlay
-          popover="manual"
-          style="--overlay-w: 260px"
-        >
-          <dom-lifecycle
-            onConnect={(self) => {
-              const el = self.parentElement as HTMLDialogElement;
-              anchor(el, () => target() ?? undefined, { arrow: true });
-            }}
-          />
-          <div class:unset class:x-card data-variant="elevated" data-size="3">
-            {/* The Base UI Viewport: clips at the CARD edge (negative
-                margin bleeds over the padding), each panel carries the
-                padding itself — so content slides beneath it. */}
-            <div style="position: relative; overflow: clip; margin: calc(-1 * var(--card-padding)) calc(-1 * var(--card-padding)) 0">
-              <div ref={content} style="padding: var(--card-padding) var(--card-padding) var(--space-2)">
-                <strong>{() => active()}</strong>
-                <p>{() => PANELS[active()]}</p>
-              </div>
+      const id = `overlay-story-${uid++}`;
+      root = (
+        <div style="display: grid; place-items: center; min-height: 240px">
+          <button
+            class:unset
+            class:x-button
+            data-variant="solid"
+            data-size="2"
+            id={`${id}-trigger`}
+          >
+            Anchor
+          </button>
+          <dialog id={id} class:unset class:x-overlay popover="manual">
+            <div class:unset class:x-card data-variant="elevated" data-size="2">
+              <strong>PositionArea</strong>
+              <p>area: {() => live().area}</p>
             </div>
-            <button
-              class:unset
-              class:x-button
-              data-variant="soft"
-              data-size="1"
-              on:click={() => overlay()?.hidePopover()}
-            >
-              Close
-            </button>
-          </div>
-        </dialog>
-      </>
-    );
-  },
-};
+            <dom-lifecycle
+              onConnect={(self) => {
+                const panel = self.parentElement as HTMLDialogElement;
+                const trigger = document.getElementById(`${id}-trigger`);
+                if (!trigger) return;
+                const overlay = new OverlayBox(panel);
+                const anchor_box = new ElementBox(trigger);
+                panel.showPopover();
+                effect(() => {
+                  const { area } = live();
+                  if (overlay.w <= 0 || overlay.h <= 0) return;
 
-/**
- * `confine(panel, constraint(container))` syncs the container's rect into
- * the `--overlay-constraint-*` variables: the location point clamps to the
- * container's edges and the move/resize gestures bound inside it — all
- * geometry computed by the stylesheet.
- */
-export const Constrained: Story = {
-  argTypes: {
-    // The shape controls author the starting shape; the in-card grid
-    // overrides it live.
-    modal: { control: false },
-  },
-  args: { modal: false },
-  render: (args) => {
-    const id = `overlay-story-${uid++}`;
-    const overlay = signal<HTMLDialogElement | null>();
-    const container = signal<HTMLElement | null>();
-    const selected = signal(matchCell(args));
-    const moveTo = (cell: Cell) => {
-      selected(cell.label);
-      applyCell(overlay(), cell);
-    };
-    return (
-      <>
-        <div
-          ref={container}
-          style="position: fixed; inset: 96px 48px 48px 48px; border: 2px dashed var(--neutral-a8); border-radius: var(--radius-4)"
-        />
-        <button
-          class:unset
-          class:x-button
-          data-variant="solid"
-          data-size="2"
-          popovertarget={id}
-        >
-          Toggle panel
-        </button>
-        <dialog
-          ref={overlay}
-          id={id}
-          class:unset
-          class:x-overlay
-          popover="manual"
-          data-resize={args.resize === "none" ? undefined : args.resize}
-          data-draggable={args.draggable ? "" : undefined}
-          style={channelStyle(args)}
-        >
-          <dom-lifecycle
-            onConnect={(self) => {
-              const el = self.parentElement as HTMLDialogElement;
-              confine(el, constraint(container()!));
-              if (args.gestures) createOverlayGestures(el);
-              el.showPopover();
-            }}
-          />
-          <div class:unset class:x-card data-variant="elevated" data-size="3">
-            <strong>Constrained</strong>
-            <p>The dashed box is the constraint — not the viewport.</p>
-            <div
-              role="radiogroup"
-              aria-label="Shape"
-              style="display: grid; grid-template-columns: repeat(3, max-content); gap: var(--space-1); justify-content: start"
-            >
-              {GRID.map((cell) => (
-                <label class="x-toggle" data-icon data-size="2" title={cell.resize}>
-                  <input
-                    type="radio"
-                    class:unset
-                    name={`${id}-shape`}
-                    aria-label={cell.label}
-                    checked={computed(() => cell.label === selected())}
-                    on:change={() => moveTo(cell)}
-                  />
-                  {cell.label}
-                </label>
-              ))}
-            </div>
-          </div>
-        </dialog>
-      </>
-    );
-  },
-};
-
-/**
- * Every archetype as a recipe on ONE persistent overlay — menu, popover,
- * sheet, drawer, window, corner panel. A recipe is a primitive
- * composition (anchor / channels / gestures) swapped under an
- * `effectScope`; every length is interpolable, so each switch morphs.
- * The anchored recipes use the caret (Floating UI engine), so anchored ↔
- * free transitions are channel morphs too. Modality is the one
- * non-morph: popover ↔ `showModal()` re-enters the top layer, so the
- * Modal recipe visibly reopens.
- */
-export const MorphGallery: StoryObj<Args> = {
-  argTypes: {
-    resize: { control: false },
-    draggable: { control: false },
-    x: { control: false },
-    y: { control: false },
-    w: { control: false },
-    h: { control: false },
-    snap: { control: false },
-    modal: { control: false },
-    gestures: { control: false },
-  },
-  args: { resize: "none", draggable: false, modal: false, gestures: false },
-  render: () => {
-    const id = `overlay-story-${uid++}`;
-    const overlay = signal<HTMLDialogElement | null>();
-    const selected = signal("Window");
-    let stop: (() => void) | null = null;
-
-    const CHANNELS = ["--overlay-x", "--overlay-y", "--overlay-w", "--overlay-h", "--overlay-area"];
-    const reset = (el: HTMLDialogElement) => {
-      stop?.();
-      stop = null;
-      for (const name of CHANNELS) el.style.removeProperty(name);
-      el.removeAttribute("data-resize");
-      el.removeAttribute("data-draggable");
-    };
-    const setChannels = (el: HTMLDialogElement, channels: Record<string, string>) => {
-      for (const [name, value] of Object.entries(channels))
-        el.style.setProperty(name, value);
-    };
-
-    const recipes: Record<string, (el: HTMLDialogElement, trigger: Element) => void> = {
-      Menu: (el, trigger) => {
-        setChannels(el, { "--overlay-area": "block-end span-inline-end", "--overlay-w": "220px" });
-        stop = effectScope(() => anchor(el, trigger, { arrow: true }));
-      },
-      Popover: (el, trigger) => {
-        setChannels(el, { "--overlay-area": "block-end", "--overlay-w": "300px" });
-        stop = effectScope(() => anchor(el, trigger, { arrow: true }));
-      },
-      Sheet: (el) => {
-        setChannels(el, { "--overlay-y": "9999px", "--overlay-w": "var(--overlay-constraint-width)", "--overlay-h": "45svh" });
-        el.setAttribute("data-resize", "block-start");
-        stop = effectScope(() =>
-          void createOverlayGestures(el, { resize: detents(constraint(), [0.25, 0.45, 0.9]) }),
-        );
-      },
-      Drawer: (el) => {
-        setChannels(el, { "--overlay-x": "9999px", "--overlay-w": "320px", "--overlay-h": "var(--overlay-constraint-height)" });
-        el.setAttribute("data-resize", "inline-start");
-        stop = effectScope(() => void createOverlayGestures(el));
-      },
-      Window: (el) => {
-        el.setAttribute("data-resize", "end-end");
-        el.setAttribute("data-draggable", "");
-        stop = effectScope(() => void createOverlayGestures(el));
-      },
-      Corner: (el) => {
-        setChannels(el, { "--overlay-x": "9999px", "--overlay-y": "9999px", "--overlay-w": "300px", "--overlay-h": "40svh" });
-        el.setAttribute("data-resize", "start-start");
-        stop = effectScope(() => void createOverlayGestures(el));
-      },
-    };
-
-    const apply = (ev: Event) => {
-      const el = overlay();
-      if (!el) return;
-      const trigger = ev.currentTarget as HTMLButtonElement;
-      const name = trigger.textContent ?? "";
-      selected(name);
-      reset(el);
-      if (name === "Modal") {
-        // Modality is an opening mode, not geometry — it can't morph.
-        // Re-enter the top layer as a modal; Close returns to popover.
-        el.hidePopover();
-        el.showModal();
-        return;
-      }
-      if (!el.matches(":popover-open")) {
-        if (el.open) el.close();
-        el.showPopover();
-      }
-      recipes[name]?.(el, trigger);
-    };
-
-    const item = (label: string) => (
-      <button
-        class:unset
-        class:x-button
-        data-variant="soft"
-        data-size="2"
-        on:click={apply}
-      >
-        {label}
-      </button>
-    );
-
-    return (
-      <>
-        <nav style="position: fixed; top: 96px; left: 50%; translate: -50%; display: flex; gap: var(--space-2); z-index: 1">
-          {item("Menu")}
-          {item("Popover")}
-          {item("Sheet")}
-          {item("Drawer")}
-          {item("Window")}
-          {item("Corner")}
-          {item("Modal")}
-        </nav>
-        <dialog
-          ref={overlay}
-          id={id}
-          class:unset
-          class:x-overlay
-          popover="manual"
-        >
-          <dom-lifecycle
-            onConnect={(self) => {
-              const el = self.parentElement as HTMLDialogElement;
-              el.showPopover();
-              recipes.Window(el, el);
-            }}
-          />
-          <div class:unset class:x-card data-variant="elevated" data-size="3">
-            <strong>{() => selected()}</strong>
-            <p>
-              One overlay, six shapes — pick a recipe above and watch it
-              morph. Modal is the one switch that reopens (modality is not
-              geometry).
-            </p>
-            <button
-              class:unset
-              class:x-button
-              data-variant="soft"
-              data-size="1"
-              on:click={() => {
-                const el = overlay();
-                if (el?.open) {
-                  el.close();
-                  el.showPopover();
-                  selected("Window");
-                  reset(el);
-                  recipes.Window(el, el);
-                }
+                  const region = new PositionAreaRegion(anchor_box, area);
+                  const { x, y } = region.place(overlay);
+                  overlay.x = x;
+                  overlay.y = y;
+                });
               }}
-            >
-              Close
-            </button>
-          </div>
-        </dialog>
-      </>
-    );
-  },
+            />
+          </dialog>
+        </div>
+      ) as HTMLElement;
+      return root;
+    };
+  })(),
 };

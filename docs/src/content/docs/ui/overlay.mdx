@@ -31,7 +31,7 @@ import "elements-kit/ui/overlay/overlay.css"; // presentation
 JS is optional and imported per feature from one entry:
 
 ```ts
-import { anchor, confine, constraint, detents, draggable, rubber, resize, createOverlayGestures } from "elements-kit/ui/overlay";
+import { Anchor, Constraint, Overlay, SnapSession } from "elements-kit/ui/overlay";
 ```
 
 ## Markup
@@ -39,10 +39,14 @@ import { anchor, confine, constraint, detents, draggable, rubber, resize, create
 A `<dialog>` with `unset x-overlay`, wrapping a plain [card](/ui/card). How you open it decides the modality — there is no attribute for it.
 
 ```html
-<dialog class="unset x-overlay" data-resize="end-end" data-draggable>
+<dialog class="unset x-overlay">
   <div class="x-card" data-variant="elevated">Hello.</div>
+  <div class="x-handle" data-placement="move"></div>
+  <div class="x-handle" data-placement="end-end"></div>
 </dialog>
 ```
+
+Gesture affordances are `.x-handle` children — direct siblings of the card, each carrying a `data-placement` that both paints the grip and is its pointer hit-target.
 
 | Opened via | Modality |
 | --- | --- |
@@ -63,18 +67,22 @@ The frame positions its **center** at a point inside a constraint rect, clamped 
 
 Changing any channel on an open overlay morphs it — every value is an interpolable length. The recipes are just points in this space:
 
+Add `data-no-transition` while directly manipulating an overlay so pointer-driven position or size updates render immediately. Remove it on release to restore normal morph transitions.
+
+Each recipe's resize grip is an `.x-handle` child (omitted below for brevity — e.g. `<div class="x-handle" data-placement="block-start"></div>` inside the bottom sheet):
+
 ```html
 <!-- bottom sheet -->
-<dialog class="unset x-overlay" data-resize="block-start"
+<dialog class="unset x-overlay"
         style="--overlay-y: 9999px; --overlay-h: 60svh;
                --overlay-w: var(--overlay-constraint-width)">
 
 <!-- right drawer -->
-<dialog class="unset x-overlay" data-resize="inline-start"
+<dialog class="unset x-overlay"
         style="--overlay-x: 9999px; --overlay-h: var(--overlay-constraint-height)">
 
 <!-- corner panel -->
-<dialog class="unset x-overlay" popover="manual" data-resize="start-start"
+<dialog class="unset x-overlay" popover="manual"
         style="--overlay-x: 9999px; --overlay-y: 9999px; --overlay-h: 60svh">
 ```
 
@@ -95,76 +103,72 @@ Changing any channel on an open overlay morphs it — every value is an interpol
 An invalid value computes to `position-area: none` — the `var()` fallback cannot rescue it — and the box parks at the static position.
 :::
 
-For cross-browser anchoring, programmatic opens, or a caret, use the `anchor()` primitive below instead of the attribute.
+For cross-browser anchoring, programmatic opens, or a caret, use the `Anchor` class below instead of the attribute.
 
-## JS primitives
+## The classes
 
-Two spatial primitives — the **anchor** (a point the overlay follows) and the **constraint** (a region it lives in). Everything else derives from them: `detents()` quantize a constraint, `rubber()` resists at its edges, and the `draggable()` / `resize()` services move a target through them. Behaviors attach to primitives, never to the overlay — dragging moves the *anchor*, so the overlay itself has no modes.
+Everything spatial is a **box** — viewport `{ x, y, w?, h? }`, readable through `x()`/`y()`/`w()`/`h()` getters and writable through one setter, `set()`. Three classes specialize it: `Overlay` (the surface), `Anchor` (a tracked box it attaches to), `Constraint` (a region it stays inside). Constructors take only *spatial* options; drag physics live in a `Session` implementation, declared per edit (`SnapSession` snaps to stops). Dragging moves the *anchor*, so the overlay itself has no modes.
 
-All factories assume a scope: wrap wiring in [`effectScope`](/scopes) (or a component) and cleanup is automatic.
+Constructors assume a scope: wrap wiring in [`effectScope`](/scopes) (or a component) and cleanup is automatic.
 
-### `anchor(overlay, follow?, opts?)`
+### `new Overlay(el, options?)`
 
-Gives the overlay an anchor element it follows for life and returns it. The anchor follows `follow` — an element, a rect, or a signal-reading getter — until something moves it.
-
-```ts
-import { anchor } from "elements-kit/ui/overlay";
-
-anchor(menu, trigger); // element-anchored popover
-
-// shared nav popover — re-pointing the getter GLIDES the popup across
-const active = signal(firstTrigger);
-anchor(menu, () => active(), { arrow: true });
-```
-
-`opts.arrow` renders a caret pointing at the anchor; `opts.within` confines flipping to a region instead of the viewport. Both force the Floating UI engine — native CSS anchor positioning can express neither.
-
-### `constraint(source?)` and `confine(overlay, region)`
-
-`constraint()` builds a reactive region from an element, a plain rect, or nothing (the viewport). `confine()` syncs it into the constraint channels — the location clamps and gestures bound inside it.
+The surface. Options are what the overlay *is*: `box` (initial geometry), `anchor` (attach to a tracked box), `within` (confine to a region), `dismissible` (may the markup gestures flick it closed). The markup gestures wire automatically by delegating off the frame's `.x-handle` children: edge drags, corner grips, window moves, flick-to-dismiss (free resize; snapping is a custom-handle edit, below).
 
 ```ts
-const region = constraint(document.querySelector("main")!);
-confine(panel, region);
-anchor(panel, trigger, { within: region }); // flip at ITS edges
+import { Constraint, Overlay } from "elements-kit/ui/overlay";
+
+const c = new Constraint(container);
+const o = new Overlay(panel, { within: c });
+
+o.set(c.constrain({ x: 80, y: 120 })); // clamp, then place — morphs via CSS
 ```
 
-### `detents(region, stops)` and `rubber()`
-
-`detents()` quantizes a region — one snapping concept for both services: `resize()` snaps sizes to the stops, `draggable()` snaps positions. `rubber()` is edge resistance during the drag.
-
-```ts
-const d = detents(constraint(), [0.25, 0.6, 0.9]); // fractions of the viewport
-```
-
-### `draggable(target, space?, ...effects)`
-
-Moves a target through a space — generic, but built to move anchors. Tear-off is a composition, not a feature:
-
-```ts
-const a = anchor(panel, trigger); // follows the trigger…
-draggable(a, undefined, rubber()).attach(panel); // …until you drag the panel
-```
-
-The panel follows its trigger until the first drag takes the anchor; reopening re-pins. Events on the target: `dragmove` (`{x, y}`) and `dragend` (`{x, y, velocity, rest}` — `rest: null` signals a dismiss).
-
-### `resize(target, space?, ...effects)` and `createOverlayGestures(el, options?)`
-
-`resize()` wires a resize handle service (`attach(handle)`, `update(px)`); the side comes from the target's `data-resize` value. `createOverlayGestures()` is the markup-driven preset — it reads `data-resize` / `data-draggable` and gives edge drags, corner grips, window moves, and flick-to-dismiss:
-
-```ts
-createOverlayGestures(sheet, { resize: detents(constraint(), [0.25, 0.6, 0.9]) });
-```
-
-| `data-resize` | Handle |
+| `.x-handle` `data-placement` | Gesture |
 | --- | --- |
 | `block-start` / `block-end` | Height drag from that edge (sheets) |
 | `inline-start` / `inline-end` | Width drag (drawers) |
 | `end-end`, `start-start`, … | Corner grip, block side first (windows) |
+| `move` | Window move from a top-center grab pill |
 
-:::note[Anchored overlays ignore markup gestures]
-Dragging an anchored overlay means moving its anchor — compose `anchor()` + `draggable()` as above. `data-draggable` stays for free windows.
+:::note[Anchored overlays drag their anchor]
+With an `anchor` bound, the `move` handle moves the *anchor* (the tear contract) instead of the channels — the panel tears off its trigger and reopening re-pins.
 :::
+
+### `new Anchor(target?, opts?)`
+
+A tracked box the overlay follows for life. The target is an element, a box (a *dot* when `w`/`h` are omitted — context menus, cursors; reactive fields re-place it), or a signal-reading getter. `opts.arrow` renders a caret pointing at the anchor. Arrows, `within`, and getter targets all force the Floating UI engine — native CSS placement has no caret data, no boundary control, and cannot *interpolate* a side flip when a signal-driven re-pin lands where the popover must flip.
+
+```ts
+import { Anchor, Overlay } from "elements-kit/ui/overlay";
+
+new Overlay(menu, { anchor: new Anchor(trigger) });          // popover
+new Overlay(menu, { anchor: new Anchor({ x: e.clientX, y: e.clientY }) }); // context menu
+
+// shared nav popover — re-pointing the getter GLIDES the popup across
+const active = signal(firstTrigger);
+new Overlay(menu, { anchor: new Anchor(() => active(), { arrow: true }) });
+```
+
+`anchor.set({ x, y })` tears the follow pin — same contract as a drag — and glides/morphs the overlay there.
+
+### `new Constraint(source?)`
+
+A region — an element (observed), a box (plain numbers make it *editable*: `c.set({ w: 800 })` re-syncs everything inside), or nothing (the live viewport). `constrain(box)` is the pure clamp compositions build on; passing the instance as `within` applies it to an overlay's channels.
+
+### Edits — custom handles with physics
+
+Every box has an edit lifecycle, and the session **is** the edit: `begin(session?)` binds a fresh one (it snapshots the box and velocity-tracks), `set()` writes live through the session's feel (rubber at the bounds), `release()` rests it — velocity-projected — and returns the rested box, or `null` for a dismiss flick (what dismissal *means* is your call). A session is one edit — construct it at `begin`; reusing a spent one throws. `Session` is the base feel (rubber + clamp); `SnapSession(stops)` rests on detents.
+
+```ts
+import { SnapSession } from "elements-kit/ui/overlay";
+
+grip.onpointerdown = () => o.begin(new SnapSession([0.25, 0.6, 0.9]));
+grip.onpointermove = (e) => o.set({ h: innerHeight - e.clientY });
+grip.onpointerup   = () => o.release() ?? panel.close();
+```
+
+Outside an edit, `set()` is a plain committed write (it morphs). Custom feels — grids, magnetic edges — subclass `Session` and override `during`/`rest`.
 
 ## Browser support
 

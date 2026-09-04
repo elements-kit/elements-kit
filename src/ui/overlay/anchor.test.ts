@@ -1,368 +1,179 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { anchor, areaToPlacement, constraint } from "./index.ts";
+import { describe, expect, it } from "vitest";
+import { anchor_length, PositionArea } from "./anchor.ts";
+import { WINDOW_BOX } from "./box.ts";
+import type { Box } from "./box.ts";
 
-const floating = vi.hoisted(() => {
-  const stop = vi.fn();
-  const autoUpdate = vi.fn(
-    (_reference: unknown, _floating: unknown, update: () => void) => {
-      update();
-      return stop;
-    },
-  );
-  const computePosition = vi.fn(() =>
-    Promise.resolve({
-      x: 200,
+/** The window bounds every rect — read it rather than hard-coding a size. */
+const W = () => WINDOW_BOX.w;
+const H = () => WINDOW_BOX.h;
+
+describe("anchor_length", () => {
+  const rect: Box = { x: 100, y: 200, w: 40, h: 20 };
+  it("resolves physical edges and centers", () => {
+    expect(anchor_length(rect, "top", "top")).toBe(200);
+    expect(anchor_length(rect, "top", "bottom")).toBe(220);
+    expect(anchor_length(rect, "left", "left")).toBe(100);
+    expect(anchor_length(rect, "left", "right")).toBe(140);
+    expect(anchor_length(rect, "top", "center")).toBe(210);
+  });
+});
+
+/** The anchor used throughout: edges at x 300→420, y 260→300. */
+const ANCHOR: Box = { x: 300, y: 260, w: 120, h: 40 };
+
+describe("PositionArea — the containing-block rect", () => {
+  it("cuts the window at the anchor's edges", () => {
+    // `bottom` → block-end, inline span-all: below the anchor, full width.
+    expect(new PositionArea(ANCHOR, "bottom")).toMatchObject({
+      x: 0,
       y: 300,
-      placement: "bottom",
-      middlewareData: {} as Record<string, unknown>,
-    }),
-  );
-  const flip = vi.fn(() => "flip");
-  const shift = vi.fn(() => "shift");
-  const arrow = vi.fn(() => "arrow");
-  return { stop, autoUpdate, computePosition, flip, shift, arrow };
-});
-
-vi.mock("@floating-ui/dom", () => ({
-  autoUpdate: floating.autoUpdate,
-  computePosition: floating.computePosition,
-  offset: (px: number) => px,
-  flip: floating.flip,
-  shift: floating.shift,
-  arrow: floating.arrow,
-}));
-
-function createAnchored(open = true): {
-  overlay: HTMLDialogElement;
-  trigger: HTMLButtonElement;
-} {
-  const el = document.createElement("dialog");
-  el.className = "unset x-overlay";
-  if (open) el.setAttribute("open", "");
-  // Constraint in plain px (the vw/vh defaults resolve to 0 in happy-dom)
-  // and a bound rect — 480×300, so the center offset is (240, 150).
-  el.style.setProperty("--overlay-constraint-top", "0px");
-  el.style.setProperty("--overlay-constraint-left", "0px");
-  el.style.setProperty("--overlay-constraint-width", "1024px");
-  el.style.setProperty("--overlay-constraint-height", "768px");
-  el.getBoundingClientRect = () =>
-    ({ x: 100, y: 100, left: 100, top: 100, right: 580, bottom: 400,
-       width: 480, height: 300, toJSON: () => ({}) }) as DOMRect;
-  // Layout size (used for the center conversion — transform-immune).
-  Object.defineProperty(el, "offsetWidth", { value: 480 });
-  Object.defineProperty(el, "offsetHeight", { value: 300 });
-  document.body.appendChild(el);
-  const trigger = document.createElement("button");
-  document.body.appendChild(trigger);
-  return { overlay: el, trigger };
-}
-
-beforeEach(() => {
-  floating.stop.mockClear();
-  floating.autoUpdate.mockClear();
-  floating.computePosition.mockClear();
-  floating.flip.mockClear();
-  floating.shift.mockClear();
-  floating.arrow.mockClear();
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-  document
-    .querySelectorAll(".x-overlay-anchor")
-    .forEach((el) => el.remove());
-});
-
-describe("areaToPlacement", () => {
-  it("maps the main sides (physical inline resolved by dir)", () => {
-    expect(areaToPlacement("block-end")).toBe("bottom");
-    expect(areaToPlacement("block-start")).toBe("top");
-    expect(areaToPlacement("inline-end")).toBe("right");
-    expect(areaToPlacement("inline-start")).toBe("left");
-    expect(areaToPlacement("inline-end", true)).toBe("left");
-    expect(areaToPlacement("inline-start", true)).toBe("right");
-  });
-
-  it("maps span tokens to the opposite alignment, order-insensitive", () => {
-    // Spanning toward an edge leaves the box flush with the opposite one.
-    expect(areaToPlacement("block-end span-inline-end")).toBe("bottom-start");
-    expect(areaToPlacement("block-end span-inline-start")).toBe("bottom-end");
-    expect(areaToPlacement("span-block-start inline-end")).toBe("right-end");
-    expect(areaToPlacement("span-block-end inline-start")).toBe("left-start");
-  });
-
-  it("falls back to bottom (the block-end default)", () => {
-    expect(areaToPlacement("")).toBe("bottom");
-    expect(areaToPlacement("nonsense")).toBe("bottom");
-  });
-});
-
-describe("anchor (native engine)", () => {
-  beforeEach(() => {
-    vi.stubGlobal("CSS", { supports: () => true });
-  });
-
-  it("returns the anchor element, chained overlay ← anchor ← trigger", () => {
-    const { overlay: el, trigger } = createAnchored();
-    const a = anchor(el, trigger);
-
-    expect(a.className).toBe("x-overlay-anchor");
-    expect(el.getAttribute("data-anchor")).toBe("element");
-    expect(el.getAttribute("data-placed")).toBe("bottom"); // area hint
-    // overlay → anchor element
-    const proxyName = a.style.getPropertyValue("anchor-name");
-    expect(proxyName).toMatch(/^--overlay-anchor-\d+$/);
-    expect(el.style.getPropertyValue("position-anchor")).toBe(proxyName);
-    // anchor element → trigger (the follow pin)
-    expect(a.hasAttribute("data-follow")).toBe(true);
-    const followName = trigger.style.getPropertyValue("anchor-name");
-    expect(followName).toMatch(/^--overlay-follow-\d+$/);
-    expect(a.style.getPropertyValue("position-anchor")).toBe(followName);
-    // zero JS while following; the CSS glide transition stays live
-    expect(floating.autoUpdate).not.toHaveBeenCalled();
-    expect(a.style.transitionProperty).toBe("");
-
-    el.remove();
-    trigger.remove();
-  });
-
-  it("a reactive follow getter re-pins to the new element (nav glide)", async () => {
-    const { overlay: el, trigger } = createAnchored();
-    const second = document.createElement("button");
-    document.body.appendChild(second);
-    const { signal } = await import("@/signals/index.ts");
-    const target = signal<Element>(trigger);
-
-    const a = anchor(el, () => target());
-    expect(trigger.style.getPropertyValue("anchor-name")).toMatch(
-      /^--overlay-follow-\d+$/,
-    );
-
-    target(second);
-    await vi.waitFor(() => {
-      // Same position-anchor name migrates — the proxy glides via CSS.
-      expect(trigger.style.getPropertyValue("anchor-name")).toBe("");
-      expect(second.style.getPropertyValue("anchor-name")).toBe(
-        a.style.getPropertyValue("position-anchor"),
-      );
+      w: W(),
+      h: H() - 300,
     });
-    expect(a.hasAttribute("data-follow")).toBe(true);
-
-    el.remove();
-    trigger.remove();
-    second.remove();
-  });
-
-  it("re-pins a torn-off anchor on a fresh open", async () => {
-    const { overlay: el, trigger } = createAnchored();
-    const a = anchor(el, trigger);
-
-    // The drag service tears the pin (the data-follow contract).
-    a.removeAttribute("data-follow");
-    a.style.left = "600px";
-    a.style.top = "400px";
-
-    el.removeAttribute("open");
-    el.setAttribute("open", "");
-    await vi.waitFor(() => {
-      expect(a.hasAttribute("data-follow")).toBe(true);
-      expect(a.style.left).toBe("");
+    expect(new PositionArea(ANCHOR, "top")).toMatchObject({
+      x: 0,
+      y: 0,
+      w: W(),
+      h: 260,
     });
-
-    el.remove();
-    trigger.remove();
   });
 
-  it("releasing the binding leaves the overlay where it was", async () => {
-    const { overlay: el, trigger } = createAnchored();
-    const { effectScope } = await import("@/signals/index.ts");
-    const stop = effectScope(() => void anchor(el, trigger));
-
-    stop();
-    // Seeded from the rendered rect: center (340, 250) − origin (0, 0).
-    expect(el.style.getPropertyValue("--overlay-x")).toBe("340px");
-    expect(el.style.getPropertyValue("--overlay-y")).toBe("250px");
-    expect(el.getAttribute("data-anchor")).toBeNull();
-    expect(document.querySelector(".x-overlay-anchor")).toBeNull();
-
-    el.remove();
-    trigger.remove();
-  });
-
-  it("cleans everything up when the scope disposes", () => {
-    const { overlay: el, trigger } = createAnchored();
-    // No surrounding scope in tests — grab the cleanup via a rect anchor
-    // and dispose manually through element removal checks after GC of
-    // scope is impossible here; assert the wiring exists then remains
-    // author-managed. (Scope-level disposal is covered by effectScope
-    // usage in the utilities suites.)
-    const a = anchor(el, trigger);
-    expect(document.body.contains(a)).toBe(true);
-    el.remove();
-    trigger.remove();
-  });
-});
-
-describe("anchor (Floating UI engine)", () => {
-  beforeEach(() => {
-    vi.stubGlobal("CSS", { supports: () => false });
-  });
-
-  it("writes the box center into the location channels while open", async () => {
-    const { overlay: el, trigger } = createAnchored();
-    const a = anchor(el, trigger);
-
-    // Overlay loop runs against the anchor element…
-    expect(floating.autoUpdate).toHaveBeenCalledWith(
-      el.ownerDocument.querySelector(".x-overlay-anchor"),
-      el,
-      expect.any(Function),
-    );
-    // …and the follow sync pins the anchor element to the trigger.
-    expect(floating.autoUpdate).toHaveBeenCalledWith(
-      trigger,
-      a,
-      expect.any(Function),
-    );
-    // JS-driven proxy: the CSS glide transition must not ease its writes
-    // (the overlay's channel morph provides the glide below the gate).
-    expect(a.style.transitionProperty).toBe("none");
-    await vi.waitFor(() => {
-      // computePosition's (200, 300) top-left + (240, 150) half-box.
-      expect(el.style.getPropertyValue("--overlay-x")).toBe("440px");
-      expect(el.style.getPropertyValue("--overlay-y")).toBe("450px");
+  it("center spans the anchor's own extent", () => {
+    expect(new PositionArea(ANCHOR, "center")).toMatchObject({
+      x: 300,
+      y: 260,
+      w: 120,
+      h: 40,
     });
-    expect(floating.computePosition).toHaveBeenCalledWith(
-      a,
-      el,
-      expect.objectContaining({ strategy: "fixed", placement: "bottom" }),
-    );
-    // The initial positioning write is instant; geometry transitions
-    // re-enable after it (Base UI's data-instant semantics).
-    await vi.waitFor(() => expect(el.style.transitionProperty).toBe(""));
-
-    el.remove();
-    trigger.remove();
   });
 
-  it("starts and stops the loop with the open state", async () => {
-    const { overlay: el, trigger } = createAnchored(false);
-    anchor(el, trigger);
-    const overlayLoop = floating.autoUpdate.mock.calls.filter(
-      (c) => c[1] === el,
-    );
-    expect(overlayLoop).toHaveLength(0);
-
-    el.setAttribute("open", "");
-    await vi.waitFor(() =>
-      expect(
-        floating.autoUpdate.mock.calls.filter((c) => c[1] === el),
-      ).toHaveLength(1),
-    );
-
-    el.removeAttribute("open");
-    await vi.waitFor(() => expect(floating.stop).toHaveBeenCalled());
-    expect(el.style.transitionProperty).toBe("");
-
-    el.remove();
-    trigger.remove();
+  it("span regions reach from the window to the anchor's far edge", () => {
+    // span-inline-start → window left → anchor's right edge.
+    expect(new PositionArea(ANCHOR, "top span-left")).toMatchObject({
+      x: 0,
+      w: 420,
+    });
+    expect(new PositionArea(ANCHOR, "top span-right")).toMatchObject({
+      x: 300,
+      w: W() - 300,
+    });
   });
 
-  it("releasing the binding keeps the location channels", async () => {
-    const { overlay: el, trigger } = createAnchored();
-    const { effectScope } = await import("@/signals/index.ts");
-    const stop = effectScope(() => void anchor(el, trigger));
-    await vi.waitFor(() =>
-      expect(el.style.getPropertyValue("--overlay-x")).toBe("440px"),
-    );
-
-    stop();
-    expect(el.style.getPropertyValue("--overlay-x")).toBe("440px");
-    expect(el.getAttribute("data-placed")).toBeNull();
-    expect(document.querySelector(".x-overlay-anchor")).toBeNull();
-
-    el.remove();
-    trigger.remove();
+  it("spans the other axis for an axis-specific keyword", () => {
+    // inline-end → block span-all: full height, right of the anchor.
+    expect(new PositionArea(ANCHOR, "inline-end")).toMatchObject({
+      x: 420,
+      y: 0,
+      w: W() - 420,
+      h: H(),
+    });
   });
 
-  it("re-anchoring an already-placed overlay morphs in (no instant write)", async () => {
-    const { overlay: el, trigger } = createAnchored();
-    el.style.setProperty("--overlay-x", "300px");
-    el.style.setProperty("--overlay-y", "300px");
-
-    anchor(el, trigger);
-    // Open + already placed → the first write animates (recipe switch).
-    expect(el.style.transitionProperty).toBe("");
-    await vi.waitFor(() =>
-      expect(el.style.getPropertyValue("--overlay-x")).toBe("440px"),
-    );
-    expect(el.style.transitionProperty).toBe("");
-
-    el.remove();
-    trigger.remove();
-  });
-
-  it("dragmove repositions instantly (geometry suppressed until dragend)", async () => {
-    const { overlay: el, trigger } = createAnchored();
-    const a = anchor(el, trigger);
-    await vi.waitFor(() => expect(floating.computePosition).toHaveBeenCalled());
-    const calls = floating.computePosition.mock.calls.length;
-
-    a.dispatchEvent(new CustomEvent("dragmove", { detail: { x: 1, y: 2 } }));
-    // Tracking the finger: geometry transitions off, enter/exit kept.
-    expect(el.style.transitionProperty).toBe("opacity, scale, display");
-    await vi.waitFor(() =>
-      expect(floating.computePosition.mock.calls.length).toBeGreaterThan(
-        calls,
-      ),
-    );
-    a.dispatchEvent(new CustomEvent("dragend", { detail: {} }));
-    expect(el.style.transitionProperty).toBe("");
-
-    el.remove();
-    trigger.remove();
-  });
-
-  it("within confines the flip/shift boundary (and forces this engine)", async () => {
-    vi.stubGlobal("CSS", { supports: () => true }); // native available…
-    const { overlay: el, trigger } = createAnchored();
-    const region = constraint({ top: 5, left: 10, width: 500, height: 400 });
-    anchor(el, trigger, { within: region }); // …but within forces Floating UI
-
-    await vi.waitFor(() => {
-      expect(floating.flip).toHaveBeenCalledWith({
-        boundary: { x: 10, y: 5, width: 500, height: 400 },
+  it("flips inline logical sides in RTL, never physical ones", () => {
+    document.documentElement.style.direction = "rtl";
+    try {
+      // inline-start in RTL is the right-hand side.
+      expect(new PositionArea(ANCHOR, "inline-start")).toMatchObject({
+        x: 420,
       });
-      expect(floating.shift).toHaveBeenCalledWith({
-        boundary: { x: 10, y: 5, width: 500, height: 400 },
-      });
-    });
-    expect(el.style.getPropertyValue("position-anchor")).toBe("");
-
-    el.remove();
-    trigger.remove();
+      // `left` is physical — unmoved.
+      expect(new PositionArea(ANCHOR, "left")).toMatchObject({ x: 0 });
+    } finally {
+      document.documentElement.style.direction = "";
+    }
   });
 
-  it("arrow injects the caret, feeds the middleware, writes channels", async () => {
-    const { overlay: el, trigger } = createAnchored();
-    floating.computePosition.mockResolvedValueOnce({
-      x: 200,
-      y: 300,
-      placement: "top",
-      middlewareData: { arrow: { x: 120 } },
-    });
-    anchor(el, trigger, { arrow: 12 });
+  it("falls back to bottom-center for empty or malformed input", () => {
+    const rect = ({ x, y, w, h }: Box) => ({ x, y, w, h });
+    const fallback = rect(new PositionArea(ANCHOR, ""));
+    const explicit = new PositionArea(ANCHOR, "block-end center");
+    expect(fallback).toEqual(rect(explicit));
+    expect(rect(new PositionArea(ANCHOR, "top garbage"))).toEqual(fallback);
+    expect(rect(new PositionArea(ANCHOR, "top bottom"))).toEqual(fallback);
+  });
+});
 
-    const caret = el.querySelector(":scope > .x-overlay-arrow");
-    expect(caret).not.toBeNull();
-    expect(floating.arrow).toHaveBeenCalledWith({ element: caret });
-    expect(el.style.getPropertyValue("--overlay-arrow-size")).toBe("12px");
-    await vi.waitFor(() => {
-      expect(el.getAttribute("data-placed")).toBe("top");
-      expect(el.style.getPropertyValue("--overlay-arrow-x")).toBe("120px");
+describe("PositionArea — a live region", () => {
+  it("tracks the anchor after creation", () => {
+    const anchor: Box = { ...ANCHOR };
+    const region = new PositionArea(anchor, "bottom");
+    anchor.y = 500;
+    expect(region.y).toBe(540);
+    // Still anchor-centred on the moved anchor.
+    expect(region.place({ x: 0, y: 0, w: 100, h: 10 })).toMatchObject({
+      x: 310,
+      y: 540,
     });
+  });
+});
 
-    el.remove();
-    trigger.remove();
+describe("PositionArea — insets, for CSS", () => {
+  const edges = (area: string) => {
+    const { left, right, top, bottom } = new PositionArea(ANCHOR, area);
+    return { left, right, top, bottom };
+  };
+
+  it("a side pins one edge on one axis", () => {
+    expect(edges("bottom")).toEqual({
+      left: null,
+      right: null,
+      top: 300,
+      bottom: null,
+    });
+  });
+
+  it("a corner pins one edge per axis", () => {
+    expect(edges("top left")).toEqual({
+      left: null,
+      right: 300,
+      top: null,
+      bottom: 260,
+    });
+  });
+
+  it("spans pin the anchor's far edge", () => {
+    expect(edges("top span-left")).toMatchObject({ right: 420, left: null });
+  });
+
+  it("center pins nothing — it is anchor-center, not an inset", () => {
+    expect(edges("center")).toEqual({
+      left: null,
+      right: null,
+      top: null,
+      bottom: null,
+    });
+  });
+});
+
+describe("Region.place — self-alignment inside the rect", () => {
+  const self: Box = { x: 0, y: 0, w: 200, h: 120 };
+  const place = (area: string) => new PositionArea(ANCHOR, area).place(self);
+
+  it("outward regions hug the anchor's edge", () => {
+    expect(place("bottom")).toMatchObject({ x: 260, y: 300 });
+    expect(place("top")).toMatchObject({ x: 260, y: 140 });
+  });
+
+  it("span regions go flush against the anchor's far edge", () => {
+    expect(place("top span-left")).toMatchObject({ x: 220 }); // 420 − 200
+    expect(place("top span-right")).toMatchObject({ x: 300 });
+  });
+
+  it("centers on the anchor, not the rect, and may overflow it", () => {
+    // span-all's rect is the whole window; anchor-center still centres on
+    // the anchor. `center`'s rect is 120 wide — a 200-wide box overflows it.
+    expect(place("bottom")).toMatchObject({ x: 260 });
+    expect(place("center")).toMatchObject({ x: 260, y: 220 });
+  });
+
+  it("never resizes — a box taller than its room hugs and overflows", () => {
+    // `top`: 260px of room above the anchor for a 300px box.
+    const tall: Box = { x: 0, y: 0, w: 200, h: 300 };
+    expect(new PositionArea(ANCHOR, "top").place(tall)).toEqual({
+      x: 260,
+      y: -40,
+      w: 200,
+      h: 300,
+    });
   });
 });
