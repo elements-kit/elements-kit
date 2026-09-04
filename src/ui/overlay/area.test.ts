@@ -25,12 +25,12 @@ describe("MutableRegion", () => {
 
   it("a corner pins both axes", () => {
     const r = new MutableRegion({ right: 400, bottom: 300 });
-    expect(r.place(box)).toEqual({ x: 360, y: 270, w: 40, h: 30 });
+    expect(r.place(box)).toEqual({ x: 360, y: 270 });
   });
 
   it("a side pins one axis and leaves the other to the box", () => {
     const sheet = new MutableRegion({ bottom: 300 });
-    expect(sheet.place(box)).toEqual({ x: 9, y: 270, w: 40, h: 30 });
+    expect(sheet.place(box)).toEqual({ x: 9, y: 270 });
   });
 
   it("reads back the pinned edge and null for the rest — CSS insets", () => {

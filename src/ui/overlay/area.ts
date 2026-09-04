@@ -1,5 +1,5 @@
 import { signal } from "@/signals";
-import type { Box, ReadonlyBox } from "./box.ts";
+import type { ReadonlyBox } from "./box.ts";
 
 /** Which of a box's points sits on a pin: its lo edge, hi edge, or middle. */
 export type Align = "start" | "end" | "center";
@@ -31,12 +31,18 @@ export type Boundary =
   | (BlockEdge & NoInline) // side
   | (NoBlock & InlineEdge); // side
 
+/** Where {@link Region.place} puts a box's top-left corner. */
+export interface Placement {
+  readonly x: number;
+  readonly y: number;
+}
+
 /**
  * Somewhere a box may go: a semi-bounded plane, each axis pinned or free.
  * `place` is the only operation: it never writes, so the caller picks which
  * channels to take — `box.x = region.place(box).x` moves one axis and leaves
- * the rest. The box is placed as given: one larger than its room overflows
- * rather than shrinks, as CSS does.
+ * the rest. Size is never returned: the box is placed as given, so one larger
+ * than its room overflows rather than shrinks, as CSS does.
  *
  * The four insets read back as CSS would want them: the pinned edge's
  * coordinate, `null` for the other three (`auto`). A centred axis is not an
@@ -47,7 +53,7 @@ export interface Region {
   readonly right: number | null;
   readonly top: number | null;
   readonly bottom: number | null;
-  place(box: ReadonlyBox): Box;
+  place(box: ReadonlyBox): Placement;
 }
 
 /** Where a box `n` long starts on a pinned axis. */
@@ -110,12 +116,10 @@ export class MutableRegion implements Region {
     this.#y(v === null ? null : { align: "end", at: v });
   }
 
-  place(box: ReadonlyBox): Box {
+  place(box: ReadonlyBox): Placement {
     return {
       x: placeAxis(this.#x(), box.x, box.w),
       y: placeAxis(this.#y(), box.y, box.h),
-      w: box.w,
-      h: box.h,
     };
   }
 }

@@ -1,5 +1,5 @@
 import { inset, placePinned } from "./area.ts";
-import type { Pin, Region } from "./area.ts";
+import type { Pin, Placement, Region } from "./area.ts";
 import { WINDOW_BOX } from "./box.ts";
 import type { Box, IDirection, ReadonlyBox } from "./box.ts";
 
@@ -409,12 +409,10 @@ export class PositionArea implements Region, ReadonlyBox {
   }
 
   /** Every axis is pinned, so only the box's size is read. */
-  place(box: Pick<ReadonlyBox, "w" | "h">): Box {
+  place(box: Pick<ReadonlyBox, "w" | "h">): Placement {
     return {
       x: placePinned(this.#px, box.w),
       y: placePinned(this.#py, box.h),
-      w: box.w,
-      h: box.h,
     };
   }
 }

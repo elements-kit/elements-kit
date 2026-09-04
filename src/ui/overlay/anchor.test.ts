@@ -172,8 +172,6 @@ describe("Region.place — self-alignment inside the rect", () => {
     expect(new PositionArea(ANCHOR, "top").place(tall)).toEqual({
       x: 260,
       y: -40,
-      w: 200,
-      h: 300,
     });
   });
 });
