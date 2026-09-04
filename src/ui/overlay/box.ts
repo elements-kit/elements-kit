@@ -1,4 +1,4 @@
-import { MaybeReactive } from "@/signals";
+import { MaybeReactive, reactive, resolve } from "@/signals";
 import { direction } from "@/utilities/direction";
 import { createElementRect } from "@/utilities/element-rect.ts";
 import { windowSize } from "@/utilities/window-size.ts";
@@ -53,6 +53,50 @@ export class WindowBox implements ReadonlyBox, IDirection {
 }
 
 export const WINDOW_BOX = new WindowBox();
+
+/**
+ * A box grown by a margin per side — the offset off an anchor, as CSS spells
+ * it. The sides default like the `margin` shorthand: one value is every side,
+ * two is block then inline, three is top/inline/bottom.
+ *
+ * Every field is assignable and reactive, and each also takes a signal — so
+ * the box or a side can be swapped, or driven. Reads through, so it tracks
+ * whatever the wrapped box tracks.
+ */
+export class MarginBox implements ReadonlyBox {
+  @reactive() box: MaybeReactive<ReadonlyBox>;
+  @reactive() top: MaybeReactive<number>;
+  @reactive() right: MaybeReactive<number>;
+  @reactive() bottom: MaybeReactive<number>;
+  @reactive() left: MaybeReactive<number>;
+
+  constructor(
+    box: MaybeReactive<ReadonlyBox>,
+    top: MaybeReactive<number> = 0,
+    right: MaybeReactive<number> = top,
+    bottom: MaybeReactive<number> = top,
+    left: MaybeReactive<number> = right,
+  ) {
+    this.box = box;
+    this.top = top;
+    this.right = right;
+    this.bottom = bottom;
+    this.left = left;
+  }
+
+  get x() {
+    return resolve(this.box).x - resolve(this.left);
+  }
+  get y() {
+    return resolve(this.box).y - resolve(this.top);
+  }
+  get w() {
+    return resolve(this.box).w + resolve(this.left) + resolve(this.right);
+  }
+  get h() {
+    return resolve(this.box).h + resolve(this.top) + resolve(this.bottom);
+  }
+}
 
 export class ElementBox implements ReadonlyBox {
   #rect: ReturnType<typeof createElementRect>;

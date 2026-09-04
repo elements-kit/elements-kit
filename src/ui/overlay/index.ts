@@ -28,6 +28,7 @@ export {
 export {
   WINDOW_BOX,
   ElementBox,
+  MarginBox,
   WindowBox,
   type Axis,
   type IDirection,
