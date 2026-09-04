@@ -22,6 +22,7 @@ export {
   type BlockSide,
   type InlineSide,
   type Inset,
+  type PositionAreaValue,
   type PhysicalInset,
 } from "./anchor.ts";
 export {

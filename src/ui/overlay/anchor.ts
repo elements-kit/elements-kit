@@ -174,8 +174,71 @@ const A = (region: AxisRegion, self = false): Keyword => ({
   self,
 });
 
-/** The full `position-area` keyword grammar → axis + physical region. */
-const KEYWORDS: Record<string, Keyword> = {
+/** Keywords naming the block axis. */
+type BlockKeyword =
+  | "top"
+  | "bottom"
+  | "span-top"
+  | "span-bottom"
+  | "block-start"
+  | "block-end"
+  | "span-block-start"
+  | "span-block-end"
+  | "y-start"
+  | "y-end"
+  | "span-y-start"
+  | "span-y-end";
+
+/** Keywords naming the inline axis. */
+type InlineKeyword =
+  | "left"
+  | "right"
+  | "span-left"
+  | "span-right"
+  | "inline-start"
+  | "inline-end"
+  | "span-inline-start"
+  | "span-inline-end"
+  | "x-start"
+  | "x-end"
+  | "span-x-start"
+  | "span-x-end";
+
+/** Keywords naming no axis — each takes whichever one is still free. */
+type AmbiguousKeyword =
+  | "center"
+  | "span-all"
+  | "start"
+  | "end"
+  | "span-start"
+  | "span-end"
+  | "self-start"
+  | "self-end"
+  | "span-self-start"
+  | "span-self-end";
+
+type AreaKeyword = BlockKeyword | InlineKeyword | AmbiguousKeyword;
+
+/** Two keywords, in either order — `position-area` is unordered. */
+type Unordered<A extends string, B extends string> = `${A} ${B}` | `${B} ${A}`;
+
+/**
+ * A valid `position-area` value: one keyword, or two naming different axes.
+ * Two of the same explicit axis (`top bottom`, `left right`) is not a value —
+ * {@link resolveArea} resolves anything invalid to the `block-end` fallback,
+ * so catching it here is the difference between a compile error and a menu
+ * that quietly opens on the wrong side.
+ */
+export type PositionAreaValue =
+  | AreaKeyword
+  | Unordered<BlockKeyword, InlineKeyword>
+  | Unordered<BlockKeyword, AmbiguousKeyword>
+  | Unordered<InlineKeyword, AmbiguousKeyword>
+  | `${AmbiguousKeyword} ${AmbiguousKeyword}`;
+
+/** The full `position-area` keyword grammar → axis + physical region. The
+ * key type forces this table and {@link PositionAreaValue} to stay in step. */
+const KEYWORDS: Record<AreaKeyword, Keyword> = {
   top: B("start", true),
   bottom: B("end", true),
   "span-top": B("span-start", true),
@@ -262,7 +325,7 @@ function resolveArea(
 
   const kws: Keyword[] = [];
   for (const token of tokens) {
-    const keyword = KEYWORDS[token];
+    const keyword: Keyword | undefined = KEYWORDS[token as AreaKeyword];
     if (!keyword) return fallback();
     kws.push(keyword);
   }
@@ -354,7 +417,7 @@ export class PositionArea implements Region, ReadonlyBox {
 
   constructor(
     readonly anchor: ReadonlyBox,
-    area: string,
+    area: PositionAreaValue,
   ) {
     this.#area = resolveArea(area, rootDirection());
   }

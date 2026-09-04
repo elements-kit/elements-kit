@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { anchor_length, PositionArea } from "./anchor.ts";
+import type { PositionAreaValue } from "./anchor.ts";
 import { WINDOW_BOX } from "./box.ts";
 import type { Box } from "./box.ts";
 
@@ -84,12 +85,15 @@ describe("PositionArea — the containing-block rect", () => {
   });
 
   it("falls back to bottom-center for empty or malformed input", () => {
+    // `PositionAreaValue` rejects all three at compile time; the cast is what
+    // a value read from CSS looks like, and the fallback is for those.
+    const bad = (area: string) => new PositionArea(ANCHOR, area as never);
     const rect = ({ x, y, w, h }: Box) => ({ x, y, w, h });
-    const fallback = rect(new PositionArea(ANCHOR, ""));
+    const fallback = rect(bad(""));
     const explicit = new PositionArea(ANCHOR, "block-end center");
     expect(fallback).toEqual(rect(explicit));
-    expect(rect(new PositionArea(ANCHOR, "top garbage"))).toEqual(fallback);
-    expect(rect(new PositionArea(ANCHOR, "top bottom"))).toEqual(fallback);
+    expect(rect(bad("top garbage"))).toEqual(fallback);
+    expect(rect(bad("top bottom"))).toEqual(fallback);
   });
 });
 
@@ -108,7 +112,7 @@ describe("PositionArea — a live region", () => {
 });
 
 describe("PositionArea — insets, for CSS", () => {
-  const edges = (area: string) => {
+  const edges = (area: PositionAreaValue) => {
     const { left, right, top, bottom } = new PositionArea(ANCHOR, area);
     return { left, right, top, bottom };
   };
@@ -147,7 +151,8 @@ describe("PositionArea — insets, for CSS", () => {
 
 describe("Region.place — self-alignment inside the rect", () => {
   const self: Box = { x: 0, y: 0, w: 200, h: 120 };
-  const place = (area: string) => new PositionArea(ANCHOR, area).place(self);
+  const place = (area: PositionAreaValue) =>
+    new PositionArea(ANCHOR, area).place(self);
 
   it("outward regions hug the anchor's edge", () => {
     expect(place("bottom")).toMatchObject({ x: 260, y: 300 });
