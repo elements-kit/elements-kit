@@ -1,7 +1,6 @@
-import { inset, placePinned } from "./area.ts";
-import type { Pin, Placement, Region } from "./area.ts";
-import { WINDOW_BOX } from "./box.ts";
-import type { Box, IDirection, ReadonlyBox } from "./box.ts";
+import { originX, originY, placePinned } from "./area.ts";
+import type { Origin, Pin, Region } from "./area.ts";
+import type { Box, IDirection, Point, ReadonlyBox } from "./box.ts";
 
 /**
  * The anchor-side vocabulary of the CSS `anchor()` function, reimplemented
@@ -367,52 +366,19 @@ function resolveArea(
   };
 }
 
-/** One axis of the position-area containing block, as `[lo, hi]` viewport
- * coordinates. The anchor's two edges cut `[bLo, bHi]` into before/over/after. */
-function axisSpan(
-  lo: number,
-  hi: number,
-  bLo: number,
-  bHi: number,
-  region: AxisRegion,
-): [number, number] {
-  switch (region) {
-    case "start":
-      return [bLo, lo];
-    case "end":
-      return [hi, bHi];
-    case "center":
-      return [lo, hi];
-    case "span-start":
-      return [bLo, hi];
-    case "span-end":
-      return [lo, bHi];
-    default: // span-all
-      return [bLo, bHi];
-  }
-}
-
 /**
- * The reactive `position-area` property: the region of the viewport an
- * overlay anchored to `anchor` may occupy, with the region's default
- * self-alignment as {@link Region.place} — outward regions hug the anchor,
- * spans go flush against its far edge, center is `anchor-center`. Nothing is
- * written; the caller takes what it wants from `place`:
+ * The reactive `position-area` property: which of the anchor's edges a box
+ * pins to, and the self-alignment that follows — outward regions hug the
+ * anchor's near edge, spans its far edge, center is `anchor-center`. Not a
+ * box: a pin per axis, with no geometry of its own.
  *
- *   const area = new PositionArea(a, "top span-left");
- *   effect(() => { overlay.x = area.place(overlay).x; });
+ * Parsed once, at construction; the pins read the anchor on every access, so
+ * reading them in an `effect` tracks it.
  *
- * The value is parsed once, at construction; the geometry reads the anchor
- * and window on every access, so reading it inside an `effect` tracks both.
- *
- * Bounded by the window. A tighter bound (a `Constraint`, a scroll container)
- * is an intersection with the region, so it composes afterwards rather than
- * being a parameter here.
- *
- * There is no gap parameter, for the same reason CSS has none: the offset off
- * the anchor is the overlay's own `margin`.
+ * No gap parameter, for the same reason CSS has none: the offset off the
+ * anchor is the overlay's own `margin`.
  */
-export class PositionArea implements Region, ReadonlyBox {
+export class PositionArea implements Region {
   readonly #area: Area;
 
   constructor(
@@ -422,18 +388,6 @@ export class PositionArea implements Region, ReadonlyBox {
     this.#area = resolveArea(area, rootDirection());
   }
 
-  /** The inline axis as `[lo, hi]`, re-read from the anchor and window. */
-  get #ix() {
-    const a = this.anchor;
-    const w = WINDOW_BOX;
-    return axisSpan(a.x, a.x + a.w, w.x, w.x + w.w, this.#area.inline);
-  }
-  /** The block axis as `[lo, hi]`. */
-  get #iy() {
-    const a = this.anchor;
-    const w = WINDOW_BOX;
-    return axisSpan(a.y, a.y + a.h, w.y, w.y + w.h, this.#area.block);
-  }
   get #px() {
     const a = this.anchor;
     return pinOf(this.#area.inline, a.x, a.x + a.w);
@@ -443,36 +397,22 @@ export class PositionArea implements Region, ReadonlyBox {
     return pinOf(this.#area.block, a.y, a.y + a.h);
   }
 
-  get x() {
-    return this.#ix[0];
+  /** The pin lines — the viewport point {@link origin} lands on. */
+  get x(): number {
+    return this.#px.at;
   }
-  get y() {
-    return this.#iy[0];
-  }
-  get w() {
-    const [lo, hi] = this.#ix;
-    return hi - lo;
-  }
-  get h() {
-    const [lo, hi] = this.#iy;
-    return hi - lo;
+  get y(): number {
+    return this.#py.at;
   }
 
-  get left() {
-    return inset(this.#px, "start");
-  }
-  get right() {
-    return inset(this.#px, "end");
-  }
-  get top() {
-    return inset(this.#py, "start");
-  }
-  get bottom() {
-    return inset(this.#py, "end");
+  /** The box point landing on ({@link x}, {@link y}). Two axes, not one
+   * side: a corner area pins a corner. */
+  get origin(): Origin {
+    return { x: originX(this.#px), y: originY(this.#py) };
   }
 
   /** Every axis is pinned, so only the box's size is read. */
-  place(box: Pick<ReadonlyBox, "w" | "h">): Placement {
+  place(box: Pick<ReadonlyBox, "w" | "h">): Point {
     return {
       x: placePinned(this.#px, box.w),
       y: placePinned(this.#py, box.h),
@@ -483,11 +423,7 @@ export class PositionArea implements Region, ReadonlyBox {
 /** A region's default self-alignment as a pin on the anchor's `[lo, hi]` —
  * outward regions hug the anchor's near edge, spans its far edge; `center`
  * and `span-all` are `anchor-center`, which may overflow the rect. */
-function pinOf(
-  region: AxisRegion,
-  lo: number,
-  hi: number,
-): NonNullable<Pin> {
+function pinOf(region: AxisRegion, lo: number, hi: number): NonNullable<Pin> {
   switch (region) {
     case "start":
       return { align: "end", at: lo };

@@ -48,6 +48,43 @@ describe("OverlayBox", () => {
     el.remove();
   });
 
+  it("shifts by the origin, as a fraction of its own box", () => {
+    const el = overlayEl();
+    const o = new OverlayBox(el);
+    o.origin = { x: "left", y: "bottom" };
+    // Subtracted from the position channels: they place the top-left corner,
+    // and the origin names the point that should land there instead.
+    expect(channel(el, "--_ox")).toBe("0%");
+    expect(channel(el, "--_oy")).toBe("100%");
+    expect(channel(el, "translate")).toContain("- var(--_oy, 0%)");
+    // The scale grows from the same point, as keywords.
+    expect(el.style.transformOrigin).toBe("left bottom");
+    o.dispose();
+    el.remove();
+  });
+
+  it("starts at the neutral point and reads back what was set", () => {
+    const el = overlayEl();
+    const o = new OverlayBox(el);
+    // Unset, the channels place the top-left corner — so no shift.
+    expect(o.origin).toEqual({ x: "left", y: "top" });
+    o.origin = { x: "right", y: "center" };
+    expect(o.origin).toEqual({ x: "right", y: "center" });
+    o.dispose();
+    el.remove();
+  });
+
+  it("centres on both axes", () => {
+    const el = overlayEl();
+    const o = new OverlayBox(el);
+    o.origin = { x: "center", y: "center" };
+    expect(channel(el, "--_ox")).toBe("50%");
+    expect(channel(el, "--_oy")).toBe("50%");
+    expect(el.style.transformOrigin).toBe("center center");
+    o.dispose();
+    el.remove();
+  });
+
   it("projects writes into the --x/--y/--w/--h channels", () => {
     const el = overlayEl();
     const o = new OverlayBox(el);

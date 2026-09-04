@@ -1,12 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { anchor_length, PositionArea } from "./anchor.ts";
 import type { PositionAreaValue } from "./anchor.ts";
-import { WINDOW_BOX } from "./box.ts";
 import type { Box } from "./box.ts";
-
-/** The window bounds every rect — read it rather than hard-coding a size. */
-const W = () => WINDOW_BOX.w;
-const H = () => WINDOW_BOX.h;
 
 describe("anchor_length", () => {
   const rect: Box = { x: 100, y: 200, w: 40, h: 20 };
@@ -22,63 +17,41 @@ describe("anchor_length", () => {
 /** The anchor used throughout: edges at x 300→420, y 260→300. */
 const ANCHOR: Box = { x: 300, y: 260, w: 120, h: 40 };
 
-describe("PositionArea — the containing-block rect", () => {
-  it("cuts the window at the anchor's edges", () => {
-    // `bottom` → block-end, inline span-all: below the anchor, full width.
-    expect(new PositionArea(ANCHOR, "bottom")).toMatchObject({
-      x: 0,
-      y: 300,
-      w: W(),
-      h: H() - 300,
-    });
-    expect(new PositionArea(ANCHOR, "top")).toMatchObject({
-      x: 0,
-      y: 0,
-      w: W(),
-      h: 260,
-    });
+describe("PositionArea — resolving the area to pins", () => {
+  // Anchor edges: x 300→420, y 260→300.
+  const pin = (area: PositionAreaValue) => {
+    const { x, y, origin } = new PositionArea(ANCHOR, area);
+    return { x, y, origin };
+  };
+
+  it("pins the anchor edge an outward region sits against", () => {
+    // Below the anchor: the box's top edge lands on the anchor's bottom.
+    expect(pin("bottom")).toEqual({ x: 360, y: 300, origin: { x: "center", y: "top" } });
+    // Above: its bottom edge lands on the anchor's top.
+    expect(pin("top")).toEqual({ x: 360, y: 260, origin: { x: "center", y: "bottom" } });
   });
 
-  it("center spans the anchor's own extent", () => {
-    expect(new PositionArea(ANCHOR, "center")).toMatchObject({
-      x: 300,
-      y: 260,
-      w: 120,
-      h: 40,
-    });
+  it("spans pin the anchor's far edge", () => {
+    expect(pin("top span-left")).toMatchObject({ x: 420, origin: { x: "right", y: "bottom" } });
+    expect(pin("top span-right")).toMatchObject({ x: 300, origin: { x: "left", y: "bottom" } });
   });
 
-  it("span regions reach from the window to the anchor's far edge", () => {
-    // span-inline-start → window left → anchor's right edge.
-    expect(new PositionArea(ANCHOR, "top span-left")).toMatchObject({
-      x: 0,
-      w: 420,
-    });
-    expect(new PositionArea(ANCHOR, "top span-right")).toMatchObject({
-      x: 300,
-      w: W() - 300,
-    });
+  it("an axis-specific keyword leaves the other axis anchor-centred", () => {
+    // inline-end → right of the anchor, block span-all → centred on it.
+    expect(pin("inline-end")).toEqual({ x: 420, y: 280, origin: { x: "left", y: "center" } });
   });
 
-  it("spans the other axis for an axis-specific keyword", () => {
-    // inline-end → block span-all: full height, right of the anchor.
-    expect(new PositionArea(ANCHOR, "inline-end")).toMatchObject({
-      x: 420,
-      y: 0,
-      w: W() - 420,
-      h: H(),
-    });
+  it("centre pins the anchor's middle on both axes", () => {
+    expect(pin("center")).toEqual({ x: 360, y: 280, origin: { x: "center", y: "center" } });
   });
 
   it("flips inline logical sides in RTL, never physical ones", () => {
     document.documentElement.style.direction = "rtl";
     try {
       // inline-start in RTL is the right-hand side.
-      expect(new PositionArea(ANCHOR, "inline-start")).toMatchObject({
-        x: 420,
-      });
+      expect(pin("inline-start")).toMatchObject({ x: 420, origin: { x: "left", y: "center" } });
       // `left` is physical — unmoved.
-      expect(new PositionArea(ANCHOR, "left")).toMatchObject({ x: 0 });
+      expect(pin("left")).toMatchObject({ x: 300, origin: { x: "right", y: "center" } });
     } finally {
       document.documentElement.style.direction = "";
     }
@@ -87,13 +60,11 @@ describe("PositionArea — the containing-block rect", () => {
   it("falls back to bottom-center for empty or malformed input", () => {
     // `PositionAreaValue` rejects all three at compile time; the cast is what
     // a value read from CSS looks like, and the fallback is for those.
-    const bad = (area: string) => new PositionArea(ANCHOR, area as never);
-    const rect = ({ x, y, w, h }: Box) => ({ x, y, w, h });
-    const fallback = rect(bad(""));
-    const explicit = new PositionArea(ANCHOR, "block-end center");
-    expect(fallback).toEqual(rect(explicit));
-    expect(rect(bad("top garbage"))).toEqual(fallback);
-    expect(rect(bad("top bottom"))).toEqual(fallback);
+    const bad = (area: string) => pin(area as never);
+    const fallback = pin("block-end center");
+    expect(bad("")).toEqual(fallback);
+    expect(bad("top garbage")).toEqual(fallback);
+    expect(bad("top bottom")).toEqual(fallback);
   });
 });
 
@@ -111,41 +82,30 @@ describe("PositionArea — a live region", () => {
   });
 });
 
-describe("PositionArea — insets, for CSS", () => {
-  const edges = (area: PositionAreaValue) => {
-    const { left, right, top, bottom } = new PositionArea(ANCHOR, area);
-    return { left, right, top, bottom };
-  };
+describe("PositionArea — origin, for the enter/exit scale", () => {
+  const origin = (area: PositionAreaValue) =>
+    new PositionArea(ANCHOR, area).origin;
 
-  it("a side pins one edge on one axis", () => {
-    expect(edges("bottom")).toEqual({
-      left: null,
-      right: null,
-      top: 300,
-      bottom: null,
-    });
+  it("grows from the edge facing the anchor", () => {
+    expect(origin("top")).toEqual({ x: "center", y: "bottom" });
+    expect(origin("bottom")).toEqual({ x: "center", y: "top" });
+    expect(origin("left")).toEqual({ x: "right", y: "center" });
+    expect(origin("right")).toEqual({ x: "left", y: "center" });
   });
 
-  it("a corner pins one edge per axis", () => {
-    expect(edges("top left")).toEqual({
-      left: null,
-      right: 300,
-      top: null,
-      bottom: 260,
-    });
+  it("pins a corner when both axes are outward", () => {
+    expect(origin("top left")).toEqual({ x: "right", y: "bottom" });
+    expect(origin("bottom right")).toEqual({ x: "left", y: "top" });
   });
 
-  it("spans pin the anchor's far edge", () => {
-    expect(edges("top span-left")).toMatchObject({ right: 420, left: null });
+  it("uses the pinned edge on a spanning axis, not its centre", () => {
+    expect(origin("top span-right")).toEqual({ x: "left", y: "bottom" });
+    expect(origin("top span-left")).toEqual({ x: "right", y: "bottom" });
   });
 
-  it("center pins nothing — it is anchor-center, not an inset", () => {
-    expect(edges("center")).toEqual({
-      left: null,
-      right: null,
-      top: null,
-      bottom: null,
-    });
+  it("centres where the area centres", () => {
+    expect(origin("center")).toEqual({ x: "center", y: "center" });
+    expect(origin("span-all")).toEqual({ x: "center", y: "center" });
   });
 });
 

@@ -38,7 +38,10 @@ export {
   MutableRegion,
   type Align,
   type Boundary,
-  type Placement,
+  type Origin,
+  type OriginX,
+  type OriginY,
+  type IOrigin,
   type Pin,
   type Region,
 } from "./area.ts";

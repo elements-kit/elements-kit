@@ -1,6 +1,7 @@
 import { batch, effect, reactive } from "@/signals/index.ts";
 import { scope } from "@/signals/scope";
 import { Box, IDirection, ReadonlyBox } from "./box.ts";
+import type { IOrigin, Origin, OriginX, OriginY } from "./area.ts";
 
 import { createElementRect } from "@/utilities/element-rect.ts";
 
@@ -89,9 +90,20 @@ class Displacement extends PartialBox {
   }
 }
 
-export class OverlayBox extends TransformableBox implements IDirection {
+/** An origin keyword as the offset to shift back by. */
+const OFFSET: Record<OriginX | OriginY, string> = {
+  left: "0%",
+  top: "0%",
+  center: "50%",
+  right: "100%",
+  bottom: "100%",
+};
+
+export class OverlayBox extends TransformableBox implements IDirection, IOrigin {
   readonly element: HTMLElement;
   readonly #rect: ReturnType<typeof createElementRect>;
+  // Neutral: the channels place the top-left corner, so no shift.
+  #origin: Origin = { x: "left", y: "top" };
 
   constructor(element: HTMLElement) {
     super();
@@ -100,10 +112,12 @@ export class OverlayBox extends TransformableBox implements IDirection {
 
     element.style.setProperty("top", "0");
     element.style.setProperty("left", "0");
+    // `--_ox/--_oy` are percentages of this box, so the shift needs no
+    // measurement. Subtracted: the channels place the top-left corner.
     element.style.setProperty(
       "translate",
-      "calc(var(--x, 0px) + var(--dx, 0px) + var(--_ex, 0px)) " +
-        "calc(var(--y, 0px) + var(--dy, 0px) + var(--_ey, 0px))",
+      "calc(var(--x, 0px) + var(--dx, 0px) + var(--_ex, 0px) - var(--_ox, 0%)) " +
+        "calc(var(--y, 0px) + var(--dy, 0px) + var(--_ey, 0px) - var(--_oy, 0%))",
     );
 
     // Project the reactive base into its CSS channels — needs `effect`, or
@@ -132,6 +146,18 @@ export class OverlayBox extends TransformableBox implements IDirection {
       stop();
       this.#rect[Symbol.dispose]();
     };
+  }
+
+  /** The box point that lands on (x, y), and the scale's origin. */
+  get origin(): Origin {
+    return this.#origin;
+  }
+  set origin({ x, y }: Origin) {
+    this.#origin = { x, y };
+    // A keyword cannot be negated, so the channels take it as a length.
+    this.element.style.setProperty("--_ox", OFFSET[x]);
+    this.element.style.setProperty("--_oy", OFFSET[y]);
+    this.element.style.transformOrigin = `${x} ${y}`;
   }
 
   /** Write a size channel, or unset it when the axis is AUTO (NaN) so the

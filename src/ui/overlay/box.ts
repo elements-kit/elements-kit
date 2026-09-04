@@ -10,6 +10,16 @@ export interface IDirection {
   readonly direction: "ltr" | "rtl";
 }
 
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export interface ReadonlyPoint {
+  readonly x: number;
+  readonly y: number;
+}
+
 export interface ReadonlyBox {
   readonly x: number;
   readonly y: number;

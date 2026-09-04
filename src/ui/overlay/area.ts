@@ -1,5 +1,5 @@
 import { signal } from "@/signals";
-import type { ReadonlyBox } from "./box.ts";
+import type { Point, ReadonlyBox } from "./box.ts";
 
 /** Which of a box's points sits on a pin: its lo edge, hi edge, or middle. */
 export type Align = "start" | "end" | "center";
@@ -31,29 +31,34 @@ export type Boundary =
   | (BlockEdge & NoInline) // side
   | (NoBlock & InlineEdge); // side
 
-/** Where {@link Region.place} puts a box's top-left corner. */
-export interface Placement {
-  readonly x: number;
-  readonly y: number;
+/** Horizontal origin keyword, as CSS spells it. */
+export type OriginX = "left" | "center" | "right";
+/** The vertical one. */
+export type OriginY = "top" | "center" | "bottom";
+
+/** Which point of a box lands on its position. A `transform-origin`. */
+export interface Origin {
+  readonly x: OriginX;
+  readonly y: OriginY;
+}
+
+/** Has an origin. */
+export interface IOrigin {
+  readonly origin: Origin;
 }
 
 /**
- * Somewhere a box may go: a semi-bounded plane, each axis pinned or free.
- * `place` is the only operation: it never writes, so the caller picks which
- * channels to take — `box.x = region.place(box).x` moves one axis and leaves
- * the rest. Size is never returned: the box is placed as given, so one larger
- * than its room overflows rather than shrinks, as CSS does.
+ * Somewhere a box may go: each axis pinned or free. `place` never writes, so
+ * the caller takes the channels it wants, and never returns a size, so a box
+ * larger than its room overflows rather than shrinks, as CSS does.
  *
- * The four insets read back as CSS would want them: the pinned edge's
- * coordinate, `null` for the other three (`auto`). A centred axis is not an
- * inset — both its edges are `null`.
+ * `x`/`y` are the pin lines, `origin` the box point landing on them — the
+ * pair places a box without measuring it. A free axis has no pin (`null`).
  */
-export interface Region {
-  readonly left: number | null;
-  readonly right: number | null;
-  readonly top: number | null;
-  readonly bottom: number | null;
-  place(box: ReadonlyBox): Placement;
+export interface Region extends IOrigin {
+  readonly x: number | null;
+  readonly y: number | null;
+  place(box: ReadonlyBox): Point;
 }
 
 /** Where a box `n` long starts on a pinned axis. */
@@ -63,9 +68,20 @@ export function placePinned(pin: NonNullable<Pin>, n: number): number {
   return pin.at - n / 2;
 }
 
-/** One axis of a {@link Region.place}: pinned, or `own` if the axis is free. */
+/** One axis of {@link Region.place}: pinned, or `own` if free. */
 export function placeAxis(pin: Pin, own: number, n: number): number {
   return pin ? placePinned(pin, n) : own;
+}
+
+/** The box point a pin lands. Physical: direction is resolved before a pin
+ * exists, so `left` is left in RTL. A free axis lands the near edge. */
+export function originX(pin: Pin): OriginX {
+  if (!pin) return "left";
+  return pin.align === "start" ? "left" : pin.align === "end" ? "right" : "center";
+}
+export function originY(pin: Pin): OriginY {
+  if (!pin) return "top";
+  return pin.align === "start" ? "top" : pin.align === "end" ? "bottom" : "center";
 }
 
 /** The inset a pin yields on one edge: its coordinate if it pins that edge. */
@@ -88,6 +104,19 @@ export class MutableRegion implements Region {
     if (right !== undefined) this.right = right;
     if (top !== undefined) this.top = top;
     if (bottom !== undefined) this.bottom = bottom;
+  }
+
+  /** The pin line on each axis — `null` where the axis is free. */
+  get x() {
+    return this.#x()?.at ?? null;
+  }
+  get y() {
+    return this.#y()?.at ?? null;
+  }
+
+  /** The box point that lands on ({@link x}, {@link y}). */
+  get origin(): Origin {
+    return { x: originX(this.#x()), y: originY(this.#y()) };
   }
 
   get left() {
@@ -116,7 +145,7 @@ export class MutableRegion implements Region {
     this.#y(v === null ? null : { align: "end", at: v });
   }
 
-  place(box: ReadonlyBox): Placement {
+  place(box: ReadonlyBox): Point {
     return {
       x: placeAxis(this.#x(), box.x, box.w),
       y: placeAxis(this.#y(), box.y, box.h),
