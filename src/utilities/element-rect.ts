@@ -11,34 +11,42 @@ import {
 import { createResizeObserver } from "./resize-observer.ts";
 
 /**
- * Observes the full bounding rect of `target` and returns it as ONE reactive
- * `DOMRect`, so every field a reader sees was measured at the same instant.
- * Change sources: a `ResizeObserver` for size, plus capture-phase `scroll` and
- * window `resize` for position — a `ResizeObserver` stays silent when an
- * element merely moves.
+ * `target`'s bounding rect as one reactive `DOMRect`, every field from the
+ * same instant. Refreshed by a `ResizeObserver` (size) and capture-phase
+ * `scroll` / window `resize` (position), never on read. Size is the observer's
+ * border box, not the rect's: a transform scales the rect and never fires the
+ * observer.
  *
- * `target` may be a getter, in which case the observer follows it: the previous
- * element is unobserved before the new one is observed. The returned computed
- * keeps its identity across a swap, so consumers never rebind.
- *
- * The value is CACHED, not measured per read: it refreshes when one of the
- * sources above fires, not at the moment you read it. Dispose explicitly, or
- * let the enclosing scope do it.
+ * A reactive `target` is followed, keeping the computed's identity. Dispose
+ * explicitly, or let the enclosing scope do it.
  */
 export function createElementRect(
   target: MaybeReactive<Element>,
 ): Computed<DOMRect> & Disposable {
-  const cache = signal(resolve(target).getBoundingClientRect());
+  // Carried across scroll/resize refreshes, which bring no entry. Horizontal
+  // writing modes only.
+  let size: { width: number; height: number } | undefined;
+
+  const read = (el: Element) => {
+    const r = el.getBoundingClientRect();
+    return size ? new DOMRect(r.x, r.y, size.width, size.height) : r;
+  };
+
+  const cache = signal(read(resolve(target)));
 
   const updateRect = (el: Element) => {
-    cache(el.getBoundingClientRect());
+    cache(read(el));
   };
 
   const stop = effectScope(() => {
     effect(() => {
       const el = resolve(target);
+      // A swapped target's border box is its own.
+      size = undefined;
       createResizeObserver(el, (entries) => {
         for (const entry of entries) {
+          const box = entry.borderBoxSize?.[0];
+          if (box) size = { width: box.inlineSize, height: box.blockSize };
           updateRect(entry.target as Element);
         }
       });
@@ -57,12 +65,9 @@ export function createElementRect(
   });
 
   onCleanup(stop);
-  // Hand back what the observers measured, rather than re-measuring here. A
-  // read must not be a measurement: reading after dispose (or between source
-  // events) would otherwise report a rect no observer ever saw, and every read
-  // would force a layout. `cache` is refreshed on observe, on scroll/resize,
-  // and synchronously when a reactive `target` swaps, so it is never stale.
-  const rect = computed(() => cache()) as Computed<DOMRect> & Disposable;
+  // A read must not be a measurement: re-measuring here would force a layout
+  // and could report a rect no observer ever saw.
+  const rect = computed(cache) as Computed<DOMRect> & Disposable;
   rect[Symbol.dispose] = stop;
 
   return rect;

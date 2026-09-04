@@ -91,6 +91,43 @@ describe("createElementRect", () => {
     expect(rect().top).toBe(15);
   });
 
+  it("takes size from the entry's border box, not the scaled visual rect", () => {
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+
+    // A `scale: 0.94` animation: the rect runs 6% short of the layout box.
+    vi.spyOn(el, "getBoundingClientRect").mockReturnValue({
+      x: 10, y: 20, width: 94, height: 47,
+      top: 20, right: 104, bottom: 67, left: 10,
+      toJSON: () => ({}),
+    } as DOMRect);
+
+    let observerCallback!: ResizeObserverCallback;
+    vi.stubGlobal("ResizeObserver", function MockRO(cb: ResizeObserverCallback) {
+      observerCallback = cb;
+      return { observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() };
+    });
+
+    const rect = make(el);
+    observerCallback(
+      [
+        {
+          target: el,
+          borderBoxSize: [{ inlineSize: 100, blockSize: 50 }],
+        } as unknown as ResizeObserverEntry,
+      ],
+      {} as ResizeObserver,
+    );
+
+    expect(rect().width).toBe(100);
+    expect(rect().height).toBe(50);
+    // Position stays the rect's; edges follow the size.
+    expect(rect().x).toBe(10);
+    expect(rect().y).toBe(20);
+    expect(rect().right).toBe(110);
+    expect(rect().bottom).toBe(70);
+  });
+
   it("disconnects on Symbol.dispose", () => {
     const disconnect = vi.fn();
     vi.stubGlobal("ResizeObserver", function MockRO() {
