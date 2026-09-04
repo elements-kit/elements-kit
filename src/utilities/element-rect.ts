@@ -67,7 +67,7 @@ export function createElementRect(
   onCleanup(stop);
   // A read must not be a measurement: re-measuring here would force a layout
   // and could report a rect no observer ever saw.
-  const rect = computed(cache) as Computed<DOMRect> & Disposable;
+  const rect = computed(() => cache()) as Computed<DOMRect> & Disposable;
   rect[Symbol.dispose] = stop;
 
   return rect;
