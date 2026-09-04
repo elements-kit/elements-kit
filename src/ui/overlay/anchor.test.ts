@@ -100,7 +100,7 @@ describe("PositionArea — a live region", () => {
     anchor.y = 500;
     expect(region.y).toBe(540);
     // Still anchor-centred on the moved anchor.
-    expect(region.place({ x: 0, y: 0, w: 100, h: 10 })).toMatchObject({
+    expect(region.place({ w: 100, h: 10 })).toMatchObject({
       x: 310,
       y: 540,
     });

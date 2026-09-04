@@ -1,4 +1,4 @@
-import { inset, placeAxis } from "./area.ts";
+import { inset, placePinned } from "./area.ts";
 import type { Pin, Region } from "./area.ts";
 import { WINDOW_BOX } from "./box.ts";
 import type { Box, IDirection, ReadonlyBox } from "./box.ts";
@@ -408,10 +408,11 @@ export class PositionArea implements Region, ReadonlyBox {
     return inset(this.#py, "end");
   }
 
-  place(box: ReadonlyBox): Box {
+  /** Every axis is pinned, so only the box's size is read. */
+  place(box: Pick<ReadonlyBox, "w" | "h">): Box {
     return {
-      x: placeAxis(this.#px, box.x, box.w),
-      y: placeAxis(this.#py, box.y, box.h),
+      x: placePinned(this.#px, box.w),
+      y: placePinned(this.#py, box.h),
       w: box.w,
       h: box.h,
     };
@@ -421,7 +422,11 @@ export class PositionArea implements Region, ReadonlyBox {
 /** A region's default self-alignment as a pin on the anchor's `[lo, hi]` —
  * outward regions hug the anchor's near edge, spans its far edge; `center`
  * and `span-all` are `anchor-center`, which may overflow the rect. */
-function pinOf(region: AxisRegion, lo: number, hi: number): Pin {
+function pinOf(
+  region: AxisRegion,
+  lo: number,
+  hi: number,
+): NonNullable<Pin> {
   switch (region) {
     case "start":
       return { align: "end", at: lo };

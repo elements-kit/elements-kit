@@ -35,8 +35,6 @@ export {
 export { OverlayBox } from "./overlay.ts";
 export {
   MutableRegion,
-  inset,
-  placeAxis,
   type Align,
   type Boundary,
   type Pin,

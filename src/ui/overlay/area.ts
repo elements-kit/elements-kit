@@ -50,13 +50,16 @@ export interface Region {
   place(box: ReadonlyBox): Box;
 }
 
-/** One axis of a {@link Region.place}: where a box `n` long, currently at
- * `own`, starts once `pin` is honoured. */
-export function placeAxis(pin: Pin, own: number, n: number): number {
-  if (!pin) return own;
+/** Where a box `n` long starts on a pinned axis. */
+export function placePinned(pin: NonNullable<Pin>, n: number): number {
   if (pin.align === "start") return pin.at;
   if (pin.align === "end") return pin.at - n;
   return pin.at - n / 2;
+}
+
+/** One axis of a {@link Region.place}: pinned, or `own` if the axis is free. */
+export function placeAxis(pin: Pin, own: number, n: number): number {
+  return pin ? placePinned(pin, n) : own;
 }
 
 /** The inset a pin yields on one edge: its coordinate if it pins that edge. */
