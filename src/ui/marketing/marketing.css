@@ -481,7 +481,7 @@
 
 .testimonial > blockquote {
   font-family: var(--font-heading);
-  font-size: var(--font-size-6);
+  font-size: var(--font-size-5);
   line-height: 1.3;
   font-weight: 600;
   letter-spacing: var(--letter-spacing-9);
@@ -496,18 +496,32 @@
   }
 }
 
+@media (min-width: 64rem) {
+  .testimonial > blockquote {
+    font-size: var(--font-size-8);
+  }
+}
+
 .testimonial > blockquote em {
   color: var(--neutral-12);
   font-style: normal;
 }
 
+/* The opening mark is set against the quote, not the body copy, so it steps
+ * with it — at the full 96px it would tower over the narrow-screen size. */
 .testimonial > blockquote::before {
   content: "\201C";
   display: block;
-  font-size: calc(96px * var(--scaling, 1));
+  font-size: calc(60px * var(--scaling, 1));
   font-weight: 700;
   line-height: 1;
   color: var(--accent-9);
+}
+
+@media (min-width: 48rem) {
+  .testimonial > blockquote::before {
+    font-size: calc(96px * var(--scaling, 1));
+  }
 }
 
 .testimonial > blockquote::after {
