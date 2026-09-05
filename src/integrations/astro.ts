@@ -3,6 +3,10 @@
 // shapes are validated against astro's published .d.ts in tests and by the
 // docs site build.
 
+import { createRequire } from "node:module";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import elementsKitHmr from "./vite";
 
 interface AstroRendererConfig {
@@ -14,6 +18,9 @@ interface AstroRendererConfig {
 interface AstroConfigSetupApi {
   addRenderer(renderer: AstroRendererConfig): void;
   updateConfig(config: Record<string, unknown>): unknown;
+  // Astro's AstroConfig, narrowed at runtime — typing it structurally here
+  // would pin a shape astro is free to change.
+  config?: unknown;
 }
 
 export interface ElementsKitAstroIntegration {
@@ -21,6 +28,37 @@ export interface ElementsKitAstroIntegration {
   hooks: {
     "astro:config:setup": (api: AstroConfigSetupApi) => void;
   };
+}
+
+/**
+ * The JSX transform config, under the key the installed Vite actually reads.
+ *
+ * Vite 8 (and rolldown-vite) transform with Oxc: `esbuild` options are ignored
+ * there, and setting both keys warns. Older Vite only understands `esbuild`.
+ * Vite is resolved from the project root — under isolated installs it is not
+ * reachable from this package's own directory.
+ */
+function jsxTransformConfig(root?: unknown): Record<string, unknown> {
+  const from =
+    root instanceof URL
+      ? fileURLToPath(root)
+      : typeof root === "string"
+        ? root
+        : process.cwd();
+  let oxc = false;
+  try {
+    const vite = createRequire(path.join(from, "noop.js"))(
+      "vite/package.json",
+    ) as { name?: string; version?: string };
+    oxc =
+      vite.name === "rolldown-vite" ||
+      Number.parseInt(vite.version ?? "", 10) >= 8;
+  } catch {
+    // Vite unresolvable from the root — keep the pre-Oxc key.
+  }
+  return oxc
+    ? { oxc: { jsx: { runtime: "automatic", importSource: "elements-kit" } } }
+    : { esbuild: { jsx: "automatic", jsxImportSource: "elements-kit" } };
 }
 
 /**
@@ -59,7 +97,7 @@ export default function elementsKit(): ElementsKitAstroIntegration {
   return {
     name: "elements-kit",
     hooks: {
-      "astro:config:setup": ({ addRenderer, updateConfig }) => {
+      "astro:config:setup": ({ addRenderer, updateConfig, config }) => {
         addRenderer({
           name: "elements-kit",
           clientEntrypoint: "elements-kit/integrations/astro-client",
@@ -67,7 +105,7 @@ export default function elementsKit(): ElementsKitAstroIntegration {
         });
         updateConfig({
           vite: {
-            esbuild: { jsx: "automatic", jsxImportSource: "elements-kit" },
+            ...jsxTransformConfig((config as { root?: unknown } | undefined)?.root),
             // One runtime instance is non-negotiable: the reactive graph
             // cannot link across duplicate module copies (dead bindings).
             // Astro force-includes the renderer client entrypoint in
