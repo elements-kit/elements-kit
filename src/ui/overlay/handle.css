@@ -11,11 +11,12 @@
  *   inline-start | inline-end     vertical pill, edge width resize
  *   start-start | start-end |     corner L-grip, free x/y resize
  *   end-start | end-end           (block side first, inline second)
- *   move                          top-center grab pill, window move / tear-off
+ *   move                          top-center grab pill, window move
  *
- * The gesture engine (overlay.ts / gesture.ts) engages the gesture the pressed
- * handle's `data-placement` names — no zone hit-testing. overlay.css keys the
- * enter/exit slide and deck effect off the same child via
+ * These are affordances and motion hints, not wiring: no pointer engine is
+ * exported yet, so a handle paints its grip, offers the hit-target, and names
+ * the gesture a caller implements against `OverlayBox`'s `displacement`.
+ * overlay.css keys the enter/exit slide and deck effect off the same child via
  * `:has(> .x-handle[data-placement=…])`.
  */
 
