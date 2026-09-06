@@ -1,6 +1,8 @@
 import { MaybeReactive, reactive, resolve } from "@/signals";
 import { direction } from "@/utilities/direction";
 import { createElementRect } from "@/utilities/element-rect.ts";
+import { fromEvent, sync } from "@/utilities/event-driven.ts";
+import { isBrowser } from "@/utilities/environment.ts";
 import { windowSize } from "@/utilities/window-size.ts";
 
 /** The channel axes a box value moves along. */
@@ -53,6 +55,54 @@ export class WindowBox implements ReadonlyBox, IDirection {
 }
 
 export const WINDOW_BOX = new WindowBox();
+
+/**
+ * `window.visualViewport`, read reactively. `scroll` counts as much as
+ * `resize`: pinch-zoom and the keyboard move the visual viewport inside the
+ * layout one without resizing it. Where the API is missing, the window stands
+ * in — which is what `WindowBox` already reports.
+ */
+const visual_viewport = (() => {
+  const vv = isBrowser ? window.visualViewport : null;
+  if (!vv) return null;
+  const [box] = sync(fromEvent(vv, ["resize", "scroll"]), () => ({
+    x: vv.offsetLeft,
+    y: vv.offsetTop,
+    w: vv.width,
+    h: vv.height,
+  }));
+  return box;
+})();
+
+/**
+ * The visual viewport as a box: the window minus whatever the software
+ * keyboard or pinch-zoom takes, positioned where it sits in the layout
+ * viewport.
+ *
+ * iOS never resizes the layout viewport for the keyboard, so `WINDOW_BOX`
+ * (and `svh`) keep reporting the full screen — a surface docked to their
+ * block-end edge ends up under the keyboard. Dock to this one instead.
+ */
+export class ViewportBox implements ReadonlyBox, IDirection {
+  get x() {
+    return visual_viewport?.().x ?? WINDOW_BOX.x;
+  }
+  get y() {
+    return visual_viewport?.().y ?? WINDOW_BOX.y;
+  }
+  get w() {
+    return visual_viewport?.().w ?? WINDOW_BOX.w;
+  }
+  get h() {
+    return visual_viewport?.().h ?? WINDOW_BOX.h;
+  }
+
+  get direction() {
+    return direction();
+  }
+}
+
+export const VIEWPORT_BOX = new ViewportBox();
 
 /**
  * A box grown by a margin per side — the offset off an anchor, as CSS spells

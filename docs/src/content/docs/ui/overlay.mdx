@@ -35,8 +35,8 @@ import {
   OverlayBox,
   ElementBox,
   MarginBox,
-  WindowBox,
   WINDOW_BOX,
+  VIEWPORT_BOX,
   PositionArea,
   MutableRegion,
   anchor_length,
@@ -114,7 +114,8 @@ Everything spatial is a **box**: `{ x, y, w, h }` in viewport coordinates, read 
 | Class | Is |
 | --- | --- |
 | `ElementBox(el)` | An element's live rect (observed). Takes a signal, so the tracked element can be swapped |
-| `WindowBox` / `WINDOW_BOX` | The viewport, plus its `direction` |
+| `WINDOW_BOX` | The layout viewport, plus its `direction` |
+| `VIEWPORT_BOX` | The visual viewport — the window minus the software keyboard or pinch-zoom, where it sits in the layout viewport. iOS never resizes the layout viewport for the keyboard, so dock keyboard-adjacent surfaces to this rather than `WINDOW_BOX` |
 | `MarginBox(box, top?, right?, bottom?, left?)` | A box grown per side — the gap off an anchor, spelled as CSS spells it. Sides default like the `margin` shorthand, and every field is assignable and reactive |
 | `OverlayBox(el)` | The surface — reads its measured rect, writes the channels |
 

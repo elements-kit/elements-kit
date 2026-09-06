@@ -26,10 +26,10 @@ export {
   type PhysicalInset,
 } from "./anchor.ts";
 export {
+  VIEWPORT_BOX,
   WINDOW_BOX,
   ElementBox,
   MarginBox,
-  WindowBox,
   type Axis,
   type IDirection,
   type ReadonlyBox,

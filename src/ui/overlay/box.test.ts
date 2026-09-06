@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { effect, effectScope, signal } from "@/signals/index.ts";
-import { MarginBox } from "./box.ts";
+import { MarginBox, ViewportBox, WINDOW_BOX } from "./box.ts";
 import type { Box } from "./box.ts";
 
 /** Edges at x 300→420, y 260→300. */
@@ -97,5 +97,35 @@ describe("MarginBox", () => {
     gap(20);
     expect(margin.y).toBe(240);
     expect(margin.h).toBe(80);
+  });
+});
+
+describe("ViewportBox", () => {
+  // happy-dom has no `visualViewport`, which is the fallback path: the box
+  // reports the window, exactly as `WINDOW_BOX` does.
+  it("falls back to the window where the API is missing", () => {
+    const box = new ViewportBox();
+    expect(window.visualViewport).toBeUndefined();
+    expect({ x: box.x, y: box.y, w: box.w, h: box.h }).toEqual({
+      x: WINDOW_BOX.x,
+      y: WINDOW_BOX.y,
+      w: WINDOW_BOX.w,
+      h: WINDOW_BOX.h,
+    });
+  });
+
+  it("tracks the window size through the fallback", () => {
+    const box = new ViewportBox();
+    const seen: number[] = [];
+    effectScope(() => {
+      effect(() => seen.push(box.h));
+    });
+    expect(seen).toEqual([window.innerHeight]);
+
+    window.happyDOM?.setViewport?.({ height: window.innerHeight - 120 });
+    window.dispatchEvent(new Event("resize"));
+
+    expect(seen.at(-1)).toBe(window.innerHeight);
+    expect(seen.length).toBeGreaterThan(1);
   });
 });
