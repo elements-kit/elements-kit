@@ -30,6 +30,7 @@ Core primitives (signal, computed, effect, onCleanup, trigger, batch, untracked)
 │   ├── location.ts
 │   ├── media-player.ts
 │   ├── orientation.ts
+│   ├── visual-viewport.ts
 │   └── window-size.ts
 │
 ├── resize-observer.ts ─── createResizeObserver
@@ -106,6 +107,7 @@ Page-level singletons. Importing is safe — reading before DOM is available ret
 | **network** | `online` | `Computed<boolean>` |
 | **orientation** | `orientation` | `{ angle, type }` |
 | **window-focus** | `windowFocused` | `Computed<boolean>` |
+| **visual-viewport** | `visualViewport` | `{ width, height, offsetLeft, offsetTop }` |
 | **window-size** | `windowSize` | `{ width, height }` |
 
 ---
