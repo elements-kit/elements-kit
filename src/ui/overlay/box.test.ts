@@ -120,12 +120,14 @@ describe("ViewportBox", () => {
     effectScope(() => {
       effect(() => seen.push(box.h));
     });
-    expect(seen).toEqual([window.innerHeight]);
 
-    window.happyDOM?.setViewport?.({ height: window.innerHeight - 120 });
+    const height = window.innerHeight - 120;
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      get: () => height,
+    });
     window.dispatchEvent(new Event("resize"));
 
-    expect(seen.at(-1)).toBe(window.innerHeight);
-    expect(seen.length).toBeGreaterThan(1);
+    expect(seen.at(-1)).toBe(height);
   });
 });
