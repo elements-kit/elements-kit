@@ -27,10 +27,20 @@ const standardDecorators = {
   },
 };
 
-// Two builds: JS and CSS. A single build would collide on the `index.*`
-// output stem (src/ui/overlay/index.ts vs index.css — the JS chunk
-// shadows the CSS asset), so the CSS entries get their own pass with an
-// explicit outDir. `clean: false` keeps it from wiping the JS output.
+// Three builds: browser JS, node-only JS, and CSS.
+//
+// A single JS build would collide on the `index.*` output stem
+// (src/ui/overlay/index.ts vs index.css — the JS chunk shadows the CSS
+// asset), so the CSS entries get their own pass with an explicit outDir.
+// `clean: false` keeps the later passes from wiping the first's output.
+//
+// The Astro integration and the two Vite plugins run in Node and import
+// `node:module` / `node:path` / `node:url` / `node:fs`. Sharing a pass with
+// browser code let rolldown park those bare external imports on the shared
+// runtime chunk, which `dist/ui/overlay` then imported — so a browser bundle
+// pulled in `node:module` and Vite warned about externalizing it. Their own
+// pass keeps the node externals in node output. See "Server code must never
+// land in client bundles" in AGENTS.md.
 export default defineConfig([
   {
     // References-free tsconfig: the root tsconfig's `references` (Storybook IDE
@@ -52,12 +62,28 @@ export default defineConfig([
       "src/utilities/*.ts",
       "src/integrations/*.ts",
       "!src/**/*.test.*",
+      "!src/integrations/astro.ts",
+      "!src/integrations/vite.ts",
+      "!src/integrations/svg.ts",
       "src/ui/overlay/index.ts",
       "src/ui/otp-input/index.ts",
     ],
     deps: {
       neverBundle: ["react", "react-dom"],
     },
+    plugins: [standardDecorators],
+  },
+  {
+    // Node-only: build-time integration hooks, never shipped to a browser.
+    platform: "node",
+    dts: { tsconfig: "tsconfig.build.json" },
+    entry: [
+      "src/integrations/astro.ts",
+      "src/integrations/vite.ts",
+      "src/integrations/svg.ts",
+    ],
+    outDir: "dist/integrations",
+    clean: false,
     plugins: [standardDecorators],
   },
   {
