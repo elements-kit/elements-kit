@@ -1,0 +1,204 @@
+---
+title: Avatar
+description: User image with a text fallback — two variants, nine sizes, color theming.
+---
+
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
+
+A square image slot with a text fallback underneath. The image paints over the fallback, and one `onerror` attribute drops it when the source fails, revealing the initials. Class + data-attribute API mirrors the [Badge](/ui/badge): one `.x-avatar` class plus `data-variant`, `data-size`, `data-accent`.
+
+<StorybookEmbed story="ui-avatar--soft" />
+
+## Install
+
+```ts
+import "elements-kit/ui/styles.css";
+
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/neutral/gray.css";
+import "elements-kit/ui/styles/palette/iris.css";
+import "elements-kit/ui/styles/accent/iris.css";
+
+import "elements-kit/ui/avatar/avatar.css";
+```
+
+## API
+
+```html
+<span class="x-avatar" data-size="3" data-variant="soft">
+  <span class="x-avatar-fallback">WB</span>
+  <img
+    class="x-avatar-image"
+    src="/wael.jpg"
+    alt=""
+    onerror="this.remove()"
+  />
+</span>
+```
+
+| Attribute | Values |
+| --- | --- |
+| `data-variant` | `soft` (default), `solid` |
+| `data-size` | `1`–`9` (default `3`) — on `.x-avatar`, the box size |
+| `data-size` | `1`–`3` — on `.x-avatar-fallback`, the type ratio |
+| `data-accent` | any imported color scale (`iris`, `blue`, `amber`, …) |
+| `data-high-contrast` | modifier — boosts contrast against the page background |
+
+| Class | Role |
+| --- | --- |
+| `.x-avatar` | root — owns size, radius, and clipping |
+| `.x-avatar-fallback` | bottom layer — centered initials |
+| `.x-avatar-image` | top layer — `object-fit: cover` |
+
+The fallback's own `data-size` picks how much of the box the text fills — a ratio, not a step off the type scale, so it holds at every avatar size:
+
+| `data-size` | font-size | for |
+| --- | --- | --- |
+| `1` | 30% of the box | three letters or more |
+| `2` (default) | 40% of the box | two initials |
+| `3` | 50% of the box | a single letter |
+
+```html
+<!-- default — sized for two initials -->
+<span class="x-avatar" data-size="5">
+  <span class="x-avatar-fallback">WB</span>
+</span>
+
+<!-- one letter, filling more of the box -->
+<span class="x-avatar" data-size="5">
+  <span class="x-avatar-fallback" data-size="3">W</span>
+</span>
+
+<!-- three letters, filling less -->
+<span class="x-avatar" data-size="5">
+  <span class="x-avatar-fallback" data-size="1">WBX</span>
+</span>
+```
+
+There is no character-count selector in CSS, so the ratio is the author's to pick — but the count is known wherever the initials are produced, so it usually falls out of the same expression. Override `--avatar-fallback-scale` directly for a ratio between the three.
+
+The computed size is floored at `--font-size-1`, so the smallest avatars stay legible rather than following the ratio down to unreadable text. One consequence: three letters do not fit a `data-size="1"` avatar at any legible size — 12px text needs roughly 28px of width in a 24px box — and get clipped. Use `data-size="3"` or larger for three-letter fallbacks, or an icon.
+
+<StorybookEmbed story="ui-avatar--fallback-type-steps" />
+
+An `<svg>` in the fallback ignores the type scale and is sized to 60% of the avatar box instead, so a generic person glyph works at every `data-size`:
+
+```html
+<span class="x-avatar" data-size="4">
+  <span class="x-avatar-fallback">
+    <svg viewBox="0 0 64 64" aria-hidden="true" style="fill: currentColor">
+      <path d="…" />
+    </svg>
+  </span>
+</span>
+```
+
+<StorybookEmbed story="ui-avatar--icon-fallback" />
+
+## Fallback behavior
+
+Both layers are absolutely positioned; `.x-avatar-image` sits above the fallback via `z-index`. A broken `<img>` is not invisible — every engine paints its own artifact over the fallback:
+
+| Engine | Broken `<img alt="">` renders |
+| --- | --- |
+| Chrome | broken-image glyph |
+| Safari | broken-image glyph |
+| Firefox | 1px border ring |
+
+<StorybookEmbed story="ui-avatar--broken-image-unhandled" />
+
+No CSS suppresses all three, so remove the image when it fails:
+
+```html
+<!-- image loads → photo -->
+<span class="x-avatar">
+  <span class="x-avatar-fallback">WB</span>
+  <img class="x-avatar-image" src="/wael.jpg" alt="" onerror="this.remove()" />
+</span>
+
+<!-- image 404s → <img> removed, initials show -->
+<span class="x-avatar">
+  <span class="x-avatar-fallback">WB</span>
+  <img class="x-avatar-image" src="/gone.jpg" alt="" onerror="this.remove()" />
+</span>
+
+<!-- no image at all → initials -->
+<span class="x-avatar">
+  <span class="x-avatar-fallback">WB</span>
+</span>
+```
+
+`onerror="this.remove()"` is a one-liner, but it is an inline handler — under a strict CSP, bind the same thing in script instead:
+
+```ts
+for (const img of document.querySelectorAll("img.x-avatar-image")) {
+  img.addEventListener("error", () => img.remove());
+}
+```
+
+Keep `alt=""` either way — the initials are decorative and the name belongs on the root, see [Accessibility](#accessibility).
+
+<StorybookEmbed story="ui-avatar--broken-image" />
+
+## Sizing
+
+| `data-size` | size |
+| --- | --- |
+| `1` | `--space-5` |
+| `2` | `--space-6` |
+| `3` | `--space-7` |
+| `4` | `--space-8` |
+| `5` | `--space-9` |
+| `6` | `80px` |
+| `7` | `96px` |
+| `8` | `128px` |
+| `9` | `160px` |
+
+Sizes `6`–`9` are pixel values multiplied by `--scaling`, so `data-scaling` on an ancestor still applies. Fallback type and icon size derive from the box, so they follow automatically — only the box size and corner radius are enumerated here.
+
+<StorybookEmbed story="ui-avatar--sizes" />
+
+## Variants
+
+- **`soft`** (default) — tinted fallback background, accent text.
+- **`solid`** — accent fill, high-contrast text.
+
+The variant only paints the fallback; an avatar showing its image looks identical either way.
+
+## Radius
+
+Corner radius scales with `data-size` and follows `data-radius` on any ancestor. `data-radius="pill"` makes avatars fully circular:
+
+```html
+<div data-radius="pill">
+  <span class="x-avatar" data-size="4">
+    <span class="x-avatar-fallback">WB</span>
+  </span>
+</div>
+```
+
+Set it on the avatar itself for a one-off circle. Available values: `none`, `small`, `medium`, `large`, `pill`.
+
+## Theming
+
+Switch the color on a single avatar with `data-accent="<color>"`, or set it on any ancestor to theme the whole subtree. Deriving the accent from the user's name gives stable per-user colors:
+
+```html
+<span class="x-avatar" data-accent="amber" data-variant="soft">
+  <span class="x-avatar-fallback">AB</span>
+</span>
+```
+
+Light/dark flips automatically via the `.dark` class on a parent — see [Light & dark](/ui/styles#light--dark).
+
+## Accessibility
+
+`.x-avatar` ships no role — it's a visual class. `alt=""` keeps the image out of the accessibility tree, so the accessible name belongs on the root when the avatar carries information:
+
+| Pattern | Markup |
+| --- | --- |
+| **Decorative** — name appears next to the avatar | `<span class="x-avatar">…</span>` |
+| **Standalone** — avatar is the only identifier | `<span class="x-avatar" role="img" aria-label="Wael Bettayeb">…</span>` |
+| **Link or button** | `<a class="unset x-avatar" href="/u/wael" aria-label="Wael Bettayeb">…</a>` |
+
+Add `unset` when rendering the avatar as `<a>` or `<button>` to neutralise native styling. Initials in the fallback are decorative in every case — they duplicate a name that assistive tech should read in full.
