@@ -5,7 +5,7 @@ description: User image with a text fallback — two variants, nine sizes, color
 
 import StorybookEmbed from "@/components/StorybookEmbed.astro";
 
-A square image slot with a text fallback underneath. The image paints over the fallback, and one `onerror` attribute drops it when the source fails, revealing the initials. Class + data-attribute API mirrors the [Badge](/ui/badge): one `.x-avatar` class plus `data-variant`, `data-size`, `data-accent`.
+A square image slot with a text fallback underneath. The image paints over the fallback and hides itself when it has nothing to paint, revealing the initials. Class + data-attribute API mirrors the [Badge](/ui/badge): one `.x-avatar` class plus `data-variant`, `data-size`, `data-accent`.
 
 <StorybookEmbed story="ui-avatar--soft" />
 
@@ -27,12 +27,7 @@ import "elements-kit/ui/avatar/avatar.css";
 ```html
 <span class="x-avatar" data-size="3" data-variant="soft">
   <span class="x-avatar-fallback">WB</span>
-  <img
-    class="x-avatar-image"
-    src="/wael.jpg"
-    alt=""
-    onerror="this.remove()"
-  />
+  <img class="x-avatar-image" src="/wael.jpg" alt="" onerror="this.remove()" />
 </span>
 ```
 
@@ -43,6 +38,7 @@ import "elements-kit/ui/avatar/avatar.css";
 | `data-size` | `1`–`3` — on `.x-avatar-fallback`, the type ratio |
 | `data-accent` | any imported color scale (`iris`, `blue`, `amber`, …) |
 | `data-high-contrast` | modifier — boosts contrast against the page background |
+| `data-status` | `error` — on `.x-avatar-image`, hides it so the fallback shows |
 
 | Class | Role |
 | --- | --- |
@@ -97,7 +93,23 @@ An `<svg>` in the fallback ignores the type scale and is sized to 60% of the ava
 
 ## Fallback behavior
 
-Both layers are absolutely positioned; `.x-avatar-image` sits above the fallback via `z-index`. A broken `<img>` is not invisible — every engine paints its own artifact over the fallback:
+Both layers are absolutely positioned; `.x-avatar-image` sits above the fallback via `z-index`. It hides itself whenever it has nothing to paint:
+
+```css
+.x-avatar-image:where(:not([src]), [src=""], [data-status="error"]) {
+  display: none;
+}
+```
+
+So there are three cases, and only one of them needs script:
+
+| Case | Handling |
+| --- | --- |
+| No `src`, or `src=""` | pure CSS — no JS, no error event |
+| Load failed (404, CORS, decode) | the error handler sets `data-status="error"` |
+| Still loading | nothing to do — an in-flight `<img>` paints nothing, so the fallback already shows |
+
+A broken `<img>` that stays visible is **not** invisible — every engine paints its own artifact over the fallback:
 
 | Engine | Broken `<img alt="">` renders |
 | --- | --- |
@@ -107,38 +119,50 @@ Both layers are absolutely positioned; `.x-avatar-image` sits above the fallback
 
 <StorybookEmbed story="ui-avatar--broken-image-unhandled" />
 
-No CSS suppresses all three, so remove the image when it fails:
+No CSS suppresses all three, so flag the image on error. How, depends on who owns the DOM:
 
 ```html
-<!-- image loads → photo -->
-<span class="x-avatar">
-  <span class="x-avatar-fallback">WB</span>
-  <img class="x-avatar-image" src="/wael.jpg" alt="" onerror="this.remove()" />
-</span>
-
-<!-- image 404s → <img> removed, initials show -->
-<span class="x-avatar">
-  <span class="x-avatar-fallback">WB</span>
-  <img class="x-avatar-image" src="/gone.jpg" alt="" onerror="this.remove()" />
-</span>
-
-<!-- no image at all → initials -->
-<span class="x-avatar">
-  <span class="x-avatar-fallback">WB</span>
-</span>
+<!-- Static HTML — shortest thing that works -->
+<img class="x-avatar-image" src="/wael.jpg" alt="" onerror="this.remove()" />
 ```
-
-`onerror="this.remove()"` is a one-liner, but it is an inline handler — under a strict CSP, bind the same thing in script instead:
 
 ```ts
-for (const img of document.querySelectorAll("img.x-avatar-image")) {
-  img.addEventListener("error", () => img.remove());
-}
+// Vanilla + strict CSP — one delegated listener, no inline handler.
+// `error` does not bubble, so capture it.
+document.addEventListener(
+  "error",
+  (event) => {
+    const img = event.target;
+    if (img instanceof HTMLImageElement && img.matches(".x-avatar-image")) {
+      img.dataset.status = "error";
+    }
+  },
+  true,
+);
 ```
 
-Keep `alt=""` either way — the initials are decorative and the name belongs on the root, see [Accessibility](#accessibility).
+```tsx
+// React / Vue / Svelte — render the attribute, never mutate the node.
+// `this.remove()` leaves the vdom believing the <img> is still mounted, and
+// the next re-render puts it back.
+const [failed, setFailed] = useState(false);
+
+<img
+  class="x-avatar-image"
+  src={src}
+  alt=""
+  data-status={failed ? "error" : undefined}
+  onError={() => setFailed(true)}
+/>;
+```
+
+Setting the attribute is preferable to removing the element in every context that re-renders: it is non-destructive, so a retry or a changed `src` can clear it.
 
 <StorybookEmbed story="ui-avatar--broken-image" />
+
+Keep `alt=""` whichever tier you use — the initials are decorative and the name belongs on the root, see [Accessibility](#accessibility).
+
+<StorybookEmbed story="ui-avatar--sourceless-image" />
 
 ## Sizing
 

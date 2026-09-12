@@ -32,9 +32,10 @@ const PersonIcon = () =>
     </svg>
   );
 
-/** Dropping the image on error reveals the fallback beneath it. In plain
- * markup this is the `onerror="this.remove()"` attribute. */
-const Image = (props: { src: string; handleError?: boolean }) =>
+/** The error handler flags the element rather than removing it, so an <img>
+ * a framework owns stays mounted. CSS hides a flagged image, revealing the
+ * fallback. In static markup `onerror="this.remove()"` is the short version. */
+const Image = (props: { src?: string; handleError?: boolean }) =>
   (
     <img
       class:x-avatar-image
@@ -43,13 +44,22 @@ const Image = (props: { src: string; handleError?: boolean }) =>
       on:error={
         props.handleError === false
           ? undefined
-          : (event: Event) => (event.currentTarget as HTMLImageElement).remove()
+          : (event: Event) => {
+              const img = event.currentTarget as HTMLImageElement;
+              img.dataset.status = "error";
+            }
       }
     />
   );
 
 const Avatar = (
-  args: Args & { accent?: string; handleError?: boolean; textSize?: string },
+  args: Args & {
+    accent?: string;
+    handleError?: boolean;
+    textSize?: string;
+    /** Render an <img> with no `src` — hidden by CSS, no JS involved. */
+    sourcelessImage?: boolean;
+  },
 ) =>
   (
     <span
@@ -61,7 +71,11 @@ const Avatar = (
       <span class:x-avatar-fallback data-size={args.textSize}>
         {args.initials || PersonIcon()}
       </span>
-      {args.src ? Image({ src: args.src, handleError: args.handleError }) : null}
+      {args.src
+        ? Image({ src: args.src, handleError: args.handleError })
+        : args.sourcelessImage
+          ? Image({})
+          : null}
     </span>
   );
 
@@ -105,7 +119,7 @@ export const Fallback: Story = { args: { src: "" } };
 // No image and no initials — the person glyph fills in.
 export const IconFallback: Story = { args: { src: "", initials: "" } };
 
-// A 404 next to a photo: the broken image drops and the fallback shows.
+// A 404 next to a photo: the broken image is flagged and the fallback shows.
 export const BrokenImage: Story = {
   args: { src: "/does-not-exist.png" },
   render: (args) =>
@@ -113,7 +127,7 @@ export const BrokenImage: Story = {
 };
 
 // The same 404 with no error handling, so the engine paints its own
-// broken-image artifact over the fallback — the reason `onerror` is required.
+// broken-image artifact over the fallback — the reason the flag is required.
 export const BrokenImageUnhandled: Story = {
   args: { src: "/does-not-exist.png" },
   render: (args) => Avatar({ ...args, handleError: false }),

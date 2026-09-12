@@ -2,9 +2,10 @@
  * Avatar primitive.
  *
  * Square image slot with a text fallback underneath. The image paints over the
- * fallback; `onerror="this.remove()"` on the <img> drops it so the fallback
- * shows. Every engine draws its own artifact over a broken <img>, and no CSS
- * suppresses all of them — see the docs page.
+ * fallback and hides itself when there is nothing to paint: no `src` needs no
+ * JS, a failed load needs `data-status="error"` from the error handler. Every
+ * engine draws its own artifact over a broken <img> that stays visible, and no
+ * CSS suppresses all of them — see the docs page.
  *
  * API:
  *   data-size="1..9"             size, radius, and fallback type scale together
@@ -40,6 +41,13 @@
 .x-avatar-image {
   z-index: 1;
   object-fit: cover;
+
+  /* Nothing to paint — reveal the fallback. The `src` cases are pure CSS;
+   * `data-status="error"` is set by the author's error handler, which leaves a
+   * framework-rendered <img> mounted (unlike removing the node). */
+  &:where(:not([src]), [src=""], [data-status="error"]) {
+    display: none;
+  }
 }
 
 .x-avatar-fallback {
