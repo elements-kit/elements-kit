@@ -5,7 +5,7 @@ description: Headless checkbox styled by the optional theme layer — two varian
 
 import StorybookEmbed from "@/components/StorybookEmbed.astro";
 
-A native `<input type="checkbox">` styled via class + data attributes from the optional [styles layer](/ui/styles). Two variants, three sizes, color theming, high-contrast and disabled states. Checkmark uses a Unicode glyph (✓ / −), recolored via `currentColor` — no SVG, no JS.
+A native `<input type="checkbox">` styled via class + data attributes from the optional [styles layer](/ui/styles). Two variants, three sizes, color theming, high-contrast and disabled states. The checkmark is an inline SVG mask and the indeterminate dash a drawn bar, both recolored via `currentColor` — no JS.
 
 <StorybookEmbed story="ui-checkbox--surface" />
 
@@ -64,8 +64,8 @@ The `unset` class ([Styles → Unset native styles](/ui/styles#unset-native-styl
 
 ## States
 
-- **`:checked`** — renders `✓` (U+2713) in the indicator slot.
-- **`:indeterminate`** — renders `−` (U+2212). The browser doesn't expose this via HTML — set it from JS (`el.indeterminate = true`) and CSS picks it up.
+- **`:checked`** — renders a checkmark (SVG mask, sized by the indicator) in the indicator slot.
+- **`:indeterminate`** — renders a horizontal bar. The browser doesn't expose this via HTML — set it from JS (`el.indeterminate = true`) and CSS picks it up.
 - **`:disabled`** / `[data-disabled]` — muted border + muted indicator color, no hover changes.
 - **`:focus-visible`** — 2px `--focus-8` outline at `+2px` offset.
 

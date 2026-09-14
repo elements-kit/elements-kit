@@ -16,6 +16,9 @@
 
   cursor: var(--cursor-checkbox);
 
+  /* Checkmark mask. A ✓ glyph would fall back to whatever system font has it. */
+  --checkbox-check: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 9'><path d='M8.53547.62293c.34679.226516.44429.69127.21778 1.03806L4.5083 8.1599c-.11997.18366-.31433.3056-.5319.33368-.21757.02809-.43653-.04049-.5992-.18767L.616113 5.80777C.308959 5.52987.285246 5.05559.563148 4.74844c.277902-.30716.752182-.33087 1.059342-.05297L3.73256 6.60459 7.49741.840706C7.72393.493916 8.18868.396414 8.53547.62293Z'/></svg>");
+
   transition:
     background-color 80ms,
     box-shadow 80ms;
@@ -32,13 +35,13 @@
     transform: translate(-50%, -50%);
   }
 
+  /* -webkit- prefixes are added at build time (lightningcss targets). */
   &:where(:checked)::before {
-    content: "\2713";
-    font-family: var(--default-font-family);
-    font-size: var(--checkbox-indicator-size);
-    font-weight: 700;
-    line-height: 1;
-    color: currentColor;
+    width: var(--checkbox-indicator-size);
+    height: var(--checkbox-indicator-size);
+    background-color: currentColor;
+    mask-image: var(--checkbox-check);
+    mask-size: 100% 100%;
   }
 
   /* Drawn as a bar — Unicode dash glyphs (−, –, —) all sit at the math axis,
