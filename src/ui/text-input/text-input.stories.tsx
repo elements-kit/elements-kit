@@ -83,7 +83,7 @@ export const Textarea: Story = {
         data-variant={args.variant}
         data-size={args.size}
       >
-        <div style="padding: 6px 10px; font-size: 12px; color: var(--neutral-a11); border-bottom: 1px solid var(--neutral-a4)">
+        <div style="padding: 6px var(--text-input-padding); font-size: 12px; color: var(--neutral-a11); border-bottom: 1px solid var(--neutral-a4)">
           Markdown
         </div>
         <textarea
@@ -92,7 +92,7 @@ export const Textarea: Story = {
           rows={4}
           disabled={args.disabled}
         />
-        <div style="padding: 6px 8px; border-top: 1px solid var(--neutral-a4); display: flex; align-items: center; justify-content: space-between; gap: 8px">
+        <div style="padding: 6px var(--text-input-padding); border-top: 1px solid var(--neutral-a4); display: flex; align-items: center; justify-content: space-between; gap: 8px">
           <span style="font-size: 12px; color: var(--neutral-a11)">0 / 280</span>
         </div>
       </div>

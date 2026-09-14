@@ -85,8 +85,8 @@ Inside the wrapper, document order chooses where an affix lands.
 </div>
 ```
 
-- The wrapped `<input>` / `<textarea>` has its background, border, padding, and outline stripped — the wrapper owns the chrome.
-- Affixes get `display: flex; align-items: center; cursor: text` and a negative margin that extends them flush with the wrapper edge.
+- The wrapped `<input>` / `<textarea>` has its background, border, and outline stripped — the wrapper owns the chrome. A textarea keeps its `--text-input-padding` next to top/bottom affixes; an input drops its text-indent after a leading affix. Corners shared with an affix are squared.
+- Affixes get `display: flex; align-items: center; cursor: text` and inline padding of `--space-1` / `--space-2` / `--space-3` by size — override it on the affix to change or remove it.
 - Focus-within outline wraps the whole container, so a focus ring lands once on the row/column rather than on the inner control.
 
 Clicking an affix focuses the input because the affix carries `cursor: text` and the input remains the only focusable child in the row/column.

@@ -228,16 +228,14 @@
     }
   }
 
-  /* Leading affix above textarea — drop top padding + top corners on textarea */
+  /* Affix above: square the textarea's top corners. Padding stays; affixes own theirs. */
   > :where(:not(input, textarea)) ~ textarea {
-    padding-top: 0;
     border-top-left-radius: 0;
     border-top-right-radius: 0;
   }
 
-  /* Trailing affix below textarea — drop bottom padding + bottom corners on textarea */
+  /* Affix below: square the textarea's bottom corners. */
   > textarea:where(:has(~ :not(input, textarea))) {
-    padding-bottom: 0;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
   }
