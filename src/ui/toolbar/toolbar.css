@@ -38,6 +38,8 @@
  *   large title  bar title + background fade in as the large title collapses
  *   bar only     no .x-large-title: title always shown, background on scroll
  *   title only   no bar: a static large title that scrolls away
+ *   title first  bar right after the large title (e.g. search): the title scrolls away,
+ *                the bar pins at the top
  *   page scroll  bar anywhere in the page, at its top; write --scroll-y on <html>
  *
  * Attributes (independent):
@@ -477,6 +479,22 @@
  * only 0 < scrollTop < title height gets pulled to an end.
  */
 .x-large-title + * {
+  scroll-snap-align: start;
+}
+
+/* bar after the large title (search): the title scrolls away, the bar pins at the top.
+ * The title gets the title-only top padding; the list after the bar is the collapsed snap */
+:has(> .x-large-title + .x-toolbar) {
+  --x-large-title-height: calc(
+    var(--heading-line-height-8) + env(safe-area-inset-top, 0px) + var(--space-4) + var(--space-2)
+  );
+}
+
+.x-large-title + .x-toolbar {
+  scroll-snap-align: none;
+}
+
+.x-large-title + .x-toolbar + * {
   scroll-snap-align: start;
 }
 

@@ -262,25 +262,23 @@ type Story = StoryObj<Args>;
 
 // ── Examples ─────────────────────────────────────────────────────────────────
 
-/** Large title with a search field under it, scrolling with the list. */
+/** Large title first, then the search bar: the title scrolls away, the search pins at the top. */
 export const Settings: Story = {
   render: (args) => (
     <Screen>
-      <header class:x-toolbar data-variant={args.variant}>
-        <Title text="Settings" />
-      </header>
       <h1 class:x-large-title>Settings</h1>
+      <header class:x-toolbar data-variant={args.variant}>
+        <Search placeholder="Search" />
+      </header>
       <div>
-        <Controls>
-          <Search placeholder="Search" />
-        </Controls>
         <Rows items={SETTINGS} />
       </div>
     </Screen>
   ),
 };
 
-/** Back + title + action, a segmented filter under the large title, a status bottom bar. */ export const Inbox: Story =
+/** Back + title + action, a segmented filter under the large title, a status bottom bar. */
+export const Inbox: Story =
   {
     render: (args) => (
       <Screen>
@@ -403,7 +401,10 @@ export const Chat: Story = {
     <Screen>
       <header class:x-toolbar data-variant={args.variant}>
         <div>
-          <IconButton label="Back" d={ICONS.back} />
+          {/* own wrapper: a capsule in clean/soft bars */}
+          <div>
+            <IconButton label="Back" d={ICONS.back} />
+          </div>
           <Title text="Design Team" />
         </div>
         <div>
@@ -455,14 +456,11 @@ export const PageScroll: Story = {
     return (
       <main>
         <section>
-          <header class:x-toolbar data-variant={args.variant}>
-            <Title text="Settings" />
-          </header>
           <h1 class:x-large-title>Settings</h1>
+          <header class:x-toolbar data-variant={args.variant}>
+            <Search placeholder="Search" />
+          </header>
           <div>
-            <Controls>
-              <Search placeholder="Search" />
-            </Controls>
             <Rows items={repeat(SETTINGS, 60)} />
           </div>
         </section>
