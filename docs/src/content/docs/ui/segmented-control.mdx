@@ -60,6 +60,7 @@ Markup contract: the container holds `<label>` direct children, each wrapping on
 | `data-size` | `1`, `2` *(default)*, `3` |
 | `data-variant` | `surface` *(default)*, `soft` |
 | `data-layout` | `stacked` — icon above the label (see [Icons](#icons)) |
+| `data-separators` | `none` — no hairlines between segments (stacked controls never have them) |
 | `data-accent` *(on a parent or the container)* | any imported color scale (`mint`, `blue`, `iris`, …) |
 | `data-high-contrast` | modifier — boosts active text against indicator |
 | `data-radius` *(on a parent)* | inherits from the [Styles radius scale](/ui/styles#radius) |
@@ -111,7 +112,9 @@ For icon-only segments, drop the `<span>` and name each radio with `aria-label`:
 </label>
 ```
 
-Add `data-layout="stacked"` on the container to put each icon above its label, as in a tab bar. Segments follow iOS control-group item metrics. At size `2` a segment is 56px tall, with a 22px icon (overridable with `--seg-stacked-icon-size`), a 5px gap, and a 12px medium-weight label on an 18px line that truncates. Every length scales with the size: 42, 56 and 70px tall for sizes `1`–`3`. The weight doesn't change on selection, so segments never reflow.
+Add `data-layout="stacked"` on the container to put each icon above its label, as in a tab bar. At size `2` the control is 58px tall: each segment's highlight sits 2px inside the track and holds a 24px icon, a 1px gap, and a 10px medium-weight label on an 18px line. Every length scales with the size — 43.5, 58 and 72.5px tall for sizes `1`–`3`, with 10, 10 and 12px labels.
+
+A stacked control fits its container: segments stay equal width, long labels truncate, and there are no separators. The weight doesn't change on selection, so segments never reflow.
 
 ## States
 

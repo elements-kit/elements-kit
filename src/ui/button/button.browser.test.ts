@@ -19,7 +19,7 @@ afterEach(() => {
   host = undefined;
 });
 
-function mount(attrs: string, label = "Share"): HTMLButtonElement {
+function mount(attrs: string, label = "Go"): HTMLButtonElement {
   host = document.createElement("div");
   host.innerHTML = `<button class="unset x-button" ${attrs}><svg width="1.25em" height="1.25em"></svg><span>${label}</span></button>`;
   document.body.append(host);
@@ -33,11 +33,12 @@ const parts = (button: HTMLButtonElement) => ({
   icon: box(button.querySelector("svg")!),
   label: box(button.querySelector("span")!),
   labelStyle: getComputedStyle(button.querySelector("span")!),
+  style: getComputedStyle(button),
 });
 
 describe("x-button icon and label", () => {
   it("sits on one row by default, at the size's height", () => {
-    const { outer, icon, label } = parts(mount(`data-variant="soft" data-size="2"`));
+    const { outer, icon, label } = parts(mount(`data-variant="soft" data-size="2"`, "Share"));
 
     expect(outer.height).toBe(32);
     expect(icon.right).toBeLessThanOrEqual(label.left);
@@ -46,44 +47,52 @@ describe("x-button icon and label", () => {
 });
 
 describe("x-button data-layout=stacked", () => {
-  it("matches the iOS control-group item at size 2", () => {
-    const { outer, icon, label, labelStyle } = parts(
+  it("puts the icon over the label, centered, at size 2", () => {
+    const { outer, icon, label, labelStyle, style } = parts(
       mount(`data-variant="soft" data-size="2" data-layout="stacked"`),
     );
 
-    // 56px tall: 22px icon, 5px gap, 12px medium label on an 18px line, centered
+    // 56px: 20px icon, 4px gap, 12px medium label on an 18px line
     expect(outer.height).toBe(56);
-    expect(icon.width).toBe(22);
-    expect(icon.height).toBe(22);
-    expect(Math.round(label.top - icon.bottom)).toBe(5);
+    expect(icon.width).toBe(20);
+    expect(icon.height).toBe(20);
+    expect(label.top - icon.bottom).toBe(4);
     expect(labelStyle.fontSize).toBe("12px");
     expect(labelStyle.lineHeight).toBe("18px");
     expect(labelStyle.fontWeight).toBe("500");
-    expect(Math.abs(icon.top - outer.top - (outer.bottom - label.bottom))).toBeLessThanOrEqual(1);
+    expect(style.paddingLeft).toBe("14px");
+    // centered both ways
+    expect(icon.top - outer.top).toBe(outer.bottom - label.bottom);
     expect(Math.abs(middle(icon.left, icon.right) - middle(label.left, label.right))).toBeLessThanOrEqual(1);
-    // 4px inline padding around the wider child
-    expect(Math.round(outer.width - label.width)).toBe(8);
   });
 
   it.each([
-    ["1", 42, 16.5],
-    ["2", 56, 22],
-    ["3", 70, 27.5],
-    ["4", 84, 33],
-  ])("size %s: %ipx tall with a %ipx icon", (size, height, iconSize) => {
-    const { outer, icon } = parts(mount(`data-variant="soft" data-size="${size}" data-layout="stacked"`));
+    ["1", 42, 15, "11px"],
+    ["2", 56, 20, "12px"],
+    ["3", 70, 25, "13px"],
+    ["4", 84, 30, "14px"],
+  ])("size %s: %ipx square with a %ipx icon and a %s label", (size, height, iconSize, labelSize) => {
+    const { outer, icon, labelStyle } = parts(
+      mount(`data-variant="soft" data-size="${size}" data-layout="stacked"`),
+    );
 
     expect(outer.height).toBe(height);
+    expect(outer.width).toBe(height);
     expect(icon.width).toBe(iconSize);
+    expect(labelStyle.fontSize).toBe(labelSize);
   });
 
-  it("never shrinks the label below 10px", () => {
-    const { labelStyle } = parts(mount(`data-variant="soft" data-size="1" data-layout="stacked"`));
+  it("widens for a longer label, never taller than wide", () => {
+    const { outer, label } = parts(
+      mount(`data-variant="soft" data-size="2" data-layout="stacked"`, "Notifications"),
+    );
 
-    expect(labelStyle.fontSize).toBe("10px");
+    expect(outer.height).toBe(56);
+    expect(outer.width).toBeGreaterThan(56);
+    expect(label.left - outer.left).toBe(14);
   });
 
-  it("truncates a long label instead of wrapping", () => {
+  it("truncates the label when the button is constrained", () => {
     const button = mount(
       `data-variant="soft" data-size="2" data-layout="stacked" style="width: 64px"`,
       "Notifications",
@@ -94,22 +103,18 @@ describe("x-button data-layout=stacked", () => {
     expect(label.scrollWidth).toBeGreaterThan(label.clientWidth);
   });
 
-  it("text variant: same icon and label, 6px block padding", () => {
-    const { outer, icon, label, labelStyle } = parts(
+  it("text variant: the kit's text padding, 51px square at size 2", () => {
+    const { outer, icon, labelStyle, style } = parts(
       mount(`data-variant="text" data-size="2" data-layout="stacked"`),
     );
 
-    expect(icon.bottom).toBeLessThanOrEqual(label.top);
-    expect(icon.width).toBe(22);
+    expect(outer.height).toBe(51);
+    expect(outer.width).toBe(51);
+    expect(icon.width).toBe(20);
     expect(labelStyle.fontSize).toBe("12px");
-    expect(Math.round(icon.top - outer.top)).toBe(6);
-  });
-
-  it("lets authors size the icon", () => {
-    const { icon } = parts(
-      mount(`data-variant="soft" data-size="2" data-layout="stacked" style="--button-stacked-icon-size: 24px"`),
-    );
-
-    expect(icon.width).toBe(24);
+    expect(style.paddingTop).toBe("4px");
+    expect(style.paddingLeft).toBe("8px");
+    // bleeds by its padding, like other text buttons
+    expect(style.marginLeft).toBe("-8px");
   });
 });

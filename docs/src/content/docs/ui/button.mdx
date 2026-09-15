@@ -47,7 +47,7 @@ The `unset` class ([Styles → Unset native styles](/ui/styles#unset-native-styl
 | `data-size` | `1`, `2`, `3`, `4` |
 | `data-accent` | any imported color scale (`mint`, `blue`, `iris`, …) |
 | `data-icon` | modifier — square shape sized by height. Use for icon-only buttons. |
-| `data-layout` | `stacked` — icon above the label; the button grows to fit (see [Icon and label](#icon-and-label)) |
+| `data-layout` | `stacked` — icon above the label; never taller than wide (see [Icon and label](#icon-and-label)) |
 | `data-high-contrast` | modifier — boosts contrast against the page background |
 | `data-loading` | modifier — sets `position: relative` for a spinner overlay |
 | `disabled` / `data-disabled` | native `:disabled` state, or `data-disabled` on non-button elements |
@@ -103,16 +103,18 @@ Ship an icon-only button without `aria-label` or visually-hidden text. Screen re
 
 Put an icon next to the label as a child; source order decides its side. Size it in `em` so it follows the button's font size.
 
-Add `data-layout="stacked"` to put the icon above the label, as in iOS control groups. At size `2` it matches the iOS item exactly: 56px tall, a 22px icon, a 5px gap, and a 12px medium-weight label on an 18px line, with 4px inline padding. Every length scales with the size. The label truncates, and `--button-stacked-icon-size` overrides the icon.
+Add `data-layout="stacked"` to put the icon above the label, as in iOS action items. At size `2` the button is 56px tall, with a 20px icon, a 4px gap, and a 12px medium-weight label on an 18px line, plus 14px inline padding. Every length scales with the size, while the label grows 1px per size.
+
+The height is fixed and `aspect-ratio: 1` keeps the button at least as wide as it is tall: a short label gives a square, a longer one widens it. The label truncates when the button is constrained.
 
 | `data-size` | stacked height | icon | label |
 | --- | --- | --- | --- |
-| `1` | 42px | 16.5px | 10px |
-| `2` | 56px | 22px | 12px |
-| `3` | 70px | 27.5px | 15px |
-| `4` | 84px | 33px | 18px |
+| `1` | 42px | 15px | 11px |
+| `2` | 56px | 20px | 12px |
+| `3` | 70px | 25px | 13px |
+| `4` | 84px | 30px | 14px |
 
-`text` stacked buttons keep their fit-to-content height.
+`text` stacked buttons keep the kit's text padding (8px × 4px at size `2`), so they are 51px tall and still bleed like other text buttons.
 
 ```html
 <button class="unset x-button" data-variant="soft" data-size="2" data-layout="stacked">

@@ -114,6 +114,8 @@ Without `--scroll-y` the math is invalid and every property falls back to its in
 
 Add `data-position="bottom"` and make the bar the last child of the scroll container. It always shows its background and keeps focused elements above it. With short content the container becomes a column, so the bar still sits at the bottom. For page scroll, give the bar's parent `min-block-size: 100dvh`.
 
+The bar's height is a minimum: taller content, such as a [stacked segmented control](/ui/segmented-control#icons) used as a tab bar, grows it. In clean and soft bars, controls sit 16px from the bottom edge, the same as from the sides.
+
 ## Variants
 
 - **`surface`** *(default)* — a material background (`--color-material`, falling back to `--color-surface`) with a hairline on the content side.
@@ -141,7 +143,7 @@ Use `text` buttons inside capsules: the capsule is their background.
 | | `surface` | `clean`, `soft` |
 | --- | --- | --- |
 | top bar | 52px + `safe-area-inset-top` | 64px + `safe-area-inset-top` |
-| bottom bar | 52px + `safe-area-inset-bottom` | 64px + `safe-area-inset-bottom` |
+| bottom bar (minimum) | 52px + `safe-area-inset-bottom` | 60px + `safe-area-inset-bottom` |
 | large title | 64px — one 40px line, 16px above, 8px below | same |
 
 Every size scales with `--scaling`. The scroll container's padding matches the bars, so focused elements and anchors stop below them.

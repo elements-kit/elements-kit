@@ -34,6 +34,8 @@ function mount(attrs: string, labels = ["List", "Grid"]): HTMLElement {
 
 const box = (el: Element) => el.getBoundingClientRect();
 const middle = (a: number, b: number) => (a + b) / 2;
+const separator = (control: Element) =>
+  getComputedStyle(control.querySelectorAll("label")[1], "::after").content;
 
 describe("x-segmented-control icons", () => {
   it("puts the icon before the label on one row, at the size's height", () => {
@@ -47,41 +49,59 @@ describe("x-segmented-control icons", () => {
   });
 });
 
+describe("x-segmented-control data-separators", () => {
+  it("draws separators by default and removes them with none", () => {
+    expect(separator(mount(`data-size="2"`))).not.toBe("none");
+    expect(separator(mount(`data-size="2" data-separators="none"`))).toBe("none");
+  });
+});
+
 describe("x-segmented-control data-layout=stacked", () => {
-  it("matches the iOS control-group item at size 2", () => {
+  it("puts the icon over the label inside an inset highlight, at size 2", () => {
     const control = mount(`data-size="2" data-layout="stacked"`);
     const segment = control.querySelector("label")!;
+    const inset = parseFloat(getComputedStyle(segment).borderTopWidth);
+    const highlight = { top: box(segment).top + inset, bottom: box(segment).bottom - inset };
     const icon = box(segment.querySelector("svg")!);
     const label = box(segment.querySelector("span")!);
     const labelStyle = getComputedStyle(segment.querySelector("span")!);
 
-    // 56px tall: 22px icon, 5px gap, 12px medium label on an 18px line, centered
-    expect(box(control).height).toBe(56);
-    expect(icon.width).toBe(22);
-    expect(Math.round(label.top - icon.bottom)).toBe(5);
-    expect(labelStyle.fontSize).toBe("12px");
+    // 58px: a 54px highlight 2px inside the track, 24px icon, 1px gap, 10px label on 18px
+    expect(box(control).height).toBe(58);
+    expect(inset).toBe(2);
+    expect(getComputedStyle(control, "::after").top).toBe("2px");
+    expect(icon.width).toBe(24);
+    expect(label.top - icon.bottom).toBe(1);
+    expect(labelStyle.fontSize).toBe("10px");
     expect(labelStyle.lineHeight).toBe("18px");
     expect(labelStyle.fontWeight).toBe("500");
-    expect(Math.abs(icon.top - box(segment).top - (box(segment).bottom - label.bottom))).toBeLessThanOrEqual(1);
+    // centered in the highlight both ways
+    expect(icon.top - highlight.top).toBeCloseTo(highlight.bottom - label.bottom, 1);
     expect(Math.abs(middle(icon.left, icon.right) - middle(label.left, label.right))).toBeLessThanOrEqual(1);
   });
 
   it.each([
-    ["1", 42, 16.5],
-    ["2", 56, 22],
-    ["3", 70, 27.5],
-  ])("size %s: %ipx tall with a %ipx icon", (size, height, iconSize) => {
+    ["1", 43.5, 18, "10px"],
+    ["2", 58, 24, "10px"],
+    ["3", 72.5, 30, "12px"],
+  ])("size %s: %ipx tall with a %ipx icon and a %s label", (size, height, iconSize, labelSize) => {
     const control = mount(`data-size="${size}" data-layout="stacked"`);
 
     expect(box(control).height).toBe(height);
     expect(box(control.querySelector("svg")!).width).toBe(iconSize);
+    expect(getComputedStyle(control.querySelector("span")!).fontSize).toBe(labelSize);
   });
 
-  it("keeps segments equal width and truncates long labels", () => {
+  it("has no separators", () => {
+    expect(separator(mount(`data-size="2" data-layout="stacked"`))).toBe("none");
+  });
+
+  it("fits its container: equal-width segments, long labels truncate", () => {
     const control = mount(`data-size="2" data-layout="stacked" style="width: 160px"`, ["Home", "Notifications"]);
     const [first, second] = control.querySelectorAll("label");
     const long = second.querySelector("span")!;
 
+    expect(box(control).width).toBe(160);
     expect(box(first).width).toBeCloseTo(box(second).width, 0);
     expect(long.scrollWidth).toBeGreaterThan(long.clientWidth);
   });
