@@ -1,0 +1,253 @@
+/*
+ * Toolbar primitive — iOS-style large title collapse.
+ *
+ * JS writes the scroll position (px) as --scroll-y on the scroll container;
+ * CSS turns it into --x-toolbar-progress (0 expanded → 1 collapsed).
+ *
+ * Bar and large title are direct children of the scroll container, title
+ * right after the bar. The large title is one line (iOS truncates).
+ *
+ * Regions come from child order: first → start, middle → center, last → end.
+ * A bare [data-title] child is always the center. Wrap several items in any
+ * element. [data-title] can sit in any region.
+ *
+ *   iPhone   <header class="x-toolbar">
+ *              <button>‹</button> <span data-title>Settings</span> <button>Edit</button>
+ *            </header>
+ *
+ *   iPad     <header class="x-toolbar">
+ *              <div><button>‹</button><span data-title>Q3 Report</span></div>
+ *              <div>…tools…</div>
+ *              <div>…share, more…</div>
+ *            </header>
+ *
+ *   Material <header class="x-toolbar">
+ *              <div><button>‹</button><span data-title>Settings</span></div>
+ *              <div>…actions…</div>           ← no center: start takes the space
+ *            </header>
+ *
+ *   <h1 class="x-large-title" data-align="start | center">…</h1>  ← optional, right after the bar
+ *
+ * Modes:
+ *   large title  bar title + background fade in as the large title collapses
+ *   bar only     no .x-large-title: title always shown, background on scroll
+ *   page scroll  bar in <body> or an app root (body > * > .x-toolbar);
+ *                write --scroll-y on <html>
+ *
+ * Tokens (set on .x-toolbar):
+ *   --toolbar-button-gap   between items inside a region
+ *   --toolbar-region-gap   between regions
+ *
+ * No JS: --scroll-y is unset, the math is invalid, and each property falls
+ * back to its initial value — plain bar, static large title.
+ */
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SCROLL CONTAINER                                                                                *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+:has(> .x-toolbar),
+:root:has(> body > .x-toolbar, > body > * > .x-toolbar) {
+  --toolbar-height: calc(52px * var(--scaling) + env(safe-area-inset-top, 0px));
+  /* one line + bottom padding */
+  --x-large-title-height: calc(var(--heading-line-height-8) + var(--space-2));
+  /* scroll distance for progress 0 → 1 */
+  --x-toolbar-collapse-distance: var(--x-large-title-height);
+  /* scroll / distance (atan2 trick = length ÷ length) */
+  --x-toolbar-progress: clamp(
+    0,
+    tan(atan2(var(--scroll-y), var(--x-toolbar-collapse-distance))),
+    1
+  );
+
+  /* focused elements, anchor targets, and snap points stop below the bar */
+  scroll-padding-block-start: var(--toolbar-height);
+  /* never rest mid-collapse; proximity leaves the list free */
+  scroll-snap-type: y proximity;
+}
+
+/* bar only: title always shown, background once content scrolls under */
+:has(> .x-toolbar):not(:has(> .x-large-title)) {
+  --x-toolbar-collapse-distance: var(--space-2);
+
+  & > .x-toolbar [data-title] {
+    opacity: 1;
+  }
+
+  & > .x-toolbar::before {
+    transition: opacity 150ms;
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * BAR                                                                                             *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-toolbar {
+  --toolbar-button-gap: var(--space-2);
+  --toolbar-region-gap: var(--space-2);
+  /* bar fades in over the last 40% of the collapse */
+  --x-toolbar-reveal: clamp(0, (var(--x-toolbar-progress) - 0.6) / 0.4, 1);
+
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+  display: grid;
+  /* start | center | end — equal sides keep the center centered */
+  grid-template-columns: 1fr minmax(0, auto) 1fr;
+  align-items: center;
+  gap: var(--toolbar-region-gap);
+  block-size: var(--toolbar-height);
+  /* notch only; room comes from --toolbar-height so content stays centered */
+  padding-block-start: env(safe-area-inset-top, 0px);
+  padding-inline: var(--space-2);
+  box-sizing: border-box;
+
+  font-family: var(--default-font-family);
+  font-size: var(--font-size-3);
+  font-weight: var(--font-weight-medium);
+
+  /* material + hairline; translucent unless an ancestor sets data-material-background */
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-color: var(--color-material, var(--color-material-translucent));
+    /* = material.css translucent blur */
+    backdrop-filter: var(--backdrop-filter-material, blur(64px));
+    box-shadow: inset 0 -1px 0 var(--neutral-a5);
+    opacity: var(--x-toolbar-reveal);
+  }
+
+  /* regions */
+  & > :not([data-title]) {
+    display: flex;
+    align-items: center;
+    gap: var(--toolbar-button-gap);
+  }
+
+  /* only a region holding the title may shrink (the title truncates);
+   * button-only regions keep their size */
+  & > :has([data-title]) {
+    min-inline-size: 0;
+    max-inline-size: 100%;
+  }
+
+  & > :first-child {
+    grid-column: 1;
+    justify-self: start;
+  }
+
+  & > :nth-child(2):not(:last-child) {
+    grid-column: 2;
+    justify-self: center;
+  }
+
+  & > :last-child:not(:first-child) {
+    grid-column: 3;
+    justify-self: end;
+  }
+
+  /* a bare title is always the center (doubled attribute: beats the order rules) */
+  & > [data-title][data-title] {
+    grid-column: 2;
+    justify-self: center;
+  }
+
+  & [data-title] {
+    min-inline-size: 0;
+    max-inline-size: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: var(--x-toolbar-reveal);
+  }
+}
+
+/* start and end only: start takes the free space (title next to back) */
+.x-toolbar:not(:has(> :nth-child(3), > [data-title])) {
+  grid-template-columns: minmax(0, 1fr) auto;
+
+  & > :last-child:not(:first-child) {
+    grid-column: 2;
+  }
+}
+
+/*
+ * Text buttons bleed past their label by a negative margin (button.css).
+ * At the bar's outer edges drop the bleed, so labels sit on the content
+ * margin instead of touching the edge. Between buttons it stays as is.
+ */
+.x-toolbar > .x-button:first-child:where([data-variant="text"]),
+.x-toolbar > :first-child > .x-button:first-child:where([data-variant="text"]) {
+  margin-inline-start: 0;
+}
+
+.x-toolbar > .x-button:last-child:where([data-variant="text"]),
+.x-toolbar > :last-child > .x-button:last-child:where([data-variant="text"]) {
+  margin-inline-end: 0;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * LARGE TITLE                                                                                     *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-large-title {
+  margin: 0;
+  padding-inline: var(--space-4);
+  padding-block-end: var(--space-2);
+
+  font-family: var(--default-font-family);
+  font-size: var(--font-size-8);
+  line-height: var(--heading-line-height-8);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-8);
+
+  /* one line, so its height is known without measuring */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  opacity: calc(1 - var(--x-toolbar-progress));
+  scale: calc(1 - 0.1 * var(--x-toolbar-progress));
+  transform-origin: left;
+
+  /* snap: expanded (scrollTop 0) */
+  scroll-snap-align: start;
+
+  &:dir(rtl) {
+    transform-origin: right;
+  }
+}
+
+/* centered; after :dir(rtl) so it wins in both directions */
+.x-large-title[data-align="center"] {
+  text-align: center;
+  transform-origin: center;
+}
+
+/* snap: collapsed (scrollTop = title height) */
+.x-large-title + * {
+  scroll-snap-align: start;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * FORCED COLORS — box-shadow and translucency drop; keep a solid bar with a visible edge.         *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+@media (forced-colors: active) {
+  .x-toolbar::before {
+    background-color: Canvas;
+    backdrop-filter: none;
+    border-block-end: 1px solid CanvasText;
+  }
+}
