@@ -14,7 +14,11 @@
  * Regions come from child order: first → start, middle → center, last → end.
  * A bare [data-title] child is always the center; a lone button group with no
  * title centers too. Wrap several items in any element. [data-title] can sit
- * in any region.
+ * in any region. A region holding an input (search) fills its column.
+ *
+ * Alignment: the bar pads 16px, like the large title and content. Buttons with a
+ * visible container (soft, surface…) sit on that edge; text buttons bleed past it
+ * by their padding (button.css), so their label lands on it too.
  *
  *   iPhone   <header class="x-toolbar">
  *              <button>‹</button> <span data-title>Settings</span> <button>Edit</button>
@@ -49,6 +53,7 @@
  *   data-variant="surface | soft"  surface: material background + hairline (default)
  *                                  soft (iOS 26): no bar, gradient blur edge; a wrapper holding only
  *                                  buttons becomes a material capsule; titles stay plain text
+ *   data-radius                    any theme radius on the toolbar: buttons and capsules follow it
  *
  * Tokens (set on .x-toolbar):
  *   --toolbar-button-gap       between items inside a region
@@ -108,8 +113,8 @@
 .x-toolbar {
   --toolbar-button-gap: var(--space-2);
   --toolbar-region-gap: var(--space-2);
-  /* minimum side space; variants change it */
-  --x-toolbar-gutter: var(--space-2);
+  /* minimum side space: the content margin, same as the large title */
+  --x-toolbar-gutter: var(--space-4);
   /* bar fades in over the last 40% of the collapse */
   --x-toolbar-reveal: clamp(0, (var(--x-toolbar-progress) - 0.6) / 0.4, 1);
 
@@ -145,13 +150,6 @@
     backdrop-filter: var(--backdrop-filter-material, none);
     box-shadow: inset 0 -1px 0 var(--neutral-a5);
     opacity: var(--x-toolbar-reveal);
-  }
-
-  /* regions */
-  & > :not([data-title]) {
-    display: flex;
-    align-items: center;
-    gap: var(--toolbar-button-gap);
   }
 
   /* only a region holding the title may shrink (the title truncates);
@@ -207,35 +205,54 @@
   justify-self: center;
 }
 
-/*
- * Text buttons bleed past their label by a negative margin (button.css).
- * At the bar's outer edges drop the bleed, so labels sit on the content
- * margin instead of touching the edge. Between buttons it stays as is.
- */
-.x-toolbar > .x-button:first-child:where([data-variant="text"]),
-.x-toolbar > :first-child > .x-button:first-child:where([data-variant="text"]) {
-  margin-inline-start: 0;
+/* regions line up their items; zero specificity, so components placed as a
+ * region keep their own display (segmented control, text input wrapper) */
+:where(.x-toolbar > :not([data-title])) {
+  display: flex;
+  align-items: center;
+  gap: var(--toolbar-button-gap);
 }
 
-.x-toolbar > .x-button:last-child:where([data-variant="text"]),
-.x-toolbar > :last-child > .x-button:last-child:where([data-variant="text"]) {
-  margin-inline-end: 0;
+/* a region holding an input (search) fills its column
+ * (:nth-child(n) matches every child; it only lifts specificity over the order rules) */
+.x-toolbar > :nth-child(n):has(input, textarea) {
+  justify-self: stretch;
+  min-inline-size: 0;
 }
 
-/* a title on the bar's outer edge (no back button) sits on the content margin,
- * like text labels: bar padding + space-2 */
-.x-toolbar > :first-child > [data-title]:first-child {
-  margin-inline-start: var(--space-2);
+/* a text input (search) grows to fill its region */
+.x-toolbar .x-text-input {
+  flex: 1 1 auto;
+  min-inline-size: 0;
 }
 
-.x-toolbar > :last-child:not(:first-child) > [data-title]:last-child {
-  margin-inline-end: var(--space-2);
+/* soft: the search field is a capsule too — same height, radius, material and shadow */
+.x-toolbar[data-variant="soft"] .x-text-input {
+  --text-input-height: calc(44px * var(--scaling));
+  --text-input-border-radius: calc(max(var(--radius-3), var(--radius-pill)) + var(--space-1));
+  border: 0;
+  background-color: var(--color-material, var(--color-surface));
+  backdrop-filter: var(--backdrop-filter-material, none);
+  box-shadow: var(--shadow-3);
 }
 
 /* between text buttons: a gap of twice their bleed (8px at sizes 2–3) makes
  * neighbours' tap areas touch, and glyphs sit that far apart */
 .x-toolbar > :has(> .x-button[data-variant="text"]) {
   gap: var(--space-4);
+}
+
+/* text buttons bleed only toward the bar's outer edges (so labels land on the
+ * content margin); toward the next region (title, search field) they don't,
+ * so the region gap stays a real gap */
+.x-toolbar > .x-button[data-variant="text"]:first-child:not(:only-child),
+.x-toolbar > :first-child:not(:only-child) > .x-button[data-variant="text"]:last-child {
+  margin-inline-end: 0;
+}
+
+.x-toolbar > .x-button[data-variant="text"]:last-child:not(:first-child),
+.x-toolbar > :last-child:not(:first-child) > .x-button[data-variant="text"]:first-child {
+  margin-inline-start: 0;
 }
 
 /***************************************************************************************************
@@ -300,8 +317,6 @@
 }
 
 .x-toolbar[data-variant="soft"] {
-  /* capsules float on the content margin, off the screen edge */
-  --x-toolbar-gutter: var(--space-4);
   padding-block-start: calc(env(safe-area-inset-top, 0px) + var(--space-2));
 
   &[data-position="bottom"] {
