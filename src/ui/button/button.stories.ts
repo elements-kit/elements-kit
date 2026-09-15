@@ -71,6 +71,40 @@ export const Icon: Story = {
   },
 };
 
+const SHARE_ICON =
+  '<svg viewBox="0 0 24 24" width="1.25em" height="1.25em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" />' +
+  "</svg>";
+
+/** A button with an icon before its label. */
+function iconButton(args: Args, layout?: "stacked") {
+  const button = document.createElement("button");
+  button.className = "unset x-button";
+  button.dataset.variant = args.variant;
+  button.dataset.size = args.size;
+  if (layout) button.dataset.layout = layout;
+  if (args.highContrast) button.dataset.highContrast = "";
+  button.disabled = args.disabled;
+  button.innerHTML = SHARE_ICON;
+  const label = document.createElement("span");
+  label.textContent = args.label;
+  button.append(label);
+  return button;
+}
+
+// Icon + label — the icon is a child; source order decides its side.
+export const WithIcon: Story = {
+  args: { label: "Share", variant: "soft" },
+  render: (args) => iconButton(args),
+};
+
+// Stacked — `data-layout="stacked"` puts the icon above the label (tab-bar
+// style). The size's height becomes a minimum and the button grows to fit.
+export const Stacked: Story = {
+  args: { label: "Share", variant: "soft" },
+  render: (args) => iconButton(args, "stacked"),
+};
+
 // `.x-button` is class-only — apply it to an <a> for a link styled as a button.
 export const AsLink: Story = {
   render: (args) => {

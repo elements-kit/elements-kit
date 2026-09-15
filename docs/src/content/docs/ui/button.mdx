@@ -47,6 +47,7 @@ The `unset` class ([Styles → Unset native styles](/ui/styles#unset-native-styl
 | `data-size` | `1`, `2`, `3`, `4` |
 | `data-accent` | any imported color scale (`mint`, `blue`, `iris`, …) |
 | `data-icon` | modifier — square shape sized by height. Use for icon-only buttons. |
+| `data-layout` | `stacked` — icon above the label; the button grows to fit (see [Icon and label](#icon-and-label)) |
 | `data-high-contrast` | modifier — boosts contrast against the page background |
 | `data-loading` | modifier — sets `position: relative` for a spinner overlay |
 | `disabled` / `data-disabled` | native `:disabled` state, or `data-disabled` on non-button elements |
@@ -97,6 +98,28 @@ For `data-variant="text"` icon buttons, the kit swaps the asymmetric padding for
 :::caution[Don't]
 Ship an icon-only button without `aria-label` or visually-hidden text. Screen readers have nothing to read.
 :::
+
+## Icon and label
+
+Put an icon next to the label as a child; source order decides its side. Size it in `em` so it follows the button's font size.
+
+Add `data-layout="stacked"` to put the icon above the label, as in iOS control groups. At size `2` it matches the iOS item exactly: 56px tall, a 22px icon, a 5px gap, and a 12px medium-weight label on an 18px line, with 4px inline padding. Every length scales with the size. The label truncates, and `--button-stacked-icon-size` overrides the icon.
+
+| `data-size` | stacked height | icon | label |
+| --- | --- | --- | --- |
+| `1` | 42px | 16.5px | 10px |
+| `2` | 56px | 22px | 12px |
+| `3` | 70px | 27.5px | 15px |
+| `4` | 84px | 33px | 18px |
+
+`text` stacked buttons keep their fit-to-content height.
+
+```html
+<button class="unset x-button" data-variant="soft" data-size="2" data-layout="stacked">
+  <svg viewBox="0 0 24 24" width="1.25em" height="1.25em" aria-hidden="true">…</svg>
+  <span>Share</span>
+</button>
+```
 
 ## Use as a link
 

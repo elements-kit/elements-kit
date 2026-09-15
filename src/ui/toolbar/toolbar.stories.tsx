@@ -46,6 +46,9 @@ const ICONS = {
   compose:
     "M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.4 2.6a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z",
   filter: "M3 6h18M7 12h10M10 18h4",
+  home: "M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z",
+  library: "M4 19V5M9 19V5M14 19l4-14",
+  profile: "M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10z",
   video:
     "M16 13l5.2 3.1a.5.5 0 0 0 .8-.4V8.3a.5.5 0 0 0-.8-.4L16 11M4 6h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z",
   pen: "M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z",
@@ -175,6 +178,44 @@ const Segmented = (props: {
     </div>
   );
   // floating: a soft control inside a material group, which is its track
+  return floating ? <Group variant={props.variant}>{control}</Group> : control;
+};
+
+const TABS = [
+  ["Home", ICONS.home],
+  ["Search", ICONS.search],
+  ["Library", ICONS.library],
+  ["Profile", ICONS.profile],
+] as const;
+
+/** Tab bar: a stacked segmented control. */
+const Tabs = (props: { variant: Variant }) => {
+  const name = `toolbar-tabs-${segmentedId++}`;
+  const floating = floats(props.variant);
+  const control = (
+    <div
+      class:unset
+      class:x-segmented-control
+      data-variant={floating ? "soft" : "surface"}
+      data-size="2"
+      data-layout="stacked"
+      role="radiogroup"
+      aria-label="Sections"
+    >
+      {TABS.map(([label, d], i) => (
+        <label>
+          <input
+            type="radio"
+            name={name}
+            value={label.toLowerCase()}
+            checked={i === 0 || undefined}
+          />
+          <Icon d={d} />
+          <span>{label}</span>
+        </label>
+      ))}
+    </div>
+  );
   return floating ? <Group variant={props.variant}>{control}</Group> : control;
 };
 
@@ -417,6 +458,29 @@ export const Photos: Story = {
           options={["Years", "Months", "All"]}
           variant={args.variant}
         />
+      </footer>
+    </Screen>
+  ),
+};
+
+/** A stacked segmented control as the bottom tab bar. */
+export const TabBar: Story = {
+  args: { variant: "soft" },
+  render: (args) => (
+    <Screen>
+      <header class:x-toolbar data-variant={args.variant}>
+        <Title text="Library" />
+      </header>
+      <h1 class:x-large-title>Library</h1>
+      <div>
+        <Rows items={NOTES} />
+      </div>
+      <footer
+        class:x-toolbar
+        data-position="bottom"
+        data-variant={args.variant}
+      >
+        <Tabs variant={args.variant} />
       </footer>
     </Screen>
   ),

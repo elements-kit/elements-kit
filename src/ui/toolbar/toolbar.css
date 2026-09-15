@@ -220,9 +220,11 @@
 .x-toolbar[data-position="bottom"] {
   inset-block: auto 0;
   margin-block-start: auto;
-  block-size: var(--toolbar-bottom-height);
-  /* home indicator */
-  padding-block: 0 env(safe-area-inset-bottom, 0px);
+  /* taller content (a stacked tab bar) grows the bar */
+  block-size: auto;
+  min-block-size: var(--toolbar-bottom-height);
+  /* room around taller content; home indicator below */
+  padding-block: var(--space-1) calc(env(safe-area-inset-bottom, 0px) + var(--space-1));
 
   /* always shown, hairline on the top edge */
   &::before {

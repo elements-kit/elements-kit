@@ -161,6 +161,13 @@
   opacity: 0;
 }
 
+/* data-separators="none": no hairlines. Stacked segments (tab items) have none either. */
+.x-segmented-control:where([data-separators="none"], [data-layout="stacked"])
+  > label
+  + label::after {
+  content: none;
+}
+
 /***************************************************************************************************
  *                                                                                                 *
  * INDICATOR — Tier 1 (universal crossfade)                                                        *
@@ -351,6 +358,72 @@
   & > label {
     padding-inline: var(--space-4);
     gap: var(--space-2);
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * STACKED — data-layout="stacked": icon above the label (iOS control-group item)                  *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* Icon above the label. One unit (1px at size 2) scales the geometry. */
+.x-segmented-control:where([data-layout="stacked"]) {
+  --x-stacked-unit: calc(1px * var(--scaling));
+  --x-stacked-label-size: calc(10px * var(--scaling));
+  /* highlight inset from the track, corners concentric */
+  --seg-inset: calc(2 * var(--x-stacked-unit));
+  --seg-track-radius: calc(
+    max(var(--radius-4), var(--radius-pill)) + var(--seg-inset)
+  );
+  height: calc(54 * var(--x-stacked-unit) + 2 * var(--seg-inset));
+  /* fits its container; long labels truncate */
+  min-width: 0;
+
+  & > label {
+    flex-direction: column;
+    gap: calc(1 * var(--x-stacked-unit));
+    padding-inline: calc(11 * var(--x-stacked-unit));
+    /* inset as a border: padding, hover and focus start at the highlight */
+    border: var(--seg-inset) solid transparent;
+    border-radius: var(--seg-track-radius);
+    background-clip: padding-box;
+  }
+
+  /* Tier 1 indicator already sits inside the border */
+  & > label::before {
+    inset: 0;
+  }
+
+  & > label:where(:has(:focus-visible)) {
+    outline-offset: calc(-1 * var(--seg-inset));
+  }
+
+  /* stylelint-disable-next-line selector-max-type */
+  & > label > :where(svg) {
+    flex: none;
+    width: calc(24 * var(--x-stacked-unit));
+    height: calc(24 * var(--x-stacked-unit));
+  }
+
+  /* stylelint-disable-next-line selector-max-type */
+  & > label > :where(:not(input, svg)) {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--x-stacked-label-size);
+    line-height: calc(18 * var(--x-stacked-unit));
+    font-weight: var(--font-weight-medium);
+  }
+
+  &:where([data-size="1"]) {
+    --x-stacked-unit: calc(0.75px * var(--scaling));
+    --x-stacked-label-size: calc(10px * var(--scaling));
+  }
+  &:where([data-size="3"]) {
+    --x-stacked-unit: calc(1.25px * var(--scaling));
+    --x-stacked-label-size: calc(12px * var(--scaling));
   }
 }
 

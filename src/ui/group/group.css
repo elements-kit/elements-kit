@@ -115,7 +115,10 @@
  * (mouse on one, keyboard focus on the next) keeps both rings and doubles that
  * one seam — the rarer, quieter failure. */
 .x-group
-  > :is(.x-button, .x-text-input, .x-select, .x-toggle):is(:hover, :focus-within)
+  > :is(.x-button, .x-text-input, .x-select, .x-toggle):is(
+    :hover,
+    :focus-within
+  )
   + :is(.x-button, .x-text-input, .x-select, .x-toggle):not(
     :hover,
     :focus-within
@@ -196,14 +199,17 @@
   gap: 0;
   padding: var(--space-1);
   /* concentric with the size-2 children */
-  border-radius: calc(max(var(--radius-2), var(--radius-pill)) + var(--space-1));
+  border-radius: calc(
+    max(var(--radius-2), var(--radius-pill)) + var(--space-1)
+  );
   background-color: var(--color-material, var(--color-surface));
   backdrop-filter: var(--backdrop-filter-material, none);
   box-shadow: var(--shadow-3);
 }
 
 /* no joining: no overlap, no seam clip, own corners (outranks the rules above by order) */
-.x-group[data-variant="material"] > :is(.x-button, .x-text-input, .x-select, .x-toggle) {
+.x-group[data-variant="material"]
+  > :is(.x-button, .x-text-input, .x-select, .x-toggle) {
   margin: 0;
   clip-path: none;
   border-radius: max(var(--radius-2), var(--radius-pill));
