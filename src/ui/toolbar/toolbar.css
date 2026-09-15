@@ -115,15 +115,14 @@
   font-size: var(--font-size-3);
   font-weight: var(--font-weight-medium);
 
-  /* material + hairline; translucent unless an ancestor sets data-material-background */
+  /* material + hairline; same as card: material from data-material-background, else surface */
   &::before {
     content: "";
     position: absolute;
     inset: 0;
     z-index: -1;
-    background-color: var(--color-material, var(--color-material-translucent));
-    /* = material.css translucent blur */
-    backdrop-filter: var(--backdrop-filter-material, blur(64px));
+    background-color: var(--color-material, var(--color-surface));
+    backdrop-filter: var(--backdrop-filter-material, none);
     box-shadow: inset 0 -1px 0 var(--neutral-a5);
     opacity: var(--x-toolbar-reveal);
   }
