@@ -11,15 +11,19 @@ import { onCleanup } from "@/signals";
 interface Args {
   title: string;
   titlePosition: "center" | "leading";
+  toolbarVariant: "surface" | "soft";
   backButton: boolean;
   buttons: "text" | "icon";
   variant: "soft" | "text";
   largeTitle: boolean;
   largeTitleAlign: "start" | "center";
   largeTitleAccessory: boolean;
+  bottomBar: boolean;
+  bottomTitle: boolean;
 }
 
 type Device = "phone" | "ipad";
+type ButtonSize = "2" | "3";
 
 /** Writes raw scroll (px) on `host`; toolbar.css turns it into progress. */
 function driveScroll(host: HTMLElement, y: () => number) {
@@ -47,11 +51,10 @@ const ICONS = {
   user: "M20 21a8 8 0 0 0-16 0M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z",
 };
 
-// 16px: the kit's icon size for default buttons (see group, alert stories)
-const Icon = (props: { d: string }) => (
+const Icon = (props: { d: string; size: number }) => (
   <svg
-    width="16"
-    height="16"
+    width={String(props.size)}
+    height={String(props.size)}
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -64,12 +67,27 @@ const Icon = (props: { d: string }) => (
   </svg>
 );
 
-const TextButton = (props: { label: string; variant: Args["variant"] }) => (
+/**
+ * Button + icon sizes per toolbar variant:
+ * - soft: size 3 + 20px icon → 36px buttons → 44px capsules (iOS 26 glass buttons)
+ * - surface: text icons size 3 (glyph on the 16px margin), soft size 2; 16px icons (kit default)
+ */
+const sizing = (args: Args, variant = args.variant) =>
+  args.toolbarVariant === "soft"
+    ? { size: "3" as ButtonSize, icon: 20 }
+    : { size: (variant === "text" ? "3" : "2") as ButtonSize, icon: 16 };
+
+const TextButton = (props: {
+  label: string;
+  variant: Args["variant"];
+  size: ButtonSize;
+}) => (
   <button
     class:unset
     class:x-button
     data-variant={props.variant}
     data-radius="pill"
+    data-size={props.size}
   >
     {props.label}
   </button>
@@ -79,6 +97,8 @@ const IconButton = (props: {
   label: string;
   d: string;
   variant: Args["variant"];
+  size: ButtonSize;
+  icon: number;
 }) => (
   <button
     class:unset
@@ -86,19 +106,39 @@ const IconButton = (props: {
     data-variant={props.variant}
     data-icon=""
     data-radius="pill"
-    // text icons: size 3 (8px padding) puts the glyph on the 16px content margin
-    data-size={props.variant === "text" ? "3" : "2"}
+    data-size={props.size}
     aria-label={props.label}
   >
-    <Icon d={props.d} />
+    <Icon d={props.d} size={props.icon} />
   </button>
 );
 
+const isSoft = (args: Args) => args.toolbarVariant === "soft";
+
 const Back = (props: { args: Args }) =>
   props.args.buttons === "icon" ? (
-    <IconButton label="Back" d={ICONS.back} variant={props.args.variant} />
+    <IconButton
+      label="Back"
+      d={ICONS.back}
+      variant={props.args.variant}
+      {...sizing(props.args)}
+    />
   ) : (
-    <TextButton label="Back" variant={props.args.variant} />
+    <TextButton
+      label="Back"
+      variant={props.args.variant}
+      size={sizing(props.args).size}
+    />
+  );
+
+/** Soft: each lone button gets its own wrapper, so it becomes a capsule. */
+const BackItem = (props: { args: Args }) =>
+  isSoft(props.args) ? (
+    <div>
+      <Back args={props.args} />
+    </div>
+  ) : (
+    <Back args={props.args} />
   );
 
 const Title = (props: { args: Args }) => (
@@ -112,73 +152,111 @@ const Actions = (props: { args: Args }) =>
         label="Search"
         d={ICONS.search}
         variant={props.args.variant}
+        {...sizing(props.args)}
       />
       <IconButton
         label="More"
         d={ICONS.more}
         variant={props.args.variant}
+        {...sizing(props.args)}
+      />
+    </div>
+  ) : isSoft(props.args) ? (
+    <div>
+      <TextButton
+        label="Edit"
+        variant={props.args.variant}
+        size={sizing(props.args).size}
       />
     </div>
   ) : (
-    <TextButton label="Edit" variant={props.args.variant} />
+    <TextButton
+      label="Edit"
+      variant={props.args.variant}
+      size={sizing(props.args).size}
+    />
   );
 
 /** iPhone: [back] title [actions], or [back title] [actions]; back is optional */
 const PhoneBar = (props: { args: Args }) =>
   props.args.titlePosition === "leading" ? (
-    <header class:x-toolbar>
+    <header class:x-toolbar data-variant={props.args.toolbarVariant}>
       <div>
-        {props.args.backButton ? <Back args={props.args} /> : null}
+        {props.args.backButton ? <BackItem args={props.args} /> : null}
         <Title args={props.args} />
       </div>
       <Actions args={props.args} />
     </header>
   ) : (
-    <header class:x-toolbar>
-      {props.args.backButton ? <Back args={props.args} /> : null}
+    <header class:x-toolbar data-variant={props.args.toolbarVariant}>
+      {props.args.backButton ? <BackItem args={props.args} /> : null}
       <Title args={props.args} />
       <Actions args={props.args} />
     </header>
   );
 
 /** iPad (HIG item groupings): [back title] … [tools] … [share more] */
-const IpadBar = (props: { args: Args }) => (
-  <header class:x-toolbar>
-    <div>
-      <IconButton
-        label="Back"
-        d={ICONS.back}
-        variant={props.args.variant}
-      />
-      <Title args={props.args} />
-    </div>
-    <div role="group" aria-label="Tools">
-      <IconButton label="Pen" d={ICONS.pen} variant={props.args.variant} />
-      <IconButton
-        label="Text"
-        d={ICONS.text}
-        variant={props.args.variant}
-      />
-      <IconButton
-        label="Shapes"
-        d={ICONS.shapes}
-        variant={props.args.variant}
-      />
-    </div>
-    <div>
-      <IconButton
-        label="Share"
-        d={ICONS.share}
-        variant={props.args.variant}
-      />
-      <IconButton
-        label="More"
-        d={ICONS.more}
-        variant={props.args.variant}
-      />
-    </div>
-  </header>
-);
+const IpadBar = (props: { args: Args }) => {
+  const s = sizing(props.args);
+  const back = (
+    <IconButton label="Back" d={ICONS.back} variant={props.args.variant} {...s} />
+  );
+  return (
+    <header class:x-toolbar data-variant={props.args.toolbarVariant}>
+      <div>
+        {isSoft(props.args) ? <div>{back}</div> : back}
+        <Title args={props.args} />
+      </div>
+      <div role="group" aria-label="Tools">
+        <IconButton label="Pen" d={ICONS.pen} variant={props.args.variant} {...s} />
+        <IconButton label="Text" d={ICONS.text} variant={props.args.variant} {...s} />
+        <IconButton
+          label="Shapes"
+          d={ICONS.shapes}
+          variant={props.args.variant}
+          {...s}
+        />
+      </div>
+      <div>
+        <IconButton
+          label="Share"
+          d={ICONS.share}
+          variant={props.args.variant}
+          {...s}
+        />
+        <IconButton label="More" d={ICONS.more} variant={props.args.variant} {...s} />
+      </div>
+    </header>
+  );
+};
+
+/** Bottom toolbar: [share] … [tools or title] … [more]; text icons */
+const BottomBar = (props: { args: Args }) => {
+  const s = sizing(props.args, "text");
+  return (
+    <footer
+      class:x-toolbar
+      data-position="bottom"
+      data-variant={props.args.toolbarVariant}
+    >
+      <div>
+        <IconButton label="Share" d={ICONS.share} variant="text" {...s} />
+      </div>
+      {props.args.bottomTitle ? (
+        <span data-title="">Updated just now</span>
+      ) : (
+        <div role="group" aria-label="Tools">
+          <IconButton label="Pen" d={ICONS.pen} variant="text" {...s} />
+          <IconButton label="Text" d={ICONS.text} variant="text" {...s} />
+          <IconButton label="Shapes" d={ICONS.shapes} variant="text" {...s} />
+        </div>
+      )}
+      <div>
+        <IconButton label="More" d={ICONS.more} variant="text" {...s} />
+      </div>
+    </footer>
+  );
+};
 
 /** Large title, optionally with an accessory (profile button) beside it. */
 const Heading = (props: { args: Args }) =>
@@ -189,6 +267,8 @@ const Heading = (props: { args: Args }) =>
         label="Profile"
         d={ICONS.user}
         variant={props.args.variant}
+        size="2"
+        icon={16}
       />
     </div>
   ) : (
@@ -221,6 +301,7 @@ const Content = (props: { args: Args; rows: number; device: Device }) => (
     )}
     {props.args.largeTitle ? <Heading args={props.args} /> : null}
     <Rows count={props.rows} />
+    {props.args.bottomBar ? <BottomBar args={props.args} /> : null}
   </>
 );
 
@@ -267,22 +348,28 @@ const meta = {
   argTypes: {
     title: { control: "text" },
     titlePosition: { control: "select", options: ["center", "leading"] },
+    toolbarVariant: { control: "inline-radio", options: ["surface", "soft"] },
     backButton: { control: "boolean" },
     buttons: { control: "select", options: ["text", "icon"] },
     variant: { control: "select", options: ["soft", "text"] },
     largeTitle: { control: "boolean" },
     largeTitleAlign: { control: "select", options: ["start", "center"] },
     largeTitleAccessory: { control: "boolean" },
+    bottomBar: { control: "boolean" },
+    bottomTitle: { control: "boolean" },
   },
   args: {
     title: "Settings",
     titlePosition: "center",
+    toolbarVariant: "surface",
     backButton: true,
     buttons: "text",
     variant: "soft",
     largeTitle: true,
     largeTitleAlign: "start",
     largeTitleAccessory: false,
+    bottomBar: false,
+    bottomTitle: false,
   },
   render: (args) => <ScrollView args={args} device="phone" />,
 } satisfies Meta<Args>;
@@ -328,6 +415,26 @@ export const IconButtonsLeading: Story = {
 export const IPad: Story = {
   args: { title: "Q3 Report", largeTitle: false },
   render: (args) => <ScrollView args={args} device="ipad" />,
+};
+
+/** Soft (iOS 26) at the top: capsules for button groups, plain title, large title collapse. */
+export const SoftToolbar: Story = {
+  args: { toolbarVariant: "soft", buttons: "icon", variant: "text" },
+};
+
+/** Soft bottom toolbar: [share] … [tools] … [more]. Text buttons: the capsule is the background. */
+export const BottomToolbar: Story = {
+  args: { bottomBar: true, toolbarVariant: "soft", variant: "text" },
+};
+
+/** Soft bottom toolbar with a title in the center. */
+export const BottomToolbarTitle: Story = {
+  args: {
+    bottomBar: true,
+    bottomTitle: true,
+    toolbarVariant: "soft",
+    variant: "text",
+  },
 };
 
 export const PageScroll: Story = {
