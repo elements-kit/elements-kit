@@ -33,6 +33,10 @@ jobs:
           pnpm exec tsc --build storybook
           pnpm exec tsc --noEmit
 
+      # Browser project (*.browser.test.ts) runs in Playwright's headless Chromium.
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps --only-shell chromium
+
       - name: Unit, property & fuzz tests
         run: pnpm test
 
