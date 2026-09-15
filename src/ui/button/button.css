@@ -419,7 +419,7 @@
     --button-text-padding-x: var(--space-1);
     --button-text-padding-y: var(--space-1);
   }
-  &:where([data-size="2"]) {
+  &:where([data-size="2"], :not([data-size])) {
     --button-text-padding-x: calc(var(--space-1) * 1.5);
     --button-text-padding-y: calc(var(--space-1) * 1.5);
   }
