@@ -11,38 +11,48 @@ import "../text-input/text-input.css";
 import "./toolbar.css";
 import { onCleanup } from "@/signals";
 
+type Variant = "surface" | "soft";
+
 interface Args {
-  // Toolbar
-  toolbarVariant: "surface" | "soft";
+  // Top bar
+  topBar: "center" | "leading" | "none";
+  topVariant: Variant;
+  title: string;
+  back: boolean;
+  /** a second bar stacked under the top bar */
+  stack: "none" | "search" | "segmented";
+  // Large title
+  largeTitle: boolean;
+  largeTitleAlign: "start" | "center";
+  avatar: boolean;
+  // Bottom bar
+  bottomBar: "none" | "actions" | "title" | "tools" | "search" | "segmented";
+  bottomVariant: Variant;
+  // Buttons
+  buttonContent: "text" | "icon";
+  /** surface bars only: soft bars always use text buttons (the capsule is the background) */
+  buttonVariant: "soft" | "text";
+  // Layout
   /** data-radius on the toolbars; "theme" = inherit the global radius */
   toolbarRadius: "theme" | "none" | "small" | "medium" | "large" | "pill";
   /** --toolbar-max-inline-size; empty = no limit */
   maxWidth: string;
-  // Top bar
-  title: string;
-  titlePosition: "center" | "leading";
-  /** what sits in the phone bar's center: the title or a segmented control */
-  center: "title" | "segmented";
-  backButton: boolean;
-  // Buttons
-  buttonContent: "text" | "icon";
-  buttonVariant: "soft" | "text";
-  // Large title
-  largeTitle: boolean;
-  largeTitleAlign: "start" | "center";
-  largeTitleAccessory: boolean;
-  // Bottom bar
-  bottomBar: "none" | "actions" | "title" | "tools" | "search";
-  // Content
   rows: number;
 }
 
+/** One bar: the story args plus that bar's own variant. */
+interface Bar {
+  args: Args;
+  variant: Variant;
+}
+
 type Device = "phone" | "ipad";
-type ButtonSize = "2" | "3";
 
 /** Writes raw scroll (px) on `host`; toolbar.css turns it into progress. */
 function driveScroll(host: HTMLElement, y: () => number) {
-  const barTitle = host.querySelector<HTMLElement>(".x-toolbar [data-title]");
+  const barTitle = host.querySelector<HTMLElement>(
+    '.x-toolbar:not([data-position="bottom"]) [data-title]',
+  );
   const hasLargeTitle = host.querySelector(".x-large-title") !== null;
 
   effect(() => {
@@ -65,10 +75,11 @@ const ICONS = {
   share: "M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13",
 };
 
-const Icon = (props: { d: string; size: number }) => (
+/** Sized by the surrounding font-size (button or input size). */
+const Icon = (props: { d: string }) => (
   <svg
-    width={String(props.size)}
-    height={String(props.size)}
+    width="1.25em"
+    height="1.25em"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -81,75 +92,72 @@ const Icon = (props: { d: string; size: number }) => (
   </svg>
 );
 
-/**
- * Button + icon sizes per toolbar variant:
- * - soft: size 3 + 20px icon → 36px buttons → 44px capsules (iOS 26 glass buttons)
- * - surface: text buttons size 3 (glyph on the 16px margin), soft size 2; 16px icons (kit default)
- */
-const sizing = (args: Args) =>
-  args.toolbarVariant === "soft"
-    ? { size: "3" as ButtonSize, icon: 20 }
-    : { size: (args.buttonVariant === "text" ? "3" : "2") as ButtonSize, icon: 16 };
+const isSoft = (bar: Bar) => bar.variant === "soft";
 
-const isSoft = (args: Args) => args.toolbarVariant === "soft";
+/** Soft bars: text buttons, the capsule is their background. */
+const buttonVariant = (bar: Bar) =>
+  isSoft(bar) ? "text" : bar.args.buttonVariant;
 
-/** Attributes every toolbar in a story shares. */
-const toolbarAttrs = (args: Args) => ({
-  "data-variant": args.toolbarVariant,
+/** Attributes every toolbar shares. */
+const toolbarAttrs = (bar: Bar) => ({
+  "data-variant": bar.variant,
   // undefined leaves the attribute off, so the theme radius applies
-  "data-radius": args.toolbarRadius === "theme" ? undefined : args.toolbarRadius,
+  "data-radius":
+    bar.args.toolbarRadius === "theme" ? undefined : bar.args.toolbarRadius,
   // limit items to a centered width (large screens)
-  style: `--toolbar-max-inline-size:${args.maxWidth || "100%"}`,
+  style: `--toolbar-max-inline-size:${bar.args.maxWidth || "100%"}`,
 });
 
 // buttons follow the radius around them (theme, or the toolbar's data-radius)
-const TextButton = (props: { label: string; args: Args }) => (
+const TextButton = (props: { label: string; bar: Bar }) => (
   <button
     class:unset
     class:x-button
-    data-variant={props.args.buttonVariant}
-    data-size={sizing(props.args).size}
+    data-variant={buttonVariant(props.bar)}
+    data-size="2"
   >
     {props.label}
   </button>
 );
 
-const IconButton = (props: { label: string; d: string; args: Args }) => (
+const IconButton = (props: { label: string; d: string; bar: Bar }) => (
   <button
     class:unset
     class:x-button
-    data-variant={props.args.buttonVariant}
+    data-variant={buttonVariant(props.bar)}
     data-icon=""
-    data-size={sizing(props.args).size}
+    data-size="2"
     aria-label={props.label}
   >
-    <Icon d={props.d} size={sizing(props.args).icon} />
+    <Icon d={props.d} />
   </button>
 );
 
-/** Icon or text, per the buttonContent control. */
-const Button = (props: { label: string; d: string; args: Args }) =>
-  props.args.buttonContent === "icon" ? (
-    <IconButton label={props.label} d={props.d} args={props.args} />
+/** Icon or text, per the Buttons › content control. */
+const Button = (props: { label: string; d: string; bar: Bar }) =>
+  props.bar.args.buttonContent === "icon" ? (
+    <IconButton label={props.label} d={props.d} bar={props.bar} />
   ) : (
-    <TextButton label={props.label} args={props.args} />
+    <TextButton label={props.label} bar={props.bar} />
   );
 
 /** Soft: a lone button gets its own wrapper, so it becomes a capsule. */
-const Item = (props: { label: string; d: string; args: Args }) =>
-  isSoft(props.args) ? (
+const Item = (props: { label: string; d: string; bar: Bar }) =>
+  isSoft(props.bar) ? (
     <div>
-      <Button label={props.label} d={props.d} args={props.args} />
+      <Button label={props.label} d={props.d} bar={props.bar} />
     </div>
   ) : (
-    <Button label={props.label} d={props.d} args={props.args} />
+    <Button label={props.label} d={props.d} bar={props.bar} />
   );
 
-const Title = (props: { text: string }) => <span data-title="">{props.text}</span>;
+const Title = (props: { text: string }) => (
+  <span data-title="">{props.text}</span>
+);
 
 let segmentedId = 0;
 
-/** Segmented control in the bar's center (iOS: filter a list without leaving the screen). */
+/** Filters a list without leaving the screen: stacked under the top bar, or as the bottom bar. */
 const Segmented = () => {
   const name = `toolbar-seg-${segmentedId++}`;
   return (
@@ -175,117 +183,128 @@ const Segmented = () => {
   );
 };
 
-/** Top bar trailing actions: [search more] as icons, or "Edit" as text. */
-const Actions = (props: { args: Args }) =>
-  props.args.buttonContent === "icon" ? (
-    <div>
-      <IconButton label="Search" d={ICONS.search} args={props.args} />
-      <IconButton label="More" d={ICONS.more} args={props.args} />
-    </div>
-  ) : (
-    <Item label="Edit" d={ICONS.pen} args={props.args} />
-  );
-
-/** iPhone: [back] title|segmented [actions], or [back title] [actions]; back is optional */
-const PhoneBar = (props: { args: Args }) =>
-  props.args.titlePosition === "leading" ? (
-    <header class:x-toolbar {...toolbarAttrs(props.args)}>
-      <div>
-        {props.args.backButton ? (
-          <Item label="Back" d={ICONS.back} args={props.args} />
-        ) : null}
-        <Title text={props.args.title} />
-      </div>
-      <Actions args={props.args} />
-    </header>
-  ) : (
-    <header class:x-toolbar {...toolbarAttrs(props.args)}>
-      {props.args.backButton ? (
-        <Item label="Back" d={ICONS.back} args={props.args} />
-      ) : null}
-      {props.args.center === "segmented" ? (
-        <Segmented />
-      ) : (
-        <Title text={props.args.title} />
-      )}
-      <Actions args={props.args} />
-    </header>
-  );
-
-/** [pen text shapes] */
-const Tools = (props: { args: Args }) => (
-  <div role="group" aria-label="Tools">
-    <IconButton label="Pen" d={ICONS.pen} args={props.args} />
-    <IconButton label="Text" d={ICONS.text} args={props.args} />
-    <IconButton label="Shapes" d={ICONS.shapes} args={props.args} />
-  </div>
-);
-
-/** iPad (HIG item groupings): [back title] … [tools] … [share more] */
-const IpadBar = (props: { args: Args }) => {
-  const back = <IconButton label="Back" d={ICONS.back} args={props.args} />;
-  return (
-    <header class:x-toolbar {...toolbarAttrs(props.args)}>
-      <div>
-        {isSoft(props.args) ? <div>{back}</div> : back}
-        <Title text={props.args.title} />
-      </div>
-      <Tools args={props.args} />
-      <div>
-        <IconButton label="Share" d={ICONS.share} args={props.args} />
-        <IconButton label="More" d={ICONS.more} args={props.args} />
-      </div>
-    </header>
-  );
-};
-
-/** Search field that fills its column (iOS 26: search at the bottom of the screen). */
-const Search = (props: { args: Args }) => (
-  <div class:x-text-input data-variant="surface" data-size={sizing(props.args).size}>
+/** Search field that fills its region. */
+const Search = () => (
+  <div class:x-text-input data-variant="surface" data-size="2">
     {/* affix: text-input pads non-input children, so the icon needs its own wrapper */}
     <span>
-      <Icon d={ICONS.search} size={16} />
+      <Icon d={ICONS.search} />
     </span>
     <input class:unset type="search" placeholder="Search" aria-label="Search" />
   </div>
 );
 
+/** Top bar trailing actions: [search more] as icons, or "Edit" as text. */
+const Actions = (props: { bar: Bar }) =>
+  props.bar.args.buttonContent === "icon" ? (
+    <div>
+      <IconButton label="Search" d={ICONS.search} bar={props.bar} />
+      <IconButton label="More" d={ICONS.more} bar={props.bar} />
+    </div>
+  ) : (
+    <Item label="Edit" d={ICONS.pen} bar={props.bar} />
+  );
+
+/** iPhone: [back] title [actions], or [back title] [actions]; back is optional */
+const PhoneBar = (props: { bar: Bar }) => {
+  const { args } = props.bar;
+  const back = args.back ? (
+    <Item label="Back" d={ICONS.back} bar={props.bar} />
+  ) : null;
+  return args.topBar === "leading" ? (
+    <header class:x-toolbar {...toolbarAttrs(props.bar)}>
+      <div>
+        {back}
+        <Title text={args.title} />
+      </div>
+      <Actions bar={props.bar} />
+    </header>
+  ) : (
+    <header class:x-toolbar {...toolbarAttrs(props.bar)}>
+      {back}
+      <Title text={args.title} />
+      <Actions bar={props.bar} />
+    </header>
+  );
+};
+
+/** [pen text shapes] */
+const Tools = (props: { bar: Bar }) => (
+  <div role="group" aria-label="Tools">
+    <IconButton label="Pen" d={ICONS.pen} bar={props.bar} />
+    <IconButton label="Text" d={ICONS.text} bar={props.bar} />
+    <IconButton label="Shapes" d={ICONS.shapes} bar={props.bar} />
+  </div>
+);
+
+/** iPad (HIG item groupings): [back title] … [tools] … [share more] */
+const IpadBar = (props: { bar: Bar }) => {
+  const back = <IconButton label="Back" d={ICONS.back} bar={props.bar} />;
+  return (
+    <header class:x-toolbar {...toolbarAttrs(props.bar)}>
+      <div>
+        {isSoft(props.bar) ? <div>{back}</div> : back}
+        <Title text={props.bar.args.title} />
+      </div>
+      <Tools bar={props.bar} />
+      <div>
+        <IconButton label="Share" d={ICONS.share} bar={props.bar} />
+        <IconButton label="More" d={ICONS.more} bar={props.bar} />
+      </div>
+    </header>
+  );
+};
+
+/** A second bar right after the top bar: pins under it, shares its background. */
+const StackBar = (props: { bar: Bar }) => (
+  <div class:x-toolbar {...toolbarAttrs(props.bar)}>
+    {props.bar.args.stack === "search" ? <Search /> : <Segmented />}
+  </div>
+);
+
 /**
- * Bottom toolbar (bottomBar control):
- *   actions  [share] … [tools] … [more]
- *   title    [share] … title … [more]
- *   tools    [tools] alone, centered
- *   search   [search ─────────] [compose]
+ * Bottom toolbar (Bottom bar › content):
+ *   actions    [share] … [tools] … [more]
+ *   title      [share] … title … [more]
+ *   tools      [tools] alone, centered
+ *   search     [search ─────────] [compose]
+ *   segmented  segmented control alone, centered
  */
-const BottomBar = (props: { args: Args }) => {
-  const { args } = props;
-  const attrs = { "data-position": "bottom", ...toolbarAttrs(args) };
+const BottomBar = (props: { bar: Bar }) => {
+  const { bar } = props;
+  const attrs = { "data-position": "bottom", ...toolbarAttrs(bar) };
   const share = (
     <div>
-      <IconButton label="Share" d={ICONS.share} args={args} />
+      <IconButton label="Share" d={ICONS.share} bar={bar} />
     </div>
   );
   const more = (
     <div>
-      <IconButton label="More" d={ICONS.more} args={args} />
+      <IconButton label="More" d={ICONS.more} bar={bar} />
     </div>
   );
-  switch (args.bottomBar) {
+  switch (bar.args.bottomBar) {
     case "search":
       return (
         <footer class:x-toolbar {...attrs}>
           <div>
-            <Search args={args} />
+            <Search />
           </div>
           <div>
-            <IconButton label="Compose" d={ICONS.pen} args={args} />
+            <IconButton label="Compose" d={ICONS.pen} bar={bar} />
           </div>
+        </footer>
+      );
+    case "segmented":
+      return (
+        <footer class:x-toolbar {...attrs}>
+          <Segmented />
         </footer>
       );
     case "tools":
       return (
         <footer class:x-toolbar {...attrs}>
-          <Tools args={args} />
+          <Tools bar={bar} />
         </footer>
       );
     case "title":
@@ -300,16 +319,16 @@ const BottomBar = (props: { args: Args }) => {
       return (
         <footer class:x-toolbar {...attrs}>
           {share}
-          <Tools args={args} />
+          <Tools bar={bar} />
           {more}
         </footer>
       );
   }
 };
 
-/** Large title, optionally with an accessory (profile avatar) beside it. */
+/** Large title, optionally with a profile avatar beside it. */
 const Heading = (props: { args: Args }) =>
-  props.args.largeTitleAccessory ? (
+  props.args.avatar ? (
     <div class:x-large-title data-align={props.args.largeTitleAlign}>
       <h1 data-title="">{props.args.title}</h1>
       {/* avatar is not interactive: a bare button makes it tappable; size 3 = 40px = the title line.
@@ -341,18 +360,24 @@ const Rows = (props: { count: number }) => (
   </div>
 );
 
-const Content = (props: { args: Args; rows: number; device: Device }) => (
-  <>
-    {props.device === "ipad" ? (
-      <IpadBar args={props.args} />
-    ) : (
-      <PhoneBar args={props.args} />
-    )}
-    {props.args.largeTitle ? <Heading args={props.args} /> : null}
-    <Rows count={props.rows} />
-    {props.args.bottomBar !== "none" ? <BottomBar args={props.args} /> : null}
-  </>
-);
+const Content = (props: { args: Args; rows: number; device: Device }) => {
+  const { args } = props;
+  const top: Bar = { args, variant: args.topVariant };
+  const bottom: Bar = { args, variant: args.bottomVariant };
+  return (
+    <>
+      {args.topBar === "none" ? null : props.device === "ipad" ? (
+        <IpadBar bar={top} />
+      ) : (
+        <PhoneBar bar={top} />
+      )}
+      {args.stack === "none" ? null : <StackBar bar={top} />}
+      {args.largeTitle ? <Heading args={args} /> : null}
+      <Rows count={props.rows} />
+      {args.bottomBar === "none" ? null : <BottomBar bar={bottom} />}
+    </>
+  );
+};
 
 /** An element scrolls: --scroll-y lives on the container. */
 function ScrollView(props: { args: Args; device: Device }) {
@@ -392,96 +417,111 @@ function PageView(props: { args: Args }) {
   );
 }
 
-const group = (category: string) => ({ table: { category } });
+/** Control label (shown without the group prefix the key needs) and group. */
+const arg = (category: string, name: string) => ({
+  name,
+  table: { category },
+});
+
+const variantControl = {
+  control: "inline-radio" as const,
+  options: ["surface", "soft"],
+  description:
+    "surface: material bar + hairline · soft: no bar, capsules, gradient blur",
+};
 
 const meta = {
   title: "UI/Toolbar",
   argTypes: {
-    // Toolbar
-    toolbarVariant: {
-      control: "inline-radio",
-      options: ["surface", "soft"],
-      description: "surface: material bar · soft: no bar, capsules, gradient blur",
-      ...group("Toolbar"),
-    },
-    toolbarRadius: {
-      control: "select",
-      options: ["theme", "none", "small", "medium", "large", "pill"],
-      description: "data-radius on the toolbars (theme = inherit the global radius)",
-      ...group("Toolbar"),
-    },
-    maxWidth: {
-      control: "text",
-      description: "--toolbar-max-inline-size, e.g. 640px (empty = no limit)",
-      ...group("Toolbar"),
-    },
     // Top bar
-    title: { control: "text", ...group("Top bar") },
-    titlePosition: {
+    topBar: {
       control: "inline-radio",
-      options: ["center", "leading"],
-      ...group("Top bar"),
+      options: ["center", "leading", "none"],
+      description: "title centered or next to back · none: large title only",
+      ...arg("Top bar", "layout"),
     },
-    center: {
+    topVariant: { ...variantControl, ...arg("Top bar", "variant") },
+    title: {
+      control: "text",
+      description: "bar and large title",
+      ...arg("Top bar", "title"),
+    },
+    back: { control: "boolean", ...arg("Top bar", "back") },
+    stack: {
       control: "inline-radio",
-      options: ["title", "segmented"],
-      description: "what sits in the center (centered title position only)",
-      ...group("Top bar"),
+      options: ["none", "search", "segmented"],
+      description:
+        "a second .x-toolbar right after the top bar: pins under it, one shared background",
+      ...arg("Top bar", "stack"),
     },
-    backButton: { control: "boolean", ...group("Top bar") },
+    // Large title
+    largeTitle: { control: "boolean", ...arg("Large title", "visible") },
+    largeTitleAlign: {
+      control: "inline-radio",
+      options: ["start", "center"],
+      ...arg("Large title", "align"),
+    },
+    avatar: {
+      control: "boolean",
+      description: "profile avatar beside the large title",
+      ...arg("Large title", "avatar"),
+    },
+    // Bottom bar
+    bottomBar: {
+      control: "select",
+      options: ["none", "actions", "title", "tools", "search", "segmented"],
+      description:
+        "actions: share · tools · more · title: share · title · more · tools: centered · search: field + compose · segmented: centered",
+      ...arg("Bottom bar", "content"),
+    },
+    bottomVariant: { ...variantControl, ...arg("Bottom bar", "variant") },
     // Buttons
     buttonContent: {
       control: "inline-radio",
       options: ["text", "icon"],
       description: "top bar buttons: text labels or icons",
-      ...group("Buttons"),
+      ...arg("Buttons", "content"),
     },
     buttonVariant: {
       control: "inline-radio",
-      options: ["soft", "text"],
-      description: "x-button variant for every toolbar button",
-      ...group("Buttons"),
-    },
-    // Large title
-    largeTitle: { control: "boolean", ...group("Large title") },
-    largeTitleAlign: {
-      control: "inline-radio",
-      options: ["start", "center"],
-      ...group("Large title"),
-    },
-    largeTitleAccessory: {
-      control: "boolean",
-      description: "avatar beside the large title",
-      ...group("Large title"),
-    },
-    // Bottom bar
-    bottomBar: {
-      control: "select",
-      options: ["none", "actions", "title", "tools", "search"],
+      options: ["text", "soft"],
       description:
-        "actions: share · tools · more · title: share · title · more · tools: centered · search: field + compose",
-      ...group("Bottom bar"),
+        "x-button variant in surface bars (soft bars always use text buttons)",
+      ...arg("Buttons", "variant"),
     },
-    // Content
+    // Layout
+    toolbarRadius: {
+      control: "select",
+      options: ["theme", "none", "small", "medium", "large", "pill"],
+      description:
+        "data-radius on the toolbars (theme = inherit the global radius)",
+      ...arg("Layout", "radius"),
+    },
+    maxWidth: {
+      control: "text",
+      description: "--toolbar-max-inline-size, e.g. 640px (empty = no limit)",
+      ...arg("Layout", "maxWidth"),
+    },
     rows: {
       control: { type: "number", min: 0, max: 60 },
-      ...group("Content"),
+      ...arg("Layout", "rows"),
     },
   },
   args: {
-    toolbarVariant: "surface",
-    toolbarRadius: "theme",
-    maxWidth: "",
+    topBar: "center",
+    topVariant: "surface",
     title: "Settings",
-    titlePosition: "center",
-    center: "title",
-    backButton: true,
-    buttonContent: "text",
-    buttonVariant: "soft",
+    back: true,
+    stack: "none",
     largeTitle: true,
     largeTitleAlign: "start",
-    largeTitleAccessory: false,
+    avatar: false,
     bottomBar: "none",
+    bottomVariant: "surface",
+    buttonContent: "text",
+    buttonVariant: "text",
+    toolbarRadius: "theme",
+    maxWidth: "",
     rows: 30,
   },
   render: (args) => <ScrollView args={args} device="phone" />,
@@ -489,6 +529,13 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<Args>;
+
+/** Floating look: soft bars with icon buttons. */
+const soft = {
+  topVariant: "soft",
+  bottomVariant: "soft",
+  buttonContent: "icon",
+} satisfies Partial<Args>;
 
 // ── Top bar ──────────────────────────────────────────────────────────────────
 
@@ -503,77 +550,94 @@ export const LongTitle: Story = {
 };
 
 /** Avatar beside the large title; a long title truncates, the avatar keeps its size. */
-export const LargeTitleAccessory: Story = {
-  args: {
-    title: "Notifications and Privacy Preferences",
-    largeTitleAccessory: true,
-  },
+export const LargeTitleAvatar: Story = {
+  args: { title: "Notifications and Privacy Preferences", avatar: true },
+};
+
+/** Centered large title with an avatar: the title centers on the whole row. */
+export const CenteredLargeTitleAvatar: Story = {
+  args: { largeTitleAlign: "center", avatar: true },
+};
+
+/** No top bar: only the large title, scrolling away with the content. */
+export const TitleOnly: Story = {
+  args: { topBar: "none", title: "Today", avatar: true },
 };
 
 export const BarOnly: Story = { args: { largeTitle: false } };
 
-export const LeadingTitle: Story = { args: { titlePosition: "leading" } };
+export const LeadingTitle: Story = { args: { topBar: "leading" } };
 
 /** Leading title with no back button: the title sits on the content margin. */
 export const LeadingTitleNoBack: Story = {
-  args: { titlePosition: "leading", backButton: false, largeTitle: false },
+  args: { topBar: "leading", back: false, largeTitle: false },
 };
 
 export const IconButtons: Story = { args: { buttonContent: "icon" } };
 
 /** Material-like: title next to back, icon buttons, no large title. */
 export const IconButtonsLeading: Story = {
-  args: { buttonContent: "icon", titlePosition: "leading", largeTitle: false },
+  args: { buttonContent: "icon", topBar: "leading", largeTitle: false },
 };
 
-/** Segmented control in the bar's center instead of a title. */
-export const SegmentedControl: Story = {
-  args: { center: "segmented", largeTitle: false, buttonContent: "icon" },
+// ── Stacked bars ─────────────────────────────────────────────────────────────
+
+/** Search bar stacked under the top bar; the large title collapses under both. */
+export const SearchStack: Story = {
+  args: { stack: "search", buttonContent: "icon" },
+};
+
+/** Segmented control stacked under the top bar. */
+export const SegmentedStack: Story = {
+  args: { stack: "segmented", title: "Mail", largeTitle: false },
+};
+
+export const SoftSearchStack: Story = {
+  args: { ...soft, stack: "search" },
 };
 
 // ── Soft (iOS 26) ────────────────────────────────────────────────────────────
 
 /** Capsules for button groups, plain title, gradient blur, large title collapse. */
 export const SoftToolbar: Story = {
-  args: { toolbarVariant: "soft", buttonContent: "icon", buttonVariant: "text" },
+  args: { ...soft, bottomBar: "actions" },
 };
 
 /** Toolbar-level radius: pill capsules and buttons, whatever the theme radius. */
 export const SoftToolbarPill: Story = {
-  args: {
-    toolbarVariant: "soft",
-    buttonContent: "icon",
-    buttonVariant: "text",
-    bottomBar: "actions",
-    toolbarRadius: "pill",
-  },
+  args: { ...soft, bottomBar: "actions", toolbarRadius: "pill" },
+};
+
+/** Each bar has its own variant: surface on top, soft at the bottom. */
+export const MixedVariants: Story = {
+  args: { bottomBar: "actions", bottomVariant: "soft" },
 };
 
 // ── Bottom bar ───────────────────────────────────────────────────────────────
 
-/** [share] … [tools] … [more]. Text buttons: the capsule is the background. */
+/** [share] … [tools] … [more]. */
 export const BottomToolbar: Story = {
-  args: { bottomBar: "actions", toolbarVariant: "soft", buttonVariant: "text" },
+  args: { bottomBar: "actions" },
 };
 
 /** A title in the center of the bottom bar. */
 export const BottomToolbarTitle: Story = {
-  args: { bottomBar: "title", toolbarVariant: "soft", buttonVariant: "text" },
+  args: { ...soft, bottomBar: "title" },
 };
 
 /** Bottom search (iOS 26): the field fills the bar, a compose button beside it. */
 export const SearchToolbar: Story = {
-  args: { bottomBar: "search", toolbarVariant: "soft", buttonVariant: "text" },
+  args: { ...soft, bottomBar: "search" },
+};
+
+/** Segmented control as the bottom bar. */
+export const SegmentedToolbar: Story = {
+  args: { ...soft, bottomBar: "segmented", title: "Mail" },
 };
 
 /** Short content: the bottom toolbar still sits at the bottom of the container. */
 export const BottomToolbarShort: Story = {
-  args: {
-    bottomBar: "actions",
-    toolbarVariant: "soft",
-    buttonVariant: "text",
-    rows: 2,
-  },
+  args: { ...soft, bottomBar: "actions", rows: 2 },
 };
 
 // ── iPad / page ──────────────────────────────────────────────────────────────
@@ -587,10 +651,9 @@ export const IPad: Story = {
 /** Large screen: items kept within a centered 640px; the bottom bar holds only the tools. */
 export const IPadCenteredToolbar: Story = {
   args: {
+    ...soft,
     title: "Q3 Report",
     largeTitle: false,
-    toolbarVariant: "soft",
-    buttonVariant: "text",
     bottomBar: "tools",
     maxWidth: "640px",
   },

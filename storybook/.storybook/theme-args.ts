@@ -53,6 +53,20 @@ export const themeArgs: ThemeArgs = {
   "material-background": "translucent",
 };
 
+/**
+ * Theme defaults as an args enhancer, not project `args`: enhancer args land
+ * after the story's own, so the Theme group lists last. Only fills keys a
+ * story didn't set.
+ */
+export const themeArgsLast = ({
+  initialArgs,
+}: {
+  initialArgs: Record<string, unknown>;
+}) =>
+  Object.fromEntries(
+    Object.entries(themeArgs).filter(([key]) => !(key in initialArgs)),
+  );
+
 export const withThemeArgs: Decorator = (story, context) => {
   const html = document.documentElement;
   const args = context.args as Partial<ThemeArgs>;

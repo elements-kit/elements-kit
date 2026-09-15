@@ -34,7 +34,7 @@ import "../../src/ui/styles/palette/mauve.css";
 import "../../src/ui/styles/neutral/mauve.css";
 
 import "./preview.css";
-import { themeArgs, themeArgTypes, withThemeArgs } from "./theme-args";
+import { themeArgsLast, themeArgTypes, withThemeArgs } from "./theme-args";
 
 // Prepend a warning banner to any story tagged `experimental` (e.g. overlay),
 // so its "not production ready" status is obvious in the canvas.
@@ -72,7 +72,7 @@ const preview: Preview = {
     }),
     withThemeArgs,
   ],
-  args: themeArgs,
+  argsEnhancers: [themeArgsLast],
   argTypes: themeArgTypes,
   parameters: {
     controls: { expanded: true },
