@@ -51,6 +51,7 @@ Attach a field to a button by placing them in the same group. Text-inputs and se
 | Attribute | Values |
 | --- | --- |
 | `role` | `group` / `toolbar` / `radiogroup` — author-owned, per the controls inside |
+| `data-variant` | `material` — a floating capsule instead of a joined bar (see [Material](#material)) |
 | child `data-size` | `1`, `2`, `3` — set the **same** value on every child |
 | child `data-variant` | each control's own variants (`solid`, `outline`, `surface`, …) |
 
@@ -59,6 +60,26 @@ The group joins whatever variants you give it. `outline` and `surface` children 
 ## Sizing
 
 Every child in a group must carry the same `data-size`. Heights and radii are size-derived, so a mismatched child breaks alignment and leaves the seam uneven. The group forces no uniform radius of its own — each end keeps the control's native outer radius, which respects `data-radius` on a parent (set `data-radius="pill"` for pill ends).
+
+## Material
+
+`data-variant="material"` turns the group into a floating capsule, as in iOS 26 toolbars. Children sit apart instead of joining (no overlap, no flattened corners) on a `--color-material` background with its backdrop blur and `--shadow-3`.
+
+It is tuned for `data-size="2"` children: 32px plus 4px padding make a 40px capsule. Text buttons fill the size box, so the padding is even on every side. A [text input](/ui/text-input) or [segmented control](/ui/segmented-control) inside fills the capsule and drops its own background, so the capsule is the field or the track. A focused field rings the whole capsule.
+
+```html
+<div class="x-group" data-variant="material" role="group" aria-label="Actions">
+  <button class="unset x-button" data-variant="text" data-size="2" data-icon aria-label="Share">…</button>
+  <button class="unset x-button" data-variant="text" data-size="2" data-icon aria-label="More">…</button>
+</div>
+
+<div class="x-group" data-variant="material">
+  <div class="x-text-input" data-variant="soft" data-size="2">
+    <span>🔍</span>
+    <input class="unset" placeholder="Search" />
+  </div>
+</div>
+```
 
 ## How joining works
 

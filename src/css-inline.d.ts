@@ -4,3 +4,6 @@ declare module "*.css?inline" {
   const css: string;
   export default css;
 }
+
+// `import "./foo.css"` — side-effect import in browser tests; Vite injects the sheet.
+declare module "*.css";

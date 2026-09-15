@@ -6,12 +6,16 @@
 //
 // Borrow a real Storage from a detached happy-dom Window. Guarded, so this
 // disappears on its own once Node stops defining the global unconditionally.
-import { Window } from "happy-dom";
-
+// Imported lazily: the browser project shares this file, and happy-dom can't
+// load in a real browser (which always has localStorage).
 if (globalThis.localStorage == null) {
+  const { Window } = await import("happy-dom");
   Object.defineProperty(globalThis, "localStorage", {
     value: new Window().localStorage,
     configurable: true,
     writable: true,
   });
 }
+
+// a module, so the lazy import above can use top-level await
+export {};

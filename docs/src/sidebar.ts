@@ -128,6 +128,7 @@ export const uiSidebar: SidebarItem[] = [
       { label: "Switch", slug: "ui/switch", badge: cssBadge },
       { label: "Text Input", slug: "ui/text-input", badge: cssBadge },
       { label: "Toggle", slug: "ui/toggle", badge: cssBadge },
+      { label: "Toolbar", slug: "ui/toolbar", badge: cssBadge },
     ],
   },
   {

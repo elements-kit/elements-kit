@@ -4,7 +4,8 @@
 }
 :is(.dark, .dark-theme) {
   --color-material-solid: var(--neutral-2);
-  --color-material-translucent: var(--neutral-a3);
+  /* mostly opaque (like light's 70% white): light text stays readable over bright content */
+  --color-material-translucent: color-mix(in srgb, var(--neutral-3) 85%, transparent);
 }
 
 :where([data-material-background="solid"]) {

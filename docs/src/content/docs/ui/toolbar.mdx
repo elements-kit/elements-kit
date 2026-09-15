@@ -1,0 +1,183 @@
+---
+title: Toolbar
+description: CSS-only top and bottom bars with an iOS-style large title that collapses as you scroll — regions by child order, surface, clean and soft variants.
+---
+
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
+
+A sticky bar for the top or bottom of a scroll container, with an optional large title that collapses into it as you scroll. CSS does the layout and the collapse; your code only writes the scroll position.
+
+<StorybookEmbed story="ui-toolbar--inbox" />
+
+## Install
+
+```ts
+import "elements-kit/ui/styles.css";
+
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/neutral/gray.css";
+import "elements-kit/ui/styles/palette/mint.css";
+import "elements-kit/ui/styles/accent/mint.css";
+
+import "elements-kit/ui/button/button.css";
+import "elements-kit/ui/group/group.css"; // capsules in clean and soft bars
+import "elements-kit/ui/toolbar/toolbar.css";
+```
+
+See [Styles](/ui/styles) for the token system and theming.
+
+## API
+
+```html
+<div class="screen" style="block-size: 100dvh; overflow: auto">
+  <header class="x-toolbar">
+    <button class="unset x-button" data-variant="text" data-size="2">Back</button>
+    <span data-title>Inbox</span>
+    <button class="unset x-button" data-variant="text" data-size="2">Edit</button>
+  </header>
+  <h1 class="x-large-title">Inbox</h1>
+  <div>…the list…</div>
+</div>
+```
+
+The bar and the large title are direct children of the scroll container. Everything after the large title goes in one element.
+
+| Attribute *(on `.x-toolbar`)* | Values |
+| --- | --- |
+| `data-position` | `top` *(default)*, `bottom` |
+| `data-variant` | `surface` *(default)*, `clean`, `soft` |
+| `data-radius` *(on a parent or the bar)* | any [radius](/ui/styles#radius); buttons and capsules follow it |
+
+| Attribute *(on `.x-large-title`)* | Values |
+| --- | --- |
+| `data-align` | `start` *(default)*, `center` |
+
+| Token *(on `.x-toolbar`)* | Default |
+| --- | --- |
+| `--toolbar-button-gap` | `--space-2` — between items in a region |
+| `--toolbar-region-gap` | `--space-2` — between regions |
+| `--toolbar-edge-blur` | `8px` — soft only; `0` keeps the tint |
+
+## Regions
+
+The bar reads its layout from child order: first child is the start, a middle child the center, the last child the end. Wrap several items in any element to make one region.
+
+- A bare `[data-title]` is always the center, and stays centered on the bar.
+- With only two children, the start takes the free space — a title next to a back button.
+- A lone child centers across the bar.
+- A region holding an input fills its column.
+- Only a region holding the title shrinks. The title truncates; buttons keep their size.
+
+Text buttons bleed past the bar's 16px padding, so their labels line up with the large title and the content.
+
+## Large title and scroll
+
+The collapse reads `--scroll-y` in pixels from an ancestor. Write it from the scroll position:
+
+```ts
+import { effect, effectScope } from "elements-kit/signals";
+import { createElementScroll } from "elements-kit/utilities/element-scroll";
+
+const screen = document.querySelector<HTMLElement>(".screen")!;
+
+const stop = effectScope(() => {
+  const { y } = createElementScroll(screen);
+  effect(() => screen.style.setProperty("--scroll-y", `${y()}px`));
+});
+```
+
+When the page scrolls, write it on `<html>` instead:
+
+```ts
+import { fromEvent, sync } from "elements-kit/utilities/event-driven";
+
+const [y] = sync(fromEvent(window, "scroll"), () => window.scrollY);
+effect(() => document.documentElement.style.setProperty("--scroll-y", `${y()}px`));
+```
+
+As the title scrolls under the bar it fades out over its own height (64px). The bar's background and title fade in over the last 40% of that distance. Scroll snap keeps the screen from resting mid-collapse, while the content scrolls freely past it.
+
+:::caution[Wrap the content]
+Put everything after the large title in one element. Snap aligns to it; if the list's rows are separate children, short scrolls get pulled back to the collapsed position.
+:::
+
+### Layouts
+
+- **Bar before the title** — the title collapses into the bar.
+- **Bar after the title** — for a search bar: the title scrolls away and the bar pins at the top.
+- **No bar** — the large title scrolls away with the content.
+- **No large title** — the bar's title is always shown; its background appears once content scrolls under it.
+
+Without `--scroll-y` the math is invalid and every property falls back to its initial value: a plain bar and a static large title.
+
+## Bottom bar
+
+Add `data-position="bottom"` and make the bar the last child of the scroll container. It always shows its background and keeps focused elements above it. With short content the container becomes a column, so the bar still sits at the bottom. For page scroll, give the bar's parent `min-block-size: 100dvh`.
+
+## Variants
+
+- **`surface`** *(default)* — a material background (`--color-material`, falling back to `--color-surface`) with a hairline on the content side.
+- **`clean`** — no bar. Controls float in [material groups](/ui/group#material); the bar is taller so capsules sit off the screen edge.
+- **`soft`** — `clean` plus a gradient blur at the screen edge.
+
+```html
+<header class="x-toolbar" data-variant="soft">
+  <div class="x-group" data-variant="material">
+    <button class="unset x-button" data-variant="text" data-size="2" data-icon aria-label="Back">…</button>
+  </div>
+  <div class="x-group" data-variant="material">
+    <div class="x-text-input" data-variant="soft" data-size="2">
+      <span>…</span>
+      <input class="unset" placeholder="Search" aria-label="Search" />
+    </div>
+  </div>
+</header>
+```
+
+Use `text` buttons inside capsules: the capsule is their background.
+
+## Sizing
+
+| | `surface` | `clean`, `soft` |
+| --- | --- | --- |
+| top bar | 52px + `safe-area-inset-top` | 64px + `safe-area-inset-top` |
+| bottom bar | 52px + `safe-area-inset-bottom` | 64px + `safe-area-inset-bottom` |
+| large title | 64px — one 40px line, 16px above, 8px below | same |
+
+Every size scales with `--scaling`. The scroll container's padding matches the bars, so focused elements and anchors stop below them.
+
+## Accessibility
+
+The toolbar only paints; semantics come from your markup.
+
+1. **Use landmarks.** A top bar is a `<header>`, a bottom bar a `<footer>`. Add `role="toolbar"` only if you also implement its arrow-key model.
+2. **Label icon-only buttons** with `aria-label`.
+3. **Keep one visible heading.** While the large title is on screen, hide the bar's title from assistive tech, and show it once the title has collapsed:
+
+```ts
+const barTitle = screen.querySelector(".x-toolbar [data-title]");
+effect(() => barTitle?.toggleAttribute("aria-hidden", y() <= 0));
+```
+
+4. **Reduced transparency.** `prefers-reduced-transparency: reduce` swaps the material for a solid color.
+5. **Forced colors.** Bars fall back to `Canvas` with a `CanvasText` edge.
+
+The collapse follows the scroll position directly, with no animation of its own.
+
+## When not to use
+
+- **Switching panels** — that's the [Tabs pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/), not a segmented control in a bar.
+- **Multi-line titles** — the large title is one line, so its height is known without measuring.
+- **Site navigation with many links** — use a `<nav>` landmark.
+
+## Browser support
+
+Works in browsers with `:has()` (Chrome 105, Safari 15.4, Firefox 121) and trigonometric functions in `calc()` (Chrome 111, Safari 15.4, Firefox 108). Without trig support the collapse falls back to a plain bar and a static title. The soft edge uses [`color-mix()`](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/color-mix) and `backdrop-filter`.
+
+## See also
+
+- [Group](/ui/group) — material capsules for clean and soft bars
+- [Button](/ui/button) — text buttons for bar actions
+- [Text Input](/ui/text-input) — search fields
+- [Segmented Control](/ui/segmented-control) — filters under the title or in a bottom bar
+- [Styles](/ui/styles) — tokens, material and theming

@@ -2,37 +2,25 @@
  * Toolbar primitive — iOS-style large title collapse.
  *
  * JS writes the scroll position (px) as --scroll-y on the scroll container (or <html>);
- * the bar and the large title inherit it and turn it into their own progress.
+ * the bar and the large title inherit it and compute their own progress.
  *
- *   <header class="x-toolbar">…regions…</header>     bar (optional)
- *   <h1 class="x-large-title">Settings</h1>          large title (optional), one line
- *   <div>…content…</div>                             everything after the title in one element
+ *   <header class="x-toolbar">…regions…</header>   bar (optional)
+ *   <h1 class="x-large-title">Settings</h1>        large title (optional), one line
+ *   <div>…content…</div>                           everything after the title, in one element
  *
- * The bar may also come after the large title (e.g. search): the title scrolls
- * away and the bar pins at the top.
+ * The bar may come after the title instead (search): the title scrolls away, the bar pins.
+ * Regions follow child order: start, center, end. A bare [data-title] is the center, a lone
+ * child centers, a region holding an input fills its column.
  *
- * Regions come from child order: first → start, middle → center, last → end.
- * A bare [data-title] is always the center; a lone child centers; a region
- * holding an input (search) fills its column. Wrap several items in any element.
+ *   data-position="bottom"                 last child of the scroll container
+ *   data-variant="surface | clean | soft"  surface: material background + hairline (default)
+ *                                          clean: no bar; float controls in
+ *                                          <div class="x-group" data-variant="material">
+ *                                          soft: clean + a gradient blur at the screen edge
+ *   --toolbar-button-gap, --toolbar-region-gap, --toolbar-edge-blur (soft, default 8px)
  *
- * Alignment: the bar pads 16px, like the large title and content. Text buttons
- * bleed past it by their padding (button.css), so their label lands on it.
- *
- * Attributes:
- *   data-position="top | bottom"          bottom: last child of the scroll container
- *   data-variant="surface | clean | soft"
- *     surface  material background + hairline (default)
- *     clean    no bar; a wrapper holding only buttons is a 40px material capsule;
- *              search fields and segmented controls match it
- *     soft     clean + a gradient blur at the screen edge
- *   data-radius                           buttons and capsules follow it
- *
- * Tokens (on .x-toolbar): --toolbar-button-gap, --toolbar-region-gap,
- *   --toolbar-max-inline-size (keep items within a centered width),
- *   --toolbar-edge-blur (soft; default 8px)
- *
- * No JS: --scroll-y is unset, the math is invalid, and each property falls
- * back to its initial value — plain bar, static large title.
+ * No JS: --scroll-y is unset, the math is invalid, and properties fall back to their
+ * initial values — plain bar, static large title.
  */
 
 /***************************************************************************************************
@@ -51,6 +39,18 @@
 :root:has(.x-toolbar[data-position="bottom"]) {
   --toolbar-bottom-height: calc(52px * var(--scaling) + env(safe-area-inset-bottom, 0px));
   scroll-padding-block-end: var(--toolbar-bottom-height);
+}
+
+/* clean / soft bars are taller, so floating controls sit off the screen edge:
+ * 64 = 8 + 8 + 40px control + 8 */
+:has(> .x-toolbar:is([data-variant="soft"], [data-variant="clean"]):not([data-position="bottom"])),
+:root:has(.x-toolbar:is([data-variant="soft"], [data-variant="clean"]):not([data-position="bottom"])) {
+  --toolbar-height: calc(64px * var(--scaling) + env(safe-area-inset-top, 0px));
+}
+
+:has(> .x-toolbar:is([data-variant="soft"], [data-variant="clean"])[data-position="bottom"]),
+:root:has(.x-toolbar:is([data-variant="soft"], [data-variant="clean"])[data-position="bottom"]) {
+  --toolbar-bottom-height: calc(64px * var(--scaling) + env(safe-area-inset-bottom, 0px));
 }
 
 /* never rest mid-collapse; proximity leaves the list free */
@@ -104,11 +104,7 @@
   block-size: var(--toolbar-height);
   /* notch only; room comes from --toolbar-height so content stays centered */
   padding-block-start: env(safe-area-inset-top, 0px);
-  /* the content margin, or more so items stay within --toolbar-max-inline-size */
-  padding-inline: max(
-    var(--space-4),
-    calc((100% - var(--toolbar-max-inline-size, 100%)) / 2)
-  );
+  padding-inline: var(--space-4);
   box-sizing: border-box;
 
   font-family: var(--default-font-family);
@@ -125,7 +121,6 @@
     backdrop-filter: var(--backdrop-filter-material, none);
     box-shadow: inset 0 -1px 0 var(--neutral-a5);
     opacity: var(--x-toolbar-reveal);
-    transition: opacity 150ms;
   }
 
   & [data-title] {
@@ -141,10 +136,6 @@
 .x-toolbar:has(+ .x-large-title),
 .x-large-title + .x-toolbar {
   --x-toolbar-distance: var(--x-large-title-height);
-
-  &::before {
-    transition: none;
-  }
 
   & [data-title] {
     opacity: var(--x-toolbar-reveal);
@@ -162,6 +153,11 @@
   display: flex;
   align-items: center;
   gap: var(--toolbar-button-gap);
+}
+
+/* between text buttons: twice their bleed, so neighbours' tap areas touch */
+:where(.x-toolbar > :has(> .x-button[data-variant="text"])) {
+  gap: var(--space-4);
 }
 
 :where(.x-toolbar > :first-child) {
@@ -215,22 +211,6 @@
   min-inline-size: 0;
 }
 
-/* between text buttons: twice their bleed, so neighbours' tap areas touch */
-.x-toolbar > :has(> .x-button[data-variant="text"]) {
-  gap: var(--space-4);
-}
-
-/* text buttons bleed only toward the bar's outer edges, not toward the next region */
-.x-toolbar > .x-button[data-variant="text"]:first-child:not(:only-child),
-.x-toolbar > :first-child:not(:only-child) > .x-button[data-variant="text"]:last-child {
-  margin-inline-end: 0;
-}
-
-.x-toolbar > .x-button[data-variant="text"]:last-child:not(:first-child),
-.x-toolbar > :last-child:not(:first-child) > .x-button[data-variant="text"]:first-child {
-  margin-inline-start: 0;
-}
-
 /***************************************************************************************************
  *                                                                                                 *
  * POSITION — data-position="bottom"                                                               *
@@ -253,72 +233,15 @@
 
 /***************************************************************************************************
  *                                                                                                 *
- * VARIANTS — clean and soft (iOS 26): no bar; groups float in capsules                            *
+ * VARIANTS — clean and soft (iOS 26): no bar; controls float                                      *
  *                                                                                                 *
  ***************************************************************************************************/
 
-/* taller: 64 = 8 screen-side space + 8 + 40px capsule + 8 */
-:has(> .x-toolbar:is([data-variant="soft"], [data-variant="clean"]):not([data-position="bottom"])),
-:root:has(.x-toolbar:is([data-variant="soft"], [data-variant="clean"]):not([data-position="bottom"])) {
-  --toolbar-height: calc(64px * var(--scaling) + env(safe-area-inset-top, 0px));
-}
-
-:has(> .x-toolbar:is([data-variant="soft"], [data-variant="clean"])[data-position="bottom"]),
-:root:has(.x-toolbar:is([data-variant="soft"], [data-variant="clean"])[data-position="bottom"]) {
-  --toolbar-bottom-height: calc(64px * var(--scaling) + env(safe-area-inset-bottom, 0px));
-}
-
 .x-toolbar:is([data-variant="soft"], [data-variant="clean"]) {
-  /* a capsule: size-2 buttons + 4px; corners concentric with the buttons */
-  --x-toolbar-capsule-height: calc(var(--space-6) + 2 * var(--space-1));
-  --x-toolbar-capsule-radius: calc(max(var(--radius-2), var(--radius-pill)) + var(--space-1));
-
   padding-block-start: calc(env(safe-area-inset-top, 0px) + var(--space-2));
 
   &[data-position="bottom"] {
     padding-block: 0 calc(env(safe-area-inset-bottom, 0px) + var(--space-2));
-  }
-
-  /* a wrapper holding only buttons is a capsule (a title never is) */
-  & :not(.x-button):has(> .x-button):not(:has(> :not(.x-button))) {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    padding: var(--space-1);
-    border-radius: var(--x-toolbar-capsule-radius);
-    background-color: var(--color-material, var(--color-surface));
-    backdrop-filter: var(--backdrop-filter-material, none);
-    box-shadow: var(--shadow-3);
-
-    /* text buttons fit their content (button.css): give them the size-2 box,
-     * so the capsule pads 4px on every side; no bleed, tap areas touch */
-    & > .x-button {
-      box-sizing: border-box;
-      block-size: var(--space-6);
-      min-inline-size: var(--space-6);
-      justify-content: center;
-      margin: 0;
-    }
-  }
-
-  & .x-text-input {
-    --text-input-height: var(--x-toolbar-capsule-height);
-    --text-input-border-radius: var(--x-toolbar-capsule-radius);
-    border: 0;
-    background-color: var(--color-material, var(--color-surface));
-    backdrop-filter: var(--backdrop-filter-material, none);
-    box-shadow: var(--shadow-3);
-  }
-
-  /* the indicator insets like buttons in a capsule */
-  & .x-segmented-control {
-    --seg-inset: var(--space-1);
-    --seg-track-radius: var(--x-toolbar-capsule-radius);
-    height: var(--x-toolbar-capsule-height);
-    background-color: var(--color-material, var(--color-surface));
-    background-image: none;
-    backdrop-filter: var(--backdrop-filter-material, none);
-    box-shadow: var(--shadow-3);
   }
 }
 
@@ -328,27 +251,27 @@
 
 /* soft: content blurs and tints at the screen edge, fading back to sharp past the bar */
 .x-toolbar[data-variant="soft"] {
+  --x-toolbar-edge: to bottom;
+
   &::before {
     inset-block-end: calc(-1 * var(--space-4));
     background: linear-gradient(
-      to bottom,
+      var(--x-toolbar-edge),
       color-mix(in srgb, var(--color-background) 80%, transparent),
       transparent
     );
     backdrop-filter: blur(var(--toolbar-edge-blur, 8px));
-    mask-image: linear-gradient(to bottom, black 50%, transparent);
+    mask-image: linear-gradient(var(--x-toolbar-edge), black 50%, transparent);
     box-shadow: none;
     pointer-events: none;
   }
 
-  &[data-position="bottom"]::before {
-    inset-block: calc(-1 * var(--space-4)) 0;
-    background: linear-gradient(
-      to top,
-      color-mix(in srgb, var(--color-background) 80%, transparent),
-      transparent
-    );
-    mask-image: linear-gradient(to top, black 50%, transparent);
+  &[data-position="bottom"] {
+    --x-toolbar-edge: to top;
+
+    &::before {
+      inset-block: calc(-1 * var(--space-4)) 0;
+    }
   }
 }
 
@@ -390,14 +313,15 @@
   text-align: center;
 }
 
-/* with an accessory: [data-title] truncates, the accessory keeps its size (one line tall) */
+/* with an accessory (at most one line tall): [data-title] truncates, the accessory keeps its size */
 .x-large-title:has(> [data-title]) {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
   align-items: center;
   gap: var(--space-3);
 
   & > [data-title] {
+    flex: 1;
+    min-inline-size: 0;
     margin: 0;
     font: inherit;
     letter-spacing: inherit;
@@ -405,17 +329,9 @@
     text-overflow: ellipsis;
   }
 
-  /* centered: [ · | title | accessory ], so the title centers on the row */
-  &[data-align="center"] {
-    grid-template-columns: 1fr minmax(0, auto) 1fr;
-
-    & > [data-title] {
-      grid-column: 2;
-    }
-
-    & > :not([data-title]) {
-      justify-self: end;
-    }
+  /* centered: mirror the accessory's room, so the title centers on the row */
+  &[data-align="center"] > [data-title] {
+    padding-inline-start: calc(var(--heading-line-height-8) + var(--space-3));
   }
 }
 

@@ -7,14 +7,17 @@ import { fromEvent, sync } from "../../utilities/event-driven";
 import "../../utilities/dom-lifecycle";
 import "../avatar/avatar.css";
 import "../button/button.css";
+import "../group/group.css";
 import "../segmented-control/segmented-control.css";
 import "../text-input/text-input.css";
 import "./toolbar.css";
 import { onCleanup } from "@/signals";
 
+type Variant = "surface" | "soft" | "clean";
+
 interface Args {
   /** data-variant of the screen's bars */
-  variant: "surface" | "soft" | "clean";
+  variant: Variant;
 }
 
 /** Writes raw scroll (px) on `host`; toolbar.css turns it into progress. */
@@ -51,6 +54,9 @@ const ICONS = {
     "M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z",
 };
 
+/** clean/soft bars float their controls */
+const floats = (variant: Variant) => variant !== "surface";
+
 /** Sized by the surrounding font-size. */
 const Icon = (props: { d: string }) => (
   <svg
@@ -68,7 +74,6 @@ const Icon = (props: { d: string }) => (
   </svg>
 );
 
-// text buttons: in clean/soft bars the capsule is their background
 const IconButton = (props: { label: string; d: string }) => (
   <button
     class:unset
@@ -89,33 +94,69 @@ const TextButton = (props: { label: string; d?: string }) => (
   </button>
 );
 
+/** Buttons that belong together: a material capsule in clean/soft bars, a plain wrapper in surface. */
+const Group = (props: {
+  variant: Variant;
+  label?: string;
+  children?: Children;
+}) =>
+  floats(props.variant) ? (
+    <div
+      class:x-group
+      data-variant="material"
+      role={props.label ? "group" : undefined}
+      aria-label={props.label}
+    >
+      {props.children}
+    </div>
+  ) : (
+    <div role={props.label ? "group" : undefined} aria-label={props.label}>
+      {props.children}
+    </div>
+  );
+
 const Title = (props: { text: string }) => (
   <span data-title="">{props.text}</span>
 );
 
-const Search = (props: { placeholder: string }) => (
-  <div class:x-text-input data-variant="surface" data-size="3">
-    {/* affix: text-input pads non-input children, so the icon needs its own wrapper */}
-    <span>
-      <Icon d={ICONS.search} />
-    </span>
-    <input
-      class:unset
-      type="search"
-      placeholder={props.placeholder}
-      aria-label={props.placeholder}
-    />
-  </div>
-);
+/** Floating: a soft field inside a material group, which is its background. */
+const Search = (props: { placeholder: string; variant: Variant }) => {
+  const floating = floats(props.variant);
+  const field = (
+    <div
+      class:x-text-input
+      data-variant={floating ? "soft" : "surface"}
+      data-size={floating ? "2" : "3"}
+    >
+      {/* affix: text-input pads non-input children, so the icon needs its own wrapper */}
+      <span>
+        <Icon d={ICONS.search} />
+      </span>
+      <input
+        class:unset
+        type="search"
+        placeholder={props.placeholder}
+        aria-label={props.placeholder}
+      />
+    </div>
+  );
+  return floating ? <Group variant={props.variant}>{field}</Group> : field;
+};
 
 let segmentedId = 0;
 
-const Segmented = (props: { label: string; options: string[] }) => {
+const Segmented = (props: {
+  label: string;
+  options: string[];
+  variant: Variant;
+}) => {
   const name = `toolbar-seg-${segmentedId++}`;
-  return (
+  const floating = floats(props.variant);
+  const control = (
     <div
       class:unset
       class:x-segmented-control
+      data-variant={floating ? "soft" : "surface"}
       data-size="2"
       role="radiogroup"
       aria-label={props.label}
@@ -133,6 +174,8 @@ const Segmented = (props: { label: string; options: string[] }) => {
       ))}
     </div>
   );
+  // floating: a soft control inside a material group, which is its track
+  return floating ? <Group variant={props.variant}>{control}</Group> : control;
 };
 
 /** Regular content under the large title (search, filter); scrolls with the list. */
@@ -251,7 +294,7 @@ const meta = {
       control: "inline-radio",
       options: ["surface", "soft", "clean"],
       description:
-        "surface: material bar + hairline · clean: no bar, capsules · soft: clean + gradient blur edge",
+        "surface: material bar + hairline · clean: no bar, material controls · soft: clean + gradient blur edge",
     },
   },
   args: { variant: "surface" },
@@ -268,7 +311,7 @@ export const Settings: Story = {
     <Screen>
       <h1 class:x-large-title>Settings</h1>
       <header class:x-toolbar data-variant={args.variant}>
-        <Search placeholder="Search" />
+        <Search placeholder="Search" variant={args.variant} />
       </header>
       <div>
         <Rows items={SETTINGS} />
@@ -278,42 +321,45 @@ export const Settings: Story = {
 };
 
 /** Back + title + action, a segmented filter under the large title, a status bottom bar. */
-export const Inbox: Story =
-  {
-    render: (args) => (
-      <Screen>
-        <header class:x-toolbar data-variant={args.variant}>
-          <div>
-            <TextButton label="Mailboxes" d={ICONS.back} />
-          </div>
-          <Title text="Inbox" />
-          <div>
-            <TextButton label="Edit" />
-          </div>
-        </header>
-        <h1 class:x-large-title>Inbox</h1>
-        <div>
-          <Controls>
-            <Segmented label="Filter" options={["All", "Unread", "Flagged"]} />
-          </Controls>
-          <Rows items={MAIL} />
-        </div>
-        <footer
-          class:x-toolbar
-          data-position="bottom"
-          data-variant={args.variant}
-        >
-          <div>
-            <IconButton label="Filter" d={ICONS.filter} />
-          </div>
-          <Title text="Updated just now" />
-          <div>
-            <IconButton label="Compose" d={ICONS.compose} />
-          </div>
-        </footer>
-      </Screen>
-    ),
-  };
+export const Inbox: Story = {
+  render: (args) => (
+    <Screen>
+      <header class:x-toolbar data-variant={args.variant}>
+        <Group variant={args.variant}>
+          <TextButton label="Mailboxes" d={ICONS.back} />
+        </Group>
+        <Title text="Inbox" />
+        <Group variant={args.variant}>
+          <TextButton label="Edit" />
+        </Group>
+      </header>
+      <h1 class:x-large-title>Inbox</h1>
+      <div>
+        <Controls>
+          <Segmented
+            label="Filter"
+            options={["All", "Unread", "Flagged"]}
+            variant="surface"
+          />
+        </Controls>
+        <Rows items={MAIL} />
+      </div>
+      <footer
+        class:x-toolbar
+        data-position="bottom"
+        data-variant={args.variant}
+      >
+        <Group variant={args.variant}>
+          <IconButton label="Filter" d={ICONS.filter} />
+        </Group>
+        <Title text="Updated just now" />
+        <Group variant={args.variant}>
+          <IconButton label="Compose" d={ICONS.compose} />
+        </Group>
+      </footer>
+    </Screen>
+  ),
+};
 
 /** iOS 26 list: floating capsules, search and compose at the bottom. */
 export const Notes: Story = {
@@ -321,13 +367,13 @@ export const Notes: Story = {
   render: (args) => (
     <Screen>
       <header class:x-toolbar data-variant={args.variant}>
-        <div>
+        <Group variant={args.variant}>
           <IconButton label="Folders" d={ICONS.back} />
-        </div>
-        <div>
+        </Group>
+        <Group variant={args.variant}>
           <IconButton label="Share" d={ICONS.share} />
           <IconButton label="More" d={ICONS.more} />
-        </div>
+        </Group>
       </header>
       <h1 class:x-large-title>Notes</h1>
       <div>
@@ -338,12 +384,10 @@ export const Notes: Story = {
         data-position="bottom"
         data-variant={args.variant}
       >
-        <div>
-          <Search placeholder="Search notes" />
-        </div>
-        <div>
+        <Search placeholder="Search notes" variant={args.variant} />
+        <Group variant={args.variant}>
           <IconButton label="New note" d={ICONS.compose} />
-        </div>
+        </Group>
       </footer>
     </Screen>
   ),
@@ -356,9 +400,9 @@ export const Photos: Story = {
     <Screen>
       <header class:x-toolbar data-variant={args.variant}>
         <Title text="Library" />
-        <div>
+        <Group variant={args.variant}>
           <TextButton label="Select" />
-        </div>
+        </Group>
       </header>
       <div>
         <Rows items={DAYS} />
@@ -368,7 +412,11 @@ export const Photos: Story = {
         data-position="bottom"
         data-variant={args.variant}
       >
-        <Segmented label="Group by" options={["Years", "Months", "All"]} />
+        <Segmented
+          label="Group by"
+          options={["Years", "Months", "All"]}
+          variant={args.variant}
+        />
       </footer>
     </Screen>
   ),
@@ -401,16 +449,15 @@ export const Chat: Story = {
     <Screen>
       <header class:x-toolbar data-variant={args.variant}>
         <div>
-          {/* own wrapper: a capsule in clean/soft bars */}
-          <div>
+          <Group variant={args.variant}>
             <IconButton label="Back" d={ICONS.back} />
-          </div>
+          </Group>
           <Title text="Design Team" />
         </div>
-        <div>
+        <Group variant={args.variant}>
           <IconButton label="Video call" d={ICONS.video} />
           <IconButton label="More" d={ICONS.more} />
-        </div>
+        </Group>
       </header>
       <div>
         <Rows items={MESSAGES} />
@@ -426,20 +473,20 @@ export const Editor: Story = {
     <Screen width={1024}>
       <header class:x-toolbar data-variant={args.variant}>
         <div>
-          <div>
+          <Group variant={args.variant}>
             <IconButton label="Back" d={ICONS.back} />
-          </div>
+          </Group>
           <Title text="Q3 Report" />
         </div>
-        <div role="group" aria-label="Tools">
+        <Group variant={args.variant} label="Tools">
           <IconButton label="Pen" d={ICONS.pen} />
           <IconButton label="Text" d={ICONS.text} />
           <IconButton label="Shapes" d={ICONS.shapes} />
-        </div>
-        <div>
+        </Group>
+        <Group variant={args.variant}>
           <IconButton label="Share" d={ICONS.share} />
           <IconButton label="More" d={ICONS.more} />
-        </div>
+        </Group>
       </header>
       <div>
         <Rows items={NOTES} />
@@ -458,7 +505,7 @@ export const PageScroll: Story = {
         <section>
           <h1 class:x-large-title>Settings</h1>
           <header class:x-toolbar data-variant={args.variant}>
-            <Search placeholder="Search" />
+            <Search placeholder="Search" variant={args.variant} />
           </header>
           <div>
             <Rows items={repeat(SETTINGS, 60)} />

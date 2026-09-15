@@ -3,6 +3,7 @@ import type { Meta, StoryObj } from "@storybook/html-vite";
 import "./group.css";
 import "../button/button.css";
 import "../text-input/text-input.css";
+import "../segmented-control/segmented-control.css";
 import "../select/select.css";
 import "../toggle/toggle.css";
 
@@ -178,6 +179,87 @@ export const ToggleRow: Story = {
       </div>
     );
   },
+};
+
+// busy backdrop: material's translucency and blur only show over something behind it
+const BACKDROP =
+  "padding: 24px; border-radius: 12px; background: repeating-linear-gradient(45deg, oklch(0.78 0.14 25) 0 14px, oklch(0.86 0.1 200) 14px 28px)";
+
+const TextButton = (props: {
+  label: string;
+  d?: string;
+  icon?: boolean;
+  disabled?: boolean;
+}) => (
+  <button
+    class:unset
+    class:x-button
+    data-variant="text"
+    data-size="2"
+    data-icon={props.icon ? "" : undefined}
+    aria-label={props.icon ? props.label : undefined}
+    disabled={props.disabled || undefined}
+  >
+    {props.d ? <Icon d={props.d} /> : null}
+    {props.icon ? null : props.label}
+  </button>
+);
+
+// Material — floating capsules (iOS 26 toolbars): size-2 children + 4px padding = 40px. A soft input
+// or segmented control inside uses the capsule as its background.
+export const Material: Story = {
+  parameters: { controls: { exclude: ["size"] } },
+  render: () => (
+    <div
+      style={`${BACKDROP}; display: flex; flex-wrap: wrap; align-items: center; gap: 12px`}
+    >
+      <div class:x-group data-variant="material">
+        <TextButton label="Back" d="M10 3 5 8l5 5" icon />
+      </div>
+      <div class:x-group data-variant="material" role="group" aria-label="Actions">
+        <TextButton label="Share" d="M8 2v8M5 5l3-3 3 3M3 9v4h10V9" icon />
+        <TextButton label="More" d="M3 8h1M7.5 8h1M12 8h1" icon />
+      </div>
+      <div class:x-group data-variant="material">
+        <TextButton label="Edit" />
+      </div>
+      <div class:x-group data-variant="material">
+        <TextButton label="Mailboxes" d="M10 3 5 8l5 5" />
+      </div>
+      <div class:x-group data-variant="material" role="group" aria-label="Zoom">
+        <TextButton label="Zoom out" d="M3 8h10" icon />
+        <TextButton label="Zoom in" d="M3 8h10M8 3v10" icon disabled />
+      </div>
+      <div class:x-group data-variant="material" style="width: 200px">
+        <div class:x-text-input data-variant="soft" data-size="2">
+          <span aria-hidden="true">🔍</span>
+          <input class:unset placeholder="Search" />
+        </div>
+      </div>
+      <div class:x-group data-variant="material">
+        <div
+          class:unset
+          class:x-segmented-control
+          data-variant="soft"
+          data-size="2"
+          role="radiogroup"
+          aria-label="View"
+        >
+          {["Day", "Week"].map((opt, i) => (
+            <label>
+              <input
+                type="radio"
+                name="group-material-view"
+                value={opt.toLowerCase()}
+                checked={i === 0 || undefined}
+              />
+              <span>{opt}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+    </div>
+  ),
 };
 
 // Mixed controls — input + select + button all attached.
