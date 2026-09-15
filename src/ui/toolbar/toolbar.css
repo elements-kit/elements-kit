@@ -37,20 +37,43 @@
 
 :has(> .x-toolbar[data-position="bottom"]),
 :root:has(.x-toolbar[data-position="bottom"]) {
-  --toolbar-bottom-height: calc(52px * var(--scaling) + env(safe-area-inset-bottom, 0px));
+  --toolbar-bottom-height: calc(
+    52px * var(--scaling) + env(safe-area-inset-bottom, 0px)
+  );
   scroll-padding-block-end: var(--toolbar-bottom-height);
 }
 
 /* clean / soft bars are taller, so floating controls sit off the screen edge:
  * 64 = 8 + 8 + 40px control + 8 */
-:has(> .x-toolbar:is([data-variant="soft"], [data-variant="clean"]):not([data-position="bottom"])),
-:root:has(.x-toolbar:is([data-variant="soft"], [data-variant="clean"]):not([data-position="bottom"])) {
+:has(
+  > .x-toolbar:is([data-variant="soft"], [data-variant="clean"]):not(
+      [data-position="bottom"]
+    )
+),
+:root:has(
+  .x-toolbar:is([data-variant="soft"], [data-variant="clean"]):not(
+      [data-position="bottom"]
+    )
+) {
   --toolbar-height: calc(64px * var(--scaling) + env(safe-area-inset-top, 0px));
 }
 
-:has(> .x-toolbar:is([data-variant="soft"], [data-variant="clean"])[data-position="bottom"]),
-:root:has(.x-toolbar:is([data-variant="soft"], [data-variant="clean"])[data-position="bottom"]) {
-  --toolbar-bottom-height: calc(64px * var(--scaling) + env(safe-area-inset-bottom, 0px));
+:has(
+  > .x-toolbar:is(
+      [data-variant="soft"],
+      [data-variant="clean"]
+    )[data-position="bottom"]
+),
+:root:has(
+  .x-toolbar:is(
+      [data-variant="soft"],
+      [data-variant="clean"]
+    )[data-position="bottom"]
+) {
+  /* 60 = 4 padding + 40px control + 16 screen-side: bottom space equals the 16px sides */
+  --toolbar-bottom-height: calc(
+    60px * var(--scaling) + env(safe-area-inset-bottom, 0px)
+  );
 }
 
 /* never rest mid-collapse; proximity leaves the list free */
@@ -78,7 +101,9 @@
 .x-toolbar,
 .x-large-title {
   /* one line + padding: known without measuring */
-  --x-large-title-height: calc(var(--heading-line-height-8) + var(--space-4) + var(--space-2));
+  --x-large-title-height: calc(
+    var(--heading-line-height-8) + var(--space-4) + var(--space-2)
+  );
 }
 
 .x-toolbar {
@@ -149,7 +174,10 @@
  ***************************************************************************************************/
 
 /* regions, and any wrapper of buttons inside them (so buttons center on the title) */
-:where(.x-toolbar > :not([data-title]), .x-toolbar :not(.x-button):has(> .x-button)) {
+:where(
+  .x-toolbar > :not([data-title]),
+  .x-toolbar :not(.x-button):has(> .x-button)
+) {
   display: flex;
   align-items: center;
   gap: var(--toolbar-button-gap);
@@ -180,7 +208,10 @@
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
-:where(.x-toolbar:not(:has(> :nth-child(3), > [data-title])) > :last-child:not(:first-child)) {
+:where(
+  .x-toolbar:not(:has(> :nth-child(3), > [data-title]))
+    > :last-child:not(:first-child)
+) {
   grid-column: 2;
 }
 
@@ -224,7 +255,8 @@
   block-size: auto;
   min-block-size: var(--toolbar-bottom-height);
   /* room around taller content; home indicator below */
-  padding-block: var(--space-1) calc(env(safe-area-inset-bottom, 0px) + var(--space-1));
+  padding-block: var(--space-1)
+    calc(env(safe-area-inset-bottom, 0px) + var(--space-1));
 
   /* always shown, hairline on the top edge */
   &::before {
@@ -243,7 +275,8 @@
   padding-block-start: calc(env(safe-area-inset-top, 0px) + var(--space-2));
 
   &[data-position="bottom"] {
-    padding-block: 0 calc(env(safe-area-inset-bottom, 0px) + var(--space-2));
+    padding-block: var(--space-1)
+      calc(env(safe-area-inset-bottom, 0px) + var(--space-4));
   }
 }
 
@@ -299,7 +332,9 @@
   white-space: nowrap;
 
   /* iOS: slides under the bar and fades, no shrink */
-  opacity: calc(1 - clamp(0, tan(atan2(var(--scroll-y), var(--x-large-title-height))), 1));
+  opacity: calc(
+    1 - clamp(0, tan(atan2(var(--scroll-y), var(--x-large-title-height))), 1)
+  );
 
   /* snap: expanded (scrollTop 0) */
   scroll-snap-align: start;

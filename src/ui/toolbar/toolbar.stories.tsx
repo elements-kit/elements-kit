@@ -161,6 +161,7 @@ const Segmented = (props: {
       class:x-segmented-control
       data-variant={floating ? "soft" : "surface"}
       data-size="2"
+      data-accent="neutral"
       role="radiogroup"
       aria-label={props.label}
     >
@@ -199,6 +200,7 @@ const Tabs = (props: { variant: Variant }) => {
       data-variant={floating ? "soft" : "surface"}
       data-size="2"
       data-layout="stacked"
+      data-accent="neutral"
       role="radiogroup"
       aria-label="Sections"
     >
@@ -249,7 +251,7 @@ function Screen(props: { width?: number; children?: Children }) {
       ref={(el) => {
         stop = effectScope(() => driveScroll(el, createElementScroll(el).y));
       }}
-      style={`height:560px;max-width:${props.width ?? 390}px;overflow:auto;border-radius:var(--radius-5);box-shadow:0 0 0 1px var(--neutral-a5)`}
+      style={`height:720px;max-width:${props.width ?? 390}px;overflow:auto;border-radius:var(--radius-5);box-shadow:0 0 0 1px var(--neutral-a5)`}
     >
       {props.children}
     </div>
