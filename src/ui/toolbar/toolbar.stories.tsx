@@ -181,14 +181,15 @@ const Heading = (props: { args: Args }) => (
   </h1>
 );
 
+// one wrapper after the large title (see toolbar.css): the list scrolls free past the collapse
 const Rows = (props: { count: number }) => (
-  <>
+  <div>
     {Array.from({ length: props.count }, (_, i) => (
       <p style="margin:0;padding:var(--space-3) var(--space-4);box-shadow:inset 0 -1px var(--neutral-a3)">
         Row {i + 1}
       </p>
     ))}
-  </>
+  </div>
 );
 
 const Content = (props: { args: Args; rows: number; device: Device }) => (

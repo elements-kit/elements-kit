@@ -7,6 +7,10 @@
  * Bar and large title are direct children of the scroll container, title
  * right after the bar. The large title is one line (iOS truncates).
  *
+ * Wrap the content after the large title in one element (<ul>, <section>,
+ * <div>). Snap pulls only inside the collapse; the list scrolls free, and
+ * a focusable element in it still scrolls into view when focused.
+ *
  * Regions come from child order: first → start, middle → center, last → end.
  * A bare [data-title] child is always the center. Wrap several items in any
  * element. [data-title] can sit in any region.
@@ -233,7 +237,11 @@
   transform-origin: center;
 }
 
-/* snap: collapsed (scrollTop = title height) */
+/*
+ * snap: collapsed (scrollTop = title height). The wrapper after the title is
+ * taller than the viewport, so any resting position inside it is valid:
+ * only 0 < scrollTop < title height gets pulled to an end.
+ */
 .x-large-title + * {
   scroll-snap-align: start;
 }
