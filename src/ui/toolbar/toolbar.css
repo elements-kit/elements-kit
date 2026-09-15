@@ -4,7 +4,7 @@
  * JS writes the scroll position (px) as --scroll-y on the scroll container;
  * CSS turns it into --x-toolbar-progress (0 expanded → 1 collapsed).
  *
- * Bar and large title are direct children of the scroll container, title
+ * Bar and large title are siblings at the top of the scroll container, title
  * right after the bar. The large title is one line (iOS truncates).
  *
  * Wrap the content after the large title in one element (<ul>, <section>,
@@ -30,13 +30,14 @@
  *              <div>…actions…</div>           ← no center: start takes the space
  *            </header>
  *
- *   <h1 class="x-large-title" data-align="start | center">…</h1>  ← optional, right after the bar
+ *   Large title, optional, right after the bar:
+ *            <h1 class="x-large-title" data-align="start | center">…</h1>
+ *            <div class="x-large-title"><h1 data-title>…</h1><button>…</button></div>  ← with accessory
  *
  * Modes:
  *   large title  bar title + background fade in as the large title collapses
  *   bar only     no .x-large-title: title always shown, background on scroll
- *   page scroll  bar in <body> or an app root (body > * > .x-toolbar);
- *                write --scroll-y on <html>
+ *   page scroll  bar anywhere in the page, at its top; write --scroll-y on <html>
  *
  * Tokens (set on .x-toolbar):
  *   --toolbar-button-gap   between items inside a region
@@ -53,7 +54,7 @@
  ***************************************************************************************************/
 
 :has(> .x-toolbar),
-:root:has(> body > .x-toolbar, > body > * > .x-toolbar) {
+:root:has(.x-toolbar) {
   --toolbar-height: calc(52px * var(--scaling) + env(safe-area-inset-top, 0px));
   /* one line + bottom padding */
   --x-large-title-height: calc(var(--heading-line-height-8) + var(--space-2));
@@ -196,6 +197,22 @@
   margin-inline-end: 0;
 }
 
+/* a title on the bar's outer edge (no back button) sits on the content margin,
+ * like text labels: bar padding + space-2 */
+.x-toolbar > :first-child > [data-title]:first-child {
+  margin-inline-start: var(--space-2);
+}
+
+.x-toolbar > :last-child:not(:first-child) > [data-title]:last-child {
+  margin-inline-end: var(--space-2);
+}
+
+/* between text buttons: a gap of twice their bleed (8px at sizes 2–3) makes
+ * neighbours' tap areas touch, and glyphs sit that far apart */
+.x-toolbar > :has(> .x-button[data-variant="text"]) {
+  gap: var(--space-4);
+}
+
 /***************************************************************************************************
  *                                                                                                 *
  * LARGE TITLE                                                                                     *
@@ -218,22 +235,38 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 
+  /* iOS: slides under the bar and fades, no shrink */
   opacity: calc(1 - var(--x-toolbar-progress));
-  scale: calc(1 - 0.1 * var(--x-toolbar-progress));
-  transform-origin: left;
 
   /* snap: expanded (scrollTop 0) */
   scroll-snap-align: start;
-
-  &:dir(rtl) {
-    transform-origin: right;
-  }
 }
 
-/* centered; after :dir(rtl) so it wins in both directions */
 .x-large-title[data-align="center"] {
   text-align: center;
-  transform-origin: center;
+}
+
+/* with an accessory: [data-title] truncates, the accessory keeps its size
+ * (keep it within one line height) */
+.x-large-title:has(> [data-title]) {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+
+  & > [data-title] {
+    flex: 1;
+    min-inline-size: 0;
+    margin: 0;
+    font: inherit;
+    letter-spacing: inherit;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  & > :not([data-title]) {
+    flex: none;
+  }
 }
 
 /*
@@ -247,10 +280,18 @@
 
 /***************************************************************************************************
  *                                                                                                 *
- * FORCED COLORS — box-shadow and translucency drop; keep a solid bar with a visible edge.         *
+ * REDUCED TRANSPARENCY / FORCED COLORS                                                            *
  *                                                                                                 *
  ***************************************************************************************************/
 
+@media (prefers-reduced-transparency: reduce) {
+  .x-toolbar::before {
+    background-color: var(--color-material-solid, var(--color-surface));
+    backdrop-filter: none;
+  }
+}
+
+/* box-shadow and translucency drop; keep a solid bar with a visible edge */
 @media (forced-colors: active) {
   .x-toolbar::before {
     background-color: Canvas;

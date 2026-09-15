@@ -11,10 +11,12 @@ import { onCleanup } from "@/signals";
 interface Args {
   title: string;
   titlePosition: "center" | "leading";
+  backButton: boolean;
   buttons: "text" | "icon";
   variant: "soft" | "text";
   largeTitle: boolean;
   largeTitleAlign: "start" | "center";
+  largeTitleAccessory: boolean;
 }
 
 type Device = "phone" | "ipad";
@@ -42,6 +44,7 @@ const ICONS = {
   shapes:
     "M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z",
   share: "M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13",
+  user: "M20 21a8 8 0 0 0-16 0M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z",
 };
 
 // 16px: the kit's icon size for default buttons (see group, alert stories)
@@ -83,6 +86,8 @@ const IconButton = (props: {
     data-variant={props.variant}
     data-icon=""
     data-radius="pill"
+    // text icons: size 3 (8px padding) puts the glyph on the 16px content margin
+    data-size={props.variant === "text" ? "3" : "2"}
     aria-label={props.label}
   >
     <Icon d={props.d} />
@@ -118,19 +123,19 @@ const Actions = (props: { args: Args }) =>
     <TextButton label="Edit" variant={props.args.variant} />
   );
 
-/** iPhone: [back] title [actions], or [back title] [actions] */
+/** iPhone: [back] title [actions], or [back title] [actions]; back is optional */
 const PhoneBar = (props: { args: Args }) =>
   props.args.titlePosition === "leading" ? (
     <header class:x-toolbar>
       <div>
-        <Back args={props.args} />
+        {props.args.backButton ? <Back args={props.args} /> : null}
         <Title args={props.args} />
       </div>
       <Actions args={props.args} />
     </header>
   ) : (
     <header class:x-toolbar>
-      <Back args={props.args} />
+      {props.args.backButton ? <Back args={props.args} /> : null}
       <Title args={props.args} />
       <Actions args={props.args} />
     </header>
@@ -175,17 +180,32 @@ const IpadBar = (props: { args: Args }) => (
   </header>
 );
 
-const Heading = (props: { args: Args }) => (
-  <h1 class:x-large-title data-align={props.args.largeTitleAlign}>
-    {props.args.title}
-  </h1>
-);
+/** Large title, optionally with an accessory (profile button) beside it. */
+const Heading = (props: { args: Args }) =>
+  props.args.largeTitleAccessory ? (
+    <div class:x-large-title data-align={props.args.largeTitleAlign}>
+      <h1 data-title="">{props.args.title}</h1>
+      <IconButton
+        label="Profile"
+        d={ICONS.user}
+        variant={props.args.variant}
+      />
+    </div>
+  ) : (
+    <h1 class:x-large-title data-align={props.args.largeTitleAlign}>
+      {props.args.title}
+    </h1>
+  );
 
 // one wrapper after the large title (see toolbar.css): the list scrolls free past the collapse
 const Rows = (props: { count: number }) => (
   <div>
     {Array.from({ length: props.count }, (_, i) => (
-      <p style="margin:0;padding:var(--space-3) var(--space-4);box-shadow:inset 0 -1px var(--neutral-a3)">
+      <p style="display:flex;align-items:center;gap:var(--space-3);margin:0;padding:var(--space-3) var(--space-4);box-shadow:inset 0 -1px var(--neutral-a3)">
+        {/* colored swatch: shows what the translucent bar lets through */}
+        <span
+          style={`width:var(--space-7);height:var(--space-7);border-radius:var(--radius-3);flex:none;background:oklch(0.72 0.14 ${(i * 37) % 360})`}
+        />
         Row {i + 1}
       </p>
     ))}
@@ -221,12 +241,14 @@ function ScrollView(props: { args: Args; device: Device }) {
   );
 }
 
-/** The page scrolls: bar sits in the app root, --scroll-y lives on <html>. */
+/** The page scrolls: bar nested in the app (main > section), --scroll-y lives on <html>. */
 function PageView(props: { args: Args }) {
   let stop: (() => void) | undefined;
   return (
-    <>
-      <Content args={props.args} rows={60} device="phone" />
+    <main>
+      <section>
+        <Content args={props.args} rows={60} device="phone" />
+      </section>
       <dom-lifecycle
         onConnect={() => {
           stop = effectScope(() => {
@@ -236,7 +258,7 @@ function PageView(props: { args: Args }) {
         }}
         onDisconnect={() => stop?.()}
       />
-    </>
+    </main>
   );
 }
 
@@ -245,18 +267,22 @@ const meta = {
   argTypes: {
     title: { control: "text" },
     titlePosition: { control: "select", options: ["center", "leading"] },
+    backButton: { control: "boolean" },
     buttons: { control: "select", options: ["text", "icon"] },
     variant: { control: "select", options: ["soft", "text"] },
     largeTitle: { control: "boolean" },
     largeTitleAlign: { control: "select", options: ["start", "center"] },
+    largeTitleAccessory: { control: "boolean" },
   },
   args: {
     title: "Settings",
     titlePosition: "center",
+    backButton: true,
     buttons: "text",
     variant: "soft",
     largeTitle: true,
     largeTitleAlign: "start",
+    largeTitleAccessory: false,
   },
   render: (args) => <ScrollView args={args} device="phone" />,
 } satisfies Meta<Args>;
@@ -274,9 +300,22 @@ export const LongTitle: Story = {
   args: { title: "Notifications and Privacy Preferences" },
 };
 
+/** Accessory beside the large title; a long title truncates, the button keeps its size. */
+export const LargeTitleAccessory: Story = {
+  args: {
+    title: "Notifications and Privacy Preferences",
+    largeTitleAccessory: true,
+  },
+};
+
 export const BarOnly: Story = { args: { largeTitle: false } };
 
 export const LeadingTitle: Story = { args: { titlePosition: "leading" } };
+
+/** Leading title with no back button: the title sits on the content margin. */
+export const LeadingTitleNoBack: Story = {
+  args: { titlePosition: "leading", backButton: false, largeTitle: false },
+};
 
 export const IconButtons: Story = { args: { buttons: "icon" } };
 
