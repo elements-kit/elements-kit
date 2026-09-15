@@ -12,8 +12,9 @@
  * a focusable element in it still scrolls into view when focused.
  *
  * Regions come from child order: first → start, middle → center, last → end.
- * A bare [data-title] child is always the center. Wrap several items in any
- * element. [data-title] can sit in any region.
+ * A bare [data-title] child is always the center; a lone button group with no
+ * title centers too. Wrap several items in any element. [data-title] can sit
+ * in any region.
  *
  *   iPhone   <header class="x-toolbar">
  *              <button>‹</button> <span data-title>Settings</span> <button>Edit</button>
@@ -40,16 +41,20 @@
  *   page scroll  bar anywhere in the page, at its top; write --scroll-y on <html>
  *
  * Attributes (independent):
- *   data-position="top | bottom"    top: sticky under the notch (default)
- *                                   bottom: last child of the scroll container, above the home indicator
+ *   data-position="top | bottom"   top: sticky under the notch (default)
+ *                                  bottom: last child of the scroll container, above the home
+ *                                  indicator. Short content: the container becomes a column so the
+ *                                  bar still sits at the bottom (page scroll: give the bar's parent
+ *                                  min-block-size: 100dvh)
  *   data-variant="surface | soft"  surface: material background + hairline (default)
- *                                   soft (iOS 26): no bar, gradient blur edge; a wrapper holding only
- *                                   buttons becomes a material capsule; titles stay plain text
+ *                                  soft (iOS 26): no bar, gradient blur edge; a wrapper holding only
+ *                                  buttons becomes a material capsule; titles stay plain text
  *
  * Tokens (set on .x-toolbar):
- *   --toolbar-button-gap   between items inside a region
- *   --toolbar-region-gap   between regions
- *   --toolbar-edge-blur    soft only: blur behind the bar edge (default 8px; 0 = tint only)
+ *   --toolbar-button-gap       between items inside a region
+ *   --toolbar-region-gap       between regions
+ *   --toolbar-max-inline-size  keep items within this width, centered (large screens; default none)
+ *   --toolbar-edge-blur        soft only: blur behind the bar edge (default 8px; 0 = tint only)
  *
  * No JS: --scroll-y is unset, the math is invalid, and each property falls
  * back to its initial value — plain bar, static large title.
@@ -103,6 +108,8 @@
 .x-toolbar {
   --toolbar-button-gap: var(--space-2);
   --toolbar-region-gap: var(--space-2);
+  /* minimum side space; variants change it */
+  --x-toolbar-gutter: var(--space-2);
   /* bar fades in over the last 40% of the collapse */
   --x-toolbar-reveal: clamp(0, (var(--x-toolbar-progress) - 0.6) / 0.4, 1);
 
@@ -117,7 +124,11 @@
   block-size: var(--toolbar-height);
   /* notch only; room comes from --toolbar-height so content stays centered */
   padding-block-start: env(safe-area-inset-top, 0px);
-  padding-inline: var(--space-2);
+  /* the gutter, or more so items stay within --toolbar-max-inline-size, centered */
+  padding-inline: max(
+    var(--x-toolbar-gutter),
+    calc((100% - var(--toolbar-max-inline-size, 100%)) / 2)
+  );
   box-sizing: border-box;
 
   font-family: var(--default-font-family);
@@ -190,6 +201,12 @@
   }
 }
 
+/* a lone button group (no title) centers across the bar */
+.x-toolbar > :only-child:not([data-title], :has([data-title])) {
+  grid-column: 1 / -1;
+  justify-self: center;
+}
+
 /*
  * Text buttons bleed past their label by a negative margin (button.css).
  * At the bar's outer edges drop the bleed, so labels sit on the content
@@ -234,8 +251,20 @@
   scroll-padding-block-end: var(--toolbar-bottom-height);
 }
 
+/* short content: a column, so margin-block-start: auto keeps the bar at the bottom;
+ * children don't shrink (the large title clips, so it would) */
+:has(> .x-toolbar[data-position="bottom"]) {
+  display: flex;
+  flex-direction: column;
+
+  & > * {
+    flex-shrink: 0;
+  }
+}
+
 .x-toolbar[data-position="bottom"] {
   inset-block: auto 0;
+  margin-block-start: auto;
   block-size: var(--toolbar-bottom-height);
   /* home indicator */
   padding-block: 0 env(safe-area-inset-bottom, 0px);
@@ -254,7 +283,7 @@
 
 /***************************************************************************************************
  *                                                                                                 *
- * VARIANT — data-variant="soft" (iOS 26): no bar, gradient blur edge; button groups float in material capsules    *
+ * VARIANT — data-variant="soft" (iOS 26): no bar, gradient blur edge; groups float in capsules     *
  *                                                                                                 *
  ***************************************************************************************************/
 
@@ -272,7 +301,7 @@
 
 .x-toolbar[data-variant="soft"] {
   /* capsules float on the content margin, off the screen edge */
-  padding-inline: var(--space-4);
+  --x-toolbar-gutter: var(--space-4);
   padding-block-start: calc(env(safe-area-inset-top, 0px) + var(--space-2));
 
   &[data-position="bottom"] {
@@ -308,12 +337,12 @@
     box-shadow: none;
   }
 
-  /* a wrapper holding only buttons is a capsule (a title never is);
-   * always pill, whatever the theme radius */
+  /* a wrapper holding only buttons is a capsule (a title never is); corners follow
+   * the theme radius, concentric with the size-3 buttons inside (+ capsule padding) */
   & :not(.x-button):has(> .x-button):not(:has(> :not(.x-button))) {
     gap: 0;
     padding: var(--space-1);
-    border-radius: 9999px;
+    border-radius: calc(max(var(--radius-3), var(--radius-pill)) + var(--space-1));
     background-color: var(--color-material, var(--color-surface));
     backdrop-filter: var(--backdrop-filter-material, none);
     box-shadow: var(--shadow-3);
