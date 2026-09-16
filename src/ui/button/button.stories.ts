@@ -1,3 +1,4 @@
+import { StoryIcon } from "../../../storybook/icon";
 import type { Meta, StoryObj } from "@storybook/html-vite";
 
 import "./button.css";
@@ -63,18 +64,10 @@ export const Icon: Story = {
     button.setAttribute("aria-label", "Close");
     if (args.highContrast) button.dataset.highContrast = "";
     button.disabled = args.disabled;
-    button.innerHTML =
-      '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">' +
-      '<path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.5" fill="none" />' +
-      "</svg>";
+    button.append(StoryIcon({ name: "close", size: "16px" }));
     return button;
   },
 };
-
-const SHARE_ICON =
-  '<svg viewBox="0 0 24 24" width="1.25em" height="1.25em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-  '<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" />' +
-  "</svg>";
 
 /** A button with an icon before its label. */
 function iconButton(args: Args, layout?: "stacked") {
@@ -85,7 +78,7 @@ function iconButton(args: Args, layout?: "stacked") {
   if (layout) button.dataset.layout = layout;
   if (args.highContrast) button.dataset.highContrast = "";
   button.disabled = args.disabled;
-  button.innerHTML = SHARE_ICON;
+  button.append(StoryIcon({ name: "share" }));
   const label = document.createElement("span");
   label.textContent = args.label;
   button.append(label);

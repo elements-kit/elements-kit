@@ -130,6 +130,8 @@
   },
   "packageManager": "pnpm@11.25.0",
   "devDependencies": {
+    "@material-symbols/svg-400": "^0.47.3",
+    "@material-symbols/svg-600": "^0.47.3",
     "@tsdown/css": "^0.22.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

@@ -1,3 +1,4 @@
+import { StoryIcon } from "../../../storybook/icon";
 import type { Meta, StoryObj } from "@storybook/html-vite";
 
 import "./text-input.css";
@@ -59,7 +60,7 @@ export const Wrapper: Story = {
         data-variant={args.variant}
         data-size={args.size}
       >
-        <span aria-hidden="true">🔍</span>
+        <span aria-hidden="true"><StoryIcon name="search" /></span>
         <input class:unset placeholder={args.placeholder} disabled={args.disabled} />
         <kbd
           class:unset
@@ -138,7 +139,7 @@ export const Disabled: Story = {
           data-variant={args.variant}
           data-size={args.size}
         >
-          <span aria-hidden="true">🔍</span>
+          <span aria-hidden="true"><StoryIcon name="search" /></span>
           <input class:unset placeholder="Disabled wrapped input" disabled />
         </div>
         <textarea

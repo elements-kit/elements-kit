@@ -15,6 +15,12 @@ importers:
         specifier: ^0.40.6
         version: 0.40.6(csstype@3.2.3)(seroval-plugins@1.5.2(seroval@1.5.2))(seroval@1.5.2)
     devDependencies:
+      '@material-symbols/svg-400':
+        specifier: ^0.47.3
+        version: 0.47.3
+      '@material-symbols/svg-600':
+        specifier: ^0.47.3
+        version: 0.47.3
       '@tsdown/css':
         specifier: ^0.22.0
         version: 0.22.0(postcss@8.5.8)(tsdown@0.22.0)(yaml@2.9.0)
@@ -1732,6 +1738,12 @@ packages:
 
   '@marijn/find-cluster-break@1.0.2':
     resolution: {integrity: sha512-l0h88YhZFyKdXIFNfSWpyjStDjGHwZ/U7iobcK1cQQD8sejsONdQtTVU+1wVN1PBw40PiiHB1vA5S7VTfQiP9g==}
+
+  '@material-symbols/svg-400@0.47.3':
+    resolution: {integrity: sha512-EBdlHojrUG9fpjOVRSnw9re3HKJq/aesQrBoa9nVhmKvB6VW9b+bm2yAshrLyXcyMRED2+VCRWmb5WA9vAfMfw==}
+
+  '@material-symbols/svg-600@0.47.3':
+    resolution: {integrity: sha512-lCwGJAKP1uLOtI95c/hPHL7OiVxcECrvfUSgAqMiYmSL2qzh0ds/XlmOF92C842uS+i9Kt+//+a3QXZuYvST+w==}
 
   '@mdx-js/mdx@3.1.1':
     resolution: {integrity: sha512-f6ZO2ifpwAQIpzGWaBQT2TXxPv6z3RBzQKpVftEWN78Vl/YweF1uwussDx8ECAXVtr3Rs89fKyG9YlzUs9DyGQ==}
@@ -7815,6 +7827,10 @@ snapshots:
 
   '@marijn/find-cluster-break@1.0.2': {}
 
+  '@material-symbols/svg-400@0.47.3': {}
+
+  '@material-symbols/svg-600@0.47.3': {}
+
   '@mdx-js/mdx@3.1.1(supports-color@10.2.2)':
     dependencies:
       '@types/estree': 1.0.8
@@ -7867,6 +7883,13 @@ snapshots:
     dependencies:
       '@emnapi/core': 1.11.0
       '@emnapi/runtime': 1.11.0
+      '@tybys/wasm-util': 0.10.3
+    optional: true
+
+  '@napi-rs/wasm-runtime@1.2.3(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)':
+    dependencies:
+      '@emnapi/core': 1.9.2
+      '@emnapi/runtime': 1.9.2
       '@tybys/wasm-util': 0.10.3
     optional: true
 
@@ -8193,14 +8216,14 @@ snapshots:
     dependencies:
       '@emnapi/core': 1.9.2
       '@emnapi/runtime': 1.9.2
-      '@napi-rs/wasm-runtime': 1.1.4(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)
+      '@napi-rs/wasm-runtime': 1.2.3(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)
     optional: true
 
   '@rolldown/binding-wasm32-wasi@1.0.0-rc.16':
     dependencies:
       '@emnapi/core': 1.9.2
       '@emnapi/runtime': 1.9.2
-      '@napi-rs/wasm-runtime': 1.1.4(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)
+      '@napi-rs/wasm-runtime': 1.2.3(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)
     optional: true
 
   '@rolldown/binding-win32-arm64-msvc@1.0.0':

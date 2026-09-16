@@ -36,6 +36,7 @@
   },
   "include": [
     "css.d.ts",
+    "icon.tsx",
     ".storybook/**/*.ts",
     // Composite projects must list every file in the program; stories import
     // library source transitively, so the whole of ../src is included (the

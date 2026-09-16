@@ -1,3 +1,4 @@
+import { StoryIcon, type IconName } from "../../../storybook/icon";
 import type { Meta, StoryObj } from "@storybook/html-vite";
 import type { Children } from "elements-kit/jsx-runtime";
 import { effect, effectScope } from "elements-kit/signals";
@@ -37,47 +38,19 @@ function driveScroll(host: HTMLElement, y: () => number) {
 
 // ── Building blocks ──────────────────────────────────────────────────────────
 
-// 24px grid (Lucide shapes)
 const ICONS = {
-  back: "M15 18l-6-6 6-6",
-  search: "M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0ZM21 21l-4.3-4.3",
-  more: "M6 12a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM13 12a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM20 12a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z",
-  share: "M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13",
-  compose:
-    "M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.4 2.6a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z",
-  filter: "M3 6h18M7 12h10M10 18h4",
-  home: "M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z",
-  library: "M4 19V5M9 19V5M14 19l4-14",
-  profile: "M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10z",
-  video:
-    "M16 13l5.2 3.1a.5.5 0 0 0 .8-.4V8.3a.5.5 0 0 0-.8-.4L16 11M4 6h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z",
-  pen: "M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z",
-  text: "M4 7V4h16v3M9 20h6M12 4v16",
-  shapes:
-    "M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z",
-};
+  back: "chevron_left", search: "search", more: "more_horiz", share: "share",
+  compose: "edit_square", filter: "filter_list", home: "home", library: "local_library",
+  profile: "person", video: "videocam", pen: "edit", text: "title", shapes: "shapes",
+} as const;
 
 /** clean/soft bars float their controls */
 const floats = (variant: Variant) => variant !== "surface";
 
-/** Sized by the surrounding font-size. */
-const Icon = (props: { d: string }) => (
-  <svg
-    width="1.25em"
-    height="1.25em"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    stroke-width="2"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-    aria-hidden="true"
-  >
-    <path d={props.d} />
-  </svg>
-);
+/** Material Symbols use a 24px box for toolbar controls. */
+const Icon = (props: { name: IconName }) => <StoryIcon name={props.name} size="24px" />;
 
-const IconButton = (props: { label: string; d: string }) => (
+const IconButton = (props: { label: string; name: IconName }) => (
   <button
     class:unset
     class:x-button
@@ -86,13 +59,13 @@ const IconButton = (props: { label: string; d: string }) => (
     data-icon=""
     aria-label={props.label}
   >
-    <Icon d={props.d} />
+    <Icon name={props.name} />
   </button>
 );
 
-const TextButton = (props: { label: string; d?: string }) => (
+const TextButton = (props: { label: string; name?: IconName }) => (
   <button class:unset class:x-button data-variant="text" data-size="2">
-    {props.d ? <Icon d={props.d} /> : null}
+    {props.name ? <Icon name={props.name} /> : null}
     {props.label}
   </button>
 );
@@ -133,7 +106,7 @@ const Search = (props: { placeholder: string; variant: Variant }) => {
     >
       {/* affix: text-input pads non-input children, so the icon needs its own wrapper */}
       <span>
-        <Icon d={ICONS.search} />
+        <Icon name={ICONS.search} />
       </span>
       <input
         class:unset
@@ -212,7 +185,7 @@ const Tabs = (props: { variant: Variant }) => {
             value={label.toLowerCase()}
             checked={i === 0 || undefined}
           />
-          <Icon d={d} />
+          <Icon name={d} />
           <span>{label}</span>
         </label>
       ))}
@@ -374,7 +347,7 @@ export const Inbox: Story = {
     <Screen variant={args.variant}>
       <header class:x-toolbar data-variant={args.variant}>
         <Group variant={args.variant}>
-          <TextButton label="Mailboxes" d={ICONS.back} />
+          <TextButton label="Mailboxes" name={ICONS.back} />
         </Group>
         <Title text="Inbox" />
         <Group variant={args.variant}>
@@ -398,11 +371,11 @@ export const Inbox: Story = {
         data-variant={args.variant}
       >
         <Group variant={args.variant}>
-          <IconButton label="Filter" d={ICONS.filter} />
+          <IconButton label="Filter" name={ICONS.filter} />
         </Group>
         <Title text="Updated just now" />
         <Group variant={args.variant}>
-          <IconButton label="Compose" d={ICONS.compose} />
+          <IconButton label="Compose" name={ICONS.compose} />
         </Group>
       </footer>
     </Screen>
@@ -416,11 +389,11 @@ export const Notes: Story = {
     <Screen variant={args.variant}>
       <header class:x-toolbar data-variant={args.variant}>
         <Group variant={args.variant}>
-          <IconButton label="Folders" d={ICONS.back} />
+          <IconButton label="Folders" name={ICONS.back} />
         </Group>
         <Group variant={args.variant}>
-          <IconButton label="Share" d={ICONS.share} />
-          <IconButton label="More" d={ICONS.more} />
+          <IconButton label="Share" name={ICONS.share} />
+          <IconButton label="More" name={ICONS.more} />
         </Group>
       </header>
       <h1 class:x-large-title>Notes</h1>
@@ -434,7 +407,7 @@ export const Notes: Story = {
       >
         <Search placeholder="Search notes" variant={args.variant} />
         <Group variant={args.variant}>
-          <IconButton label="New note" d={ICONS.compose} />
+          <IconButton label="New note" name={ICONS.compose} />
         </Group>
       </footer>
     </Screen>
@@ -517,16 +490,16 @@ export const Mail: Story = {
         <div class:x-toolbar>
           <div />
           <Group variant={args.variant}>
-            <IconButton label="Compose" d={ICONS.compose} />
+            <IconButton label="Compose" name={ICONS.compose} />
           </Group>
         </div>
         <div class:x-toolbar>
           <Group variant={args.variant}>
-            <IconButton label="Filter" d={ICONS.filter} />
+            <IconButton label="Filter" name={ICONS.filter} />
           </Group>
           <Title text="Updated just now" />
           <Group variant={args.variant}>
-            <IconButton label="Search" d={ICONS.search} />
+            <IconButton label="Search" name={ICONS.search} />
           </Group>
         </div>
       </footer>
@@ -542,11 +515,11 @@ export const Files: Story = {
       <header class:x-toolbar data-variant={args.variant}>
         <div class:x-toolbar>
           <Group variant={args.variant}>
-            <IconButton label="Browse" d={ICONS.back} />
+            <IconButton label="Browse" name={ICONS.back} />
           </Group>
           <Title text="Recents" />
           <Group variant={args.variant}>
-            <IconButton label="More" d={ICONS.more} />
+            <IconButton label="More" name={ICONS.more} />
           </Group>
         </div>
         <div class:x-toolbar>
@@ -588,13 +561,13 @@ export const Chat: Story = {
       <header class:x-toolbar data-variant={args.variant}>
         <div>
           <Group variant={args.variant}>
-            <IconButton label="Back" d={ICONS.back} />
+            <IconButton label="Back" name={ICONS.back} />
           </Group>
           <Title text="Design Team" />
         </div>
         <Group variant={args.variant}>
-          <IconButton label="Video call" d={ICONS.video} />
-          <IconButton label="More" d={ICONS.more} />
+          <IconButton label="Video call" name={ICONS.video} />
+          <IconButton label="More" name={ICONS.more} />
         </Group>
       </header>
       <div>
@@ -612,18 +585,18 @@ export const Editor: Story = {
       <header class:x-toolbar data-variant={args.variant}>
         <div>
           <Group variant={args.variant}>
-            <IconButton label="Back" d={ICONS.back} />
+            <IconButton label="Back" name={ICONS.back} />
           </Group>
           <Title text="Q3 Report" />
         </div>
         <Group variant={args.variant} label="Tools">
-          <IconButton label="Pen" d={ICONS.pen} />
-          <IconButton label="Text" d={ICONS.text} />
-          <IconButton label="Shapes" d={ICONS.shapes} />
+          <IconButton label="Pen" name={ICONS.pen} />
+          <IconButton label="Text" name={ICONS.text} />
+          <IconButton label="Shapes" name={ICONS.shapes} />
         </Group>
         <Group variant={args.variant}>
-          <IconButton label="Share" d={ICONS.share} />
-          <IconButton label="More" d={ICONS.more} />
+          <IconButton label="Share" name={ICONS.share} />
+          <IconButton label="More" name={ICONS.more} />
         </Group>
       </header>
       <div>

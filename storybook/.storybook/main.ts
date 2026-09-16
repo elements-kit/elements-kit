@@ -1,6 +1,7 @@
 import { fileURLToPath } from "node:url";
 import type { StorybookConfig } from "@storybook/html-vite";
 import { transform } from "esbuild";
+import elementsKitSvg from "../../src/integrations/svg";
 
 const src = fileURLToPath(new URL("../../src", import.meta.url));
 
@@ -42,7 +43,7 @@ const config: StorybookConfig = {
     cfg.base = "./";
     // Lower standard decorators (`@reactive()` fields) before oxc — the
     // same pre-transform vitest.config.ts applies.
-    cfg.plugins = [lowerStandardDecorators, ...(cfg.plugins ?? [])];
+    cfg.plugins = [elementsKitSvg(), lowerStandardDecorators, ...(cfg.plugins ?? [])];
     // Mirror the library's `@/*` tsconfig path alias — and resolve the
     // package specifiers to SOURCE too. Stories import feature modules
     // relatively (src graph) but signals/JSX via "elements-kit/*" (dist

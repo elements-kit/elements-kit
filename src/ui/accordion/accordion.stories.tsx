@@ -1,3 +1,4 @@
+import { StoryIcon } from "../../../storybook/icon";
 import type { Meta, StoryObj } from "@storybook/html-vite";
 
 import "./accordion.css";
@@ -119,20 +120,7 @@ export const WithChevron: Story = {
           >
             <summary>
               {summary}
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-                style="margin-inline-start: auto; flex-shrink: 0; transition: transform 200ms ease"
-              >
-                <path d="M4 6L8 10L12 6" />
-              </svg>
+              <StoryIcon name="keyboard_arrow_down" size="16px" style="margin-inline-start: auto; flex-shrink: 0; transition: transform 200ms ease" />
             </summary>
             <p>{body}</p>
           </details>

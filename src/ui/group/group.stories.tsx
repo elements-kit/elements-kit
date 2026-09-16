@@ -1,3 +1,4 @@
+import { StoryIcon, type IconName } from "../../../storybook/icon";
 import type { Meta, StoryObj } from "@storybook/html-vite";
 
 import "./group.css";
@@ -24,20 +25,7 @@ type Story = StoryObj<Args>;
 
 let toggleGroup = 0;
 
-const Icon = (props: { d: string }) => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 16 16"
-    fill="none"
-    stroke="currentColor"
-    stroke-width="1.5"
-    stroke-linecap="round"
-    aria-hidden="true"
-  >
-    <path d={props.d} />
-  </svg>
-);
+const Icon = (props: { name: IconName }) => <StoryIcon name={props.name} size="24px" />;
 
 // Outline buttons joined into a toolbar. Interior corners flatten, the 1px
 // borders overlap into one hairline; hover/focus a middle button to see its
@@ -71,7 +59,7 @@ export const SolidActions: Story = {
         data-size={args.size}
         aria-label="Zoom out"
       >
-        <Icon d="M3 8h10" />
+        <Icon name="remove" />
       </button>
       <input
         class:unset
@@ -88,7 +76,7 @@ export const SolidActions: Story = {
         data-size={args.size}
         aria-label="Zoom in"
       >
-        <Icon d="M3 8h10M8 3v10" />
+        <Icon name="add" />
       </button>
     </div>
   ),
@@ -124,7 +112,7 @@ export const InputAffixWithButton: Story = {
   render: (args) => (
     <div class:x-group style="width: 320px">
       <div class:x-text-input data-variant="surface" data-size={args.size}>
-        <span aria-hidden="true">🔍</span>
+        <span aria-hidden="true"><StoryIcon name="search" /></span>
         <input class:unset placeholder="Search" />
       </div>
       <button
@@ -187,7 +175,7 @@ const BACKDROP =
 
 const TextButton = (props: {
   label: string;
-  d?: string;
+  name?: IconName;
   icon?: boolean;
   disabled?: boolean;
 }) => (
@@ -200,7 +188,7 @@ const TextButton = (props: {
     aria-label={props.icon ? props.label : undefined}
     disabled={props.disabled || undefined}
   >
-    {props.d ? <Icon d={props.d} /> : null}
+    {props.name ? <Icon name={props.name} /> : null}
     {props.icon ? null : props.label}
   </button>
 );
@@ -214,25 +202,25 @@ export const Material: Story = {
       style={`${BACKDROP}; display: flex; flex-wrap: wrap; align-items: center; gap: 12px`}
     >
       <div class:x-group data-variant="material">
-        <TextButton label="Back" d="M10 3 5 8l5 5" icon />
+        <TextButton label="Back" name="chevron_left" icon />
       </div>
       <div class:x-group data-variant="material" role="group" aria-label="Actions">
-        <TextButton label="Share" d="M8 2v8M5 5l3-3 3 3M3 9v4h10V9" icon />
-        <TextButton label="More" d="M3 8h1M7.5 8h1M12 8h1" icon />
+        <TextButton label="Share" name="share" icon />
+        <TextButton label="More" name="more_horiz" icon />
       </div>
       <div class:x-group data-variant="material">
         <TextButton label="Edit" />
       </div>
       <div class:x-group data-variant="material">
-        <TextButton label="Mailboxes" d="M10 3 5 8l5 5" />
+        <TextButton label="Mailboxes" name="chevron_left" />
       </div>
       <div class:x-group data-variant="material" role="group" aria-label="Zoom">
-        <TextButton label="Zoom out" d="M3 8h10" icon />
-        <TextButton label="Zoom in" d="M3 8h10M8 3v10" icon disabled />
+        <TextButton label="Zoom out" name="remove" icon />
+        <TextButton label="Zoom in" name="add" icon disabled />
       </div>
       <div class:x-group data-variant="material" style="width: 200px">
         <div class:x-text-input data-variant="soft" data-size="2">
-          <span aria-hidden="true">🔍</span>
+          <span aria-hidden="true"><StoryIcon name="search" /></span>
           <input class:unset placeholder="Search" />
         </div>
       </div>

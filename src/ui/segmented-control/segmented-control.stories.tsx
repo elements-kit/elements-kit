@@ -1,3 +1,4 @@
+import { StoryIcon, type IconName } from "../../../storybook/icon";
 import type { Meta, StoryObj } from "@storybook/html-vite";
 
 import "./segmented-control.css";
@@ -64,36 +65,21 @@ export const Disabled: Story = { args: { disabled: true } };
 // data-separators="none" — no hairlines between segments.
 export const NoSeparators: Story = { args: { separators: false } };
 
-// 24px grid (Lucide shapes); em units size the icon by the label's font
-const Icon = (props: { d: string }) => (
-  <svg
-    width="1.25em"
-    height="1.25em"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    stroke-width="2"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-    aria-hidden="true"
-  >
-    <path d={props.d} />
-  </svg>
-);
+const Icon = (props: { name: IconName }) => <StoryIcon name={props.name} />;
 
-type Item = readonly [label: string, icon: string];
+type Item = readonly [label: string, icon: IconName];
 
 const VIEWS: Item[] = [
-  ["List", "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"],
-  ["Grid", "M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"],
-  ["Board", "M6 5v11M12 5v6M18 5v14"],
+  ["List", "view_list"],
+  ["Grid", "grid_view"],
+  ["Board", "view_kanban"],
 ];
 
 const TABS: Item[] = [
-  ["Home", "M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"],
-  ["Search", "M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0ZM21 21l-4.3-4.3"],
-  ["Library", "M4 19V5M9 19V5M14 19l4-14"],
-  ["Profile", "M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10z"],
+  ["Home", "home"],
+  ["Search", "search"],
+  ["Library", "local_library"],
+  ["Profile", "person"],
 ];
 
 /** Segments with an icon and, unless `iconOnly`, a label. */
@@ -117,7 +103,7 @@ const IconControl = (props: {
       role="radiogroup"
       aria-label={props.label}
     >
-      {props.items.map(([text, d], i) => (
+      {props.items.map(([text, name], i) => (
         <label>
           <input
             type="radio"
@@ -127,7 +113,7 @@ const IconControl = (props: {
             disabled={props.args.disabled || undefined}
             aria-label={props.iconOnly ? text : undefined}
           />
-          <Icon d={d} />
+          <Icon name={name} />
           {props.iconOnly ? null : <span>{text}</span>}
         </label>
       ))}

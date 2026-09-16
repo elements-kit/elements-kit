@@ -1,3 +1,4 @@
+import { StoryIcon } from "../../../storybook/icon";
 import type { Meta, StoryObj } from "@storybook/html-vite";
 
 import "./alert.css";
@@ -12,19 +13,7 @@ interface Args {
 
 const ACCENTS = ["mint", "blue", "crimson", "iris", "amber"] as const;
 
-const InfoIcon = () =>
-  (
-    <svg
-      class:x-alert-icon
-      viewBox="0 0 16 16"
-      width="16"
-      height="16"
-      aria-hidden="true"
-      style="fill: currentColor"
-    >
-      <path d="M8 0a8 8 0 100 16A8 8 0 008 0zm0 3a1 1 0 110 2 1 1 0 010-2zm1 10H7V7h2v6z" />
-    </svg>
-  );
+const InfoIcon = () => <StoryIcon name="info" class="x-alert-icon" size="16px" />;
 
 const meta = {
   title: "UI/Alert",

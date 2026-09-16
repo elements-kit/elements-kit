@@ -1,3 +1,4 @@
+import { StoryIcon } from "../../../storybook/icon";
 import type { Meta, StoryObj } from "@storybook/html-vite";
 
 import "./toggle.css";
@@ -94,7 +95,7 @@ export const Icon: Story = {
           data-size={args.size}
           style="font-weight: bold"
         >
-          <input type="checkbox" class:unset />B
+          <input type="checkbox" class:unset aria-label="Bold" /><StoryIcon name="format_bold" />
         </label>
         <label
           class:x-toggle
@@ -103,7 +104,7 @@ export const Icon: Story = {
           data-size={args.size}
           style="font-style: italic"
         >
-          <input type="checkbox" class:unset checked />I
+          <input type="checkbox" class:unset checked aria-label="Italic" /><StoryIcon name="format_italic" />
         </label>
         <label
           class:x-toggle
@@ -112,7 +113,7 @@ export const Icon: Story = {
           data-size={args.size}
           style="text-decoration: underline"
         >
-          <input type="checkbox" class:unset />U
+          <input type="checkbox" class:unset aria-label="Underline" /><StoryIcon name="format_underlined" />
         </label>
       </div>
     ),

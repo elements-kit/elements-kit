@@ -1,3 +1,4 @@
+import { StoryIcon } from "../../../storybook/icon";
 import type { Meta, StoryObj } from "@storybook/html-vite";
 
 import "./marketing.css";
@@ -9,11 +10,7 @@ interface Args {
   card: boolean;
 }
 
-const CircleIcon = () => (
-  <svg viewBox="0 0 24 24" fill="currentColor" style="width: 2rem; height: 2rem">
-    <circle cx="12" cy="12" r="10" />
-  </svg>
-);
+const ComposableIcon = () => <StoryIcon name="widgets" size="2rem" />;
 
 const meta = {
   title: "Marketing/Pillar",
@@ -29,7 +26,7 @@ const meta = {
         class:pillar
         data-align={args.align === "center" ? "center" : undefined}
       >
-        <CircleIcon />
+        <ComposableIcon />
         <h4 data-heading>Composable</h4>
         <p data-paragraph>
           Class + data attributes only. No JS. Drop into any framework.
@@ -58,13 +55,7 @@ export const Center: Story = {
         class:pillar
         data-align="center"
       >
-        <svg
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          style="width: 2rem; height: 2rem"
-        >
-          <polygon points="12,2 22,20 2,20" />
-        </svg>
+        <StoryIcon name="devices" size="2rem" />
         <h4 data-heading>Responsive</h4>
         <p data-paragraph>Mobile-first. No JS resize handlers.</p>
       </div>
@@ -77,13 +68,7 @@ export const Grid: Story = {
     (
       <div style="display: grid; gap: 32px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr))">
         <div class:pillar>
-          <svg
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            style="width: 2rem; height: 2rem"
-          >
-            <circle cx="12" cy="12" r="10" />
-          </svg>
+          <StoryIcon name="widgets" size="2rem" />
           <h4 data-heading>Composable</h4>
           <p data-paragraph>Class + data attributes only. No JS.</p>
           <a
@@ -97,13 +82,7 @@ export const Grid: Story = {
           </a>
         </div>
         <div class:pillar>
-          <svg
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            style="width: 2rem; height: 2rem"
-          >
-            <rect x="4" y="4" width="16" height="16" rx="3" />
-          </svg>
+          <StoryIcon name="palette" size="2rem" />
           <h4 data-heading>Themeable</h4>
           <p data-paragraph>Tokens flow through every variant.</p>
           <a
@@ -117,13 +96,7 @@ export const Grid: Story = {
           </a>
         </div>
         <div class:pillar>
-          <svg
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            style="width: 2rem; height: 2rem"
-          >
-            <polygon points="12,2 22,20 2,20" />
-          </svg>
+          <StoryIcon name="devices" size="2rem" />
           <h4 data-heading>Responsive</h4>
           <p data-paragraph>Mobile-first. No JS resize handlers.</p>
           <a
