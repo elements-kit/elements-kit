@@ -410,3 +410,95 @@ describe.each(SCALINGS)("x-toolbar geometry: large title, scaling %s", (scaling,
     });
   });
 });
+
+// ── safe areas (a notch / home indicator) ───────────────────────────────────────────────────────
+// env(safe-area-inset-*) is 0 outside a phone; the toolbar reads it through --x-safe-top / --x-safe-bottom,
+// which these tests set to an iPhone's insets.
+
+const TOP_INSET = 47;
+const BOTTOM_INSET = 34;
+
+function mountPhone(html: string, scaling = "md"): HTMLElement {
+  const el = mount(scaling, html);
+  el.style.setProperty("--x-safe-top", `${TOP_INSET}px`);
+  el.style.setProperty("--x-safe-bottom", `${BOTTOM_INSET}px`);
+  return el;
+}
+
+describe.each([["md", 1], ["xl", 1.1]] as const)("x-toolbar geometry: safe areas, scaling %s", (scaling, k) => {
+  describe.each([2, 3] as Size[])("data-size=%s", (size) => {
+    describe.each(VARIANTS)("%s", (variant) => {
+      const inner = region("field", size, variant);
+
+      it("bar first: the bar takes the top inset above its controls; the title sits right under it", () => {
+        const el = mountPhone(`${bar("header", size, variant, "top", inner)}<h1 class="x-large-title">Inbox</h1>${rows()}`, scaling);
+        const b = q(el, "header");
+        const p = params(variant, "top");
+        const label = `${scaling} size ${size} ${variant} bar first`;
+
+        near(box(b).top, box(el).top, `${label}: at the top edge`);
+        near(box(b).height, TOP_INSET + barHeight(size, variant, "top") * k, `${label}: bar height`);
+        near(box(b.firstElementChild!).top, box(el).top + TOP_INSET + p.start * k, `${label}: controls below the inset`);
+        near(scrollPadding(el, "top"), box(b).height, `${label}: scroll padding`);
+        near(box(q(el, ".x-large-title")).top, box(b).bottom, `${label}: title right under the bar`);
+        near(titleSnap(el), 0, `${label}: title snap point`);
+      });
+
+      it("title first: the title takes the top inset; the bar pins below the inset and paints over it", async () => {
+        const el = mountPhone(`<h1 class="x-large-title">Settings</h1>${bar("header", size, variant, "top", inner)}${rows()}`, scaling);
+        const title = q(el, ".x-large-title");
+        const b = q(el, "header");
+        const label = `${scaling} size ${size} ${variant} title first`;
+
+        near(box(title).height, TOP_INSET + 56 * k, `${label}: title height`);
+        near(box(b).top, box(title).bottom, `${label}: bar right under the title`);
+        near(box(b).height, barHeight(size, variant, "top") * k, `${label}: bar has no inset while expanded`);
+        near(scrollPadding(el, "top"), TOP_INSET + box(b).height, `${label}: scroll padding`);
+        near(titleSnap(el), 0, `${label}: title snap point`);
+
+        // collapsed: the title (minus the inset it keeps) has scrolled away
+        const collapse = box(title).height - TOP_INSET;
+        el.scrollTop = collapse + 300;
+        near(box(b).top, box(el).top + TOP_INSET, `${label}: pinned below the inset`);
+        if (variant !== "clean") {
+          const before = parseFloat(getComputedStyle(b, "::before").top);
+          near(before, -TOP_INSET, `${label}: background reaches over the inset`);
+        }
+        const content = el.lastElementChild!;
+        el.scrollTop = 0;
+        near(box(content).top - box(el).top - scrollPadding(el, "top"), collapse, `${label}: content snaps at the collapse`);
+      });
+
+      it("bottom: the bar takes the bottom inset below its controls", () => {
+        const el = mountPhone(`${rows()}${bar("footer", size, variant, "bottom", inner)}`, scaling);
+        const b = q(el, "footer");
+        const p = params(variant, "bottom");
+        const label = `${scaling} size ${size} ${variant} bottom`;
+
+        near(box(b).bottom, box(el).bottom, `${label}: at the bottom edge`);
+        near(box(b).height, barHeight(size, variant, "bottom") * k + BOTTOM_INSET, `${label}: bar height`);
+        near(box(b.firstElementChild!).bottom, box(el).bottom - BOTTOM_INSET - p.end * k, `${label}: controls above the inset`);
+        near(scrollPadding(el, "bottom"), box(b).height, `${label}: scroll padding`);
+      });
+
+      it.each(POSITIONS)("grouped %s: the group takes the inset once", (position) => {
+        const tag = position === "top" ? "header" : "footer";
+        const inner2 = `<div class="x-toolbar">${region("icons", size, variant)}</div><div class="x-toolbar">${inner}</div>`;
+        const html = bar(tag, size, variant, position, inner2);
+        const el = mountPhone(position === "top" ? html + rows() : rows() + html, scaling);
+        const group = q(el, tag);
+        const inset = position === "top" ? TOP_INSET : BOTTOM_INSET;
+        const label = `${scaling} size ${size} ${variant} grouped ${position}`;
+
+        near(box(group).height, inset + barHeight(size, variant, position, 2) * k, `${label}: group height`);
+        near(scrollPadding(el, position), box(group).height, `${label}: scroll padding`);
+      });
+    });
+  });
+
+  it("a title with no bar takes the top inset", () => {
+    const el = mountPhone(`<h1 class="x-large-title">Today</h1>${rows()}`, scaling);
+
+    near(box(q(el, ".x-large-title")).height, TOP_INSET + 56 * k + 8 * k, `${scaling}: title height`);
+  });
+});

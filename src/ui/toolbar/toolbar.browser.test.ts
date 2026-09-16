@@ -297,18 +297,35 @@ describe("x-large-title snapping (real scroll)", () => {
       ? `<div class="x-text-input" data-size="2"><input class="unset" aria-label="Search" /></div>`
       : `<div class="x-group" data-variant="material"><div class="x-text-input" data-variant="soft" data-size="2"><input class="unset" aria-label="Search" /></div></div>`;
 
-  it.each(["surface", "clean", "soft"])("title first, then a %s bar: renders expanded, a small scroll returns, past half collapses", async (variant) => {
-    const el = mount(`<h1 class="x-large-title">Settings</h1><header class="x-toolbar" data-variant="${variant}">${field(variant)}</header>${rows()}`);
-    const collapse = box(q(el, ".x-large-title")).height;
+  const screens = {
+    "title first": (variant: string) => `<h1 class="x-large-title">Settings</h1><header class="x-toolbar" data-variant="${variant}">${field(variant)}</header>${rows()}`,
+    "bar first": (variant: string) => `<header class="x-toolbar" data-variant="${variant}"><span data-title>Inbox</span></header><h1 class="x-large-title">Inbox</h1>${rows()}`,
+  };
+  const settle = async (el: HTMLElement, y: number) => {
+    el.scrollTop = y;
+    await wait(400);
+    return el.scrollTop;
+  };
 
-    await wait(300);
-    expect(el.scrollTop, "render stays expanded").toBe(0);
-    el.scrollTop = 10;
-    await wait(400);
-    expect(el.scrollTop, "a small scroll returns to the title").toBe(0);
-    el.scrollTop = collapse * 0.75;
-    await wait(400);
-    expect(el.scrollTop, "past half collapses").toBe(collapse);
+  // Engines pick differently between the two points — Chromium the nearest, WebKit the next one in the
+  // scroll direction — so this checks what holds in both: it never rests mid-collapse.
+  describe.each(Object.keys(screens) as (keyof typeof screens)[])("%s", (layout) => {
+    it.each(["surface", "clean", "soft"])("%s: renders expanded, rests expanded or collapsed, scrolls freely past the collapse", async (variant) => {
+      const el = mount(screens[layout](variant));
+      const collapse = box(q(el, ".x-large-title")).height;
+
+      await wait(300);
+      expect(el.scrollTop, "render stays expanded").toBe(0);
+      for (const y of [1, 10, collapse / 4, collapse / 2, collapse * 0.75, collapse - 1]) {
+        await settle(el, 0);
+        expect([0, collapse], `from 0 to ${y}`).toContain(await settle(el, y));
+        await settle(el, collapse);
+        expect([0, collapse], `from ${collapse} back to ${y}`).toContain(await settle(el, y));
+      }
+      await settle(el, 0);
+      expect(await settle(el, collapse * 0.75), "past three quarters collapses").toBe(collapse);
+      expect(await settle(el, collapse + 200), "free inside the content").toBe(collapse + 200);
+    });
   });
 });
 

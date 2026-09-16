@@ -100,6 +100,26 @@ export default defineConfig({
           },
         },
       },
+      {
+        // The same layout tests in WebKit (Safari's engine), for the phone-facing components.
+        extends: true,
+        test: {
+          name: "webkit",
+          include: [
+            "src/ui/toolbar/*.browser.test.ts",
+            "src/ui/group/*.browser.test.ts",
+            "src/ui/button/*.browser.test.ts",
+          ],
+          browser: {
+            enabled: true,
+            provider: playwright(),
+            headless: true,
+            instances: [
+              { browser: "webkit", viewport: { width: 1280, height: 900 } },
+            ],
+          },
+        },
+      },
     ],
     environment: "happy-dom",
     setupFiles: ["./vitest.setup.ts"],

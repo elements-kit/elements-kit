@@ -23,6 +23,12 @@
  * initial values — plain bar, static large title.
  */
 
+/* the safe areas (a notch, a home indicator), read once */
+:where(:root) {
+  --x-safe-top: env(safe-area-inset-top, 0px);
+  --x-safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 /***************************************************************************************************
  *                                                                                                 *
  * SIZE — one formula for every bar                                                                *
@@ -54,7 +60,7 @@
   --x-top-rows: 1;
   --x-top-row: calc(var(--x-top-control) + 2 * var(--x-top-cap));
   --toolbar-height: calc(
-    env(safe-area-inset-top, 0px) + var(--x-top-start) + var(--x-top-rows) *
+    var(--x-safe-top) + var(--x-top-start) + var(--x-top-rows) *
       var(--x-top-row) + (var(--x-top-rows) - 1) * var(--x-top-gap) +
       var(--x-top-end)
   );
@@ -74,7 +80,7 @@
   --toolbar-bottom-height: calc(
     var(--x-bottom-start) + var(--x-bottom-rows) * var(--x-bottom-row) +
       (var(--x-bottom-rows) - 1) * var(--x-bottom-gap) + var(--x-bottom-end) +
-      env(safe-area-inset-bottom, 0px)
+      var(--x-safe-bottom)
   );
   scroll-padding-block-end: var(--toolbar-bottom-height);
 }
@@ -208,7 +214,7 @@
   box-sizing: border-box;
   /* SIZE: the insets pad the controls; the formula is the minimum */
   min-block-size: var(--toolbar-height);
-  padding-block: calc(env(safe-area-inset-top, 0px) + var(--x-top-start))
+  padding-block: calc(var(--x-safe-top) + var(--x-top-start))
     var(--x-top-end);
   padding-inline: var(--space-4);
 
@@ -334,7 +340,7 @@
   min-block-size: var(--toolbar-bottom-height);
   /* home indicator below */
   padding-block: var(--x-bottom-start)
-    calc(var(--x-bottom-end) + env(safe-area-inset-bottom, 0px));
+    calc(var(--x-bottom-end) + var(--x-safe-bottom));
 
   /* always shown, hairline on the top edge */
   &::before {
@@ -442,7 +448,9 @@
 
 .x-large-title {
   margin: 0;
-  padding: var(--space-4) var(--space-4) var(--space-2);
+  /* first on the screen, it sits below the notch; after a bar, the bar has it (below) */
+  padding: calc(var(--x-safe-top) + var(--space-4)) var(--space-4)
+    var(--space-2);
 
   font-family: var(--default-font-family);
   font-size: var(--font-size-8);
@@ -491,6 +499,18 @@
   --x-large-title-height: calc(
     var(--heading-line-height-8) + var(--space-2)
   );
+}
+
+/* a bar after the title isn't at the screen edge until it pins: no inset in its height; it pins
+ * below the notch and its background reaches over it */
+.x-large-title + .x-toolbar {
+  inset-block-start: var(--x-safe-top);
+  min-block-size: calc(var(--toolbar-height) - var(--x-safe-top));
+  padding-block-start: var(--x-top-start);
+
+  &::before {
+    inset-block-start: calc(-1 * var(--x-safe-top));
+  }
 }
 
 /* snap: collapsed. The content after the title is taller than the viewport,
