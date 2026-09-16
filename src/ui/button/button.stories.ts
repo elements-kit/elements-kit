@@ -98,6 +98,34 @@ export const Stacked: Story = {
   render: (args) => iconButton(args, "stacked"),
 };
 
+// Back — `data-back` sizes the leading chevron to one text line with a 4px gap. Use a glyph drawn
+// flush with its box (arrow_back_ios) beside a label, a centered one (arrow_back_ios_new) alone.
+export const Back: Story = {
+  args: { label: "Mailboxes", variant: "text" },
+  render: (args) => {
+    const row = document.createElement("div");
+    row.style.cssText = "display: flex; align-items: center; gap: 24px";
+    for (const alone of [false, true]) {
+      const button = document.createElement("button");
+      button.className = "unset x-button";
+      button.dataset.variant = args.variant;
+      button.dataset.size = args.size;
+      button.dataset.back = "";
+      if (args.highContrast) button.dataset.highContrast = "";
+      button.disabled = args.disabled;
+      if (alone) {
+        button.dataset.icon = "";
+        button.setAttribute("aria-label", "Back");
+        button.append(StoryIcon({ name: "arrow_back_ios_new" }));
+      } else {
+        button.append(StoryIcon({ name: "arrow_back_ios" }), args.label);
+      }
+      row.append(button);
+    }
+    return row;
+  },
+};
+
 // `.x-button` is class-only — apply it to an <a> for a link styled as a button.
 export const AsLink: Story = {
   render: (args) => {

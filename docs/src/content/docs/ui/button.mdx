@@ -48,6 +48,7 @@ The `unset` class ([Styles → Unset native styles](/ui/styles#unset-native-styl
 | `data-accent` | any imported color scale (`mint`, `blue`, `iris`, …) |
 | `data-icon` | modifier — square shape sized by height. Use for icon-only buttons. |
 | `data-layout` | `stacked` — icon above the label; never taller than wide (see [Icon and label](#icon-and-label)) |
+| `data-back` | modifier — a leading back chevron sized to the text (see [Back button](#back-button)) |
 | `data-high-contrast` | modifier — boosts contrast against the page background |
 | `data-loading` | modifier — sets `position: relative` for a spinner overlay |
 | `disabled` / `data-disabled` | native `:disabled` state, or `data-disabled` on non-button elements |
@@ -122,6 +123,38 @@ The height is fixed and `aspect-ratio: 1` keeps the button at least as wide as i
   <span>Share</span>
 </button>
 ```
+
+## Back button
+
+Add `data-back` to a button whose first child is a back chevron, as in an iOS navigation bar. The chevron is one text line tall, so it reads at the label's weight rather than as an icon. It sits right against the label.
+
+| `data-size` | chevron |
+| --- | --- |
+| `1` | 16px |
+| `2` | 20px |
+| `3` | 24px |
+| `4` | 26px |
+
+```html
+<button class="unset x-button" data-variant="text" data-size="2" data-back>
+  <svg viewBox="0 -960 960 960" aria-hidden="true">…</svg>
+  Mailboxes
+</button>
+```
+
+The chevron's box starts on the button's content edge. A `text` button bleeds by its padding, so the chevron lines up with a title or a list below it — as long as the glyph is drawn flush with its box. Material Symbols' `arrow_back_ios` is; `chevron_left` has empty space on its left and lands about a third of the box further in.
+
+With `data-icon`, the button is chevron-only: it keeps its square and centers the chevron. Use a glyph drawn centered in its box, such as `arrow_back_ios_new`, and give the button an `aria-label`.
+
+```html
+<button class="unset x-button" data-variant="borderless" data-size="2" data-back data-icon aria-label="Back">
+  <svg viewBox="0 -960 960 960" aria-hidden="true">…</svg>
+</button>
+```
+
+In a right-to-left context (`dir="rtl"` on the button or any ancestor) the chevron is mirrored, so it points to the inline start.
+
+<StorybookEmbed story="ui-button--back" />
 
 ## Use as a link
 

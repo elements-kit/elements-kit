@@ -28,6 +28,8 @@ import Symbol26 from "@material-symbols/svg-400/rounded/devices-fill.svg?ek";
 import Symbol27 from "@material-symbols/svg-400/rounded/format_bold-fill.svg?ek";
 import Symbol28 from "@material-symbols/svg-400/rounded/format_italic-fill.svg?ek";
 import Symbol29 from "@material-symbols/svg-400/rounded/format_underlined-fill.svg?ek";
+import Symbol30 from "@material-symbols/svg-400/rounded/arrow_back_ios-fill.svg?ek";
+import Symbol31 from "@material-symbols/svg-400/rounded/arrow_back_ios_new-fill.svg?ek";
 
 const icons = {
   wifi: Symbol0,
@@ -60,12 +62,14 @@ const icons = {
   format_bold: Symbol27,
   format_italic: Symbol28,
   format_underlined: Symbol29,
+  arrow_back_ios: Symbol30,
+  arrow_back_ios_new: Symbol31,
 };
 
 export type IconName = keyof typeof icons;
 
 /** Rounded Filled symbols at weight 400; heavier dots keep More legible. */
-export function StoryIcon(props: { name: IconName; size?: string; class?: string; style?: string }) {
+export function StoryIcon(props: { name: IconName; size?: string; class?: string; style?: string; "data-accent"?: string }) {
   const Symbol = icons[props.name];
-  return <Symbol aria-hidden="true" width={props.size ?? "1.25em"} height={props.size ?? "1.25em"} class={props.class} style={props.style} />;
+  return <Symbol aria-hidden="true" width={props.size ?? "1.25em"} height={props.size ?? "1.25em"} class={props.class} style={props.style} data-accent={props["data-accent"]} />;
 }

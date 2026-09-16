@@ -488,3 +488,29 @@
     font-weight: var(--font-weight-medium);
   }
 }
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * BACK — data-back: a leading back chevron (iOS navigation back button)                           *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/*
+ * The chevron is one text line tall (20px at size 2), so it reads at the label's weight, not an
+ * icon's; right against the label. Its box starts on the content edge — pick a glyph drawn flush
+ * with its box (e.g. arrow_back_ios) for a chevron that lines up with a title; with data-icon it
+ * centers. RTL mirrors it: back points to the inline start.
+ */
+.x-button:where([data-back]) {
+  gap: 0;
+
+  & > :where(svg) {
+    flex: none;
+    width: 1lh;
+    height: 1lh;
+  }
+
+  &:where(:dir(rtl)) > :where(svg) {
+    scale: -1 1;
+  }
+}
