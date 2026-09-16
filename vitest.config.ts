@@ -1,5 +1,6 @@
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig, type Plugin } from "vitest/config";
+import type { BrowserCommand } from "vitest/node";
 import { resolve } from "path";
 import { transform } from "esbuild";
 
@@ -23,6 +24,19 @@ const esbuildDecorators: Plugin = {
 
 /** A decorator at the start of a (possibly indented) line. */
 const DECORATOR = /^\s*@[A-Za-z_$]/m;
+
+/** Browser command: emulate media features (color scheme, forced colors, reduced transparency…). */
+const emulateMedia: BrowserCommand<[Parameters<import("playwright").Page["emulateMedia"]>[0]]> = async (ctx, media) => {
+  if (ctx.provider.name !== "playwright") throw new Error("emulateMedia needs the playwright provider");
+  await ctx.page.emulateMedia(media);
+};
+
+/** Browser command (Chromium): emulate media features Playwright has no option for, e.g. prefers-reduced-transparency. */
+const emulateMediaFeatures: BrowserCommand<[{ name: string; value: string }[]]> = async (ctx, features) => {
+  if (ctx.provider.name !== "playwright") throw new Error("emulateMediaFeatures needs the playwright provider");
+  const cdp = await ctx.page.context().newCDPSession(ctx.page);
+  await cdp.send("Emulation.setEmulatedMedia", { features });
+};
 
 export default defineConfig({
   plugins: [
@@ -94,6 +108,7 @@ export default defineConfig({
             enabled: true,
             provider: playwright(),
             headless: true,
+            commands: { emulateMedia, emulateMediaFeatures },
             instances: [
               { browser: "chromium", viewport: { width: 1280, height: 900 } },
             ],
@@ -114,6 +129,7 @@ export default defineConfig({
             enabled: true,
             provider: playwright(),
             headless: true,
+            commands: { emulateMedia, emulateMediaFeatures },
             instances: [
               { browser: "webkit", viewport: { width: 1280, height: 900 } },
             ],
