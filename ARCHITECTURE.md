@@ -6,7 +6,7 @@ How **elements-kit** works. User-facing docs: [README.md](README.md). Contributo
 
 ## 1. Scope
 
-**Is**: framework-agnostic reactive primitives, a zero-overhead JSX-to-DOM runtime, decorators that enhance native custom elements, and an experimental streaming server renderer + hydration pass (§11).
+**Is**: framework-agnostic reactive primitives, a zero-overhead JSX-to-DOM runtime, decorators that enhance native custom elements, and a streaming server renderer + hydration pass (§11).
 
 **Is not**: component framework, VDOM renderer, styling solution, router.
 
@@ -23,8 +23,8 @@ Each subpath is a stable import entry declared in [package.json](package.json) `
 | `elements-kit/slot` | `Slot` class, `@slot()` decorator, `SlotContent` type | stable |
 | `elements-kit/jsx-runtime` | `jsx`, `jsxs`, `jsxDEV`, `h`, `Fragment`; types `Children`, `PropsOf`, `RawProps`, `Props`, `Require`, `MaybeReactiveProps`, `MaybeReactive`, `ComponentFn`, `ComponentClass`; `JSX` namespace (`Element`, `ElementClass`, `ElementType`, `IntrinsicAttributes`, `IntrinsicElements`) | stable (JSX contract) |
 | `elements-kit/integrations/react` | `useSignal`, `useScope` | stable |
-| `elements-kit/server` | `renderToStream`, `renderToString` — streaming HTML rendering, no DOM required (§11) | experimental |
-| `elements-kit/hydrate` | `hydrate` — claim-mode adoption of server-rendered DOM (§11) | experimental |
+| `elements-kit/server` | `renderToStream`, `renderToString` — streaming HTML rendering, no DOM required (§11) | stable |
+| `elements-kit/hydrate` | `hydrate` — claim-mode adoption of server-rendered DOM (§11) | stable |
 | `elements-kit/await` | `Await` — loading boundary (Suspense equivalent) over the §11 async machinery; code splitting = `async` + dynamic import | experimental |
 | `elements-kit/integrations/astro` | `elementsKit()` — Astro integration packaging the §11 renderer pair as an island framework (`astro-server` / `astro-client` entrypoints) | experimental |
 | `elements-kit/utilities/*` | one primary export per module — mix of `createX` factories, verb/imperative functions (`on`, `onClickOutside`, `retry`, `async`, `promise`, `navigate`, `patchHistory`), and pre-instantiated singletons (`online`, `windowFocused`, `activeElement`, `currentLocation`). Async primitives: `async` / `Async` ([src/utilities/async.ts](src/utilities/async.ts)) and `promise` / `ReactivePromise` / `ComputedPromise` ([src/utilities/promise.ts](src/utilities/promise.ts)) | stable per module |
@@ -189,7 +189,7 @@ Canonical definitions in §3. Quick references:
 - **Live binding** — text or attribute that tracks a signal/computed without re-rendering its surroundings.
 - **Brand symbol** — `Symbol()` stamped on a function so `isSignal` / `isComputed` / `isEffect` / `isEffectScope` narrow by identity, not shape.
 
-## 11. Server rendering & hydration (experimental)
+## 11. Server rendering & hydration
 
 Two subpaths: `elements-kit/server` ([src/server/](src/server/)) and `elements-kit/hydrate` ([src/hydrate/](src/hydrate/)). No compiler — the same runtime JSX drives three renderers, dispatched through a single check in `createElement` ([src/jsx-runtime/renderer.ts](src/jsx-runtime/renderer.ts)): default DOM, server string emission, hydrate claim mode. Server code never reaches client bundles; each subpath tree-shakes independently.
 
