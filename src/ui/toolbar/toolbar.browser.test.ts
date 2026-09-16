@@ -6,6 +6,8 @@ import "../styles/neutral/gray.css";
 import "../styles/palette/mint.css";
 import "../styles/accent/mint.css";
 import "../button/button.css";
+import "../group/group.css";
+import "../segmented-control/segmented-control.css";
 import "../text-input/text-input.css";
 import "./toolbar.css";
 
@@ -115,8 +117,12 @@ describe("x-toolbar large title collapse", () => {
       <h1 class="x-large-title">Settings</h1>
       ${rows()}`);
 
-  it("is one line plus padding: 40 + 16 + 8 = 64px", () => {
-    expect(box(q(screen(), ".x-large-title")).height).toBe(64);
+  it("sits right under the bar: one line plus bottom padding, 40 + 8 = 48px", () => {
+    const el = screen();
+    const title = q(el, ".x-large-title");
+
+    expect(box(title).top).toBe(box(q(el, ".x-toolbar")).bottom);
+    expect(box(title).height).toBe(48);
   });
 
   it("expanded: large title shown, bar background and bar title hidden", () => {
@@ -131,14 +137,14 @@ describe("x-toolbar large title collapse", () => {
 
   it("midway: the large title is half faded", () => {
     const el = screen();
-    setScroll(el, 32);
+    setScroll(el, 24);
 
     expect(opacity(q(el, ".x-large-title"))).toBeCloseTo(0.5, 2);
   });
 
   it("collapsed: large title gone, bar background and bar title shown", () => {
     const el = screen();
-    setScroll(el, 64);
+    setScroll(el, 48);
     const bar = q(el, ".x-toolbar");
 
     expect(opacity(q(el, ".x-large-title"))).toBe(0);
@@ -161,7 +167,7 @@ describe("x-toolbar large title collapse", () => {
 
     // "y proximity" serializes as "y" (proximity is the default)
     expect(style.scrollSnapType).toBe("y");
-    expect(style.scrollPaddingTop).toBe("52px");
+    expect(style.scrollPaddingTop).toBe("56px");
     expect(getComputedStyle(q(el, ".x-large-title")).scrollSnapAlign).toBe("start");
     expect(getComputedStyle(el.lastElementChild!).scrollSnapAlign).toBe("start");
   });
@@ -244,16 +250,16 @@ describe("x-toolbar data-position=bottom", () => {
     setScroll(el, 0);
 
     expect(opacity(q(el, "footer"), "::before")).toBe(1);
-    expect(getComputedStyle(el).scrollPaddingBottom).toBe("52px");
+    expect(getComputedStyle(el).scrollPaddingBottom).toBe("56px");
   });
 });
 
 describe("x-toolbar variants", () => {
-  it("surface: 52px bar with a material background and hairline", () => {
+  it("surface: 56px bar with a material background and hairline", () => {
     const el = mount(`<header class="x-toolbar"><span data-title>Title</span></header>${rows()}`);
     const bar = q(el, ".x-toolbar");
 
-    expect(box(bar).height).toBe(52);
+    expect(box(bar).height).toBe(56);
     expect(getComputedStyle(bar, "::before").boxShadow).not.toBe("none");
   });
 
@@ -279,6 +285,30 @@ describe("x-toolbar variants", () => {
     expect(edge.maskImage).toContain("gradient");
     expect(getComputedStyle(top).getPropertyValue("--x-toolbar-edge").trim()).toBe("to bottom");
     expect(getComputedStyle(q(el, "footer")).getPropertyValue("--x-toolbar-edge").trim()).toBe("to top");
+  });
+});
+
+// Geometry for every scaling, size, variant, position and grouping: toolbar.geometry.browser.test.ts
+
+describe("x-large-title snapping (real scroll)", () => {
+  const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  const field = (variant: string) =>
+    variant === "surface"
+      ? `<div class="x-text-input" data-size="2"><input class="unset" aria-label="Search" /></div>`
+      : `<div class="x-group" data-variant="material"><div class="x-text-input" data-variant="soft" data-size="2"><input class="unset" aria-label="Search" /></div></div>`;
+
+  it.each(["surface", "clean", "soft"])("title first, then a %s bar: renders expanded, a small scroll returns, past half collapses", async (variant) => {
+    const el = mount(`<h1 class="x-large-title">Settings</h1><header class="x-toolbar" data-variant="${variant}">${field(variant)}</header>${rows()}`);
+    const collapse = box(q(el, ".x-large-title")).height;
+
+    await wait(300);
+    expect(el.scrollTop, "render stays expanded").toBe(0);
+    el.scrollTop = 10;
+    await wait(400);
+    expect(el.scrollTop, "a small scroll returns to the title").toBe(0);
+    el.scrollTop = collapse * 0.75;
+    await wait(400);
+    expect(el.scrollTop, "past half collapses").toBe(collapse);
   });
 });
 

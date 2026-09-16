@@ -19,6 +19,8 @@ type Variant = "surface" | "soft" | "clean";
 interface Args {
   /** data-variant of the screen's bars */
   variant: Variant;
+  /** theme radius (Theme controls): pill by default, like iOS */
+  radius?: "none" | "small" | "medium" | "large" | "pill";
 }
 
 /** Writes raw scroll (px) on `host`; toolbar.css turns it into progress. */
@@ -39,22 +41,41 @@ function driveScroll(host: HTMLElement, y: () => number) {
 // ── Building blocks ──────────────────────────────────────────────────────────
 
 const ICONS = {
-  back: "chevron_left", search: "search", more: "more_horiz", share: "share",
-  compose: "edit_square", filter: "filter_list", home: "home", library: "local_library",
-  profile: "person", video: "videocam", pen: "edit", text: "title", shapes: "shapes",
+  search: "search",
+  more: "more_horiz",
+  share: "share",
+  compose: "edit_square",
+  filter: "filter_list",
+  home: "home",
+  library: "local_library",
+  profile: "person",
+  video: "videocam",
+  pen: "edit",
+  text: "title",
+  shapes: "shapes",
 } as const;
 
 /** clean/soft bars float their controls */
 const floats = (variant: Variant) => variant !== "surface";
 
 /** Material Symbols use a 24px box for toolbar controls. */
-const Icon = (props: { name: IconName }) => <StoryIcon name={props.name} size="24px" />;
+const Icon = (props: { name: IconName }) => (
+  <StoryIcon name={props.name} size="24px" />
+);
 
-const IconButton = (props: { label: string; name: IconName }) => (
+/** clean/soft: borderless, the capsule is its box · surface: text, bleeds to the bar's padding */
+const buttonVariant = (variant: Variant) =>
+  floats(variant) ? "borderless" : "text";
+
+const IconButton = (props: {
+  label: string;
+  name: IconName;
+  variant: Variant;
+}) => (
   <button
     class:unset
     class:x-button
-    data-variant="text"
+    data-variant={buttonVariant(props.variant)}
     data-size="2"
     data-icon=""
     aria-label={props.label}
@@ -63,12 +84,52 @@ const IconButton = (props: { label: string; name: IconName }) => (
   </button>
 );
 
-const TextButton = (props: { label: string; name?: IconName }) => (
-  <button class:unset class:x-button data-variant="text" data-size="2">
+const TextButton = (props: {
+  label: string;
+  name?: IconName;
+  variant: Variant;
+}) => (
+  <button
+    class:unset
+    class:x-button
+    data-variant={buttonVariant(props.variant)}
+    data-size="2"
+  >
     {props.name ? <Icon name={props.name} /> : null}
     {props.label}
   </button>
 );
+
+/** data-back: a text-height chevron. With a label its glyph is flush (lines up with the title); alone, centered. */
+const BackButton = (props: {
+  label: string;
+  variant: Variant;
+  showLabel?: boolean;
+}) =>
+  props.showLabel ? (
+    <button
+      class:unset
+      class:x-button
+      data-variant={buttonVariant(props.variant)}
+      data-size="2"
+      data-back=""
+    >
+      <StoryIcon name="arrow_back_ios" />
+      {props.label}
+    </button>
+  ) : (
+    <button
+      class:unset
+      class:x-button
+      data-variant={buttonVariant(props.variant)}
+      data-size="2"
+      data-back=""
+      data-icon=""
+      aria-label={props.label}
+    >
+      <StoryIcon name="arrow_back_ios_new" />
+    </button>
+  );
 
 /** Buttons that belong together: a material capsule in clean/soft bars, a plain wrapper in surface. */
 const Group = (props: {
@@ -95,6 +156,9 @@ const Title = (props: { text: string }) => (
   <span data-title="">{props.text}</span>
 );
 
+/** The search field's size: a size-3 field in surface bars, a size-2 field in a capsule. The bar holding it takes the same data-size. */
+const searchSize = (variant: Variant) => (floats(variant) ? "2" : "3");
+
 /** Floating: a soft field inside a material group, which is its background. */
 const Search = (props: { placeholder: string; variant: Variant }) => {
   const floating = floats(props.variant);
@@ -102,7 +166,7 @@ const Search = (props: { placeholder: string; variant: Variant }) => {
     <div
       class:x-text-input
       data-variant={floating ? "soft" : "surface"}
-      data-size={floating ? "2" : "3"}
+      data-size={searchSize(props.variant)}
     >
       {/* affix: text-input pads non-input children, so the icon needs its own wrapper */}
       <span>
@@ -125,6 +189,8 @@ const Segmented = (props: {
   label: string;
   options: string[];
   variant: Variant;
+  size?: "1" | "2" | "3";
+  separators?: "none";
 }) => {
   const name = `toolbar-seg-${segmentedId++}`;
   const floating = floats(props.variant);
@@ -133,7 +199,8 @@ const Segmented = (props: {
       class:unset
       class:x-segmented-control
       data-variant={floating ? "soft" : "surface"}
-      data-size="2"
+      data-size={props.size ?? "2"}
+      data-separators={props.separators}
       data-accent="neutral"
       role="radiogroup"
       aria-label={props.label}
@@ -215,21 +282,16 @@ const Rows = (props: { items: string[] }) => (
   </>
 );
 
-/** An element scrolls: --scroll-y lives on it. Floating bars pill their controls. */
-function Screen(props: {
-  width?: number;
-  variant?: Variant;
-  children?: Children;
-}) {
+/** The viewport-high scroll container: --scroll-y lives on it. */
+function Screen(props: { variant?: Variant; children?: Children }) {
   let stop: (() => void) | undefined;
   onCleanup(() => stop?.());
   return (
     <div
-      data-radius={props.variant && floats(props.variant) ? "pill" : undefined}
       ref={(el) => {
         stop = effectScope(() => driveScroll(el, createElementScroll(el).y));
       }}
-      style={`height:720px;max-width:${props.width ?? 390}px;overflow:auto;border-radius:var(--radius-5);box-shadow:0 0 0 1px var(--neutral-a5)`}
+      style="height:100dvh;overflow:auto"
     >
       {props.children}
     </div>
@@ -318,7 +380,9 @@ const meta = {
         "surface: material bar + hairline · clean: no bar, material controls · soft: clean + gradient blur edge",
     },
   },
-  args: { variant: "surface" },
+  args: { variant: "surface", radius: "pill" },
+  // edge to edge, so a story opened on a phone is the screen
+  parameters: { layout: "fullscreen" },
 } satisfies Meta<Args>;
 
 export default meta;
@@ -331,7 +395,11 @@ export const Settings: Story = {
   render: (args) => (
     <Screen variant={args.variant}>
       <h1 class:x-large-title>Settings</h1>
-      <header class:x-toolbar data-variant={args.variant}>
+      <header
+        class:x-toolbar
+        data-variant={args.variant}
+        data-size={searchSize(args.variant)}
+      >
         <Search placeholder="Search" variant={args.variant} />
       </header>
       <div>
@@ -347,11 +415,11 @@ export const Inbox: Story = {
     <Screen variant={args.variant}>
       <header class:x-toolbar data-variant={args.variant}>
         <Group variant={args.variant}>
-          <TextButton label="Mailboxes" name={ICONS.back} />
+          <BackButton variant={args.variant} label="Mailboxes" showLabel />
         </Group>
         <Title text="Inbox" />
         <Group variant={args.variant}>
-          <TextButton label="Edit" />
+          <TextButton variant={args.variant} label="Edit" />
         </Group>
       </header>
       <h1 class:x-large-title>Inbox</h1>
@@ -371,11 +439,19 @@ export const Inbox: Story = {
         data-variant={args.variant}
       >
         <Group variant={args.variant}>
-          <IconButton label="Filter" name={ICONS.filter} />
+          <IconButton
+            variant={args.variant}
+            label="Filter"
+            name={ICONS.filter}
+          />
         </Group>
         <Title text="Updated just now" />
         <Group variant={args.variant}>
-          <IconButton label="Compose" name={ICONS.compose} />
+          <IconButton
+            variant={args.variant}
+            label="Compose"
+            name={ICONS.compose}
+          />
         </Group>
       </footer>
     </Screen>
@@ -389,11 +465,11 @@ export const Notes: Story = {
     <Screen variant={args.variant}>
       <header class:x-toolbar data-variant={args.variant}>
         <Group variant={args.variant}>
-          <IconButton label="Folders" name={ICONS.back} />
+          <BackButton variant={args.variant} label="Folders" />
         </Group>
         <Group variant={args.variant}>
-          <IconButton label="Share" name={ICONS.share} />
-          <IconButton label="More" name={ICONS.more} />
+          <IconButton variant={args.variant} label="Share" name={ICONS.share} />
+          <IconButton variant={args.variant} label="More" name={ICONS.more} />
         </Group>
       </header>
       <h1 class:x-large-title>Notes</h1>
@@ -404,10 +480,15 @@ export const Notes: Story = {
         class:x-toolbar
         data-position="bottom"
         data-variant={args.variant}
+        data-size={searchSize(args.variant)}
       >
         <Search placeholder="Search notes" variant={args.variant} />
         <Group variant={args.variant}>
-          <IconButton label="New note" name={ICONS.compose} />
+          <IconButton
+            variant={args.variant}
+            label="New note"
+            name={ICONS.compose}
+          />
         </Group>
       </footer>
     </Screen>
@@ -422,7 +503,7 @@ export const Photos: Story = {
       <header class:x-toolbar data-variant={args.variant}>
         <Title text="Library" />
         <Group variant={args.variant}>
-          <TextButton label="Select" />
+          <TextButton variant={args.variant} label="Select" />
         </Group>
       </header>
       <div>
@@ -432,11 +513,14 @@ export const Photos: Story = {
         class:x-toolbar
         data-position="bottom"
         data-variant={args.variant}
+        data-size="3"
       >
         <Segmented
           label="Group by"
           options={["Years", "Months", "All"]}
           variant={args.variant}
+          size="3"
+          separators="none"
         />
       </footer>
     </Screen>
@@ -474,7 +558,7 @@ export const Mail: Story = {
       <header class:x-toolbar data-variant={args.variant}>
         <Title text="Mail" />
         <Group variant={args.variant}>
-          <TextButton label="Edit" />
+          <TextButton variant={args.variant} label="Edit" />
         </Group>
       </header>
       <h1 class:x-large-title>Mail</h1>
@@ -490,16 +574,28 @@ export const Mail: Story = {
         <div class:x-toolbar>
           <div />
           <Group variant={args.variant}>
-            <IconButton label="Compose" name={ICONS.compose} />
+            <IconButton
+              variant={args.variant}
+              label="Compose"
+              name={ICONS.compose}
+            />
           </Group>
         </div>
         <div class:x-toolbar>
           <Group variant={args.variant}>
-            <IconButton label="Filter" name={ICONS.filter} />
+            <IconButton
+              variant={args.variant}
+              label="Filter"
+              name={ICONS.filter}
+            />
           </Group>
           <Title text="Updated just now" />
           <Group variant={args.variant}>
-            <IconButton label="Search" name={ICONS.search} />
+            <IconButton
+              variant={args.variant}
+              label="Search"
+              name={ICONS.search}
+            />
           </Group>
         </div>
       </footer>
@@ -512,14 +608,18 @@ export const Files: Story = {
   args: { variant: "soft" },
   render: (args) => (
     <Screen variant={args.variant}>
-      <header class:x-toolbar data-variant={args.variant}>
+      <header
+        class:x-toolbar
+        data-variant={args.variant}
+        data-size={searchSize(args.variant)}
+      >
         <div class:x-toolbar>
           <Group variant={args.variant}>
-            <IconButton label="Browse" name={ICONS.back} />
+            <BackButton variant={args.variant} label="Browse" />
           </Group>
           <Title text="Recents" />
           <Group variant={args.variant}>
-            <IconButton label="More" name={ICONS.more} />
+            <IconButton variant={args.variant} label="More" name={ICONS.more} />
           </Group>
         </div>
         <div class:x-toolbar>
@@ -561,13 +661,17 @@ export const Chat: Story = {
       <header class:x-toolbar data-variant={args.variant}>
         <div>
           <Group variant={args.variant}>
-            <IconButton label="Back" name={ICONS.back} />
+            <BackButton variant={args.variant} label="Back" />
           </Group>
           <Title text="Design Team" />
         </div>
         <Group variant={args.variant}>
-          <IconButton label="Video call" name={ICONS.video} />
-          <IconButton label="More" name={ICONS.more} />
+          <IconButton
+            variant={args.variant}
+            label="Video call"
+            name={ICONS.video}
+          />
+          <IconButton variant={args.variant} label="More" name={ICONS.more} />
         </Group>
       </header>
       <div>
@@ -581,22 +685,26 @@ export const Chat: Story = {
 export const Editor: Story = {
   args: { variant: "soft" },
   render: (args) => (
-    <Screen width={1024} variant={args.variant}>
+    <Screen variant={args.variant}>
       <header class:x-toolbar data-variant={args.variant}>
         <div>
           <Group variant={args.variant}>
-            <IconButton label="Back" name={ICONS.back} />
+            <BackButton variant={args.variant} label="Back" />
           </Group>
           <Title text="Q3 Report" />
         </div>
         <Group variant={args.variant} label="Tools">
-          <IconButton label="Pen" name={ICONS.pen} />
-          <IconButton label="Text" name={ICONS.text} />
-          <IconButton label="Shapes" name={ICONS.shapes} />
+          <IconButton variant={args.variant} label="Pen" name={ICONS.pen} />
+          <IconButton variant={args.variant} label="Text" name={ICONS.text} />
+          <IconButton
+            variant={args.variant}
+            label="Shapes"
+            name={ICONS.shapes}
+          />
         </Group>
         <Group variant={args.variant}>
-          <IconButton label="Share" name={ICONS.share} />
-          <IconButton label="More" name={ICONS.more} />
+          <IconButton variant={args.variant} label="Share" name={ICONS.share} />
+          <IconButton variant={args.variant} label="More" name={ICONS.more} />
         </Group>
       </header>
       <div>
@@ -615,7 +723,11 @@ export const PageScroll: Story = {
       <main>
         <section>
           <h1 class:x-large-title>Settings</h1>
-          <header class:x-toolbar data-variant={args.variant}>
+          <header
+            class:x-toolbar
+            data-variant={args.variant}
+            data-size={searchSize(args.variant)}
+          >
             <Search placeholder="Search" variant={args.variant} />
           </header>
           <div>

@@ -189,22 +189,33 @@
 /***************************************************************************************************
  *                                                                                                 *
  * MATERIAL — data-variant="material": a floating capsule (iOS 26 toolbars). Children sit apart     *
- * on a material background instead of joining. Tuned for data-size="2" children: 32px + 4px       *
- * padding = 40px. A text input or segmented control inside uses the capsule as its background.     *
+ * on a material background instead of joining. Any size: a size-N child plus 4px padding, corners *
+ * concentric (the child's size radius + 4px). A text input or segmented control inside uses the   *
+ * capsule as its background.                                                                      *
  *                                                                                                 *
  ***************************************************************************************************/
 
 .x-group[data-variant="material"] {
+  /* the children's size radius (size 2 by default) */
+  --x-group-radius: max(var(--radius-2), var(--radius-pill));
+
   align-items: center;
   gap: 0;
   padding: var(--space-1);
-  /* concentric with the size-2 children */
-  border-radius: calc(
-    max(var(--radius-2), var(--radius-pill)) + var(--space-1)
-  );
+  border-radius: calc(var(--x-group-radius) + var(--space-1));
   background-color: var(--color-material, var(--color-surface));
   backdrop-filter: var(--backdrop-filter-material, none);
   box-shadow: var(--shadow-3);
+}
+
+.x-group[data-variant="material"]:has(> [data-size="1"]) {
+  --x-group-radius: max(var(--radius-1), var(--radius-pill));
+}
+.x-group[data-variant="material"]:has(> [data-size="3"]) {
+  --x-group-radius: max(var(--radius-3), var(--radius-pill));
+}
+.x-group[data-variant="material"]:has(> [data-size="4"]) {
+  --x-group-radius: max(var(--radius-4), var(--radius-pill));
 }
 
 /* no joining: no overlap, no seam clip, own corners (outranks the rules above by order) */
@@ -212,7 +223,7 @@
   > :is(.x-button, .x-text-input, .x-select, .x-toggle) {
   margin: 0;
   clip-path: none;
-  border-radius: max(var(--radius-2), var(--radius-pill));
+  border-radius: var(--x-group-radius);
 }
 
 /* a field or segmented track fills the capsule and drops its own fill: one layer */
@@ -230,14 +241,6 @@
 .x-group[data-variant="material"]:has(> .x-text-input:focus-within) {
   outline: 2px solid var(--focus-8);
   outline-offset: -1px;
-}
-
-/* text buttons fit their content (button.css): give them the size box, so padding is even */
-.x-group[data-variant="material"] > .x-button {
-  box-sizing: border-box;
-  block-size: var(--base-button-height);
-  min-inline-size: var(--base-button-height);
-  justify-content: center;
 }
 
 /***************************************************************************************************

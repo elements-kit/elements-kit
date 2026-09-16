@@ -25,56 +25,135 @@
 
 /***************************************************************************************************
  *                                                                                                 *
- * SCROLL CONTAINER — focus and snap stop below the bars                                           *
+ * SIZE — one formula for every bar                                                                *
+ *                                                                                                 *
+ *   h   = control height of the bar's data-size (1–4, default 2): --space-5 | 6 | 7 | 8            *
+ *   cap = capsule padding: --space-1 in clean/soft (controls float in material groups), else 0     *
+ *   row = h + 2·cap                                                                               *
+ *   bar = safe area + start + n·row + (n − 1)·gap + end        (n rows: 1, or a group's 2–3)      *
+ *                                                                                                 *
+ *   surface               start = gap = end = --space-3                                           *
+ *   clean / soft, top     start --space-4, gap --space-4, end --space-2                           *
+ *   clean / soft, bottom  start --space-1, gap --space-4, end --space-4                           *
+ *                                                                                                 *
+ * A stacked control (a tab bar) is 58 units tall, a unit being h / 32.                            *
+ * The scroll container states the parameters — it needs the height for its scroll padding and    *
+ * can't read the bar's properties — and the bars inherit them (a group is a bar, not a            *
+ * container, so its rows inherit too). A bar's height is a minimum: taller content grows it.      *
  *                                                                                                 *
  ***************************************************************************************************/
 
-:has(> .x-toolbar:not([data-position="bottom"])),
-:root:has(.x-toolbar:not([data-position="bottom"])) {
-  --toolbar-height: calc(52px * var(--scaling) + env(safe-area-inset-top, 0px));
+:not(.x-toolbar):has(> .x-toolbar:not([data-position="bottom"])),
+:root:has(.x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar)) {
+  --x-top-h: var(--space-6);
+  --x-top-control: var(--x-top-h);
+  --x-top-cap: 0px;
+  --x-top-start: var(--space-3);
+  --x-top-gap: var(--space-3);
+  --x-top-end: var(--space-3);
+  --x-top-rows: 1;
+  --x-top-row: calc(var(--x-top-control) + 2 * var(--x-top-cap));
+  --toolbar-height: calc(
+    env(safe-area-inset-top, 0px) + var(--x-top-start) + var(--x-top-rows) *
+      var(--x-top-row) + (var(--x-top-rows) - 1) * var(--x-top-gap) +
+      var(--x-top-end)
+  );
   scroll-padding-block-start: var(--toolbar-height);
 }
 
-:has(> .x-toolbar[data-position="bottom"]),
-:root:has(.x-toolbar[data-position="bottom"]) {
+:not(.x-toolbar):has(> .x-toolbar[data-position="bottom"]),
+:root:has(.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar)) {
+  --x-bottom-h: var(--space-6);
+  --x-bottom-control: var(--x-bottom-h);
+  --x-bottom-cap: 0px;
+  --x-bottom-start: var(--space-3);
+  --x-bottom-gap: var(--space-3);
+  --x-bottom-end: var(--space-3);
+  --x-bottom-rows: 1;
+  --x-bottom-row: calc(var(--x-bottom-control) + 2 * var(--x-bottom-cap));
   --toolbar-bottom-height: calc(
-    52px * var(--scaling) + env(safe-area-inset-bottom, 0px)
+    var(--x-bottom-start) + var(--x-bottom-rows) * var(--x-bottom-row) +
+      (var(--x-bottom-rows) - 1) * var(--x-bottom-gap) + var(--x-bottom-end) +
+      env(safe-area-inset-bottom, 0px)
   );
   scroll-padding-block-end: var(--toolbar-bottom-height);
 }
 
-/* clean / soft bars are taller, so floating controls sit off the screen edge:
- * 64 = 8 + 8 + 40px control + 8 */
-:has(
-  > .x-toolbar:is([data-variant="soft"], [data-variant="clean"]):not(
-      [data-position="bottom"]
-    )
-),
-:root:has(
-  .x-toolbar:is([data-variant="soft"], [data-variant="clean"]):not(
-      [data-position="bottom"]
-    )
-) {
-  --toolbar-height: calc(64px * var(--scaling) + env(safe-area-inset-top, 0px));
+/* h */
+:not(.x-toolbar):has(> .x-toolbar:not([data-position="bottom"])[data-size="1"]),
+:root:has(.x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar)[data-size="1"]) {
+  --x-top-h: var(--space-5);
+}
+:not(.x-toolbar):has(> .x-toolbar:not([data-position="bottom"])[data-size="3"]),
+:root:has(.x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar)[data-size="3"]) {
+  --x-top-h: var(--space-7);
+}
+:not(.x-toolbar):has(> .x-toolbar:not([data-position="bottom"])[data-size="4"]),
+:root:has(.x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar)[data-size="4"]) {
+  --x-top-h: var(--space-8);
+}
+:not(.x-toolbar):has(> .x-toolbar[data-position="bottom"][data-size="1"]),
+:root:has(.x-toolbar[data-position="bottom"][data-size="1"]:not(.x-toolbar .x-toolbar)) {
+  --x-bottom-h: var(--space-5);
+}
+:not(.x-toolbar):has(> .x-toolbar[data-position="bottom"][data-size="3"]),
+:root:has(.x-toolbar[data-position="bottom"][data-size="3"]:not(.x-toolbar .x-toolbar)) {
+  --x-bottom-h: var(--space-7);
+}
+:not(.x-toolbar):has(> .x-toolbar[data-position="bottom"][data-size="4"]),
+:root:has(.x-toolbar[data-position="bottom"][data-size="4"]:not(.x-toolbar .x-toolbar)) {
+  --x-bottom-h: var(--space-8);
 }
 
-:has(
-  > .x-toolbar:is(
-      [data-variant="soft"],
-      [data-variant="clean"]
-    )[data-position="bottom"]
-),
-:root:has(
-  .x-toolbar:is(
-      [data-variant="soft"],
-      [data-variant="clean"]
-    )[data-position="bottom"]
-) {
-  /* 60 = 4 padding + 40px control + 16 screen-side: bottom space equals the 16px sides */
-  --toolbar-bottom-height: calc(
-    60px * var(--scaling) + env(safe-area-inset-bottom, 0px)
-  );
+/* clean / soft */
+:not(.x-toolbar):has(> .x-toolbar:not([data-position="bottom"]):is([data-variant="soft"], [data-variant="clean"])),
+:root:has(.x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar):is([data-variant="soft"], [data-variant="clean"])) {
+  --x-top-cap: var(--space-1);
+  --x-top-start: var(--space-4);
+  --x-top-gap: var(--space-4);
+  --x-top-end: var(--space-2);
 }
+:not(.x-toolbar):has(> .x-toolbar[data-position="bottom"]:is([data-variant="soft"], [data-variant="clean"])),
+:root:has(.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar):is([data-variant="soft"], [data-variant="clean"])) {
+  --x-bottom-cap: var(--space-1);
+  --x-bottom-start: var(--space-1);
+  --x-bottom-gap: var(--space-4);
+  --x-bottom-end: var(--space-4);
+}
+
+/* rows of a group */
+:not(.x-toolbar):has(> .x-toolbar:not([data-position="bottom"]) > .x-toolbar + .x-toolbar),
+:root:has(.x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar) > .x-toolbar + .x-toolbar) {
+  --x-top-rows: 2;
+}
+:not(.x-toolbar):has(> .x-toolbar:not([data-position="bottom"]) > .x-toolbar + .x-toolbar + .x-toolbar),
+:root:has(.x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar) > .x-toolbar + .x-toolbar + .x-toolbar) {
+  --x-top-rows: 3;
+}
+:not(.x-toolbar):has(> .x-toolbar[data-position="bottom"] > .x-toolbar + .x-toolbar),
+:root:has(.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar) > .x-toolbar + .x-toolbar) {
+  --x-bottom-rows: 2;
+}
+:not(.x-toolbar):has(> .x-toolbar[data-position="bottom"] > .x-toolbar + .x-toolbar + .x-toolbar),
+:root:has(.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar) > .x-toolbar + .x-toolbar + .x-toolbar) {
+  --x-bottom-rows: 3;
+}
+
+/* a stacked control: 58 units */
+:not(.x-toolbar):has(> .x-toolbar:not([data-position="bottom"]) [data-layout="stacked"]),
+:root:has(.x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar) [data-layout="stacked"]) {
+  --x-top-control: calc(var(--x-top-h) * 58 / 32);
+}
+:not(.x-toolbar):has(> .x-toolbar[data-position="bottom"] [data-layout="stacked"]),
+:root:has(.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar) [data-layout="stacked"]) {
+  --x-bottom-control: calc(var(--x-bottom-h) * 58 / 32);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SCROLL CONTAINER — focus and snap stop below the bars                                           *
+ *                                                                                                 *
+ ***************************************************************************************************/
 
 /* never rest mid-collapse; proximity leaves the list free */
 :has(> .x-large-title),
@@ -126,11 +205,12 @@
   grid-template-columns: 1fr minmax(0, auto) 1fr;
   align-items: center;
   gap: var(--toolbar-region-gap);
-  block-size: var(--toolbar-height);
-  /* notch only; room comes from --toolbar-height so content stays centered */
-  padding-block-start: env(safe-area-inset-top, 0px);
-  padding-inline: var(--space-4);
   box-sizing: border-box;
+  /* SIZE: the insets pad the controls; the formula is the minimum */
+  min-block-size: var(--toolbar-height);
+  padding-block: calc(env(safe-area-inset-top, 0px) + var(--x-top-start))
+    var(--x-top-end);
+  padding-inline: var(--space-4);
 
   font-family: var(--default-font-family);
   font-size: var(--font-size-3);
@@ -251,12 +331,10 @@
 .x-toolbar[data-position="bottom"] {
   inset-block: auto 0;
   margin-block-start: auto;
-  /* taller content (a stacked tab bar) grows the bar */
-  block-size: auto;
   min-block-size: var(--toolbar-bottom-height);
-  /* room around taller content; home indicator below */
-  padding-block: var(--space-1)
-    calc(env(safe-area-inset-bottom, 0px) + var(--space-1));
+  /* home indicator below */
+  padding-block: var(--x-bottom-start)
+    calc(var(--x-bottom-end) + env(safe-area-inset-bottom, 0px));
 
   /* always shown, hairline on the top edge */
   &::before {
@@ -270,15 +348,6 @@
  * VARIANTS — clean and soft (iOS 26): no bar; controls float                                      *
  *                                                                                                 *
  ***************************************************************************************************/
-
-.x-toolbar:is([data-variant="soft"], [data-variant="clean"]) {
-  padding-block-start: calc(env(safe-area-inset-top, 0px) + var(--space-2));
-
-  &[data-position="bottom"] {
-    padding-block: var(--space-1)
-      calc(env(safe-area-inset-bottom, 0px) + var(--space-4));
-  }
-}
 
 .x-toolbar[data-variant="clean"]::before {
   content: none;
@@ -317,39 +386,23 @@
  *                                                                                                 *
  ***************************************************************************************************/
 
-/* the group sticks, paints and owns the safe area */
+/* the group sticks, paints and owns the insets and the safe area; rows gap */
 .x-toolbar:has(> .x-toolbar) {
   display: flex;
   flex-direction: column;
-  /* the bar centers its regions and gaps them; rows stretch, and only floating rows gap */
   align-items: stretch;
-  gap: 0;
-  block-size: auto;
+  gap: var(--x-top-gap);
   padding-inline: 0;
-  padding-block: env(safe-area-inset-top, 0px) 0;
 
   &[data-position="bottom"] {
-    padding-block: 0 env(safe-area-inset-bottom, 0px);
-  }
-
-  /* floating: the single bar's rhythm — top 16/8, bottom 4/16, 16 between rows */
-  &:is([data-variant="soft"], [data-variant="clean"]) {
-    gap: var(--space-4);
-    padding-block: calc(env(safe-area-inset-top, 0px) + var(--space-4))
-      var(--space-2);
-
-    &[data-position="bottom"] {
-      padding-block: var(--space-1)
-        calc(env(safe-area-inset-bottom, 0px) + var(--space-4));
-    }
+    gap: var(--x-bottom-gap);
   }
 }
 
-/* rows: layout only; the group pads, so a row is one bar tall */
+/* rows: layout only, one row tall */
 .x-toolbar > .x-toolbar {
   position: static;
-  block-size: auto;
-  min-block-size: calc(52px * var(--scaling));
+  min-block-size: var(--x-top-row);
   padding-block: 0;
 
   &::before {
@@ -357,11 +410,8 @@
   }
 }
 
-/* floating rows are the control's height: the group's gaps do the spacing */
-.x-toolbar > .x-toolbar:is([data-variant="soft"], [data-variant="clean"]),
-.x-toolbar:is([data-variant="soft"], [data-variant="clean"])
-  > .x-toolbar:not([data-variant]) {
-  min-block-size: var(--space-7);
+.x-toolbar[data-position="bottom"] > .x-toolbar {
+  min-block-size: var(--x-bottom-row);
 }
 
 /* a row with its own variant paints it (clean paints nothing) */
@@ -382,27 +432,6 @@
 .x-toolbar[data-position="bottom"] > .x-toolbar[data-variant]::before {
   opacity: 1;
   box-shadow: inset 0 1px 0 var(--neutral-a5);
-}
-
-/* a painted edge row is the screen edge: it takes the safe area from the group */
-.x-toolbar[data-position="bottom"]:has(
-    > .x-toolbar[data-variant]:not([data-variant="clean"]):last-child
-  ) {
-  padding-block-end: 0;
-
-  & > .x-toolbar:last-child {
-    padding-block-end: env(safe-area-inset-bottom, 0px);
-  }
-}
-
-.x-toolbar:not([data-position="bottom"]):has(
-    > .x-toolbar[data-variant]:not([data-variant="clean"]):first-child
-  ) {
-  padding-block-start: 0;
-
-  & > .x-toolbar:first-child {
-    padding-block-start: env(safe-area-inset-top, 0px);
-  }
 }
 
 /***************************************************************************************************
@@ -433,6 +462,35 @@
 
   /* snap: expanded (scrollTop 0) */
   scroll-snap-align: start;
+}
+
+/* a bar right after the title brings its own space above (12px around a surface field,
+ * 16px to a floating capsule), so the title drops its bottom padding; the collapse runs
+ * over the shorter title */
+.x-large-title:has(+ .x-toolbar) {
+  padding-block-end: 0;
+  /* no bar above it: cancel the scroll padding, or its snap point is -bar height, which some engines
+   * drop instead of clamping — leaving only the content's, so the page snaps past the title */
+  scroll-margin-block-start: calc(-1 * var(--toolbar-height, 0px));
+}
+
+.x-large-title:has(+ .x-toolbar),
+.x-large-title + .x-toolbar {
+  --x-large-title-height: calc(
+    var(--heading-line-height-8) + var(--space-4)
+  );
+}
+
+/* a bar right before the title is its space above (iOS: the title sits right under the bar) */
+.x-toolbar + .x-large-title {
+  padding-block-start: 0;
+}
+
+.x-toolbar:has(+ .x-large-title),
+.x-toolbar + .x-large-title {
+  --x-large-title-height: calc(
+    var(--heading-line-height-8) + var(--space-2)
+  );
 }
 
 /* snap: collapsed. The content after the title is taller than the viewport,

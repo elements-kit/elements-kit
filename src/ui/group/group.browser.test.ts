@@ -35,8 +35,11 @@ const q = (root: ParentNode, selector: string) =>
 
 const box = (el: Element) => el.getBoundingClientRect();
 
+// a real Material Symbols glyph, so failure screenshots show the icon
+const SHARE = `<svg width="24" height="24" viewBox="0 -960 960 960" fill="currentColor" aria-hidden="true"><path d="M686-80q-47.5 0-80.75-33.25T572-194q0-8 5-34L278-403q-16.28 17.34-37.64 27.17Q219-366 194-366q-47.5 0-80.75-33T80-480q0-48 33.25-81T194-594q24 0 45 9.3 21 9.29 37 25.7l301-173q-2-8-3.5-16.5T572-766q0-47.5 33.25-80.75T686-880q47.5 0 80.75 33.25T800-766q0 47.5-33.25 80.75T686-652q-23.27 0-43.64-9Q622-670 606-685L302-516q3 8 4.5 17.5t1.5 18q0 8.5-1 16t-3 15.5l303 173q16-15 36.09-23.5 20.1-8.5 43.07-8.5Q734-308 767-274.75T800-194q0 47.5-33.25 80.75T686-80Z" /></svg>`;
+
 const iconButton = (label: string) =>
-  `<button class="unset x-button" data-variant="text" data-size="2" data-icon aria-label="${label}"><svg width="16" height="16"></svg></button>`;
+  `<button class="unset x-button" data-variant="borderless" data-size="2" data-icon aria-label="${label}">${SHARE}</button>`;
 
 /** Gap between the capsule edge and its first/last child, per side. */
 function padding(group: Element) {
@@ -64,12 +67,40 @@ describe("x-group data-variant=material", () => {
     }
   });
 
-  it("gives text buttons the full size box, so the padding stays even", () => {
-    const el = mount(`<div class="x-group" data-variant="material"><button class="unset x-button" data-variant="text" data-size="2">Edit</button></div>`);
+  it("holds a borderless label button with even padding: the label keeps the borderless 12px", () => {
+    const el = mount(`<div class="x-group" data-variant="material"><button class="unset x-button" data-variant="borderless" data-size="2">Edit</button></div>`);
     const group = q(el, ".x-group");
+    const button = q(el, ".x-button");
+    const range = document.createRange();
+    range.selectNodeContents(button);
+    const label = range.getBoundingClientRect();
 
     expect(box(group).height).toBe(40);
     expect(padding(group)).toEqual({ top: 4, bottom: 4, start: 4, end: 4 });
+    expect(label.left - box(button).left).toBeCloseTo(12, 0);
+    expect(box(button).right - label.right).toBeCloseTo(12, 0);
+  });
+
+  describe.each(["none", "small", "medium", "large", "pill"])("data-radius=%s", (radius) => {
+    it.each([1, 2, 3, 4])("size %s children: h + 8px tall, 4px in, corners concentric", (size) => {
+      host = document.createElement("div");
+      host.dataset.radius = radius;
+      host.innerHTML = `<div class="x-group" data-variant="material"><button class="unset x-button" data-variant="borderless" data-size="${size}" data-icon aria-label="A">${SHARE}</button><button class="unset x-button" data-variant="borderless" data-size="${size}">Edit</button></div>`;
+      document.body.append(host);
+      const group = q(host, ".x-group");
+      const button = group.firstElementChild!;
+      const px = (v: string) => parseFloat(v);
+      const standalone = document.createElement("button");
+      standalone.className = "unset x-button";
+      standalone.dataset.size = String(size);
+      host.append(standalone);
+
+      expect(box(group).height).toBe({ 1: 24, 2: 32, 3: 40, 4: 48 }[size]! + 8);
+      expect(padding(group)).toEqual({ top: 4, bottom: 4, start: 4, end: 4 });
+      // children keep their size's own radius; the capsule adds its 4px padding
+      expect(getComputedStyle(button).borderTopLeftRadius).toBe(getComputedStyle(standalone).borderTopLeftRadius);
+      expect(px(getComputedStyle(group).borderTopLeftRadius)).toBe(px(getComputedStyle(button).borderTopLeftRadius) + 4);
+    });
   });
 
   it("does not join its children like a bare group", () => {
@@ -82,6 +113,9 @@ describe("x-group data-variant=material", () => {
     expect(joined.marginLeft).toBe("-1px");
     expect(material.marginLeft).toBe("0px");
     expect(material.clipPath).toBe("none");
+    // own corners: the seam side stays rounded
+    expect(material.borderStartStartRadius).not.toBe("0px");
+    expect(joined.borderStartStartRadius).toBe("0px");
   });
 
   it("has its own background and shadow", () => {

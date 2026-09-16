@@ -173,7 +173,7 @@ export const ToggleRow: Story = {
 const BACKDROP =
   "padding: 24px; border-radius: 12px; background: repeating-linear-gradient(45deg, oklch(0.78 0.14 25) 0 14px, oklch(0.86 0.1 200) 14px 28px)";
 
-const TextButton = (props: {
+const BorderlessButton = (props: {
   label: string;
   name?: IconName;
   icon?: boolean;
@@ -182,7 +182,7 @@ const TextButton = (props: {
   <button
     class:unset
     class:x-button
-    data-variant="text"
+    data-variant="borderless"
     data-size="2"
     data-icon={props.icon ? "" : undefined}
     aria-label={props.icon ? props.label : undefined}
@@ -202,21 +202,21 @@ export const Material: Story = {
       style={`${BACKDROP}; display: flex; flex-wrap: wrap; align-items: center; gap: 12px`}
     >
       <div class:x-group data-variant="material">
-        <TextButton label="Back" name="chevron_left" icon />
+        <BorderlessButton label="Back" name="chevron_left" icon />
       </div>
       <div class:x-group data-variant="material" role="group" aria-label="Actions">
-        <TextButton label="Share" name="share" icon />
-        <TextButton label="More" name="more_horiz" icon />
+        <BorderlessButton label="Share" name="share" icon />
+        <BorderlessButton label="More" name="more_horiz" icon />
       </div>
       <div class:x-group data-variant="material">
-        <TextButton label="Edit" />
+        <BorderlessButton label="Edit" />
       </div>
       <div class:x-group data-variant="material">
-        <TextButton label="Mailboxes" name="chevron_left" />
+        <BorderlessButton label="Mailboxes" name="chevron_left" />
       </div>
       <div class:x-group data-variant="material" role="group" aria-label="Zoom">
-        <TextButton label="Zoom out" name="remove" icon />
-        <TextButton label="Zoom in" name="add" icon disabled />
+        <BorderlessButton label="Zoom out" name="remove" icon />
+        <BorderlessButton label="Zoom in" name="add" icon disabled />
       </div>
       <div class:x-group data-variant="material" style="width: 200px">
         <div class:x-text-input data-variant="soft" data-size="2">
