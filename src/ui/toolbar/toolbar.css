@@ -267,6 +267,57 @@
 
 /***************************************************************************************************
  *                                                                                                 *
+ * GROUPED — a bar of bars: rows that stick and paint as one (a FAB over a tab bar)                 *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* the group sticks, paints and owns the safe area */
+.x-toolbar:has(> .x-toolbar) {
+  display: flex;
+  flex-direction: column;
+  /* the bar centers its regions and gaps them; rows stretch, and only floating rows gap */
+  align-items: stretch;
+  gap: 0;
+  block-size: auto;
+  padding-inline: 0;
+  padding-block: env(safe-area-inset-top, 0px) 0;
+
+  &[data-position="bottom"] {
+    padding-block: 0 env(safe-area-inset-bottom, 0px);
+  }
+
+  /* floating: the single bar's rhythm — top 16/8, bottom 4/16, 16 between rows */
+  &:is([data-variant="soft"], [data-variant="clean"]) {
+    gap: var(--space-4);
+    padding-block: calc(env(safe-area-inset-top, 0px) + var(--space-4))
+      var(--space-2);
+
+    &[data-position="bottom"] {
+      padding-block: var(--space-1)
+        calc(env(safe-area-inset-bottom, 0px) + var(--space-4));
+    }
+  }
+}
+
+/* rows: layout only; the group pads, so a row is one bar tall */
+.x-toolbar > .x-toolbar {
+  position: static;
+  block-size: auto;
+  min-block-size: calc(52px * var(--scaling));
+  padding-block: 0;
+
+  &::before {
+    content: none;
+  }
+}
+
+/* floating rows are the control's height: the group's gaps do the spacing */
+.x-toolbar:is([data-variant="soft"], [data-variant="clean"]) > .x-toolbar {
+  min-block-size: var(--space-7);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
  * VARIANTS — clean and soft (iOS 26): no bar; controls float                                      *
  *                                                                                                 *
  ***************************************************************************************************/

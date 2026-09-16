@@ -242,12 +242,17 @@ const Rows = (props: { items: string[] }) => (
   </>
 );
 
-/** An element scrolls: --scroll-y lives on it. */
-function Screen(props: { width?: number; children?: Children }) {
+/** An element scrolls: --scroll-y lives on it. Floating bars pill their controls. */
+function Screen(props: {
+  width?: number;
+  variant?: Variant;
+  children?: Children;
+}) {
   let stop: (() => void) | undefined;
   onCleanup(() => stop?.());
   return (
     <div
+      data-radius={props.variant && floats(props.variant) ? "pill" : undefined}
       ref={(el) => {
         stop = effectScope(() => driveScroll(el, createElementScroll(el).y));
       }}
@@ -351,7 +356,7 @@ type Story = StoryObj<Args>;
 /** Large title first, then the search bar: the title scrolls away, the search pins at the top. */
 export const Settings: Story = {
   render: (args) => (
-    <Screen>
+    <Screen variant={args.variant}>
       <h1 class:x-large-title>Settings</h1>
       <header class:x-toolbar data-variant={args.variant}>
         <Search placeholder="Search" variant={args.variant} />
@@ -366,7 +371,7 @@ export const Settings: Story = {
 /** Back + title + action, a segmented filter under the large title, a status bottom bar. */
 export const Inbox: Story = {
   render: (args) => (
-    <Screen>
+    <Screen variant={args.variant}>
       <header class:x-toolbar data-variant={args.variant}>
         <Group variant={args.variant}>
           <TextButton label="Mailboxes" d={ICONS.back} />
@@ -408,7 +413,7 @@ export const Inbox: Story = {
 export const Notes: Story = {
   args: { variant: "soft" },
   render: (args) => (
-    <Screen>
+    <Screen variant={args.variant}>
       <header class:x-toolbar data-variant={args.variant}>
         <Group variant={args.variant}>
           <IconButton label="Folders" d={ICONS.back} />
@@ -440,7 +445,7 @@ export const Notes: Story = {
 export const Photos: Story = {
   args: { variant: "soft" },
   render: (args) => (
-    <Screen>
+    <Screen variant={args.variant}>
       <header class:x-toolbar data-variant={args.variant}>
         <Title text="Library" />
         <Group variant={args.variant}>
@@ -469,7 +474,7 @@ export const Photos: Story = {
 export const TabBar: Story = {
   args: { variant: "soft" },
   render: (args) => (
-    <Screen>
+    <Screen variant={args.variant}>
       <header class:x-toolbar data-variant={args.variant}>
         <Title text="Library" />
       </header>
@@ -484,6 +489,73 @@ export const TabBar: Story = {
       >
         <Tabs variant={args.variant} />
       </footer>
+    </Screen>
+  ),
+};
+
+/** A compose button in its own row, grouped with the bottom bar. */
+export const Mail: Story = {
+  args: { variant: "soft" },
+  render: (args) => (
+    <Screen variant={args.variant}>
+      <header class:x-toolbar data-variant={args.variant}>
+        <Title text="Mail" />
+        <Group variant={args.variant}>
+          <TextButton label="Edit" />
+        </Group>
+      </header>
+      <h1 class:x-large-title>Mail</h1>
+      <div>
+        <Rows items={MAIL} />
+      </div>
+      <footer
+        class:x-toolbar
+        data-position="bottom"
+        data-variant={args.variant}
+      >
+        {/* FAB row: an empty start region puts the button at the end */}
+        <div class:x-toolbar>
+          <div />
+          <Group variant={args.variant}>
+            <IconButton label="Compose" d={ICONS.compose} />
+          </Group>
+        </div>
+        <div class:x-toolbar>
+          <Group variant={args.variant}>
+            <IconButton label="Filter" d={ICONS.filter} />
+          </Group>
+          <Title text="Updated just now" />
+          <Group variant={args.variant}>
+            <IconButton label="Search" d={ICONS.search} />
+          </Group>
+        </div>
+      </footer>
+    </Screen>
+  ),
+};
+
+/** A grouped top bar: the title row and the search row stick as one. */
+export const Files: Story = {
+  args: { variant: "soft" },
+  render: (args) => (
+    <Screen variant={args.variant}>
+      <header class:x-toolbar data-variant={args.variant}>
+        <div class:x-toolbar>
+          <Group variant={args.variant}>
+            <IconButton label="Browse" d={ICONS.back} />
+          </Group>
+          <Title text="Recents" />
+          <Group variant={args.variant}>
+            <IconButton label="More" d={ICONS.more} />
+          </Group>
+        </div>
+        <div class:x-toolbar>
+          <Search placeholder="Search files" variant={args.variant} />
+        </div>
+      </header>
+      <div>
+        <Rows items={NOTES} />
+      </div>
     </Screen>
   ),
 };
@@ -512,7 +584,7 @@ export const Today: Story = {
 /** Material-like: title next to back, icon actions, no large title. */
 export const Chat: Story = {
   render: (args) => (
-    <Screen>
+    <Screen variant={args.variant}>
       <header class:x-toolbar data-variant={args.variant}>
         <div>
           <Group variant={args.variant}>
@@ -536,7 +608,7 @@ export const Chat: Story = {
 export const Editor: Story = {
   args: { variant: "soft" },
   render: (args) => (
-    <Screen width={1024}>
+    <Screen width={1024} variant={args.variant}>
       <header class:x-toolbar data-variant={args.variant}>
         <div>
           <Group variant={args.variant}>
