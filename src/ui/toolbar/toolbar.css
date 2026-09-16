@@ -555,6 +555,28 @@
 
 /***************************************************************************************************
  *                                                                                                 *
+ * PHONE BROWSER TAB — the browser owns the edges                                                  *
+ *                                                                                                 *
+ * In a browser tab (not a Home Screen app) iOS Safari reports no safe areas and paints the status *
+ * bar and toolbar strips itself: content under a transparent bar shows through its own blur, and  *
+ * any color at the edge is extended as a solid tint. So a soft edge is left to the browser, and   *
+ * a surface bar is solid, so the tint matches it instead of cutting its translucency off.         *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+@media (display-mode: browser) and (pointer: coarse) {
+  .x-toolbar[data-variant="soft"]::before {
+    content: none;
+  }
+
+  .x-toolbar:not([data-variant="soft"], [data-variant="clean"])::before {
+    background-color: var(--color-material-solid, var(--color-surface));
+    backdrop-filter: none;
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
  * REDUCED TRANSPARENCY / FORCED COLORS                                                            *
  *                                                                                                 *
  ***************************************************************************************************/

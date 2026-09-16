@@ -1,0 +1,8 @@
+<!-- Edge to edge on phones: the page draws under the notch and home indicator, and env(safe-area-inset-*) reports them. -->
+<script>
+  document.querySelector('meta[name="viewport"]')?.setAttribute("content", "width=device-width, initial-scale=1, viewport-fit=cover");
+</script>
+<!-- Added to the Home Screen, a story opens as an app: no browser bars, the status bar over the page, real safe areas. -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

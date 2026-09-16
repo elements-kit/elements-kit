@@ -3,7 +3,6 @@ import type { Meta, StoryObj } from "@storybook/html-vite";
 import type { Children } from "elements-kit/jsx-runtime";
 import { effect, effectScope } from "elements-kit/signals";
 
-import { createElementScroll } from "../../utilities/element-scroll";
 import { fromEvent, sync } from "../../utilities/event-driven";
 import "../../utilities/dom-lifecycle";
 import "../avatar/avatar.css";
@@ -64,6 +63,9 @@ const Icon = (props: { name: IconName }) => (
 );
 
 /** clean/soft: borderless, the capsule is its box · surface: text, bleeds to the bar's padding */
+/** clean/soft capsules hold size-3 controls (40px buttons, 48px capsules); surface bars size 2 */
+const controlSize = (variant: Variant) => "3";
+
 const buttonVariant = (variant: Variant) =>
   floats(variant) ? "borderless" : "text";
 
@@ -76,7 +78,7 @@ const IconButton = (props: {
     class:unset
     class:x-button
     data-variant={buttonVariant(props.variant)}
-    data-size="2"
+    data-size={controlSize(props.variant)}
     data-icon=""
     aria-label={props.label}
   >
@@ -93,7 +95,7 @@ const TextButton = (props: {
     class:unset
     class:x-button
     data-variant={buttonVariant(props.variant)}
-    data-size="2"
+    data-size={controlSize(props.variant)}
   >
     {props.name ? <Icon name={props.name} /> : null}
     {props.label}
@@ -111,7 +113,7 @@ const BackButton = (props: {
       class:unset
       class:x-button
       data-variant={buttonVariant(props.variant)}
-      data-size="2"
+      data-size={controlSize(props.variant)}
       data-back=""
     >
       <StoryIcon name="arrow_back_ios" />
@@ -122,7 +124,7 @@ const BackButton = (props: {
       class:unset
       class:x-button
       data-variant={buttonVariant(props.variant)}
-      data-size="2"
+      data-size={controlSize(props.variant)}
       data-back=""
       data-icon=""
       aria-label={props.label}
@@ -156,8 +158,8 @@ const Title = (props: { text: string }) => (
   <span data-title="">{props.text}</span>
 );
 
-/** The search field's size: a size-3 field in surface bars, a size-2 field in a capsule. The bar holding it takes the same data-size. */
-const searchSize = (variant: Variant) => (floats(variant) ? "2" : "3");
+/** The search field is size 3 in every bar; the bar holding it takes the same data-size. */
+const SEARCH_SIZE = "3";
 
 /** Floating: a soft field inside a material group, which is its background. */
 const Search = (props: { placeholder: string; variant: Variant }) => {
@@ -166,7 +168,7 @@ const Search = (props: { placeholder: string; variant: Variant }) => {
     <div
       class:x-text-input
       data-variant={floating ? "soft" : "surface"}
-      data-size={searchSize(props.variant)}
+      data-size={SEARCH_SIZE}
     >
       {/* affix: text-input pads non-input children, so the icon needs its own wrapper */}
       <span>
@@ -199,7 +201,7 @@ const Segmented = (props: {
       class:unset
       class:x-segmented-control
       data-variant={floating ? "soft" : "surface"}
-      data-size={props.size ?? "2"}
+      data-size={props.size ?? "3"}
       data-separators={props.separators}
       data-accent="neutral"
       role="radiogroup"
@@ -240,6 +242,7 @@ const Tabs = (props: { variant: Variant }) => {
       data-variant={floating ? "soft" : "surface"}
       data-size="2"
       data-layout="stacked"
+      data-separators="none"
       data-accent="neutral"
       role="radiogroup"
       aria-label="Sections"
@@ -282,17 +285,24 @@ const Rows = (props: { items: string[] }) => (
   </>
 );
 
-/** The viewport-high scroll container: --scroll-y lives on it. */
+/**
+ * The page scrolls, as in an app on a phone: the list runs under the browser's bars and the safe areas,
+ * and --scroll-y lives on <html>. The screen is at least the viewport tall, so a bottom bar sits at the bottom.
+ */
 function Screen(props: { variant?: Variant; children?: Children }) {
   let stop: (() => void) | undefined;
-  onCleanup(() => stop?.());
   return (
-    <div
-      ref={(el) => {
-        stop = effectScope(() => driveScroll(el, createElementScroll(el).y));
-      }}
-      style="height:100dvh;overflow:auto"
-    >
+    <div style="min-height:100dvh">
+      {/* first, so it isn't a sibling after the large title (a snap target) or after a bottom bar */}
+      <dom-lifecycle
+        onConnect={() => {
+          stop = effectScope(() => {
+            const [y] = sync(fromEvent(window, "scroll"), () => window.scrollY);
+            driveScroll(document.documentElement, y);
+          });
+        }}
+        onDisconnect={() => stop?.()}
+      />
       {props.children}
     </div>
   );
@@ -398,7 +408,7 @@ export const Settings: Story = {
       <header
         class:x-toolbar
         data-variant={args.variant}
-        data-size={searchSize(args.variant)}
+        data-size={SEARCH_SIZE}
       >
         <Search placeholder="Search" variant={args.variant} />
       </header>
@@ -413,7 +423,11 @@ export const Settings: Story = {
 export const Inbox: Story = {
   render: (args) => (
     <Screen variant={args.variant}>
-      <header class:x-toolbar data-variant={args.variant}>
+      <header
+        class:x-toolbar
+        data-variant={args.variant}
+        data-size={controlSize(args.variant)}
+      >
         <Group variant={args.variant}>
           <BackButton variant={args.variant} label="Mailboxes" showLabel />
         </Group>
@@ -437,6 +451,7 @@ export const Inbox: Story = {
         class:x-toolbar
         data-position="bottom"
         data-variant={args.variant}
+        data-size={controlSize(args.variant)}
       >
         <Group variant={args.variant}>
           <IconButton
@@ -463,7 +478,11 @@ export const Notes: Story = {
   args: { variant: "soft" },
   render: (args) => (
     <Screen variant={args.variant}>
-      <header class:x-toolbar data-variant={args.variant}>
+      <header
+        class:x-toolbar
+        data-variant={args.variant}
+        data-size={controlSize(args.variant)}
+      >
         <Group variant={args.variant}>
           <BackButton variant={args.variant} label="Folders" />
         </Group>
@@ -480,7 +499,7 @@ export const Notes: Story = {
         class:x-toolbar
         data-position="bottom"
         data-variant={args.variant}
-        data-size={searchSize(args.variant)}
+        data-size={SEARCH_SIZE}
       >
         <Search placeholder="Search notes" variant={args.variant} />
         <Group variant={args.variant}>
@@ -500,7 +519,11 @@ export const Photos: Story = {
   args: { variant: "soft" },
   render: (args) => (
     <Screen variant={args.variant}>
-      <header class:x-toolbar data-variant={args.variant}>
+      <header
+        class:x-toolbar
+        data-variant={args.variant}
+        data-size={controlSize(args.variant)}
+      >
         <Title text="Library" />
         <Group variant={args.variant}>
           <TextButton variant={args.variant} label="Select" />
@@ -532,7 +555,11 @@ export const TabBar: Story = {
   args: { variant: "soft" },
   render: (args) => (
     <Screen variant={args.variant}>
-      <header class:x-toolbar data-variant={args.variant}>
+      <header
+        class:x-toolbar
+        data-variant={args.variant}
+        data-size={controlSize(args.variant)}
+      >
         <Title text="Library" />
       </header>
       <h1 class:x-large-title>Library</h1>
@@ -543,6 +570,7 @@ export const TabBar: Story = {
         class:x-toolbar
         data-position="bottom"
         data-variant={args.variant}
+        data-size={controlSize(args.variant)}
       >
         <Tabs variant={args.variant} />
       </footer>
@@ -555,7 +583,11 @@ export const Mail: Story = {
   args: { variant: "soft" },
   render: (args) => (
     <Screen variant={args.variant}>
-      <header class:x-toolbar data-variant={args.variant}>
+      <header
+        class:x-toolbar
+        data-variant={args.variant}
+        data-size={controlSize(args.variant)}
+      >
         <Title text="Mail" />
         <Group variant={args.variant}>
           <TextButton variant={args.variant} label="Edit" />
@@ -569,6 +601,7 @@ export const Mail: Story = {
         class:x-toolbar
         data-position="bottom"
         data-variant={args.variant}
+        data-size={controlSize(args.variant)}
       >
         {/* FAB row: an empty start region puts the button at the end */}
         <div class:x-toolbar>
@@ -611,7 +644,7 @@ export const Files: Story = {
       <header
         class:x-toolbar
         data-variant={args.variant}
-        data-size={searchSize(args.variant)}
+        data-size={SEARCH_SIZE}
       >
         <div class:x-toolbar>
           <Group variant={args.variant}>
@@ -658,7 +691,11 @@ export const Today: Story = {
 export const Chat: Story = {
   render: (args) => (
     <Screen variant={args.variant}>
-      <header class:x-toolbar data-variant={args.variant}>
+      <header
+        class:x-toolbar
+        data-variant={args.variant}
+        data-size={controlSize(args.variant)}
+      >
         <div>
           <Group variant={args.variant}>
             <BackButton variant={args.variant} label="Back" />
@@ -686,7 +723,11 @@ export const Editor: Story = {
   args: { variant: "soft" },
   render: (args) => (
     <Screen variant={args.variant}>
-      <header class:x-toolbar data-variant={args.variant}>
+      <header
+        class:x-toolbar
+        data-variant={args.variant}
+        data-size={controlSize(args.variant)}
+      >
         <div>
           <Group variant={args.variant}>
             <BackButton variant={args.variant} label="Back" />
@@ -726,7 +767,7 @@ export const PageScroll: Story = {
           <header
             class:x-toolbar
             data-variant={args.variant}
-            data-size={searchSize(args.variant)}
+            data-size={SEARCH_SIZE}
           >
             <Search placeholder="Search" variant={args.variant} />
           </header>
