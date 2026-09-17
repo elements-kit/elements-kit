@@ -441,19 +441,19 @@
  ***************************************************************************************************/
 
 /*
- * iOS action item (iOS 27 UI kit), at size 2: a 20px icon over a 12px medium label on an
- * 18px line, a 4px gap, 14px inline padding. One unit (1px at size 2) scales the
- * geometry; the label grows only 1px per size.
+ * Action item, at size 2: a 24px icon (the Material Symbols grid) over a --font-size-1 medium
+ * label, a 2px gap, 4 × 8px padding. One unit (1px at size 2) scales the box and the icon; the
+ * label steps up the type scale at size 3.
  *
- * Minimum height — 56 for filled variants, 51 for text (the kit's 8 × 4 text padding around
- * the same 42px content) — and the same minimum width, so a button is at least square and a
+ * Minimum height — 56 for filled variants, 51 for text (the kit's 8 × 4 text padding) — and
+ * the same minimum width, so a button is at least square and a
  * longer label widens it. Constrained, the label wraps and the button grows taller.
  */
 .x-button:where([data-layout="stacked"]) {
   --x-stacked-unit: calc(var(--base-button-height) / 32);
 
   flex-direction: column;
-  gap: calc(4 * var(--x-stacked-unit));
+  gap: calc(2 * var(--x-stacked-unit));
   box-sizing: border-box;
   height: auto;
 
@@ -473,8 +473,8 @@
   /* stylelint-disable-next-line selector-max-type */
   & > :where(svg) {
     flex: none;
-    width: calc(20 * var(--x-stacked-unit));
-    height: calc(20 * var(--x-stacked-unit));
+    width: calc(24 * var(--x-stacked-unit));
+    height: calc(24 * var(--x-stacked-unit));
   }
 
   /* stylelint-disable-next-line selector-max-type */

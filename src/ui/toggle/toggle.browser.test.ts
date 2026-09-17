@@ -80,9 +80,9 @@ describe("x-toggle data-layout=stacked", () => {
     const t = toggle(`data-variant="borderless" data-size="2" data-layout="stacked" style="width: 80px"`, "Photo Library");
     const label = t.querySelector("span")!;
 
-    // two 16px lines under the 20px icon and 4px gap, 4px above and below
+    // two 16px lines under the 24px icon and 2px gap, 4px above and below
     expect(box(label).height).toBe(32);
-    expect(box(t).height).toBe(64);
+    expect(box(t).height).toBe(66);
     expect(label.scrollWidth).toBeLessThanOrEqual(label.clientWidth);
   });
 });

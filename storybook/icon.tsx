@@ -34,6 +34,10 @@ import Symbol32 from "@material-symbols/svg-400/rounded/reply-fill.svg?ek";
 import Symbol33 from "@material-symbols/svg-400/rounded/forward-fill.svg?ek";
 import Symbol34 from "@material-symbols/svg-400/rounded/flag-fill.svg?ek";
 import Symbol35 from "@material-symbols/svg-400/rounded/notifications_off-fill.svg?ek";
+import Symbol36 from "@material-symbols/svg-400/rounded/chevron_right-fill.svg?ek";
+import Symbol37 from "@material-symbols/svg-400/rounded/check-fill.svg?ek";
+import Symbol38 from "@material-symbols/svg-400/rounded/open_in_new-fill.svg?ek";
+import Symbol39 from "@material-symbols/svg-400/rounded/delete-fill.svg?ek";
 
 const icons = {
   wifi: Symbol0,
@@ -72,6 +76,10 @@ const icons = {
   forward: Symbol33,
   flag: Symbol34,
   notifications_off: Symbol35,
+  chevron_right: Symbol36,
+  check: Symbol37,
+  open_in_new: Symbol38,
+  delete: Symbol39,
 };
 
 export type IconName = keyof typeof icons;

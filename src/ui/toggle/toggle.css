@@ -116,7 +116,7 @@
   --x-stacked-unit: calc(var(--toggle-height) / 32);
 
   flex-direction: column;
-  gap: calc(4 * var(--x-stacked-unit));
+  gap: calc(2 * var(--x-stacked-unit));
   box-sizing: border-box;
   /* at least square; constrained, the label wraps and the toggle grows taller */
   height: auto;
@@ -127,8 +127,8 @@
   /* stylelint-disable-next-line selector-max-type */
   & > :where(svg) {
     flex: none;
-    width: calc(20 * var(--x-stacked-unit));
-    height: calc(20 * var(--x-stacked-unit));
+    width: calc(24 * var(--x-stacked-unit));
+    height: calc(24 * var(--x-stacked-unit));
   }
 
   /* stylelint-disable-next-line selector-max-type */
