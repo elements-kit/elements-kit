@@ -67,7 +67,7 @@ describe("x-toggle data-layout=stacked", () => {
     expect(label.lineHeight).toBe("16px");
   });
 
-  it("keeps one label weight, so pressing doesn't resize it", () => {
+  it("keeps one weight, so pressing doesn't resize it", () => {
     const offToggle = toggle(`data-variant="soft" data-layout="stacked"`, "Notifications");
     const off = box(offToggle);
     offToggle.parentElement!.remove();

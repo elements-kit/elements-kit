@@ -69,7 +69,7 @@ The `unset` class on the input strips native chrome ([Styles → Unset native st
 
 ## Variants
 
-The pressed state uses accent (`--accent-*`) tokens, which fall back to neutral when no `data-accent` is set. Every variant changes the fill, the text color, and the weight (`500 → 600`) on press, so pressed stays distinct from rest even when everything is gray.
+The pressed state uses accent (`--accent-*`) tokens, which fall back to neutral when no `data-accent` is set. Pressing changes the fill and the text color, never the weight, so a toggle keeps its width. The fill steps are large enough to stay distinct from rest even when everything is gray.
 
 | Variant | Rest | Pressed | Pressed + hover |
 | --- | --- | --- | --- |
@@ -101,7 +101,7 @@ Add `data-layout="stacked"` to put the icon above the label. The geometry matche
 </nav>
 ```
 
-A stacked toggle widens for its label. When its container constrains the width, as in a navigation rail, the label wraps into balanced lines and the toggle grows taller. The label keeps one weight when pressed, so a toggle never changes size on press.
+A stacked toggle widens for its label. When its container constrains the width, as in a navigation rail, the label wraps into balanced lines and the toggle grows taller.
 
 <StorybookEmbed story="ui-toggle--navigation-rail" />
 
