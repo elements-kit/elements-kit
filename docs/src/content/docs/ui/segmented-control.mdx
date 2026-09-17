@@ -112,7 +112,7 @@ For icon-only segments, drop the `<span>` and name each radio with `aria-label`:
 </label>
 ```
 
-Add `data-layout="stacked"` on the container to put each icon above its label, as in a tab bar. At size `2` the control is 58px tall: each segment's highlight sits 2px inside the track and holds a 24px icon, a 1px gap, and a medium-weight label in `--font-size-1` on `--line-height-1`. The track and icon scale with the size — 43.5, 58 and 72.5px tall for sizes `1`–`3` — and size `3` labels use `--font-size-2` on `--line-height-2`.
+Add `data-layout="stacked"` on the container to put each icon above its label, as in a tab bar. At size `2` the control is 58px tall: each segment's highlight sits 2px inside the track and holds a 24px icon, a 1px gap, and a medium-weight caption in `--font-size-0` (10px) on `--line-height-1`. The track and icon scale with the size — 43.5, 58 and 72.5px tall for sizes `1`–`3` — and size `3` captions use `--font-size-1` on `--line-height-2`.
 
 A stacked control fits its container: segments stay equal width, long labels truncate, and there are no separators. The weight doesn't change on selection, so segments never reflow.
 

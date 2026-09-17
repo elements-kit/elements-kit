@@ -66,13 +66,13 @@ describe("x-segmented-control data-layout=stacked", () => {
     const label = box(segment.querySelector("span")!);
     const labelStyle = getComputedStyle(segment.querySelector("span")!);
 
-    // 58px: a 54px highlight 2px inside the track, 24px icon, 1px gap, --font-size-1 label on --line-height-1
+    // 58px: a 54px highlight 2px inside the track, 24px icon, 1px gap, --font-size-0 caption on --line-height-1
     expect(box(control).height).toBe(58);
     expect(inset).toBe(2);
     expect(getComputedStyle(control, "::after").top).toBe("2px");
     expect(icon.width).toBe(24);
     expect(label.top - icon.bottom).toBe(1);
-    expect(labelStyle.fontSize).toBe("12px");
+    expect(labelStyle.fontSize).toBe("10px");
     expect(labelStyle.lineHeight).toBe("16px");
     expect(labelStyle.fontWeight).toBe("500");
     // centered in the highlight both ways
@@ -81,9 +81,9 @@ describe("x-segmented-control data-layout=stacked", () => {
   });
 
   it.each([
-    ["1", 43.5, 18, "12px"],
-    ["2", 58, 24, "12px"],
-    ["3", 72.5, 30, "14px"],
+    ["1", 43.5, 18, "10px"],
+    ["2", 58, 24, "10px"],
+    ["3", 72.5, 30, "12px"],
   ])("size %s: %ipx tall with a %ipx icon and a %s label", (size, height, iconSize, labelSize) => {
     const control = mount(`data-size="${size}" data-layout="stacked"`);
 
