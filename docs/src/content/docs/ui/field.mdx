@@ -1,0 +1,55 @@
+---
+title: Field
+description: Experimental standalone field layout for labels, controls, helper text, and errors.
+---
+
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
+
+A field keeps a visible label, a native control, and supporting text together. You can use it independently of a list or card. This layout is experimental; its interface may change.
+
+<StorybookEmbed story="ui-field--profile" />
+
+## Compose a field
+
+Import the field layout alongside your theme and control styles. The field arranges its children; the control keeps its own appearance, size, interaction, and focus indication.
+
+```ts
+import "elements-kit/ui/styles.css";
+import "elements-kit/ui/text-input/text-input.css";
+import "elements-kit/ui/field/field.css";
+```
+
+Use an explicit label association and connect supporting text with `aria-describedby`.
+
+```html
+<div class="x-field">
+  <label for="email">Email</label>
+  <input class="unset x-text-input" id="email" name="email"
+    type="email" autocomplete="email" aria-describedby="email-help" />
+  <small id="email-help">Used for account updates and sign-in.</small>
+</div>
+```
+
+Place fields in your own grid or form. The layout does not add submission, validation, or persistence behavior.
+
+## Choose a layout
+
+Labels appear above their controls by default. Add `data-layout="inline"` to place the label in the first column, with the control and supporting text in the second. Choose stacked fields when long labels or limited space make side-by-side content difficult to read.
+
+Set `data-size` and `data-variant` on the control itself. You can use a bare `.x-text-input`, a textarea, a select, or the existing text-input wrapper with prefixes and icons. A custom control wrapper can use `.x-field-control` to fill the available column.
+
+## Show validation
+
+Set `aria-invalid="true"` after your application determines that a value is invalid. Connect the error message with `aria-describedby`, and mark the message with `data-error`. For error colors, import the red palette and error accent mapping, then apply `data-accent="error"` to the field.
+
+Use native `disabled` and `readonly` attributes for those states. Keep any explanation outside the control so it remains readable. Validation messages should describe how to correct the value, without relying on color alone.
+
+## Focus and accessibility
+
+Focus remains on the native control. The field wrapper has no tabindex, role, or focus outline. Text-input affixes retain the existing wrapper focus treatment, so the prefix and editable area appear as one control.
+
+## See also
+
+- [Text Input](/ui/text-input)
+- [Select](/ui/select)
+- [Styles](/ui/styles)

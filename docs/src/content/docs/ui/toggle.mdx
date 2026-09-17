@@ -52,9 +52,10 @@ The `unset` class on the input strips native chrome ([Styles → Unset native st
 
 | Attribute | Values |
 | --- | --- |
-| `data-variant` | `surface` *(default)*, `soft` |
+| `data-variant` | `surface` *(default)*, `soft`, `borderless` |
 | `data-size` | `1`, `2` *(default)*, `3` |
 | `data-icon` | makes the toggle a square (icon-only) — drops horizontal padding, locks `aspect-ratio: 1` |
+| `data-layout` | `stacked` — icon above the label, same geometry as a [stacked button](/ui/button#icon-and-label) (see [Stacked](#stacked)) |
 | `data-accent` *(on element or any ancestor)* | any imported color scale |
 | `disabled` *(on the wrapped input)* | greys out + stops clicks |
 
@@ -68,12 +69,41 @@ The `unset` class on the input strips native chrome ([Styles → Unset native st
 
 ## Variants
 
-The rest state uses neutral tokens; the pressed state uses accent (`--accent-*`) tokens that fall back to neutral via [accent/neutral.css](https://github.com/) when no `data-accent` is set. Both variants stack three hue-independent signals — alpha step, ring/weight, and `font-weight: 500 → 600` — so pressed stays clearly distinct from rest even in the all-gray case.
+The pressed state uses accent (`--accent-*`) tokens, which fall back to neutral when no `data-accent` is set. Every variant changes the fill, the text color, and the weight (`500 → 600`) on press, so pressed stays distinct from rest even when everything is gray.
 
-- **`surface`** *(default)* — thin `--neutral-a5` ring + muted `--neutral-a11` text at rest. Pressed: soft `--accent-a5` fill + stronger `--accent-a8` ring + `--accent-12` text. Hover bumps the pressed bg one alpha step deeper (`--accent-a6`).
-- **`soft`** — `--neutral-a3` tinted track at rest. Pressed: `--accent-a5` accent-tinted track + `--accent-12` text.
+| Variant | Rest | Pressed | Pressed + hover |
+| --- | --- | --- | --- |
+| `surface` *(default)* | `--neutral-a5` ring, `--neutral-a11` text | `--accent-a4` fill, `--accent-a8` ring, `--accent-a12` text | `--accent-a5` |
+| `soft` | `--neutral-a3` track, `--neutral-a11` text | `--accent-a6` track, `--accent-a12` text | `--accent-a7` |
+| `borderless` | no fill, `--accent-a11` text | `--accent-a4` fill, `--accent-a12` text | `--accent-a5` |
 
-Set `data-accent="iris"` on the toggle or any ancestor to tint the pressed state. Without an accent, the pressed state stays gray (just deeper than rest) — still clearly active.
+- **`soft`** — the pressed track sits three alpha steps above rest, so it reads clearly even with a neutral accent.
+- **`borderless`** — at rest it matches a [borderless button](/ui/button), so a toggle can sit among buttons in a [toolbar](/ui/toolbar) or a [material group](/ui/group#material). Only the pressed toggle shows a fill.
+
+Set `data-accent="iris"` on the toggle or any ancestor to tint the pressed state.
+
+## Stacked
+
+Add `data-layout="stacked"` to put the icon above the label. The geometry matches a [stacked button](/ui/button#icon-and-label): at size `2`, a 20px icon, a 4px gap, and a 12px medium-weight label on an 18px line, in an item at least 56px square.
+
+```html
+<nav aria-label="Sections" style="display: flex; flex-direction: column; gap: 4px; width: 80px">
+  <label class="x-toggle" data-variant="borderless" data-layout="stacked">
+    <input type="radio" name="section" class="unset" checked />
+    <svg viewBox="0 0 24 24" aria-hidden="true">…</svg>
+    <span>Home</span>
+  </label>
+  <label class="x-toggle" data-variant="borderless" data-layout="stacked">
+    <input type="radio" name="section" class="unset" />
+    <svg viewBox="0 0 24 24" aria-hidden="true">…</svg>
+    <span>Photo Library</span>
+  </label>
+</nav>
+```
+
+A stacked toggle widens for its label. When its container constrains the width, as in a navigation rail, the label wraps into balanced lines and the toggle grows taller. The label keeps one weight when pressed, so a toggle never changes size on press.
+
+<StorybookEmbed story="ui-toggle--navigation-rail" />
 
 ## Grouping
 
@@ -95,7 +125,7 @@ For a joined-pill segmented control (no gaps between items, one continuous bar),
 
 - **`:has(input:checked)`** — pressed. Drives the bg + color flip.
 - **`:hover`** — subtle wash on the bg.
-- **`:focus-within`** — `2px` `--focus-8` outline at `+1px` offset (on the label, since the input is visually hidden).
+- **`:has(input:focus-visible)`** — `2px` `--focus-8` outline at `+1px` offset, on the label since the input is visually hidden. Keyboard focus only: a click doesn't show it.
 - **`:has(input:disabled)`** — `0.6` opacity, `pointer-events: none`.
 
 ## Accessibility
@@ -105,3 +135,10 @@ Native checkbox / radio semantics are intact — the input is visually hidden vi
 :::caution[Don't]
 Remove the wrapped `<input>` and use `<button aria-pressed>` instead — that would require JavaScript to toggle the attribute and lose native form participation.
 :::
+
+## See also
+
+- [Segmented Control](/ui/segmented-control) — joined single-select bar
+- [Button](/ui/button) — actions, and the stacked geometry toggles share
+- [Toolbar](/ui/toolbar) — toggles in top and bottom bars
+- [Group](/ui/group) — material capsules for borderless toggles

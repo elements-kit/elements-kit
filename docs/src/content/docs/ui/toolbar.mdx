@@ -1,11 +1,11 @@
 ---
 title: Toolbar
-description: CSS-only top and bottom bars with an iOS-style large title that collapses as you scroll — regions by child order, surface, clean and soft variants.
+description: CSS-only top and bottom bars with an iOS-style large title that collapses as you scroll — regions by child order, grouped rows, surface, clean and soft variants.
 ---
 
 import StorybookEmbed from "@/components/StorybookEmbed.astro";
 
-A sticky bar for the top or bottom of a scroll container, with an optional large title that collapses into it as you scroll. CSS does the layout and the collapse; your code only writes the scroll position.
+A sticky bar for the top or bottom of a scroll container, with an optional large title that collapses into it as you scroll. CSS does the layout and the collapse. Only browsers without scroll-driven animations need your code to write the scroll position.
 
 <StorybookEmbed story="ui-toolbar--inbox" />
 
@@ -21,6 +21,7 @@ import "elements-kit/ui/styles/accent/mint.css";
 
 import "elements-kit/ui/button/button.css";
 import "elements-kit/ui/group/group.css"; // capsules in clean and soft bars
+import "elements-kit/ui/toggle/toggle.css"; // optional: on/off and tool picks
 import "elements-kit/ui/toolbar/toolbar.css";
 ```
 
@@ -46,6 +47,7 @@ The bar and the large title are direct children of the scroll container. Everyth
 | --- | --- |
 | `data-position` | `top` *(default)*, `bottom` |
 | `data-variant` | `surface` *(default)*, `clean`, `soft` |
+| `data-size` | `1`, `2` *(default)*, `3`, `4` — the `data-size` of the controls it holds (see [Sizing](#sizing)) |
 | `data-radius` *(on a parent or the bar)* | any [radius](/ui/styles#radius); buttons and capsules follow it |
 
 | Attribute *(on `.x-large-title`)* | Values |
@@ -65,41 +67,32 @@ The bar reads its layout from child order: first child is the start, a middle ch
 - A bare `[data-title]` is always the center, and stays centered on the bar.
 - With only two children, the start takes the free space — a title next to a back button.
 - A lone child centers across the bar.
-- A region holding an input fills its column.
+- A region holding a text field fills its column. A [toggle](/ui/toggle)'s hidden input doesn't count.
 - Only a region holding the title shrinks. The title truncates; buttons keep their size.
 
 Text buttons bleed past the bar's 16px padding, so their labels line up with the large title and the content.
 
 ## Large title and scroll
 
-The collapse reads `--scroll-y` in pixels from an ancestor. Write it from the scroll position:
+Where scroll-driven animations are supported (Chrome 115, Safari 26), the large title's own view timeline drives the collapse, with no JavaScript. Elsewhere, write the scroll position in pixels as `--scroll-y` on the bars and the large title:
 
 ```ts
 import { effect, effectScope } from "elements-kit/signals";
 import { createElementScroll } from "elements-kit/utilities/element-scroll";
 
 const screen = document.querySelector<HTMLElement>(".screen")!;
+const targets = screen.querySelectorAll<HTMLElement>(".x-toolbar:not(.x-toolbar .x-toolbar), .x-large-title");
 
 const stop = effectScope(() => {
+  if (CSS.supports("animation-timeline: view()")) return;
   const { y } = createElementScroll(screen);
-  effect(() => screen.style.setProperty("--scroll-y", `${y()}px`));
+  effect(() => targets.forEach((el) => el.style.setProperty("--scroll-y", `${y()}px`)));
 });
 ```
 
-When the page scrolls, write it on `<html>` instead:
+Write it on the bars and the title rather than on the container or `<html>`: only they read it, and a variable set higher up restyles the whole page on every frame. For page scroll, read `window.scrollY` with `sync(fromEvent(window, "scroll"), () => window.scrollY)` instead.
 
-```ts
-import { fromEvent, sync } from "elements-kit/utilities/event-driven";
-
-const [y] = sync(fromEvent(window, "scroll"), () => window.scrollY);
-effect(() => document.documentElement.style.setProperty("--scroll-y", `${y()}px`));
-```
-
-As the title scrolls under the bar it fades out over its own height (64px). The bar's background and title fade in over the last 40% of that distance. Scroll snap keeps the screen from resting mid-collapse, while the content scrolls freely past it.
-
-:::caution[Wrap the content]
-Put everything after the large title in one element. Snap aligns to it; if the list's rows are separate children, short scrolls get pulled back to the collapsed position.
-:::
+As the title scrolls under the bar it fades out over its own height. The bar's background and title fade in over the last 40% of that distance. Both paths drive the same registered properties, so the numbers match in every browser.
 
 ### Layouts
 
@@ -108,13 +101,38 @@ Put everything after the large title in one element. Snap aligns to it; if the l
 - **No bar** — the large title scrolls away with the content.
 - **No large title** — the bar's title is always shown; its background appears once content scrolls under it.
 
-Without `--scroll-y` the math is invalid and every property falls back to its initial value: a plain bar and a static large title.
+Without a timeline or `--scroll-y`, the progress properties keep their initial values: a plain bar and a static large title. Keep `--scroll-y` unregistered and without a fallback, such as `var(--scroll-y, 0px)`; a default of 0 would hide the bar's title and background when no script runs.
 
 ## Bottom bar
 
 Add `data-position="bottom"` and make the bar the last child of the scroll container. It always shows its background and keeps focused elements above it. With short content the container becomes a column, so the bar still sits at the bottom. For page scroll, give the bar's parent `min-block-size: 100dvh`.
 
-The bar's height is a minimum: taller content, such as a [stacked segmented control](/ui/segmented-control#icons) used as a tab bar, grows it. In clean and soft bars, controls sit 16px from the bottom edge, the same as from the sides.
+The bar's height is a minimum: taller content, such as a [stacked segmented control](/ui/segmented-control#icons) used as a tab bar, grows it. A stacked [button](/ui/button#icon-and-label) or [toggle](/ui/toggle#stacked) counts too. In clean and soft bars, controls sit 16px from the bottom edge, the same as from the sides.
+
+## Grouped bars
+
+Nest `.x-toolbar` rows inside a bar to stack them as one: a title row over a search row, or a compose button over a tab bar. The outer bar sticks, paints one background, and owns the safe area. Each row lays out its regions like a bar of its own.
+
+```html
+<header class="x-toolbar" data-variant="soft" data-size="3">
+  <div class="x-toolbar">
+    <div class="x-group" data-variant="material">…back…</div>
+    <span data-title>Recents</span>
+    <div class="x-group" data-variant="material">…more…</div>
+  </div>
+  <div class="x-toolbar">
+    <div class="x-group" data-variant="material">…search field…</div>
+  </div>
+</header>
+```
+
+Each row is one control tall, or one capsule in `clean` and `soft`, and rows sit a bar's gap apart: 12px in `surface`, 16px in `clean` and `soft`. The scroll padding counts up to three rows.
+
+A row with its own `data-variant` paints itself, and the group stops painting, so a surface row inside a surface group shows one hairline, not two. In a bottom group, a painted row always shows its background.
+
+:::caution[Unpainted rows]
+Once any row paints itself, the group paints nothing. Rows without a variant then show the content scrolling behind them — give each row a variant, or none.
+:::
 
 ## Variants
 
@@ -136,17 +154,25 @@ The bar's height is a minimum: taller content, such as a [stacked segmented cont
 </header>
 ```
 
-Use `text` buttons inside capsules: the capsule is their background.
+Use `text` or `borderless` buttons inside capsules: the capsule is their background. A [`borderless` toggle](/ui/toggle#variants) fits the same capsule, for a pick such as a drawing tool, and fills only when pressed.
 
 ## Sizing
 
+A bar is as tall as its controls plus fixed insets. Set the bar's `data-size` to match its controls' `data-size`; the scroll container reads it to size its scroll padding.
+
 | | `surface` | `clean`, `soft` |
 | --- | --- | --- |
-| top bar | 52px + `safe-area-inset-top` | 64px + `safe-area-inset-top` |
-| bottom bar (minimum) | 52px + `safe-area-inset-bottom` | 60px + `safe-area-inset-bottom` |
+| top, size `2` | 56px | 64px |
+| top, size `3` | 64px | 72px |
+| bottom, size `2` | 56px | 60px |
+| bottom, size `3` | 64px | 68px |
+| two rows, top, size `3` | 116px | 136px |
 | large title | 64px — one 40px line, 16px above, 8px below | same |
 
-Every size scales with `--scaling`. The scroll container's padding matches the bars, so focused elements and anchors stop below them.
+- **`surface`** — 12px above and below the controls.
+- **`clean`, `soft`** — controls sit in 4px capsules; 16px above and 8px below at the top, 4px above and 16px below at the bottom.
+
+Bars add `safe-area-inset-top` or `safe-area-inset-bottom`. Every size scales with `--scaling`. The scroll container's padding matches the bars, so focused elements and anchors stop below them.
 
 ## Accessibility
 
@@ -174,12 +200,12 @@ The collapse follows the scroll position directly, with no animation of its own.
 
 ## Browser support
 
-Works in browsers with `:has()` (Chrome 105, Safari 15.4, Firefox 121) and trigonometric functions in `calc()` (Chrome 111, Safari 15.4, Firefox 108). Without trig support the collapse falls back to a plain bar and a static title. The soft edge uses [`color-mix()`](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/color-mix) and `backdrop-filter`.
+Works in browsers with `:has()` (Chrome 105, Safari 15.4, Firefox 121) and trigonometric functions in `calc()` (Chrome 111, Safari 15.4, Firefox 108). Without trig support the collapse falls back to a plain bar and a static title. The collapse's progress and the edge blur are [`@property`](https://developer.mozilla.org/en-US/docs/Web/CSS/@property) registrations (Chrome 85, Safari 16.4, Firefox 128); without them the collapse still works, and the soft edge loses only its blur. The soft edge uses [`color-mix()`](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/color-mix) and `backdrop-filter`.
 
 ## See also
 
 - [Group](/ui/group) — material capsules for clean and soft bars
 - [Button](/ui/button) — text buttons for bar actions
+- [Toggle](/ui/toggle) — on/off actions and tool picks
 - [Text Input](/ui/text-input) — search fields
 - [Segmented Control](/ui/segmented-control) — filters under the title or in a bottom bar
-- [Styles](/ui/styles) — tokens, material and theming

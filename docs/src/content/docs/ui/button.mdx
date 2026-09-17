@@ -47,7 +47,7 @@ The `unset` class ([Styles → Unset native styles](/ui/styles#unset-native-styl
 | `data-size` | `1`, `2`, `3`, `4` |
 | `data-accent` | any imported color scale (`mint`, `blue`, `iris`, …) |
 | `data-icon` | modifier — square shape sized by height. Use for icon-only buttons. |
-| `data-layout` | `stacked` — icon above the label; never taller than wide (see [Icon and label](#icon-and-label)) |
+| `data-layout` | `stacked` — icon above the label; at least square, the label wraps when constrained (see [Icon and label](#icon-and-label)) |
 | `data-back` | modifier — a leading back chevron sized to the text (see [Back button](#back-button)) |
 | `data-high-contrast` | modifier — boosts contrast against the page background |
 | `data-loading` | modifier — sets `position: relative` for a spinner overlay |
@@ -106,16 +106,16 @@ Put an icon next to the label as a child; source order decides its side. Size it
 
 Add `data-layout="stacked"` to put the icon above the label, as in iOS action items. At size `2` the button is 56px tall, with a 20px icon, a 4px gap, and a 12px medium-weight label on an 18px line, plus 14px inline padding. Every length scales with the size, while the label grows 1px per size.
 
-The height is fixed and `aspect-ratio: 1` keeps the button at least as wide as it is tall: a short label gives a square, a longer one widens it. The label truncates when the button is constrained.
+The height and width are minimums: a short label gives a square, a longer one widens the button. When the button is constrained, the label wraps into balanced lines and the button grows taller, keeping 7px above the icon and below the label at size `2`. A single word too long for the width breaks.
 
-| `data-size` | stacked height | icon | label |
+| `data-size` | stacked minimum | icon | label |
 | --- | --- | --- | --- |
 | `1` | 42px | 15px | 11px |
 | `2` | 56px | 20px | 12px |
 | `3` | 70px | 25px | 13px |
 | `4` | 84px | 30px | 14px |
 
-`text` stacked buttons keep the kit's text padding (8px × 4px at size `2`), so they are 51px tall and still bleed like other text buttons.
+`text` stacked buttons keep the kit's text padding (8px × 4px at size `2`), so they are at least 51px square and still bleed like other text buttons. For an on/off action with the same shape, use a [stacked toggle](/ui/toggle#stacked).
 
 ```html
 <button class="unset x-button" data-variant="soft" data-size="2" data-layout="stacked">
