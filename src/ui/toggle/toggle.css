@@ -49,8 +49,8 @@
   pointer-events: none;
 }
 
-/* Focus indication on the label when its input gets keyboard focus. */
-.x-toggle:where(:focus-within) {
+/* Focus indication on the label when its input gets keyboard focus (not on click). */
+.x-toggle:where(:has(input:focus-visible)) {
   outline: 2px solid var(--focus-8);
   outline-offset: 1px;
 }
@@ -96,6 +96,46 @@
   aspect-ratio: 1;
   padding-inline: 0;
   min-width: 0;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * STACKED — data-layout="stacked": icon above the label, the stacked button's geometry            *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-toggle:where([data-layout="stacked"]) {
+  --x-stacked-unit: calc(var(--toggle-height) / 32);
+
+  flex-direction: column;
+  gap: calc(4 * var(--x-stacked-unit));
+  box-sizing: border-box;
+  /* at least square; constrained, the label wraps and the toggle grows taller */
+  height: auto;
+  min-width: calc(56 * var(--x-stacked-unit));
+  min-height: calc(56 * var(--x-stacked-unit));
+  padding: calc(8 * var(--x-stacked-unit));
+
+  /* stylelint-disable-next-line selector-max-type */
+  & > :where(svg) {
+    flex: none;
+    width: calc(20 * var(--x-stacked-unit));
+    height: calc(20 * var(--x-stacked-unit));
+  }
+
+  /* stylelint-disable-next-line selector-max-type */
+  & > :where(:not(svg, input)) {
+    max-width: 100%;
+    text-wrap: balance;
+    overflow-wrap: break-word;
+    /* 11 / 12 / 13px for sizes 1–3, on an 18-unit line */
+    font-size: calc(
+      var(--font-size-1) + (var(--x-stacked-unit) - 1px * var(--scaling)) * 4
+    );
+    line-height: calc(18 * var(--x-stacked-unit));
+    /* one weight: pressing must not resize the item */
+    font-weight: var(--font-weight-medium);
+  }
 }
 
 /***************************************************************************************************
@@ -156,14 +196,43 @@
   }
 }
 
+/* three steps above rest, so pressed reads even with a neutral accent */
 .x-toggle:where([data-variant="soft"]):where(:has(input:checked)) {
-  background-color: var(--accent-a4);
+  background-color: var(--accent-a6);
   color: var(--accent-a12, var(--accent-12));
   font-weight: 600;
 }
 
 @media (hover: hover) {
   .x-toggle:where([data-variant="soft"]):where(:has(input:checked):hover) {
-    background-color: var(--accent-a6);
+    background-color: var(--accent-a7);
+  }
+}
+
+/* borderless — no track at rest, the button's accent text (toolbars, material groups); fill on press. */
+
+.x-toggle:where([data-variant="borderless"]) {
+  background-color: transparent;
+  color: var(--accent-a11);
+  font-weight: 500;
+}
+
+@media (hover: hover) {
+  .x-toggle:where([data-variant="borderless"]):where(:hover) {
+    background-color: var(--accent-a3);
+  }
+}
+
+.x-toggle:where([data-variant="borderless"]):where(:has(input:checked)) {
+  background-color: var(--accent-a4);
+  color: var(--accent-a12, var(--accent-12));
+  font-weight: 600;
+}
+
+@media (hover: hover) {
+  .x-toggle:where([data-variant="borderless"]):where(
+      :has(input:checked):hover
+    ) {
+    background-color: var(--accent-a5);
   }
 }

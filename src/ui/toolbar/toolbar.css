@@ -62,7 +62,7 @@
  *   clean / soft, top     start --space-4, gap --space-4, end --space-2                           *
  *   clean / soft, bottom  start --space-1, gap --space-4, end --space-4                           *
  *                                                                                                 *
- * A stacked control is taller, in units of h / 32: a button 56, a segmented track (a tab bar) 58. *
+ * A stacked control is taller, in units of h / 32: a button or toggle 56, a segmented track 58.   *
  * The scroll container states the parameters — it needs the height for its scroll padding and    *
  * can't read the bar's properties — and the bars inherit them (a group is a bar, not a            *
  * container, so its rows inherit too). A bar's height is a minimum: taller content grows it.      *
@@ -165,13 +165,13 @@
   --x-bottom-rows: 3;
 }
 
-/* a stacked control: a button 56 units, a segmented track 58 */
-:not(.x-toolbar):has(> .x-toolbar:not([data-position="bottom"]) .x-button[data-layout="stacked"]),
-:root:has(.x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar) .x-button[data-layout="stacked"]) {
+/* a stacked control: a button or toggle 56 units, a segmented track 58 */
+:not(.x-toolbar):has(> .x-toolbar:not([data-position="bottom"]) :is(.x-button, .x-toggle)[data-layout="stacked"]),
+:root:has(.x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar) :is(.x-button, .x-toggle)[data-layout="stacked"]) {
   --x-top-control: calc(var(--x-top-h) * 56 / 32);
 }
-:not(.x-toolbar):has(> .x-toolbar[data-position="bottom"] .x-button[data-layout="stacked"]),
-:root:has(.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar) .x-button[data-layout="stacked"]) {
+:not(.x-toolbar):has(> .x-toolbar[data-position="bottom"] :is(.x-button, .x-toggle)[data-layout="stacked"]),
+:root:has(.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar) :is(.x-button, .x-toggle)[data-layout="stacked"]) {
   --x-bottom-control: calc(var(--x-bottom-h) * 56 / 32);
 }
 :not(.x-toolbar):has(> .x-toolbar:not([data-position="bottom"]) .x-segmented-control[data-layout="stacked"]),
@@ -345,8 +345,8 @@
   max-inline-size: 100%;
 }
 
-/* a region holding an input (search) fills its column */
-:where(.x-toolbar > :has(input, textarea)) {
+/* a region holding an input (search) fills its column; a toggle's input is a button, not a field */
+:where(.x-toolbar > :has(input:not(.x-toggle > input), textarea)) {
   justify-self: stretch;
   min-inline-size: 0;
 }

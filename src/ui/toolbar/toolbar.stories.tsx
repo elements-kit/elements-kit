@@ -10,6 +10,7 @@ import "../button/button.css";
 import "../group/group.css";
 import "../segmented-control/segmented-control.css";
 import "../text-input/text-input.css";
+import "../toggle/toggle.css";
 import "./toolbar.css";
 import { onCleanup } from "@/signals";
 
@@ -734,38 +735,58 @@ export const Chat: Story = {
 /** iPad item groupings (HIG): [back title] … [tools] … [share more]. */
 export const Editor: Story = {
   args: { variant: "soft" },
-  render: (args) => (
-    <Screen variant={args.variant}>
-      <header
-        class:x-toolbar
-        data-variant={args.variant}
-        data-size={controlSize(args.variant)}
-      >
-        <div>
-          <Group variant={args.variant}>
-            <BackButton variant={args.variant} label="Back" />
+  render: (args) => {
+    /** one tool at a time: radios sharing a name */
+    const toolName = `toolbar-tool-${segmentedId++}`;
+    return (
+      <Screen variant={args.variant}>
+        <header
+          class:x-toolbar
+          data-variant={args.variant}
+          data-size={controlSize(args.variant)}
+        >
+          <div>
+            <Group variant={args.variant}>
+              <BackButton variant={args.variant} label="Back" />
+            </Group>
+            <Title text="Q3 Report" />
+          </div>
+          <Group variant={args.variant} label="Tools">
+            {(
+              [
+                ["Pen", ICONS.pen],
+                ["Text", ICONS.text],
+                ["Shapes", ICONS.shapes],
+              ] as const
+            ).map(([label, name], i) => (
+              <label
+                class:x-toggle
+                data-variant="borderless"
+                data-size={controlSize(args.variant)}
+                data-icon=""
+              >
+                <input
+                  type="radio"
+                  name={toolName}
+                  class:unset
+                  checked={i === 0 || undefined}
+                  aria-label={label}
+                />
+                <Icon name={name} />
+              </label>
+            ))}
           </Group>
-          <Title text="Q3 Report" />
+          <Group variant={args.variant}>
+            <IconButton variant={args.variant} label="Share" name={ICONS.share} />
+            <IconButton variant={args.variant} label="More" name={ICONS.more} />
+          </Group>
+        </header>
+        <div>
+          <Rows items={NOTES} />
         </div>
-        <Group variant={args.variant} label="Tools">
-          <IconButton variant={args.variant} label="Pen" name={ICONS.pen} />
-          <IconButton variant={args.variant} label="Text" name={ICONS.text} />
-          <IconButton
-            variant={args.variant}
-            label="Shapes"
-            name={ICONS.shapes}
-          />
-        </Group>
-        <Group variant={args.variant}>
-          <IconButton variant={args.variant} label="Share" name={ICONS.share} />
-          <IconButton variant={args.variant} label="More" name={ICONS.more} />
-        </Group>
-      </header>
-      <div>
-        <Rows items={NOTES} />
-      </div>
-    </Screen>
-  ),
+      </Screen>
+    );
+  },
 };
 
 /** The page scrolls: bar nested in the app (main > section), --scroll-y lives on <html>. */
