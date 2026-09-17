@@ -20,9 +20,28 @@
  *                                          soft: clean + a gradient blur at the screen edge
  *   --toolbar-button-gap, --toolbar-region-gap, --toolbar-edge-blur (soft, default 8px)
  *
- * Neither: --scroll-y is unset, the math is invalid, and properties fall back to their
- * initial values — plain bar, static large title.
+ * Neither: --scroll-y is unset, the math is invalid, and the progress properties fall back to
+ * their initial values — plain bar, static large title.
  */
+
+/* progress: the timeline animates these, or --scroll-y computes them; styles only read them */
+@property --x-toolbar-reveal {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+
+@property --x-large-title-fade {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+@property --toolbar-edge-blur {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 8px;
+}
 
 /* the safe areas (a notch, a home indicator), read once */
 :where(:root) {
@@ -379,7 +398,7 @@
       color-mix(in srgb, var(--color-background) 80%, transparent),
       transparent
     );
-    backdrop-filter: blur(var(--toolbar-edge-blur, 8px));
+    backdrop-filter: blur(var(--toolbar-edge-blur));
     mask-image: linear-gradient(var(--x-toolbar-edge), black 50%, transparent);
     box-shadow: none;
     pointer-events: none;
@@ -473,9 +492,12 @@
   white-space: nowrap;
 
   /* iOS: slides under the bar and fades, no shrink */
-  opacity: calc(
-    1 - clamp(0, tan(atan2(var(--scroll-y), var(--x-large-title-height))), 1)
+  --x-large-title-fade: clamp(
+    0,
+    tan(atan2(var(--scroll-y), var(--x-large-title-height))),
+    1
   );
+  opacity: calc(1 - var(--x-large-title-fade));
 
 }
 
@@ -552,21 +574,21 @@
  *                                                                                                 *
  ***************************************************************************************************/
 
-@keyframes x-toolbar-fade-out {
+@keyframes x-toolbar-reveal {
   from {
-    opacity: 1;
+    --x-toolbar-reveal: 0;
   }
   to {
-    opacity: 0;
+    --x-toolbar-reveal: 1;
   }
 }
 
-@keyframes x-toolbar-fade-in {
+@keyframes x-large-title-fade {
   from {
-    opacity: 0;
+    --x-large-title-fade: 0;
   }
   to {
-    opacity: 1;
+    --x-large-title-fade: 1;
   }
 }
 
@@ -575,7 +597,7 @@
     view-timeline: --x-large-title block;
     /* not the default (the scroll padding): the title exits at the top edge… */
     view-timeline-inset: 0px;
-    animation: x-toolbar-fade-out linear both;
+    animation: x-large-title-fade linear both;
     animation-timeline: --x-large-title;
     animation-range: exit 0% exit var(--x-large-title-height);
   }
@@ -585,9 +607,9 @@
     view-timeline-inset: var(--toolbar-height) 0px;
   }
 
-  :is(.x-toolbar:has(+ .x-large-title), .x-large-title + .x-toolbar)::before,
-  :is(.x-toolbar:has(+ .x-large-title), .x-large-title + .x-toolbar) [data-title] {
-    animation: x-toolbar-fade-in linear both;
+  /* the bar animates its reveal; its background and title read it */
+  :is(.x-toolbar:has(+ .x-large-title), .x-large-title + .x-toolbar) {
+    animation: x-toolbar-reveal linear both;
     animation-timeline: --x-large-title;
     animation-range: exit calc(0.6 * var(--x-toolbar-distance))
       exit var(--x-toolbar-distance);
@@ -598,9 +620,10 @@
       [data-position="bottom"],
       [data-position="bottom"] > .x-toolbar,
       :has(+ .x-large-title),
-      .x-large-title + .x-toolbar
-    )::before {
-    animation: x-toolbar-fade-in linear both;
+      .x-large-title + .x-toolbar,
+      :is(.x-toolbar:has(+ .x-large-title), .x-large-title + .x-toolbar) > .x-toolbar
+    ) {
+    animation: x-toolbar-reveal linear both;
     animation-timeline: scroll(nearest block);
     animation-range: calc(0.6 * var(--x-toolbar-distance))
       var(--x-toolbar-distance);
