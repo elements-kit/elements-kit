@@ -97,15 +97,17 @@ describe("x-button data-layout=stacked", () => {
     expect(label.left - outer.left).toBe(14);
   });
 
-  it("truncates the label when the button is constrained", () => {
+  it("wraps the label when the button is constrained, growing taller", () => {
     const button = mount(
-      `data-variant="soft" data-size="2" data-layout="stacked" style="width: 64px"`,
-      "Notifications",
+      `data-variant="soft" data-size="2" data-layout="stacked" style="width: 80px"`,
+      "Photo Library",
     );
     const label = button.querySelector("span")!;
 
-    expect(box(button).height).toBe(56);
-    expect(label.scrollWidth).toBeGreaterThan(label.clientWidth);
+    // two 18px lines under the 20px icon and 4px gap, 7px above and below
+    expect(box(label).height).toBe(36);
+    expect(box(button).height).toBe(74);
+    expect(label.scrollWidth).toBeLessThanOrEqual(label.clientWidth);
   });
 
   it("text variant: the kit's text padding, 51px square at size 2", () => {

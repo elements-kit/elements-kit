@@ -444,9 +444,9 @@
  * 18px line, a 4px gap, 14px inline padding. One unit (1px at size 2) scales the
  * geometry; the label grows only 1px per size.
  *
- * Fixed height — 56 for filled variants, 51 for text (the kit's 8 × 4 text padding around
- * the same 42px content) — plus aspect-ratio: 1, so a button is never taller than wide and
- * a longer label still widens it.
+ * Minimum height — 56 for filled variants, 51 for text (the kit's 8 × 4 text padding around
+ * the same 42px content) — and the same minimum width, so a button is at least square and a
+ * longer label widens it. Constrained, the label wraps and the button grows taller.
  */
 .x-button:where([data-layout="stacked"]) {
   --x-stacked-unit: calc(var(--base-button-height) / 32);
@@ -454,17 +454,21 @@
   flex-direction: column;
   gap: calc(4 * var(--x-stacked-unit));
   box-sizing: border-box;
-  aspect-ratio: 1;
+  height: auto;
 
   &:where(:not([data-variant="text"])) {
-    height: calc(56 * var(--x-stacked-unit));
+    min-width: calc(56 * var(--x-stacked-unit));
+    min-height: calc(56 * var(--x-stacked-unit));
+    /* the 42-unit content centered in 56; a wrapped label keeps the same space */
+    padding-block: calc(7 * var(--x-stacked-unit));
     padding-inline: calc(14 * var(--x-stacked-unit));
   }
   &:where([data-variant="text"]) {
     /* the kit's text padding; an 8px bleed matches the toolbar's gap between text buttons */
     --button-text-padding-x: calc(8 * var(--x-stacked-unit));
     --button-text-padding-y: calc(4 * var(--x-stacked-unit));
-    height: calc(51 * var(--x-stacked-unit));
+    min-width: calc(51 * var(--x-stacked-unit));
+    min-height: calc(51 * var(--x-stacked-unit));
   }
 
   /* stylelint-disable-next-line selector-max-type */
@@ -477,9 +481,9 @@
   /* stylelint-disable-next-line selector-max-type */
   & > :where(:not(svg)) {
     max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    /* constrained, the label wraps into balanced lines; a lone long word breaks */
+    text-wrap: balance;
+    overflow-wrap: break-word;
     /* 11 / 12 / 13 / 14px for sizes 1–4, on an 18-unit line */
     font-size: calc(
       var(--font-size-1) + (var(--x-stacked-unit) - 1px * var(--scaling)) * 4
