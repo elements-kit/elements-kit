@@ -5,6 +5,8 @@ description: Headless range input — two variants, three sizes.
 
 import StorybookEmbed from "@/components/StorybookEmbed.astro";
 
+The slider's background is transparent, so it can sit directly on a card or colored surface without a rectangle behind the track.
+
 A native `<input type="range">` styled via class + data attributes. Two variants, three sizes, color theming. Filled track works in every modern browser with **zero JS**.
 
 The fill is painted differently per engine: Firefox uses the native `::-moz-range-progress` pseudo; WebKit uses Ana Tudor's [box-shadow trick](https://css-tricks.com/sliding-nightmare-understanding-range-input/) — a massive horizontal `box-shadow` on the thumb, clipped by `overflow: hidden` on the input. As the thumb moves, the shadow moves with it.

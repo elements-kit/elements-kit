@@ -3,6 +3,8 @@
   --slider-fill-color: var(--accent-9);
 
   height: var(--slider-thumb-size);
+  /* Native range inputs otherwise paint a white rectangle behind the track. */
+  background: transparent;
 
   /* Defeat `all: unset` from unset.css so Chrome paints the native track. */
   appearance: auto;
