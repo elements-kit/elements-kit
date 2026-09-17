@@ -459,9 +459,7 @@
   &:where(:not([data-variant="text"])) {
     min-width: calc(56 * var(--x-stacked-unit));
     min-height: calc(56 * var(--x-stacked-unit));
-    /* the 42-unit content centered in 56; a wrapped label keeps the same space */
-    padding-block: calc(7 * var(--x-stacked-unit));
-    padding-inline: calc(14 * var(--x-stacked-unit));
+    padding: calc(8 * var(--x-stacked-unit));
   }
   &:where([data-variant="text"]) {
     /* the kit's text padding; an 8px bleed matches the toolbar's gap between text buttons */
