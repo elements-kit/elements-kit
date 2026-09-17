@@ -216,15 +216,25 @@ describe.each(SIZES)("back button in a bar, data-size=%s", (size) => {
 
 // ── painting ────────────────────────────────────────────────────────────────────────────────────
 
-const setScroll = (el: HTMLElement, y: number) => el.style.setProperty("--scroll-y", `${y}px`);
+/**
+ * Scroll for real and write --scroll-y as the scroll wiring does, so both paths agree: scroll-driven
+ * animations where supported, the --scroll-y math elsewhere.
+ */
+const setScroll = async (el: HTMLElement, y: number) => {
+  el.scrollTop = y;
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  el.style.setProperty("--scroll-y", `${el.scrollTop}px`);
+  await new Promise((r) => requestAnimationFrame(r));
+  return el.scrollTop;
+};
 
 describe("painting", () => {
-  it.each(POSITIONS)("surface %s: material background, hairline on the content side", (position) => {
+  it.each(POSITIONS)("surface %s: material background, hairline on the content side", async (position) => {
     const tag = position === "top" ? "header" : "footer";
     const html = bar(tag, 2, "surface", position, wrap("surface", iconButton(2, "surface")));
     const el = mount(position === "top" ? html + rows() : rows() + html);
     const before = getComputedStyle(q(el, tag), "::before");
-    setScroll(el, 100);
+    await setScroll(el, 100);
 
     expect(before.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
     expect(before.boxShadow).toContain(position === "top" ? "0px -1px 0px 0px" : "0px 1px 0px 0px");

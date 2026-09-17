@@ -1,8 +1,9 @@
 /*
  * Toolbar primitive — iOS-style large title collapse.
  *
- * JS writes the scroll position (px) as --scroll-y on the scroll container (or <html>);
- * the bar and the large title inherit it and compute their own progress.
+ * Where view timelines are supported (Chrome 115+, Safari 26), the large title's own timeline drives
+ * the collapse (COLLAPSE below), no JS. Elsewhere JS writes the scroll position (px) as --scroll-y on
+ * the bars and the large title, and they compute their own progress from it.
  *
  *   <header class="x-toolbar">…regions…</header>   bar (optional)
  *   <h1 class="x-large-title">Settings</h1>        large title (optional), one line
@@ -19,7 +20,7 @@
  *                                          soft: clean + a gradient blur at the screen edge
  *   --toolbar-button-gap, --toolbar-region-gap, --toolbar-edge-blur (soft, default 8px)
  *
- * No JS: --scroll-y is unset, the math is invalid, and properties fall back to their
+ * Neither: --scroll-y is unset, the math is invalid, and properties fall back to their
  * initial values — plain bar, static large title.
  */
 
@@ -165,14 +166,14 @@
 
 /***************************************************************************************************
  *                                                                                                 *
- * SCROLL CONTAINER — focus and snap stop below the bars                                           *
+ * SCROLL CONTAINER — focus stops below the bars                                                    *
  *                                                                                                 *
  ***************************************************************************************************/
 
-/* never rest mid-collapse; proximity leaves the list free */
-:has(> .x-large-title),
+/* the large title's view timeline, visible to the bars (see COLLAPSE) */
+:not(.x-toolbar):has(> .x-large-title),
 :root:has(.x-large-title) {
-  scroll-snap-type: y proximity;
+  timeline-scope: --x-large-title;
 }
 
 /* short content: a column, so the bottom bar's margin-block-start: auto keeps it at the bottom */
@@ -476,8 +477,6 @@
     1 - clamp(0, tan(atan2(var(--scroll-y), var(--x-large-title-height))), 1)
   );
 
-  /* snap: expanded (scrollTop 0) */
-  scroll-snap-align: start;
 }
 
 /* a bar right after the title brings its own space above (12px around a surface field,
@@ -485,9 +484,6 @@
  * over the shorter title */
 .x-large-title:has(+ .x-toolbar) {
   padding-block-end: 0;
-  /* no bar above it: cancel the scroll padding, or its snap point is -bar height, which some engines
-   * drop instead of clamping — leaving only the content's, so the page snaps past the title */
-  scroll-margin-block-start: calc(-1 * var(--toolbar-height, 0px));
 }
 
 .x-large-title:has(+ .x-toolbar),
@@ -521,12 +517,6 @@
   }
 }
 
-/* snap: collapsed. The content after the title is taller than the viewport,
- * so any resting position inside it is valid (a bar after the title doesn't snap) */
-.x-large-title ~ :not(.x-toolbar) {
-  scroll-snap-align: start;
-}
-
 .x-large-title[data-align="center"] {
   text-align: center;
 }
@@ -550,6 +540,70 @@
   /* centered: mirror the accessory's room, so the title centers on the row */
   &[data-align="center"] > [data-title] {
     padding-inline-start: calc(var(--heading-line-height-8) + var(--space-3));
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * COLLAPSE — driven by the large title's view timeline where supported (Chrome, Safari 26): the    *
+ * title fades as it exits under the bar, the bar's title and background fade in over the last 40%. *
+ * No JS, and no scroll distance: it follows wherever the title is. Elsewhere, --scroll-y drives   *
+ * the same ranges.                                                                                *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+@keyframes x-toolbar-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes x-toolbar-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@supports (animation-timeline: view()) {
+  .x-large-title {
+    view-timeline: --x-large-title block;
+    /* not the default (the scroll padding): the title exits at the top edge… */
+    view-timeline-inset: 0px;
+    animation: x-toolbar-fade-out linear both;
+    animation-timeline: --x-large-title;
+    animation-range: exit 0% exit var(--x-large-title-height);
+  }
+
+  /* under a bar, the title exits at the bar's bottom edge */
+  .x-toolbar + .x-large-title {
+    view-timeline-inset: var(--toolbar-height) 0px;
+  }
+
+  :is(.x-toolbar:has(+ .x-large-title), .x-large-title + .x-toolbar)::before,
+  :is(.x-toolbar:has(+ .x-large-title), .x-large-title + .x-toolbar) [data-title] {
+    animation: x-toolbar-fade-in linear both;
+    animation-timeline: --x-large-title;
+    animation-range: exit calc(0.6 * var(--x-toolbar-distance))
+      exit var(--x-toolbar-distance);
+  }
+
+  /* no large title: the background fades in as content scrolls under the bar */
+  .x-toolbar:not(
+      [data-position="bottom"],
+      [data-position="bottom"] > .x-toolbar,
+      :has(+ .x-large-title),
+      .x-large-title + .x-toolbar
+    )::before {
+    animation: x-toolbar-fade-in linear both;
+    animation-timeline: scroll(nearest block);
+    animation-range: calc(0.6 * var(--x-toolbar-distance))
+      var(--x-toolbar-distance);
   }
 }
 

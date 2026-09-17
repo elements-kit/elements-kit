@@ -47,9 +47,17 @@ const centerX = (el: Element) => (box(el).left + box(el).right) / 2;
 const opacity = (el: Element, pseudo?: string) =>
   Number(getComputedStyle(el, pseudo).opacity);
 
-/** What the scroll wiring does: write the scroll position as --scroll-y. */
-const setScroll = (el: HTMLElement, y: number) =>
-  el.style.setProperty("--scroll-y", `${y}px`);
+/**
+ * Scroll for real and write --scroll-y as the scroll wiring does, so both paths agree: scroll-driven
+ * animations where supported, the --scroll-y math elsewhere.
+ */
+const setScroll = async (el: HTMLElement, y: number) => {
+  el.scrollTop = y;
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  el.style.setProperty("--scroll-y", `${el.scrollTop}px`);
+  await new Promise((r) => requestAnimationFrame(r));
+  return el.scrollTop;
+};
 
 describe("x-toolbar regions", () => {
   it("places children start | center | end, with the title centered on the bar", () => {
@@ -125,9 +133,9 @@ describe("x-toolbar large title collapse", () => {
     expect(box(title).height).toBe(48);
   });
 
-  it("expanded: large title shown, bar background and bar title hidden", () => {
+  it("expanded: large title shown, bar background and bar title hidden", async () => {
     const el = screen();
-    setScroll(el, 0);
+    await setScroll(el, 0);
     const bar = q(el, ".x-toolbar");
 
     expect(opacity(q(el, ".x-large-title"))).toBe(1);
@@ -135,16 +143,16 @@ describe("x-toolbar large title collapse", () => {
     expect(opacity(q(bar, "[data-title]"))).toBe(0);
   });
 
-  it("midway: the large title is half faded", () => {
+  it("midway: the large title is half faded", async () => {
     const el = screen();
-    setScroll(el, 24);
+    await setScroll(el, 24);
 
     expect(opacity(q(el, ".x-large-title"))).toBeCloseTo(0.5, 2);
   });
 
-  it("collapsed: large title gone, bar background and bar title shown", () => {
+  it("collapsed: large title gone, bar background and bar title shown", async () => {
     const el = screen();
-    setScroll(el, 48);
+    await setScroll(el, 48);
     const bar = q(el, ".x-toolbar");
 
     expect(opacity(q(el, ".x-large-title"))).toBe(0);
@@ -152,24 +160,35 @@ describe("x-toolbar large title collapse", () => {
     expect(opacity(q(bar, "[data-title]"))).toBe(1);
   });
 
-  it("without --scroll-y (no JS): plain bar and static large title", () => {
+  it("without JS: the title's view timeline drives the collapse; without view timelines, a plain bar and a static title", async () => {
     const el = screen();
     const bar = q(el, ".x-toolbar");
+    const frames = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await frames();
 
+    const timelines = CSS.supports("animation-timeline: view()");
     expect(opacity(q(el, ".x-large-title"))).toBe(1);
-    expect(opacity(bar, "::before")).toBe(1);
-    expect(opacity(q(bar, "[data-title]"))).toBe(1);
+    expect(opacity(bar, "::before")).toBe(timelines ? 0 : 1);
+    expect(opacity(q(bar, "[data-title]"))).toBe(timelines ? 0 : 1);
+    if (timelines) {
+      el.scrollTop = 24;
+      await frames();
+      expect(opacity(q(el, ".x-large-title")), "half faded by the scroll alone").toBeCloseTo(0.5, 2);
+      el.scrollTop = 48;
+      await frames();
+      expect(opacity(q(el, ".x-large-title"))).toBe(0);
+      expect(opacity(bar, "::before")).toBe(1);
+      expect(opacity(q(bar, "[data-title]"))).toBe(1);
+    }
   });
 
-  it("snaps the title and the content after it; the container stops focus below the bar", () => {
+  it("doesn't snap (a touch fling keeps its momentum); the container stops focus below the bar", () => {
     const el = screen();
     const style = getComputedStyle(el);
 
-    // "y proximity" serializes as "y" (proximity is the default)
-    expect(style.scrollSnapType).toBe("y");
+    expect(style.scrollSnapType).toBe("none");
     expect(style.scrollPaddingTop).toBe("56px");
-    expect(getComputedStyle(q(el, ".x-large-title")).scrollSnapAlign).toBe("start");
-    expect(getComputedStyle(el.lastElementChild!).scrollSnapAlign).toBe("start");
+    expect(getComputedStyle(q(el, ".x-large-title")).scrollSnapAlign).toBe("none");
   });
 
   it("keeps the bar at the top while content scrolls", () => {
@@ -181,15 +200,15 @@ describe("x-toolbar large title collapse", () => {
 });
 
 describe("x-toolbar without a large title", () => {
-  it("shows the title always and the background once content scrolls under", () => {
+  it("shows the title always and the background once content scrolls under", async () => {
     const el = mount(`<header class="x-toolbar"><span data-title>Chat</span></header>${rows()}`);
     const bar = q(el, ".x-toolbar");
 
-    setScroll(el, 0);
+    await setScroll(el, 0);
     expect(opacity(q(bar, "[data-title]"))).toBe(1);
     expect(opacity(bar, "::before")).toBe(0);
 
-    setScroll(el, 20);
+    await setScroll(el, 20);
     expect(opacity(bar, "::before")).toBe(1);
   });
 
@@ -209,23 +228,21 @@ describe("x-toolbar after the large title", () => {
       </header>
       ${rows()}`);
 
-  it("reveals its background over the title's collapse", () => {
+  it("reveals its background over the title's collapse", async () => {
     const el = screen();
     const bar = q(el, ".x-toolbar");
 
-    setScroll(el, 0);
+    await setScroll(el, 0);
     expect(opacity(bar, "::before")).toBe(0);
-    setScroll(el, 64);
+    await setScroll(el, 64);
     expect(opacity(bar, "::before")).toBe(1);
   });
 
-  it("pins at the top once the title has scrolled away; only the content snaps", () => {
+  it("pins at the top once the title has scrolled away", () => {
     const el = screen();
     el.scrollTop = 300;
 
     expect(box(q(el, ".x-toolbar")).top).toBeCloseTo(box(el).top, 0);
-    expect(getComputedStyle(q(el, ".x-toolbar")).scrollSnapAlign).toBe("none");
-    expect(getComputedStyle(el.lastElementChild!).scrollSnapAlign).toBe("start");
   });
 });
 
@@ -245,9 +262,9 @@ describe("x-toolbar data-position=bottom", () => {
     expect(box(q(el, "footer")).bottom).toBeCloseTo(box(el).bottom, 0);
   });
 
-  it("always shows its background and stops focus above it", () => {
+  it("always shows its background and stops focus above it", async () => {
     const el = mount(`${rows()}${footer}`);
-    setScroll(el, 0);
+    await setScroll(el, 0);
 
     expect(opacity(q(el, "footer"), "::before")).toBe(1);
     expect(getComputedStyle(el).scrollPaddingBottom).toBe("56px");
@@ -290,7 +307,7 @@ describe("x-toolbar variants", () => {
 
 // Geometry for every scaling, size, variant, position and grouping: toolbar.geometry.browser.test.ts
 
-describe("x-large-title snapping (real scroll)", () => {
+describe("x-large-title scrolling (real scroll)", () => {
   const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
   const field = (variant: string) =>
     variant === "surface"
@@ -301,30 +318,20 @@ describe("x-large-title snapping (real scroll)", () => {
     "title first": (variant: string) => `<h1 class="x-large-title">Settings</h1><header class="x-toolbar" data-variant="${variant}">${field(variant)}</header>${rows()}`,
     "bar first": (variant: string) => `<header class="x-toolbar" data-variant="${variant}"><span data-title>Inbox</span></header><h1 class="x-large-title">Inbox</h1>${rows()}`,
   };
-  const settle = async (el: HTMLElement, y: number) => {
-    el.scrollTop = y;
-    await wait(400);
-    return el.scrollTop;
-  };
 
-  // Engines pick differently between the two points — Chromium the nearest, WebKit the next one in the
-  // scroll direction — so this checks what holds in both: it never rests mid-collapse.
+  // no snapping: a scroll rests where it ends, so nothing cuts a touch fling short
   describe.each(Object.keys(screens) as (keyof typeof screens)[])("%s", (layout) => {
-    it.each(["surface", "clean", "soft"])("%s: renders expanded, rests expanded or collapsed, scrolls freely past the collapse", async (variant) => {
+    it.each(["surface", "clean", "soft"])("%s: renders expanded and rests wherever a scroll ends", async (variant) => {
       const el = mount(screens[layout](variant));
       const collapse = box(q(el, ".x-large-title")).height;
 
       await wait(300);
       expect(el.scrollTop, "render stays expanded").toBe(0);
-      for (const y of [1, 10, collapse / 4, collapse / 2, collapse * 0.75, collapse - 1]) {
-        await settle(el, 0);
-        expect([0, collapse], `from 0 to ${y}`).toContain(await settle(el, y));
-        await settle(el, collapse);
-        expect([0, collapse], `from ${collapse} back to ${y}`).toContain(await settle(el, y));
+      for (const y of [1, 10, Math.round(collapse / 2), Math.round(collapse) - 1, 300, 60]) {
+        el.scrollTop = y;
+        await wait(300);
+        expect(el.scrollTop, `rests at ${y}`).toBe(y);
       }
-      await settle(el, 0);
-      expect(await settle(el, collapse * 0.75), "past three quarters collapses").toBe(collapse);
-      expect(await settle(el, collapse + 200), "free inside the content").toBe(collapse + 200);
     });
   });
 });
@@ -351,5 +358,28 @@ describe("x-large-title with an accessory", () => {
       (box(row).left + parseFloat(style.paddingLeft) + box(row).right - parseFloat(style.paddingRight)) / 2;
 
     expect(Math.abs((text.left + text.right) / 2 - rowCenter)).toBeLessThanOrEqual(1);
+  });
+});
+
+describe("x-toolbar --scroll-y fallback (no view timelines, as in Firefox)", () => {
+  it.each([
+    ["bar first", `<header class="x-toolbar"><span data-title>Inbox</span></header><h1 class="x-large-title">Inbox</h1>`, [[0, 1, 0], [24, 0.5, 0], [38, 0.208, 0.479], [48, 0, 1]]],
+    ["title first", `<h1 class="x-large-title">Settings</h1><header class="x-toolbar"><span data-title>Settings</span></header>`, [[0, 1, 0], [28, 0.5, 0], [45, 0.196, 0.509], [56, 0, 1]]],
+  ] as const)("%s: --scroll-y fades the title and reveals the bar over the same ranges", (_, html, expected) => {
+    const off = document.createElement("style");
+    off.textContent = "*, *::before { animation: none !important; }";
+    document.head.append(off);
+    try {
+      const el = mount(`${html}${rows()}`);
+      const title = q(el, ".x-large-title");
+      const bar = q(el, ".x-toolbar");
+      for (const [y, titleOpacity, barOpacity] of expected) {
+        for (const target of [title, bar]) target.style.setProperty("--scroll-y", `${y}px`);
+        expect(opacity(title), `title at ${y}`).toBeCloseTo(titleOpacity, 2);
+        expect(opacity(bar, "::before"), `bar background at ${y}`).toBeCloseTo(barOpacity, 2);
+      }
+    } finally {
+      off.remove();
+    }
   });
 });

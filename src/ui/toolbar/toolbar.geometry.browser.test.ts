@@ -363,20 +363,24 @@ describe.each(SCALINGS)("x-toolbar geometry: stacked tab bar, scaling %s", (scal
 // ── with a large title ──────────────────────────────────────────────────────────────────────────
 
 const opacity = (el: Element, pseudo?: string) => Number(getComputedStyle(el, pseudo).opacity);
-const setScroll = (el: HTMLElement, y: number) => el.style.setProperty("--scroll-y", `${y}px`);
-/** Where a title snaps: its top minus its scroll margin and the container's scroll padding — reachable (0), not clamped. */
-const titleSnap = (el: HTMLElement) => {
-  const title = q(el, ".x-large-title");
-  return box(title).top - box(el).top + el.scrollTop - parseFloat(getComputedStyle(title).scrollMarginTop) - parseFloat(getComputedStyle(el).scrollPaddingTop);
+/**
+ * Scroll for real and write --scroll-y as the scroll wiring does, so both paths agree: scroll-driven
+ * animations where supported, the --scroll-y math elsewhere.
+ */
+const setScroll = async (el: HTMLElement, y: number) => {
+  el.scrollTop = y;
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  el.style.setProperty("--scroll-y", `${el.scrollTop}px`);
+  await new Promise((r) => requestAnimationFrame(r));
+  return el.scrollTop;
 };
-
 describe.each(SCALINGS)("x-toolbar geometry: large title, scaling %s", (scaling, k) => {
   describe.each(SIZES)("data-size=%s", (size) => {
     describe.each(VARIANTS)("%s", (variant) => {
       const layout: Control[] = size < 4 ? ["field"] : ["icon", "title", "icons"];
       const inner = layout.map((kind) => region(kind, size, variant)).join("");
 
-      it("title first: 56px title right above the bar, collapse over the title, snaps at 0", () => {
+      it("title first: 56px title right above the bar, collapse over the title", async () => {
         const el = mount(scaling, `<h1 class="x-large-title">Settings</h1>${bar("header", size, variant, "top", inner)}${rows()}`);
         const title = q(el, ".x-large-title");
         const b = q(el, "header");
@@ -386,15 +390,16 @@ describe.each(SCALINGS)("x-toolbar geometry: large title, scaling %s", (scaling,
         near(box(b).top, box(title).bottom, `${label}: bar right under the title`);
         near(box(b).height, barHeight(size, variant, "top") * k, `${label}: bar height`);
         near(scrollPadding(el, "top"), box(b).height, `${label}: scroll padding`);
-        near(titleSnap(el), 0, `${label}: title snap point`);
-        setScroll(el, box(title).height / 2);
-        near(opacity(title), 0.5, `${label}: half faded`, 0.01);
-        setScroll(el, box(title).height);
+        const height = box(title).height;
+        const half = await setScroll(el, height / 2);
+        near(opacity(title), 1 - half / height, `${label}: half faded`, 0.01);
+        // past the title: a fractional height rounds to a whole scroll position
+        await setScroll(el, height + 1);
         near(opacity(title), 0, `${label}: gone`, 0.001);
         near(opacity(b, "::before"), 1, `${label}: bar background shown`, 0.001);
       });
 
-      it("bar first: 48px title right under the bar, collapse over the title, snaps at 0", () => {
+      it("bar first: 48px title right under the bar, collapse over the title", async () => {
         const el = mount(scaling, `${bar("header", size, variant, "top", inner)}<h1 class="x-large-title">Inbox</h1>${rows()}`);
         const title = q(el, ".x-large-title");
         const b = q(el, "header");
@@ -403,9 +408,9 @@ describe.each(SCALINGS)("x-toolbar geometry: large title, scaling %s", (scaling,
         near(box(b).height, barHeight(size, variant, "top") * k, `${label}: bar height`);
         near(box(title).top, box(b).bottom, `${label}: title right under the bar`);
         near(box(title).height, 48 * k, `${label}: title height`);
-        near(titleSnap(el), 0, `${label}: title snap point`);
-        setScroll(el, box(title).height / 2);
-        near(opacity(title), 0.5, `${label}: half faded`, 0.01);
+        const height = box(title).height;
+        const half = await setScroll(el, height / 2);
+        near(opacity(title), 1 - half / height, `${label}: half faded`, 0.01);
       });
     });
   });
@@ -441,7 +446,6 @@ describe.each([["md", 1], ["xl", 1.1]] as const)("x-toolbar geometry: safe areas
         near(box(b.firstElementChild!).top, box(el).top + TOP_INSET + p.start * k, `${label}: controls below the inset`);
         near(scrollPadding(el, "top"), box(b).height, `${label}: scroll padding`);
         near(box(q(el, ".x-large-title")).top, box(b).bottom, `${label}: title right under the bar`);
-        near(titleSnap(el), 0, `${label}: title snap point`);
       });
 
       it("title first: the title takes the top inset; the bar pins below the inset and paints over it", async () => {
@@ -454,7 +458,6 @@ describe.each([["md", 1], ["xl", 1.1]] as const)("x-toolbar geometry: safe areas
         near(box(b).top, box(title).bottom, `${label}: bar right under the title`);
         near(box(b).height, barHeight(size, variant, "top") * k, `${label}: bar has no inset while expanded`);
         near(scrollPadding(el, "top"), TOP_INSET + box(b).height, `${label}: scroll padding`);
-        near(titleSnap(el), 0, `${label}: title snap point`);
 
         // collapsed: the title (minus the inset it keeps) has scrolled away
         const collapse = box(title).height - TOP_INSET;
@@ -464,9 +467,6 @@ describe.each([["md", 1], ["xl", 1.1]] as const)("x-toolbar geometry: safe areas
           const before = parseFloat(getComputedStyle(b, "::before").top);
           near(before, -TOP_INSET, `${label}: background reaches over the inset`);
         }
-        const content = el.lastElementChild!;
-        el.scrollTop = 0;
-        near(box(content).top - box(el).top - scrollPadding(el, "top"), collapse, `${label}: content snaps at the collapse`);
       });
 
       it("bottom: the bar takes the bottom inset below its controls", () => {

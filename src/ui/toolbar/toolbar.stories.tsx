@@ -22,19 +22,30 @@ interface Args {
   radius?: "none" | "small" | "medium" | "large" | "pill";
 }
 
-/** Writes raw scroll (px) on `host`; toolbar.css turns it into progress. */
+/**
+ * Writes raw scroll (px) as --scroll-y on the bars and the large title under `host`; toolbar.css turns it
+ * into progress. Only they read it: set on `host` (e.g. <html>) it would restyle the whole page every frame.
+ */
 function driveScroll(host: HTMLElement, y: () => number) {
+  const targets = [
+    ...host.querySelectorAll<HTMLElement>(
+      ".x-toolbar:not(.x-toolbar .x-toolbar), .x-large-title",
+    ),
+  ];
   const barTitle = host.querySelector<HTMLElement>(
     '.x-toolbar:not([data-position="bottom"]) [data-title]',
   );
   const hasLargeTitle = host.querySelector(".x-large-title") !== null;
 
   effect(() => {
-    host.style.setProperty("--scroll-y", `${y()}px`);
+    const value = `${y()}px`;
+    for (const target of targets) target.style.setProperty("--scroll-y", value);
     // expanded: large title is the heading, bar title stays silent
     barTitle?.toggleAttribute("aria-hidden", hasLargeTitle && y() <= 0);
   });
-  onCleanup(() => host.style.removeProperty("--scroll-y"));
+  onCleanup(() => {
+    for (const target of targets) target.style.removeProperty("--scroll-y");
+  });
 }
 
 // ── Building blocks ──────────────────────────────────────────────────────────
@@ -293,9 +304,11 @@ function Screen(props: { variant?: Variant; children?: Children }) {
   let stop: (() => void) | undefined;
   return (
     <div style="min-height:100dvh">
-      {/* first, so it isn't a sibling after the large title (a snap target) or after a bottom bar */}
+      {/* first, so it isn't a sibling after the large title or after a bottom bar */}
       <dom-lifecycle
         onConnect={() => {
+          // view timelines drive the collapse in CSS; --scroll-y is the fallback
+          if (CSS.supports("animation-timeline: view()")) return;
           stop = effectScope(() => {
             const [y] = sync(fromEvent(window, "scroll"), () => window.scrollY);
             driveScroll(document.documentElement, y);
@@ -777,6 +790,8 @@ export const PageScroll: Story = {
         </section>
         <dom-lifecycle
           onConnect={() => {
+            // view timelines drive the collapse in CSS; --scroll-y is the fallback
+            if (CSS.supports("animation-timeline: view()")) return;
             stop = effectScope(() => {
               const [y] = sync(
                 fromEvent(window, "scroll"),
