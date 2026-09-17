@@ -101,7 +101,11 @@ As the title scrolls under the bar it fades out over its own height. The bar's b
 - **No bar** — the large title scrolls away with the content.
 - **No large title** — the bar's title is always shown; its background appears once content scrolls under it.
 
-Without a timeline or `--scroll-y`, the progress properties keep their initial values: a plain bar and a static large title. Keep `--scroll-y` unregistered and without a fallback, such as `var(--scroll-y, 0px)`; a default of 0 would hide the bar's title and background when no script runs.
+`--scroll-y` defaults to `0px`, so until a timeline or a script says otherwise the bar reads as scrolled to the top: no background, and no bar title under a large title. Server-rendered pages paint in that state before any script runs, with no flash of a filled bar. The same applies where nothing scrolls under the bar, such as short content or a list scrolling in a sibling element; to reveal the bar from another element's scroll, write that position as `--scroll-y` on the bar.
+
+:::caution[Without JavaScript]
+In browsers without scroll-driven animations (Firefox), a page whose script never runs keeps that top state as it scrolls: the bar stays transparent and its title hidden. The large title still carries the heading.
+:::
 
 ## Bottom bar
 

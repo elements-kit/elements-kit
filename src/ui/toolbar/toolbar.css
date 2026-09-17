@@ -20,8 +20,8 @@
  *                                          soft: clean + a gradient blur at the screen edge
  *   --toolbar-button-gap, --toolbar-region-gap, --toolbar-edge-blur (soft, default 8px)
  *
- * Neither: --scroll-y is unset, the math is invalid, and the progress properties fall back to
- * their initial values — plain bar, static large title.
+ * Neither: --scroll-y defaults to 0, the top of the screen — no bar background, and no bar title
+ * under a large title — so server-rendered HTML paints right before any script runs.
  */
 
 /* progress: the timeline animates these, or --scroll-y computes them; styles only read them */
@@ -670,6 +670,14 @@
   to {
     --x-large-title-fade: 1;
   }
+}
+
+/* until a timeline or a script says otherwise, the screen is at the top: a server-rendered page
+ * paints in its top state before JS loads, and an inactive timeline (nothing scrolls under the bar)
+ * reads the same. A script's inline --scroll-y wins; rows follow their group */
+.x-toolbar:not(.x-toolbar .x-toolbar),
+.x-large-title {
+  --scroll-y: 0px;
 }
 
 @supports (animation-timeline: view()) {

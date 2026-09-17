@@ -360,26 +360,3 @@ describe("x-large-title with an accessory", () => {
     expect(Math.abs((text.left + text.right) / 2 - rowCenter)).toBeLessThanOrEqual(1);
   });
 });
-
-describe("x-toolbar --scroll-y fallback (no view timelines, as in Firefox)", () => {
-  it.each([
-    ["bar first", `<header class="x-toolbar"><span data-title>Inbox</span></header><h1 class="x-large-title">Inbox</h1>`, [[0, 1, 0], [24, 0.5, 0], [38, 0.208, 0.479], [48, 0, 1]]],
-    ["title first", `<h1 class="x-large-title">Settings</h1><header class="x-toolbar"><span data-title>Settings</span></header>`, [[0, 1, 0], [28, 0.5, 0], [45, 0.196, 0.509], [56, 0, 1]]],
-  ] as const)("%s: --scroll-y fades the title and reveals the bar over the same ranges", (_, html, expected) => {
-    const off = document.createElement("style");
-    off.textContent = "*, *::before { animation: none !important; }";
-    document.head.append(off);
-    try {
-      const el = mount(`${html}${rows()}`);
-      const title = q(el, ".x-large-title");
-      const bar = q(el, ".x-toolbar");
-      for (const [y, titleOpacity, barOpacity] of expected) {
-        for (const target of [title, bar]) target.style.setProperty("--scroll-y", `${y}px`);
-        expect(opacity(title), `title at ${y}`).toBeCloseTo(titleOpacity, 2);
-        expect(opacity(bar, "::before"), `bar background at ${y}`).toBeCloseTo(barOpacity, 2);
-      }
-    } finally {
-      off.remove();
-    }
-  });
-});

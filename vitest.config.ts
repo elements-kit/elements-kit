@@ -136,6 +136,22 @@ export default defineConfig({
           },
         },
       },
+      {
+        // Firefox has no scroll-driven animations: only the --scroll-y fallback runs there.
+        extends: true,
+        test: {
+          name: "firefox",
+          include: ["src/ui/toolbar/toolbar.scroll-y.browser.test.ts"],
+          browser: {
+            enabled: true,
+            provider: playwright(),
+            headless: true,
+            instances: [
+              { browser: "firefox", viewport: { width: 1280, height: 900 } },
+            ],
+          },
+        },
+      },
     ],
     environment: "happy-dom",
     setupFiles: ["./vitest.setup.ts"],

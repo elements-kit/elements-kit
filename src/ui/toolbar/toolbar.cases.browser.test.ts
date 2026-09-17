@@ -7,6 +7,7 @@ import "../styles/neutral/gray.css";
 import "../styles/palette/mint.css";
 import "../styles/accent/mint.css";
 import "../button/button.css";
+import "../card/card.css";
 import "../group/group.css";
 import "../segmented-control/segmented-control.css";
 import "../text-input/text-input.css";
@@ -84,6 +85,69 @@ const bar = (tag: string, size: Size, variant: Variant, position: Position, inne
   `<${tag} class="x-toolbar" data-variant="${variant}" data-size="${size}"${position === "bottom" ? ' data-position="bottom"' : ""}>${inner}</${tag}>`;
 const scrollPadding = (el: Element, position: Position) =>
   parseFloat(getComputedStyle(el)[position === "top" ? "scrollPaddingTop" : "scrollPaddingBottom"]);
+
+// ── inactive timeline: nothing scrolls under the bar ────────────────────────────────────────────
+
+const frame = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+const native = CSS.supports("animation-timeline: view()");
+
+describe.runIf(native)("inactive timeline", () => {
+  it("short content: the bar title and background stay hidden under a visible large title", async () => {
+    const el = mount(`${bar("header", 2, "surface", "top", "<div></div><span data-title>Inbox</span><div></div>")}<h1 class="x-large-title">Inbox</h1>${rows(2)}`);
+    await frame();
+
+    expect(getComputedStyle(q(el, "header"), "::before").opacity).toBe("0");
+    expect(getComputedStyle(q(el, "[data-title]")).opacity).toBe("0");
+    expect(getComputedStyle(q(el, ".x-large-title")).opacity).toBe("1");
+  });
+
+  it("content scrolling in a sibling: hidden at rest, a script's --scroll-y reveals the bar", async () => {
+    const el = mount(
+      `<div style="display: flex; flex-direction: column; block-size: 100%">
+        ${bar("header", 2, "surface", "top", "<span data-title>Policy</span>")}
+        <div style="flex: 1; min-block-size: 0; overflow: auto">${rows()}</div>
+      </div>`,
+      "block-size: 560px; inline-size: 390px",
+    );
+    const header = q(el, "header");
+    await frame();
+    expect(getComputedStyle(header, "::before").opacity).toBe("0");
+
+    header.style.setProperty("--scroll-y", "40px");
+    await frame();
+    expect(getComputedStyle(header, "::before").opacity).toBe("1");
+  });
+});
+
+// ── a card inset ─────────────────────────────────────────────────────────────────────────────────
+
+describe("card inset", () => {
+  const card = (scrolls: boolean) =>
+    mount(
+      `<div class="x-card" data-variant="surface" data-size="2" style="block-size: 400px; ${scrolls ? "overflow-y: auto" : "display: flex; flex-direction: column"}">
+        <header class="x-toolbar" data-inset="top" data-variant="surface" data-size="2"><span data-title>Policy</span></header>
+        <div style="${scrolls ? "" : "flex: 1; min-block-size: 0; overflow: auto"}">${rows()}</div>
+        <footer class="x-toolbar" data-inset="bottom" data-position="bottom" data-variant="surface" data-size="2"><span data-title>Done</span></footer>
+      </div>`,
+      "",
+    ).firstElementChild as HTMLElement;
+  const border = (el: HTMLElement) => parseFloat(getComputedStyle(el).borderTopWidth) || parseFloat(getComputedStyle(el).getPropertyValue("--card-border-width"));
+
+  it.each([false, true])("card scrolls: %s — bars bleed to the card's edges and stay pinned", async (scrolls) => {
+    const el = card(scrolls);
+    const edge = border(el);
+    const header = q(el, "header");
+    const footer = q(el, "footer");
+    await frame();
+    near(box(header).top - box(el).top, edge, "header at the top edge");
+    near(box(el).bottom - box(footer).bottom, edge, "footer at the bottom edge");
+
+    el.scrollTop = 300;
+    await frame();
+    near(box(header).top - box(el).top, edge, "header pinned");
+    near(box(el).bottom - box(footer).bottom, edge, "footer pinned");
+  });
+});
 
 // ── page scroll: bars on <html> ─────────────────────────────────────────────────────────────────
 
