@@ -3,7 +3,7 @@ export type Modifier = (value: number) => number;
 
 // ── rubber ──────────────────────────────────────────────────────────────
 
-/** iOS rubber-band curve: sub-linear overshoot, asymptotes to
+/** Rubber-band curve: sub-linear overshoot, asymptotes to
  * `dimension * constant` — pull but never escape. */
 function resist(overshoot: number, dimension: number, constant: number): number {
   return (
@@ -12,7 +12,7 @@ function resist(overshoot: number, dimension: number, constant: number): number 
 }
 
 /** Elastic resistance past `[min, max]`. The true value stays in `Motion`, so
- * release settles back cleanly. `dimension` = axis extent; `constant` = iOS
+ * release settles back cleanly. `dimension` = axis extent; `constant` =
  * tension (higher = looser). */
 export function rubber(
   min: number,

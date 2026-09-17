@@ -93,7 +93,7 @@ Authored properties — set these in CSS or inline style:
 | --- | --- | --- |
 | `--overlay-w` / `--overlay-h` | `auto` | Size fallback when the JS channel is unset |
 | `--overlay-duration` | `300ms` | Morph + enter/exit duration |
-| `--overlay-easing` | `cubic-bezier(0.32, 0.72, 0, 1)` | iOS-style ease-out |
+| `--overlay-easing` | `cubic-bezier(0.32, 0.72, 0, 1)` | a soft ease-out |
 | `--overlay-backdrop` | `--color-overlay` | Modal backdrop color |
 | `--overlay-grip-radius` | `--radius-5` | Corner-grip arc radius — match the card's `data-size` |
 
@@ -103,7 +103,7 @@ Authored properties — set these in CSS or inline style:
 | `data-placed` | frame | `top` / `bottom` / `left` / `right` — the settled side; sets the scale origin for anchored enters |
 | `data-placement` | `.x-handle` | The affordance to paint (see below) |
 | `data-material-background` | frame or ancestor | Cards default to solid inside an overlay; `translucent` opts into frosted glass |
-| `data-overlay-deck` | page wrapper | iOS deck effect while a bottom sheet is open |
+| `data-overlay-deck` | page wrapper | deck effect while a bottom sheet is open |
 
 Changing any channel on an open overlay morphs it — every value is an interpolable length. Position and size interpolate together, and with `interpolate-size: allow-keywords` a content-sized height morphs against a pinned one.
 
@@ -225,7 +225,7 @@ m.abort(); // snap back to the seed
 
 | Function | Does |
 | --- | --- |
-| `rubber(min, max, dimension, constant?)` | iOS elastic resistance past the bounds — pull, but never escape |
+| `rubber(min, max, dimension, constant?)` | elastic resistance past the bounds — pull, but never escape |
 | `detent(points, strength?)` | Magnetic pull toward the nearest stop during the drag (`0` free, `1` snap) |
 | `nearest(value, points)` | The closest stop |
 | `snap(value, velocity, points, reach?)` | Release target — project by velocity, then take the nearest stop |
@@ -250,7 +250,7 @@ onpointerup = () => {
 
 ## Deck effect
 
-Put `data-overlay-deck` on the page wrapper to scale it back iOS-style while a bottom-docked sheet (a `block-start` handle) is open. Pure CSS, degrades to nothing without `:has()`.
+Put `data-overlay-deck` on the page wrapper to scale it back like a card deck while a bottom-docked sheet (a `block-start` handle) is open. Pure CSS, degrades to nothing without `:has()`.
 
 ## Browser support
 

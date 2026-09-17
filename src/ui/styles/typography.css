@@ -1,5 +1,7 @@
 :where(:root),
 [data-scaling] {
+  /* captions under an icon only (stacked buttons and toggles); never body text */
+  --font-size-0: max(10px, calc(10px * var(--scaling)));
   --font-size-1: calc(12px * var(--scaling));
   --font-size-2: calc(14px * var(--scaling));
   --font-size-3: calc(16px * var(--scaling));

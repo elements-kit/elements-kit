@@ -92,7 +92,7 @@
  *                      is unset, so `box.w = NaN` reverts to it rather
  *                      than to content sizing (index.css)
  *   --overlay-duration   transitions duration (300ms)
- *   --overlay-easing     transitions easing (iOS-style ease-out)
+ *   --overlay-easing     transitions easing (a soft ease-out)
  *   --overlay-backdrop   modal backdrop color (--color-overlay)
  *   --overlay-grip-radius  corner-grip arc radius (--radius-5) — match the
  *                      card's data-size (handle.css)
@@ -348,7 +348,7 @@
  *                                                                                                 *
  * DECK EFFECT (opt-in recipe)                                                                     *
  *                                                                                                 *
- * Put `data-overlay-deck` on the page wrapper to scale it back iOS-style                          *
+ * Put `data-overlay-deck` on the page wrapper to scale it back as a card deck                    *
  * while a bottom sheet (block-start handle) is open. Degrades to nothing                          *
  * without `:has()`.                                                                               *
  *                                                                                                 *

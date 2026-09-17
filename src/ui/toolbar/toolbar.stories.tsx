@@ -19,7 +19,7 @@ type Variant = "surface" | "soft" | "clean";
 interface Args {
   /** data-variant of the screen's bars */
   variant: Variant;
-  /** theme radius (Theme controls): pill by default, like iOS */
+  /** theme radius (Theme controls): pill by default */
   radius?: "none" | "small" | "medium" | "large" | "pill";
 }
 
@@ -487,7 +487,7 @@ export const Inbox: Story = {
   ),
 };
 
-/** iOS 26 list: floating capsules, search and compose at the bottom. */
+/** A list with floating capsules: search and compose at the bottom. */
 export const Notes: Story = {
   args: { variant: "soft" },
   render: (args) => (

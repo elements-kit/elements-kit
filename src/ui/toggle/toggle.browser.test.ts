@@ -57,13 +57,13 @@ describe("x-toggle data-layout=stacked", () => {
     }
   });
 
-  it("is 56px square at size 2 with a --font-size-1 label on --line-height-1", () => {
+  it("is 56px square at size 2 with a --font-size-0 caption on --line-height-1", () => {
     const t = toggle(`data-variant="soft" data-size="2" data-layout="stacked"`);
     const label = getComputedStyle(t.querySelector("span")!);
 
     expect(box(t).height).toBe(56);
     expect(box(t).width).toBe(56);
-    expect(label.fontSize).toBe("12px");
+    expect(label.fontSize).toBe("10px");
     expect(label.lineHeight).toBe("16px");
   });
 

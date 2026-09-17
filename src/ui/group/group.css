@@ -188,7 +188,7 @@
 
 /***************************************************************************************************
  *                                                                                                 *
- * MATERIAL — data-variant="material": a floating capsule (iOS 26 toolbars). Children sit apart     *
+ * MATERIAL — data-variant="material": a floating capsule (floating toolbars). Children sit apart   *
  * on a material background instead of joining. Any size: a size-N child plus 4px padding, corners *
  * concentric (the child's size radius + 4px). A text input or segmented control inside uses the   *
  * capsule as its background.                                                                      *

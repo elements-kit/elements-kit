@@ -57,12 +57,12 @@ describe("x-button data-layout=stacked", () => {
       mount(`data-variant="soft" data-size="2" data-layout="stacked"`),
     );
 
-    // 56px: 24px icon, 2px gap, --font-size-1 medium label on --line-height-1
+    // 56px: 24px icon, 2px gap, --font-size-0 medium caption on --line-height-1
     expect(outer.height).toBe(56);
     expect(icon.width).toBe(24);
     expect(icon.height).toBe(24);
     expect(label.top - icon.bottom).toBe(2);
-    expect(labelStyle.fontSize).toBe("12px");
+    expect(labelStyle.fontSize).toBe("10px");
     expect(labelStyle.lineHeight).toBe("16px");
     expect(labelStyle.fontWeight).toBe("500");
     expect(style.paddingLeft).toBe("8px");
@@ -72,10 +72,10 @@ describe("x-button data-layout=stacked", () => {
   });
 
   it.each([
-    ["1", 42, 18, "12px"],
-    ["2", 56, 24, "12px"],
-    ["3", 70, 30, "14px"],
-    ["4", 84, 36, "14px"],
+    ["1", 42, 18, "10px"],
+    ["2", 56, 24, "10px"],
+    ["3", 70, 30, "12px"],
+    ["4", 84, 36, "12px"],
   ])("size %s: %ipx square with a %ipx icon and a %s label", (size, height, iconSize, labelSize) => {
     const { outer, icon, labelStyle } = parts(
       mount(`data-variant="soft" data-size="${size}" data-layout="stacked"`),
@@ -118,7 +118,7 @@ describe("x-button data-layout=stacked", () => {
     expect(outer.height).toBe(51);
     expect(outer.width).toBe(51);
     expect(icon.width).toBe(24);
-    expect(labelStyle.fontSize).toBe("12px");
+    expect(labelStyle.fontSize).toBe("10px");
     expect(style.paddingTop).toBe("4px");
     expect(style.paddingLeft).toBe("8px");
     // bleeds by its padding, like other text buttons

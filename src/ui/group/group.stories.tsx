@@ -193,7 +193,7 @@ const BorderlessButton = (props: {
   </button>
 );
 
-// Material — floating capsules (iOS 26 toolbars): size-2 children + 4px padding = 40px. A soft input
+// Material — floating capsules (floating toolbars): size-2 children + 4px padding = 40px. A soft input
 // or segmented control inside uses the capsule as its background.
 export const Material: Story = {
   parameters: { controls: { exclude: ["size"] } },

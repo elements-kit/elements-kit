@@ -436,14 +436,14 @@
 
 /***************************************************************************************************
  *                                                                                                 *
- * STACKED — data-layout="stacked": icon above the label (iOS control-group item)                  *
+ * STACKED — data-layout="stacked": icon above the label (an action item)                         *
  *                                                                                                 *
  ***************************************************************************************************/
 
 /*
- * Action item, at size 2: a 24px icon (the Material Symbols grid) over a --font-size-1 medium
- * label, a 2px gap, 4 × 8px padding. One unit (1px at size 2) scales the box and the icon; the
- * label steps up the type scale at size 3.
+ * Action item, at size 2: a 24px icon (the Material Symbols grid) over a --font-size-0 medium
+ * caption, a 2px gap, 4 × 8px padding. One unit (1px at size 2) scales the box and the icon; the
+ * caption steps up the type scale at size 3.
  *
  * Minimum height — 56 for filled variants, 51 for text (the kit's 8 × 4 text padding) — and
  * the same minimum width, so a button is at least square and a
@@ -483,8 +483,8 @@
     /* constrained, the label wraps into balanced lines; a lone long word breaks */
     text-wrap: balance;
     overflow-wrap: break-word;
-    /* type scale 1 for sizes 1–2, 2 for sizes 3–4 */
-    font-size: var(--font-size-1);
+    /* a caption under the icon: --font-size-0 for sizes 1–2, --font-size-1 for sizes 3–4 */
+    font-size: var(--font-size-0);
     line-height: var(--line-height-1);
     letter-spacing: var(--letter-spacing-1);
     font-weight: var(--font-weight-medium);
@@ -492,7 +492,7 @@
 
   /* stylelint-disable-next-line selector-max-type */
   &:where([data-size="3"], [data-size="4"]) > :where(:not(svg)) {
-    font-size: var(--font-size-2);
+    font-size: var(--font-size-1);
     line-height: var(--line-height-2);
     letter-spacing: var(--letter-spacing-2);
   }
@@ -500,7 +500,7 @@
 
 /***************************************************************************************************
  *                                                                                                 *
- * BACK — data-back: a leading back chevron (iOS navigation back button)                           *
+ * BACK — data-back: a leading back chevron (a navigation back button)                            *
  *                                                                                                 *
  ***************************************************************************************************/
 

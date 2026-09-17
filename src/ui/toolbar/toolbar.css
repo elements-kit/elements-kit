@@ -1,5 +1,5 @@
 /*
- * Toolbar primitive — iOS-style large title collapse.
+ * Toolbar primitive — a large title that collapses into the bar.
  *
  * Where view timelines are supported (Chrome 115+, Safari 26), the large title's own timeline drives
  * the collapse (COLLAPSE below), no JS. Elsewhere JS writes the scroll position (px) as --scroll-y on
@@ -464,7 +464,7 @@
 
 /***************************************************************************************************
  *                                                                                                 *
- * VARIANTS — clean and soft (iOS 26): no bar; controls float                                      *
+ * VARIANTS — clean and soft: no bar; controls float                                               *
  *                                                                                                 *
  ***************************************************************************************************/
 
@@ -576,7 +576,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 
-  /* iOS: slides under the bar and fades, no shrink */
+  /* slides under the bar and fades, no shrink */
   --x-large-title-fade: clamp(
     0,
     tan(atan2(var(--scroll-y), var(--x-large-title-height))),
@@ -597,7 +597,7 @@
   --x-large-title-height: calc(var(--heading-line-height-8) + var(--space-4));
 }
 
-/* a bar right before the title is its space above (iOS: the title sits right under the bar) */
+/* a bar right before the title is its space above (the title sits right under the bar) */
 .x-toolbar + .x-large-title {
   padding-block-start: 0;
 }
