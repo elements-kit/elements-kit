@@ -32,6 +32,7 @@
   vertical-align: top;
   min-width: max-content;
   isolation: isolate;
+  touch-action: manipulation;
 
   margin: 0;
   padding: 0;

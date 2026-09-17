@@ -4,6 +4,7 @@
   justify-content: center;
   flex-shrink: 0;
   user-select: none;
+  touch-action: manipulation;
   vertical-align: top;
 
   font-family: var(--default-font-family);

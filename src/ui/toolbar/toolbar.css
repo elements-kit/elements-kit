@@ -107,40 +107,72 @@
 
 /* h */
 :not(.x-toolbar):has(> .x-toolbar:not([data-position="bottom"])[data-size="1"]),
-:root:has(.x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar)[data-size="1"]) {
+:root:has(
+  .x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar)[data-size="1"]
+) {
   --x-top-h: var(--space-5);
 }
 :not(.x-toolbar):has(> .x-toolbar:not([data-position="bottom"])[data-size="3"]),
-:root:has(.x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar)[data-size="3"]) {
+:root:has(
+  .x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar)[data-size="3"]
+) {
   --x-top-h: var(--space-7);
 }
 :not(.x-toolbar):has(> .x-toolbar:not([data-position="bottom"])[data-size="4"]),
-:root:has(.x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar)[data-size="4"]) {
+:root:has(
+  .x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar)[data-size="4"]
+) {
   --x-top-h: var(--space-8);
 }
 :not(.x-toolbar):has(> .x-toolbar[data-position="bottom"][data-size="1"]),
-:root:has(.x-toolbar[data-position="bottom"][data-size="1"]:not(.x-toolbar .x-toolbar)) {
+:root:has(
+  .x-toolbar[data-position="bottom"][data-size="1"]:not(.x-toolbar .x-toolbar)
+) {
   --x-bottom-h: var(--space-5);
 }
 :not(.x-toolbar):has(> .x-toolbar[data-position="bottom"][data-size="3"]),
-:root:has(.x-toolbar[data-position="bottom"][data-size="3"]:not(.x-toolbar .x-toolbar)) {
+:root:has(
+  .x-toolbar[data-position="bottom"][data-size="3"]:not(.x-toolbar .x-toolbar)
+) {
   --x-bottom-h: var(--space-7);
 }
 :not(.x-toolbar):has(> .x-toolbar[data-position="bottom"][data-size="4"]),
-:root:has(.x-toolbar[data-position="bottom"][data-size="4"]:not(.x-toolbar .x-toolbar)) {
+:root:has(
+  .x-toolbar[data-position="bottom"][data-size="4"]:not(.x-toolbar .x-toolbar)
+) {
   --x-bottom-h: var(--space-8);
 }
 
 /* clean / soft */
-:not(.x-toolbar):has(> .x-toolbar:not([data-position="bottom"]):is([data-variant="soft"], [data-variant="clean"])),
-:root:has(.x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar):is([data-variant="soft"], [data-variant="clean"])) {
+:not(.x-toolbar):has(
+  > .x-toolbar:not([data-position="bottom"]):is(
+      [data-variant="soft"],
+      [data-variant="clean"]
+    )
+),
+:root:has(
+  .x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar):is(
+      [data-variant="soft"],
+      [data-variant="clean"]
+    )
+) {
   --x-top-cap: var(--space-1);
   --x-top-start: var(--space-4);
   --x-top-gap: var(--space-4);
   --x-top-end: var(--space-2);
 }
-:not(.x-toolbar):has(> .x-toolbar[data-position="bottom"]:is([data-variant="soft"], [data-variant="clean"])),
-:root:has(.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar):is([data-variant="soft"], [data-variant="clean"])) {
+:not(.x-toolbar):has(
+  > .x-toolbar[data-position="bottom"]:is(
+      [data-variant="soft"],
+      [data-variant="clean"]
+    )
+),
+:root:has(
+  .x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar):is(
+      [data-variant="soft"],
+      [data-variant="clean"]
+    )
+) {
   --x-bottom-cap: var(--space-1);
   --x-bottom-start: var(--space-1);
   --x-bottom-gap: var(--space-4);
@@ -148,38 +180,91 @@
 }
 
 /* rows of a group */
-:not(.x-toolbar):has(> .x-toolbar:not([data-position="bottom"]) > .x-toolbar + .x-toolbar),
-:root:has(.x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar) > .x-toolbar + .x-toolbar) {
+:not(.x-toolbar):has(
+  > .x-toolbar:not([data-position="bottom"]) > .x-toolbar + .x-toolbar
+),
+:root:has(
+  .x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar)
+    > .x-toolbar
+    + .x-toolbar
+) {
   --x-top-rows: 2;
 }
-:not(.x-toolbar):has(> .x-toolbar:not([data-position="bottom"]) > .x-toolbar + .x-toolbar + .x-toolbar),
-:root:has(.x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar) > .x-toolbar + .x-toolbar + .x-toolbar) {
+:not(.x-toolbar):has(
+  > .x-toolbar:not([data-position="bottom"])
+    > .x-toolbar
+    + .x-toolbar
+    + .x-toolbar
+),
+:root:has(
+  .x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar)
+    > .x-toolbar
+    + .x-toolbar
+    + .x-toolbar
+) {
   --x-top-rows: 3;
 }
-:not(.x-toolbar):has(> .x-toolbar[data-position="bottom"] > .x-toolbar + .x-toolbar),
-:root:has(.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar) > .x-toolbar + .x-toolbar) {
+:not(.x-toolbar):has(
+  > .x-toolbar[data-position="bottom"] > .x-toolbar + .x-toolbar
+),
+:root:has(
+  .x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar)
+    > .x-toolbar
+    + .x-toolbar
+) {
   --x-bottom-rows: 2;
 }
-:not(.x-toolbar):has(> .x-toolbar[data-position="bottom"] > .x-toolbar + .x-toolbar + .x-toolbar),
-:root:has(.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar) > .x-toolbar + .x-toolbar + .x-toolbar) {
+:not(.x-toolbar):has(
+  > .x-toolbar[data-position="bottom"] > .x-toolbar + .x-toolbar + .x-toolbar
+),
+:root:has(
+  .x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar)
+    > .x-toolbar
+    + .x-toolbar
+    + .x-toolbar
+) {
   --x-bottom-rows: 3;
 }
 
 /* a stacked control: a button or toggle 56 units, a segmented track 58 */
-:not(.x-toolbar):has(> .x-toolbar:not([data-position="bottom"]) :is(.x-button, .x-toggle)[data-layout="stacked"]),
-:root:has(.x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar) :is(.x-button, .x-toggle)[data-layout="stacked"]) {
+:not(.x-toolbar):has(
+  > .x-toolbar:not([data-position="bottom"])
+    :is(.x-button, .x-toggle)[data-layout="stacked"]
+),
+:root:has(
+  .x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar)
+    :is(.x-button, .x-toggle)[data-layout="stacked"]
+) {
   --x-top-control: calc(var(--x-top-h) * 56 / 32);
 }
-:not(.x-toolbar):has(> .x-toolbar[data-position="bottom"] :is(.x-button, .x-toggle)[data-layout="stacked"]),
-:root:has(.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar) :is(.x-button, .x-toggle)[data-layout="stacked"]) {
+:not(.x-toolbar):has(
+  > .x-toolbar[data-position="bottom"]
+    :is(.x-button, .x-toggle)[data-layout="stacked"]
+),
+:root:has(
+  .x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar)
+    :is(.x-button, .x-toggle)[data-layout="stacked"]
+) {
   --x-bottom-control: calc(var(--x-bottom-h) * 56 / 32);
 }
-:not(.x-toolbar):has(> .x-toolbar:not([data-position="bottom"]) .x-segmented-control[data-layout="stacked"]),
-:root:has(.x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar) .x-segmented-control[data-layout="stacked"]) {
+:not(.x-toolbar):has(
+  > .x-toolbar:not([data-position="bottom"])
+    .x-segmented-control[data-layout="stacked"]
+),
+:root:has(
+  .x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar)
+    .x-segmented-control[data-layout="stacked"]
+) {
   --x-top-control: calc(var(--x-top-h) * 58 / 32);
 }
-:not(.x-toolbar):has(> .x-toolbar[data-position="bottom"] .x-segmented-control[data-layout="stacked"]),
-:root:has(.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar) .x-segmented-control[data-layout="stacked"]) {
+:not(.x-toolbar):has(
+  > .x-toolbar[data-position="bottom"]
+    .x-segmented-control[data-layout="stacked"]
+),
+:root:has(
+  .x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar)
+    .x-segmented-control[data-layout="stacked"]
+) {
   --x-bottom-control: calc(var(--x-bottom-h) * 58 / 32);
 }
 
@@ -234,6 +319,7 @@
   position: sticky;
   inset-block-start: 0;
   z-index: 1;
+  touch-action: manipulation;
   display: grid;
   /* start | center | end — equal sides keep the center centered */
   grid-template-columns: 1fr minmax(0, auto) 1fr;
@@ -242,8 +328,7 @@
   box-sizing: border-box;
   /* SIZE: the insets pad the controls; the formula is the minimum */
   min-block-size: var(--toolbar-height);
-  padding-block: calc(var(--x-safe-top) + var(--x-top-start))
-    var(--x-top-end);
+  padding-block: calc(var(--x-safe-top) + var(--x-top-start)) var(--x-top-end);
   padding-inline: var(--space-4);
 
   font-family: var(--default-font-family);
@@ -498,7 +583,6 @@
     1
   );
   opacity: calc(1 - var(--x-large-title-fade));
-
 }
 
 /* a bar right after the title brings its own space above (12px around a surface field,
@@ -510,9 +594,7 @@
 
 .x-large-title:has(+ .x-toolbar),
 .x-large-title + .x-toolbar {
-  --x-large-title-height: calc(
-    var(--heading-line-height-8) + var(--space-4)
-  );
+  --x-large-title-height: calc(var(--heading-line-height-8) + var(--space-4));
 }
 
 /* a bar right before the title is its space above (iOS: the title sits right under the bar) */
@@ -522,9 +604,7 @@
 
 .x-toolbar:has(+ .x-large-title),
 .x-toolbar + .x-large-title {
-  --x-large-title-height: calc(
-    var(--heading-line-height-8) + var(--space-2)
-  );
+  --x-large-title-height: calc(var(--heading-line-height-8) + var(--space-2));
 }
 
 /* a bar after the title isn't at the screen edge until it pins: no inset in its height; it pins
@@ -611,18 +691,19 @@
   :is(.x-toolbar:has(+ .x-large-title), .x-large-title + .x-toolbar) {
     animation: x-toolbar-reveal linear both;
     animation-timeline: --x-large-title;
-    animation-range: exit calc(0.6 * var(--x-toolbar-distance))
-      exit var(--x-toolbar-distance);
+    animation-range: exit calc(0.6 * var(--x-toolbar-distance)) exit
+      var(--x-toolbar-distance);
   }
 
   /* no large title: the background fades in as content scrolls under the bar */
   .x-toolbar:not(
-      [data-position="bottom"],
-      [data-position="bottom"] > .x-toolbar,
-      :has(+ .x-large-title),
-      .x-large-title + .x-toolbar,
-      :is(.x-toolbar:has(+ .x-large-title), .x-large-title + .x-toolbar) > .x-toolbar
-    ) {
+    [data-position="bottom"],
+    [data-position="bottom"] > .x-toolbar,
+    :has(+ .x-large-title),
+    .x-large-title + .x-toolbar,
+    :is(.x-toolbar:has(+ .x-large-title), .x-large-title + .x-toolbar)
+      > .x-toolbar
+  ) {
     animation: x-toolbar-reveal linear both;
     animation-timeline: scroll(nearest block);
     animation-range: calc(0.6 * var(--x-toolbar-distance))
