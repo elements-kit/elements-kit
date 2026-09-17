@@ -65,7 +65,7 @@ describe("x-button data-layout=stacked", () => {
     expect(labelStyle.fontSize).toBe("12px");
     expect(labelStyle.lineHeight).toBe("18px");
     expect(labelStyle.fontWeight).toBe("500");
-    expect(style.paddingLeft).toBe("14px");
+    expect(style.paddingLeft).toBe("8px");
     // centered both ways
     expect(icon.top - outer.top).toBe(outer.bottom - label.bottom);
     expect(Math.abs(middle(icon.left, icon.right) - middle(label.left, label.right))).toBeLessThanOrEqual(1);
@@ -94,7 +94,7 @@ describe("x-button data-layout=stacked", () => {
 
     expect(outer.height).toBe(56);
     expect(outer.width).toBeGreaterThan(56);
-    expect(label.left - outer.left).toBe(14);
+    expect(label.left - outer.left).toBe(8);
   });
 
   it("wraps the label when the button is constrained, growing taller", () => {
@@ -104,9 +104,9 @@ describe("x-button data-layout=stacked", () => {
     );
     const label = button.querySelector("span")!;
 
-    // two 18px lines under the 20px icon and 4px gap, 7px above and below
+    // two 18px lines under the 20px icon and 4px gap, 4px above and below
     expect(box(label).height).toBe(36);
-    expect(box(button).height).toBe(74);
+    expect(box(button).height).toBe(68);
     expect(label.scrollWidth).toBeLessThanOrEqual(label.clientWidth);
   });
 

@@ -104,9 +104,9 @@ Ship an icon-only button without `aria-label` or visually-hidden text. Screen re
 
 Put an icon next to the label as a child; source order decides its side. Size it in `em` so it follows the button's font size.
 
-Add `data-layout="stacked"` to put the icon above the label, as in iOS action items. At size `2` the button is 56px tall, with a 20px icon, a 4px gap, and a 12px medium-weight label on an 18px line, plus 14px inline padding. Every length scales with the size, while the label grows 1px per size.
+Add `data-layout="stacked"` to put the icon above the label, as in iOS action items. At size `2` the button is 56px tall, with a 20px icon, a 4px gap, and a 12px medium-weight label on an 18px line, with at least 4px padding above and below and 8px on the sides. Every length scales with the size, while the label grows 1px per size.
 
-The height and width are minimums: a short label gives a square, a longer one widens the button. When the button is constrained, the label wraps into balanced lines and the button grows taller, keeping 7px above the icon and below the label at size `2`. A single word too long for the width breaks.
+The height and width are minimums: a short label gives a square, a longer one widens the button. When the button is constrained, the label wraps into balanced lines and the button grows taller, keeping the same padding around it. A single word too long for the width breaks.
 
 | `data-size` | stacked minimum | icon | label |
 | --- | --- | --- | --- |
