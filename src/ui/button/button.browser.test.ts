@@ -57,13 +57,13 @@ describe("x-button data-layout=stacked", () => {
       mount(`data-variant="soft" data-size="2" data-layout="stacked"`),
     );
 
-    // 56px: 20px icon, 4px gap, 12px medium label on an 18px line
+    // 56px: 20px icon, 4px gap, --font-size-1 medium label on --line-height-1
     expect(outer.height).toBe(56);
     expect(icon.width).toBe(20);
     expect(icon.height).toBe(20);
     expect(label.top - icon.bottom).toBe(4);
     expect(labelStyle.fontSize).toBe("12px");
-    expect(labelStyle.lineHeight).toBe("18px");
+    expect(labelStyle.lineHeight).toBe("16px");
     expect(labelStyle.fontWeight).toBe("500");
     expect(style.paddingLeft).toBe("8px");
     // centered both ways
@@ -72,9 +72,9 @@ describe("x-button data-layout=stacked", () => {
   });
 
   it.each([
-    ["1", 42, 15, "11px"],
+    ["1", 42, 15, "12px"],
     ["2", 56, 20, "12px"],
-    ["3", 70, 25, "13px"],
+    ["3", 70, 25, "14px"],
     ["4", 84, 30, "14px"],
   ])("size %s: %ipx square with a %ipx icon and a %s label", (size, height, iconSize, labelSize) => {
     const { outer, icon, labelStyle } = parts(
@@ -104,9 +104,9 @@ describe("x-button data-layout=stacked", () => {
     );
     const label = button.querySelector("span")!;
 
-    // two 18px lines under the 20px icon and 4px gap, 4px above and below
-    expect(box(label).height).toBe(36);
-    expect(box(button).height).toBe(68);
+    // two 16px lines under the 20px icon and 4px gap, 4px above and below
+    expect(box(label).height).toBe(32);
+    expect(box(button).height).toBe(64);
     expect(label.scrollWidth).toBeLessThanOrEqual(label.clientWidth);
   });
 

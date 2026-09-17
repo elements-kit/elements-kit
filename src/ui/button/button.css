@@ -483,12 +483,18 @@
     /* constrained, the label wraps into balanced lines; a lone long word breaks */
     text-wrap: balance;
     overflow-wrap: break-word;
-    /* 11 / 12 / 13 / 14px for sizes 1–4, on an 18-unit line */
-    font-size: calc(
-      var(--font-size-1) + (var(--x-stacked-unit) - 1px * var(--scaling)) * 4
-    );
-    line-height: calc(18 * var(--x-stacked-unit));
+    /* type scale 1 for sizes 1–2, 2 for sizes 3–4 */
+    font-size: var(--font-size-1);
+    line-height: var(--line-height-1);
+    letter-spacing: var(--letter-spacing-1);
     font-weight: var(--font-weight-medium);
+  }
+
+  /* stylelint-disable-next-line selector-max-type */
+  &:where([data-size="3"], [data-size="4"]) > :where(:not(svg)) {
+    font-size: var(--font-size-2);
+    line-height: var(--line-height-2);
+    letter-spacing: var(--letter-spacing-2);
   }
 }
 

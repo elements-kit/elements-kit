@@ -371,7 +371,6 @@
 /* Icon above the label. One unit (1px at size 2) scales the geometry. */
 .x-segmented-control:where([data-layout="stacked"]) {
   --x-stacked-unit: calc(1px * var(--scaling));
-  --x-stacked-label-size: calc(10px * var(--scaling));
   /* highlight inset from the track, corners concentric */
   --seg-inset: calc(2 * var(--x-stacked-unit));
   --seg-track-radius: calc(
@@ -413,18 +412,25 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: var(--x-stacked-label-size);
-    line-height: calc(18 * var(--x-stacked-unit));
+    /* type scale 1 for sizes 1–2, 2 for size 3 */
+    font-size: var(--font-size-1);
+    line-height: var(--line-height-1);
+    letter-spacing: var(--letter-spacing-1);
     font-weight: var(--font-weight-medium);
   }
 
   &:where([data-size="1"]) {
     --x-stacked-unit: calc(0.75px * var(--scaling));
-    --x-stacked-label-size: calc(10px * var(--scaling));
   }
   &:where([data-size="3"]) {
     --x-stacked-unit: calc(1.25px * var(--scaling));
-    --x-stacked-label-size: calc(12px * var(--scaling));
+
+    /* stylelint-disable-next-line selector-max-type */
+    & > label > :where(:not(input, svg)) {
+      font-size: var(--font-size-2);
+      line-height: var(--line-height-2);
+      letter-spacing: var(--letter-spacing-2);
+    }
   }
 }
 
