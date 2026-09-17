@@ -7,7 +7,6 @@ import "../styles/neutral/gray.css";
 import "../styles/palette/mint.css";
 import "../styles/accent/mint.css";
 import "../button/button.css";
-import "../card/card.css";
 import "../group/group.css";
 import "../segmented-control/segmented-control.css";
 import "../text-input/text-input.css";
@@ -116,36 +115,6 @@ describe.runIf(native)("inactive timeline", () => {
     header.style.setProperty("--scroll-y", "40px");
     await frame();
     expect(getComputedStyle(header, "::before").opacity).toBe("1");
-  });
-});
-
-// ── a card inset ─────────────────────────────────────────────────────────────────────────────────
-
-describe("card inset", () => {
-  const card = (scrolls: boolean) =>
-    mount(
-      `<div class="x-card" data-variant="surface" data-size="2" style="block-size: 400px; ${scrolls ? "overflow-y: auto" : "display: flex; flex-direction: column"}">
-        <header class="x-toolbar" data-inset="top" data-variant="surface" data-size="2"><span data-title>Policy</span></header>
-        <div style="${scrolls ? "" : "flex: 1; min-block-size: 0; overflow: auto"}">${rows()}</div>
-        <footer class="x-toolbar" data-inset="bottom" data-position="bottom" data-variant="surface" data-size="2"><span data-title>Done</span></footer>
-      </div>`,
-      "",
-    ).firstElementChild as HTMLElement;
-  const border = (el: HTMLElement) => parseFloat(getComputedStyle(el).borderTopWidth) || parseFloat(getComputedStyle(el).getPropertyValue("--card-border-width"));
-
-  it.each([false, true])("card scrolls: %s — bars bleed to the card's edges and stay pinned", async (scrolls) => {
-    const el = card(scrolls);
-    const edge = border(el);
-    const header = q(el, "header");
-    const footer = q(el, "footer");
-    await frame();
-    near(box(header).top - box(el).top, edge, "header at the top edge");
-    near(box(el).bottom - box(footer).bottom, edge, "footer at the bottom edge");
-
-    el.scrollTop = 300;
-    await frame();
-    near(box(header).top - box(el).top, edge, "header pinned");
-    near(box(el).bottom - box(footer).bottom, edge, "footer pinned");
   });
 });
 

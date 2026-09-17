@@ -57,8 +57,24 @@ jobs:
           pnpm exec tsc --noEmit
 
       # Browser projects (*.browser.test.ts) run in Playwright's headless Chromium, WebKit and Firefox.
+      # Browsers are cached per Playwright version; their system libraries aren't cacheable.
+      - name: Playwright version
+        id: playwright
+        run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache browsers
+        id: browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium-webkit-firefox
+
       - name: Install browsers
-        run: pnpm exec playwright install --with-deps --only-shell chromium webkit firefox
+        if: steps.browsers.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --only-shell chromium webkit firefox
+
+      - name: Install browser dependencies
+        run: pnpm exec playwright install-deps chromium webkit firefox
 
       - name: Unit, property & fuzz tests
         run: pnpm test
