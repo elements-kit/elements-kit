@@ -57,7 +57,7 @@ describe("x-button data-layout=stacked", () => {
       mount(`data-variant="soft" data-size="2" data-layout="stacked"`),
     );
 
-    // 56px: 24px icon, 2px gap, --font-size-0 medium caption on --line-height-1
+    // 56px: 24px icon, 2px gap, --font-size-0 medium caption on a 16-unit line
     expect(outer.height).toBe(56);
     expect(icon.width).toBe(24);
     expect(icon.height).toBe(24);
@@ -65,18 +65,18 @@ describe("x-button data-layout=stacked", () => {
     expect(labelStyle.fontSize).toBe("10px");
     expect(labelStyle.lineHeight).toBe("16px");
     expect(labelStyle.fontWeight).toBe("500");
-    expect(style.paddingLeft).toBe("8px");
+    expect(style.paddingLeft).toBe("10px");
     // centered both ways
     expect(icon.top - outer.top).toBe(outer.bottom - label.bottom);
     expect(Math.abs(middle(icon.left, icon.right) - middle(label.left, label.right))).toBeLessThanOrEqual(1);
   });
 
   it.each([
-    ["1", 42, 18, "10px"],
-    ["2", 56, 24, "10px"],
-    ["3", 70, 30, "12px"],
-    ["4", 84, 36, "12px"],
-  ])("size %s: %ipx square with a %ipx icon and a %s label", (size, height, iconSize, labelSize) => {
+    ["1", 42, 18, "10px", "12px"],
+    ["2", 56, 24, "10px", "16px"],
+    ["3", 70, 30, "12px", "20px"],
+    ["4", 84, 36, "12px", "24px"],
+  ])("size %s: %ipx square with a %ipx icon and a %s caption", (size, height, iconSize, labelSize, lineHeight) => {
     const { outer, icon, labelStyle } = parts(
       mount(`data-variant="soft" data-size="${size}" data-layout="stacked"`),
     );
@@ -85,6 +85,8 @@ describe("x-button data-layout=stacked", () => {
     expect(outer.width).toBe(height);
     expect(icon.width).toBe(iconSize);
     expect(labelStyle.fontSize).toBe(labelSize);
+    // the line scales with the item, so the caption keeps its place at every size
+    expect(labelStyle.lineHeight).toBe(lineHeight);
   });
 
   it("widens for a longer label, never taller than wide", () => {
@@ -94,7 +96,7 @@ describe("x-button data-layout=stacked", () => {
 
     expect(outer.height).toBe(56);
     expect(outer.width).toBeGreaterThan(56);
-    expect(label.left - outer.left).toBe(8);
+    expect(label.left - outer.left).toBe(10);
   });
 
   it("wraps the label when the button is constrained, growing taller", () => {
