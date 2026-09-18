@@ -414,7 +414,8 @@
     white-space: nowrap;
     /* a caption under the icon: --font-size-0 for sizes 1–2, --font-size-1 for size 3 */
     font-size: var(--font-size-0);
-    line-height: var(--line-height-1);
+    /* the line scales with the item like the icon, so the caption keeps its place at every size */
+    line-height: calc(16 * var(--x-stacked-unit));
     letter-spacing: var(--letter-spacing-1);
     font-weight: var(--font-weight-medium);
   }
@@ -428,7 +429,6 @@
     /* stylelint-disable-next-line selector-max-type */
     & > label > :where(:not(input, svg)) {
       font-size: var(--font-size-1);
-      line-height: var(--line-height-2);
       letter-spacing: var(--letter-spacing-2);
     }
   }

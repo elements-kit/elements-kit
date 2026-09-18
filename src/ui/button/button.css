@@ -460,7 +460,8 @@
   &:where(:not([data-variant="text"])) {
     min-width: calc(56 * var(--x-stacked-unit));
     min-height: calc(56 * var(--x-stacked-unit));
-    padding: calc(4 * var(--x-stacked-unit)) calc(8 * var(--x-stacked-unit));
+    /* 10 units: a long caption clears the pill's curved ends */
+    padding: calc(4 * var(--x-stacked-unit)) calc(10 * var(--x-stacked-unit));
   }
   &:where([data-variant="text"]) {
     /* the kit's text padding; an 8px bleed matches the toolbar's gap between text buttons */
@@ -485,7 +486,8 @@
     overflow-wrap: break-word;
     /* a caption under the icon: --font-size-0 for sizes 1–2, --font-size-1 for sizes 3–4 */
     font-size: var(--font-size-0);
-    line-height: var(--line-height-1);
+    /* the line scales with the item like the icon, so the caption keeps its place at every size */
+    line-height: calc(16 * var(--x-stacked-unit));
     letter-spacing: var(--letter-spacing-1);
     font-weight: var(--font-weight-medium);
   }
@@ -493,7 +495,6 @@
   /* stylelint-disable-next-line selector-max-type */
   &:where([data-size="3"], [data-size="4"]) > :where(:not(svg)) {
     font-size: var(--font-size-1);
-    line-height: var(--line-height-2);
     letter-spacing: var(--letter-spacing-2);
   }
 }
