@@ -118,6 +118,36 @@ describe.runIf(native)("inactive timeline", () => {
   });
 });
 
+// ── the bar title, and grouped rows, with timelines ──────────────────────────────────────────────
+
+describe.runIf(native)("bar title", () => {
+  it('data-align="start": a lone title sits at the bar\'s start edge', async () => {
+    const el = mount(`<header class="x-toolbar" data-size="2"><span data-title data-align="start">Playground</span></header>${rows()}`);
+    await frame();
+    const bar = q(el, "header");
+    near(box(q(el, "[data-title]")).left, box(bar).left + parseFloat(getComputedStyle(bar).paddingLeft), "title at the start");
+  });
+
+  it('data-reveal="always": revealed at the top, no scroll timeline', async () => {
+    const el = mount(`<header class="x-toolbar" data-reveal="always"><span data-title>Playground</span></header>${rows()}`);
+    await frame();
+    expect(getComputedStyle(q(el, "header")).animationName).toBe("none");
+    expect(getComputedStyle(q(el, "header"), "::before").opacity).toBe("1");
+  });
+
+  it("a title in a grouped row appears as the large title collapses", async () => {
+    const el = mount(
+      `<header class="x-toolbar"><div class="x-toolbar"><span data-title>Recents</span></div><div class="x-toolbar"><span>Search</span></div></header><h1 class="x-large-title">Recents</h1>${rows()}`,
+    );
+    await frame();
+    expect(getComputedStyle(q(el, "[data-title]")).opacity).toBe("0");
+
+    el.scrollTop = 300;
+    await frame();
+    expect(getComputedStyle(q(el, "[data-title]")).opacity).toBe("1");
+  });
+});
+
 // ── page scroll: bars on <html> ─────────────────────────────────────────────────────────────────
 
 describe.each(SIZES)("page scroll, data-size=%s", (size) => {

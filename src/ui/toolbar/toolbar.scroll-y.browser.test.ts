@@ -97,3 +97,16 @@ describe("x-toolbar --scroll-y", () => {
     expect(opacity(q(el, "[data-title]"))).toBe(1);
   });
 });
+
+describe("x-toolbar data-reveal", () => {
+  it('"always": the background and a bar title under a large title show at the top, and stay', async () => {
+    const el = mount(`<header class="x-toolbar" data-reveal="always"><div></div><span data-title>Inbox</span><div></div></header><h1 class="x-large-title">Inbox</h1>${rows()}`);
+    await frame();
+    expect(opacity(q(el, "header"), "::before")).toBe(1);
+    expect(opacity(q(el, "[data-title]"))).toBe(1);
+
+    write(200, q(el, "header"), q(el, ".x-large-title"));
+    await frame();
+    expect(opacity(q(el, "header"), "::before")).toBe(1);
+  });
+});

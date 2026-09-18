@@ -14,6 +14,9 @@
  * child centers, a region holding an input fills its column.
  *
  *   data-position="bottom"                 last child of the scroll container
+ *   data-reveal="always"                   background (and a bar title under a large title) shown
+ *                                          from the start, no fade
+ *   [data-title] data-align="start"        title at the start of its column, not centered
  *   data-variant="surface | clean | soft"  surface: material background + hairline (default)
  *                                          clean: no bar; float controls in
  *                                          <div class="x-group" data-variant="material">
@@ -356,6 +359,11 @@
   }
 }
 
+/* data-reveal="always": revealed from the start (the timelines skip it, below) */
+.x-toolbar[data-reveal="always"] {
+  --x-toolbar-reveal: 1;
+}
+
 /* with a large title (before or after the bar): background and bar title follow the collapse */
 .x-toolbar:has(+ .x-large-title),
 .x-large-title + .x-toolbar {
@@ -422,6 +430,11 @@
 :where(.x-toolbar > :only-child) {
   grid-column: 1 / -1;
   justify-self: center;
+}
+
+/* data-align="start": the title at the start of its column (alone, the bar's start edge) */
+:where(.x-toolbar > [data-title][data-align="start"]) {
+  justify-self: start;
 }
 
 /* a region holding the title may shrink (the title truncates); button regions keep their size */
@@ -518,8 +531,9 @@
   }
 }
 
-/* rows: layout only, one row tall */
+/* rows: layout only, one row tall; they show their group's reveal */
 .x-toolbar > .x-toolbar {
+  --x-toolbar-reveal: inherit;
   position: static;
   min-block-size: var(--x-top-row);
   padding-block: 0;
@@ -696,7 +710,7 @@
   }
 
   /* the bar animates its reveal; its background and title read it */
-  :is(.x-toolbar:has(+ .x-large-title), .x-large-title + .x-toolbar) {
+  :is(.x-toolbar:has(+ .x-large-title), .x-large-title + .x-toolbar):not([data-reveal="always"]) {
     animation: x-toolbar-reveal linear both;
     animation-timeline: --x-large-title;
     animation-range: exit calc(0.6 * var(--x-toolbar-distance)) exit
@@ -710,7 +724,9 @@
     :has(+ .x-large-title),
     .x-large-title + .x-toolbar,
     :is(.x-toolbar:has(+ .x-large-title), .x-large-title + .x-toolbar)
-      > .x-toolbar
+      > .x-toolbar,
+    [data-reveal="always"],
+    [data-reveal="always"] > .x-toolbar
   ) {
     animation: x-toolbar-reveal linear both;
     animation-timeline: scroll(nearest block);
