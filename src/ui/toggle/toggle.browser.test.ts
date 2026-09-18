@@ -152,8 +152,12 @@ describe("x-toggle focus", () => {
     await userEvent.click(t);
     expect(getComputedStyle(t).outlineStyle).toBe("none");
 
-    await userEvent.tab({ shift: true });
+    // a button before it, so Tab lands on the toggle without leaving the test frame
+    const before = document.createElement("button");
+    t.before(before);
+    before.focus();
     await userEvent.tab();
+    expect(document.activeElement).toBe(t.querySelector("input"));
     expect(getComputedStyle(t).outlineStyle).toBe("solid");
   });
 });

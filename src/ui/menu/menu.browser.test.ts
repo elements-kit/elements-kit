@@ -45,9 +45,11 @@ function menu(attrs = `class="x-card x-menu" data-variant="elevated"`): HTMLElem
 
 const items = (el: Element) => [...el.querySelectorAll<HTMLElement>(".x-menu-item")];
 
+// keyboard focus on the menu's first item: Tab from a button before the menu, inside the test frame
 async function focus(item: HTMLElement) {
-  item.focus();
-  await userEvent.tab({ shift: true });
+  const before = document.createElement("button");
+  host!.prepend(before);
+  before.focus();
   await userEvent.tab();
   expect(document.activeElement).toBe(item);
 }
