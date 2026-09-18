@@ -1,0 +1,232 @@
+/***************************************************************************************************
+ *                                                                                                 *
+ * x-menu — a menu's content: items, labels and separators. CSS-only; Radix Themes' base menu.     *
+ *                                                                                                 *
+ *   <div class="x-card x-menu" data-variant="elevated" data-size="2" role="menu">                 *
+ *     <div class="x-label" data-variant="group">Actions</div>                                     *
+ *     <button class="unset x-menu-item" role="menuitem">                                          *
+ *       <svg/> Edit <span class="x-menu-trailing">⌘E</span>                                       *
+ *     </button>                                                                                   *
+ *     <hr class="x-separator" />                                                                  *
+ *     <button class="unset x-menu-item" role="menuitem" data-accent="red">Delete</button>          *
+ *   </div>                                                                                        *
+ *                                                                                                 *
+ * Parts:                                                                                          *
+ *   .x-menu-item       a row; <button>, <a> or <label>                                            *
+ *   .x-menu-trailing   at the item's end: a shortcut, a chevron, a check, a count                 *
+ *   .x-label           data-variant="group": a group heading (label/label.css), like Radix       *
+ *   .x-separator       between groups (separator/separator.css)                                   *
+ *                                                                                                 *
+ * Attributes:                                                                                     *
+ *   data-size="1 | 2"                     item height 24 / 32, content padding 4 / 8 (default 2)  *
+ *   data-highlight="solid | soft"         the highlight: --accent-9 fill (default) or --accent-a4 *
+ *   data-high-contrast                    solid highlight in --accent-12                          *
+ *   item: data-highlighted, :focus-visible, :hover    highlighted                                 *
+ *   item: data-accent                     accent text (e.g. destructive)                          *
+ *   item: :disabled, aria-disabled, data-disabled     disabled                                    *
+ *                                                                                                 *
+ * Keyboard navigation, typeahead and dismissal belong to the script or overlay that opens it.     *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-menu {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: var(--menu-content-padding);
+  border-radius: var(--menu-radius);
+  font-family: var(--default-font-family);
+  font-weight: var(--font-weight-regular);
+  font-style: normal;
+  text-align: start;
+  color: var(--neutral-12);
+}
+
+/* on a card: the card paints the surface; the menu sets its padding and radius */
+.x-card.x-menu {
+  --card-padding: var(--menu-content-padding);
+  --card-border-radius: var(--menu-radius);
+}
+
+/* without a card: a solid panel */
+.x-menu:not(.x-card) {
+  background-color: var(--color-background);
+  box-shadow: var(--shadow-5);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SIZES                                                                                           *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-menu:where([data-size="1"]) {
+  --menu-content-padding: var(--space-1);
+  --menu-item-padding-inline: var(--space-2);
+  --menu-item-height: var(--space-5);
+  --menu-item-radius: var(--radius-1);
+  --menu-radius: var(--radius-3);
+  --menu-font-size: var(--font-size-1);
+  --menu-line-height: var(--line-height-1);
+  --menu-letter-spacing: var(--letter-spacing-1);
+}
+
+.x-menu:where(:not([data-size]), [data-size="2"]) {
+  --menu-content-padding: var(--space-2);
+  --menu-item-padding-inline: var(--space-3);
+  --menu-item-height: var(--space-6);
+  --menu-item-radius: var(--radius-2);
+  --menu-radius: var(--radius-4);
+  --menu-font-size: var(--font-size-2);
+  --menu-line-height: var(--line-height-2);
+  --menu-letter-spacing: var(--letter-spacing-2);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * ITEM                                                                                            *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-menu-item,
+.x-menu > .x-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  box-sizing: border-box;
+  min-block-size: var(--menu-item-height);
+  padding-inline: var(--menu-item-padding-inline);
+  font-size: var(--menu-font-size);
+  line-height: var(--menu-line-height);
+  letter-spacing: var(--menu-letter-spacing);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.x-menu-item {
+  position: relative;
+  border-radius: var(--menu-item-radius);
+  outline: none;
+  color: inherit;
+  text-decoration: none;
+  scroll-margin-block: var(--menu-content-padding);
+  touch-action: manipulation;
+  cursor: var(--cursor-menu-item);
+
+  /* taps pass through to the item: WebKit skips touch-action on SVG, so a tap on the icon zooms */
+  /* stylelint-disable-next-line selector-max-type */
+  & :where(svg) {
+    flex: none;
+    pointer-events: none;
+  }
+}
+
+.x-menu-item:where([data-accent]) {
+  color: var(--accent-a11);
+}
+
+.x-menu-trailing {
+  display: flex;
+  flex: none;
+  align-items: center;
+  margin-inline-start: auto;
+  padding-inline-start: var(--space-4);
+  white-space: nowrap;
+  color: var(--neutral-a11);
+}
+
+/* a group heading: quieter, regular weight, item height */
+.x-menu > .x-label {
+  cursor: default;
+
+  :where(.x-menu-item) + & {
+    margin-block-start: var(--space-2);
+  }
+}
+
+/* between groups: inset to the items' text */
+.x-menu > .x-separator:where(:not([aria-orientation="vertical"])) {
+  inline-size: auto;
+  margin: var(--space-2) var(--menu-item-padding-inline);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * HIGHLIGHT — hover, keyboard focus, data-highlighted (a roving script), an open submenu          *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* solid (default) */
+
+.x-menu:where(:not([data-highlight="soft"])) > .x-menu-item {
+  @media (hover: hover) {
+    &:where(:hover) {
+      background-color: var(--accent-9);
+      color: var(--accent-contrast);
+    }
+  }
+  &:where(:focus-visible, [data-highlighted]) {
+    background-color: var(--accent-9);
+    color: var(--accent-contrast);
+  }
+  &:where([data-state="open"], [aria-expanded="true"]):where(
+      :not(:focus-visible, [data-highlighted])
+    ) {
+    background-color: var(--neutral-a3);
+  }
+}
+
+.x-menu:where([data-high-contrast]) > .x-menu-item:where(:not([data-accent])) {
+  @media (hover: hover) {
+    &:where(:hover) {
+      background-color: var(--accent-12);
+      color: var(--accent-1);
+    }
+  }
+  &:where(:focus-visible, [data-highlighted]) {
+    background-color: var(--accent-12);
+    color: var(--accent-1);
+  }
+}
+
+/* soft */
+
+.x-menu:where([data-highlight="soft"]) > .x-menu-item {
+  @media (hover: hover) {
+    &:where(:hover) {
+      background-color: var(--accent-a4);
+    }
+  }
+  &:where(:focus-visible, [data-highlighted]) {
+    background-color: var(--accent-a4);
+  }
+  &:where([data-state="open"], [aria-expanded="true"]):where(
+      :not(:focus-visible, [data-highlighted])
+    ) {
+    background-color: var(--accent-a3);
+  }
+}
+
+@media (hover: hover) {
+  .x-menu-item:where(:hover) > .x-menu-trailing {
+    color: inherit;
+  }
+}
+
+.x-menu-item:where(:focus-visible, [data-highlighted]) > .x-menu-trailing {
+  color: inherit;
+}
+
+/* disabled: dimmed, never highlighted */
+
+.x-menu
+  > .x-menu-item:where(:disabled, [aria-disabled="true"], [data-disabled]) {
+  background-color: transparent;
+  color: var(--neutral-a8);
+  cursor: default;
+  pointer-events: none;
+
+  & > .x-menu-trailing {
+    color: inherit;
+  }
+}

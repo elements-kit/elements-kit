@@ -1,0 +1,66 @@
+/***************************************************************************************************
+ *                                                                                                 *
+ * x-separator — a hairline between content, on a native <hr>. Radix Themes' separator.            *
+ *                                                                                                 *
+ *   <hr class="x-separator" />                                  horizontal, the container's width *
+ *   <hr class="x-separator" aria-orientation="vertical" />      vertical, the row's height        *
+ *                                                                                                 *
+ * Attributes:                                                                                     *
+ *   aria-orientation="horizontal | vertical"   default horizontal                                 *
+ *   data-size="1 | 2 | 3 | 4"                  length 16 / 32 / 64px / 100% (default 4)           *
+ *   data-accent                                an accent line; neutral by default                 *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-separator {
+  --separator-size: 100%;
+
+  display: block;
+  flex: none;
+  box-sizing: border-box;
+  inline-size: var(--separator-size);
+  block-size: 1px;
+  margin: 0;
+  border: 0;
+  background-color: var(--neutral-a6);
+}
+
+.x-separator:where([data-accent]) {
+  background-color: var(--accent-a6);
+}
+
+/* vertical: full length stretches across a flex or grid row; one line tall on its own */
+.x-separator:where([aria-orientation="vertical"]) {
+  align-self: stretch;
+  inline-size: 1px;
+  block-size: auto;
+  min-block-size: 1lh;
+
+  &:where([data-size="1"], [data-size="2"], [data-size="3"]) {
+    align-self: auto;
+    block-size: var(--separator-size);
+    min-block-size: 0;
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SIZES — the length                                                                              *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-separator:where([data-size="1"]) {
+  --separator-size: var(--space-4);
+}
+
+.x-separator:where([data-size="2"]) {
+  --separator-size: var(--space-6);
+}
+
+.x-separator:where([data-size="3"]) {
+  --separator-size: var(--space-9);
+}
+
+.x-separator:where([data-size="4"]) {
+  --separator-size: 100%;
+}

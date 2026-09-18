@@ -1,0 +1,105 @@
+/***************************************************************************************************
+ *                                                                                                 *
+ * x-label — a label, styled like Radix Themes' forms                                              *
+ *                                                                                                 *
+ *   <label class="x-label" for="email">Email</label>          above a control: medium, 4px below  *
+ *   <label class="x-label">                                   around a checkbox, radio or switch: *
+ *     <input type="checkbox" class="x-checkbox" /> Remember   regular, the control on line one    *
+ *   </label>                                                                                      *
+ *   <div class="x-label" data-variant="group">Message</div>   a group heading: quiet, e.g. a menu  *
+ *                                                                                                 *
+ * Attributes:                                                                                     *
+ *   data-variant="field | group"   field (default): medium, --space-2 below; group: regular, a10 *
+ *   data-size="1 | 2 | 3"          --font-size-1 / 2 / 3 (default 2)                              *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  box-sizing: border-box;
+  font-family: var(--default-font-family);
+  font-size: var(--label-font-size);
+  font-weight: var(--font-weight-medium);
+  font-style: normal;
+  line-height: var(--label-line-height);
+  letter-spacing: var(--label-letter-spacing);
+  color: var(--neutral-12);
+}
+
+/* field (default): above its control */
+:where(.x-label:not([data-variant="group"])) {
+  margin-block: 0 var(--space-2);
+}
+
+/* group: heads a group of options or menu items, quieter than a field label */
+.x-label:where([data-variant="group"]) {
+  font-weight: var(--font-weight-regular);
+  color: var(--neutral-a10);
+}
+
+.x-label:where([data-size="1"]) {
+  --label-font-size: var(--font-size-1);
+  --label-line-height: var(--line-height-1);
+  --label-letter-spacing: var(--letter-spacing-1);
+}
+
+.x-label:where(:not([data-size]), [data-size="2"]) {
+  --label-font-size: var(--font-size-2);
+  --label-line-height: var(--line-height-2);
+  --label-letter-spacing: var(--letter-spacing-2);
+}
+
+.x-label:where([data-size="3"]) {
+  --label-font-size: var(--font-size-3);
+  --label-line-height: var(--line-height-3);
+  --label-letter-spacing: var(--letter-spacing-3);
+}
+
+/* around a checkbox, radio or switch: option text; only the text and control are clickable */
+.x-label:where(
+  :has(
+    > :is(.x-checkbox, .x-radio, .x-switch, [type="checkbox"], [type="radio"])
+  )
+) {
+  /* the control's bottom on the first line's baseline… */
+  align-items: first baseline;
+  gap: 0.5em;
+  inline-size: fit-content;
+  margin-block-end: 0;
+  font-weight: var(--font-weight-regular);
+
+  /* …then centered on the capitals: any font, line height or number of lines */
+  &
+    > :where(
+      .x-checkbox,
+      .x-radio,
+      .x-switch,
+      [type="checkbox"],
+      [type="radio"]
+    ) {
+    /* 1cap is the label's font, not the input's own UA font */
+    font-size: inherit;
+    /* whole pixels keep the box edges crisp */
+    translate: 0
+      round(
+        calc(
+          (
+              var(
+                  --checkbox-size,
+                  var(--radio-size, var(--switch-height, 1em))
+                ) -
+                1cap
+            ) /
+            2
+        ),
+        1px
+      );
+  }
+}
+
+/* for a disabled control */
+.x-label:where(:has(:disabled), [data-disabled]) {
+  color: var(--neutral-a8);
+}

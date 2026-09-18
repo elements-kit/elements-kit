@@ -1,0 +1,416 @@
+/***************************************************************************************************
+ *                                                                                                 *
+ * x-item — a reusable row: leading, content, trailing. CSS-only. Parts are explicit classes;      *
+ * nothing is inferred from tag order. Works standalone, in a card, or inside .x-list.             *
+ *                                                                                                 *
+ *   <a class="x-item" href="/inbox/1">                                                             *
+ *     <span class="x-avatar" data-size="2"><span class="x-avatar-fallback">AL</span></span>          *
+ *     <span class="x-item-content">                                                               *
+ *       <span class="x-item-title">Alice Laurent</span>                                           *
+ *       <span class="x-item-description">Lunch tomorrow?</span>                                   *
+ *     </span>                                                                                     *
+ *     <time>9:41</time>                                                                           *
+ *     <svg class="x-item-chevron"/>                          optional — add it only if you want it *
+ *   </a>                                                                                          *
+ *                                                                                                 *
+ * Structure: whatever sits before .x-item-content is leading (an .x-avatar, a checkbox);          *
+ * whatever sits after it is trailing (time, badge, switch, button, chevron), 8px apart.           *
+ * Leading and trailing elements center on the text; a trailing value sits on the title line.      *
+ *                                                                                                 *
+ * Parts:                                                                                          *
+ *   .x-item-content      fills the row; holds title + description                                 *
+ *   .x-item-title        primary text                                                             *
+ *   .x-item-description  secondary text                                                           *
+ *   .x-item-chevron      an icon you place; rotates inside an open <details>. Sized for the        *
+ *                        Material chevron; another glyph sets --item-glyph-size / -start / -end   *
+ *   .x-item-indicator    an icon you place; visible only while the item's input is checked        *
+ *   .x-item-input        a visually hidden radio / checkbox that still takes focus                *
+ *   .x-item-link         the primary link of a non-link item; covers the row                      *
+ *   time, data, output   trailing values, secondary color                                         *
+ *                                                                                                 *
+ * Attributes:                                                                                     *
+ *   data-size="1 | 2 | 3"      40 / 48 / 56px min height on every row (like iOS 44pt); text padding  *
+ *                              = (min height − line) / 2; inherited from a sized .x-list          *
+ *                              pair with .x-avatar data-size of the same number                   *
+ *   data-accent                tints the item text (e.g. a destructive action)                    *
+ *   aria-current, aria-selected="true"   selected                                                 *
+ *   aria-disabled="true", :disabled      disabled                                                 *
+ *                                                                                                 *
+ * Interactive tags: a[href], button, label, summary get hover / press / focus.                    *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* registered so the wash can transition; a plain custom property swaps instantly */
+@property --item-highlight {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: transparent;
+}
+
+.x-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  box-sizing: border-box;
+  inline-size: 100%;
+  /* like iOS (44pt rows, 11pt margins around a 22pt line): the min height is fixed per size, the text
+   * padding is what one line leaves of it, and images are centered inside — they never set the height */
+  min-block-size: var(--item-min-height, var(--space-8));
+  margin: 0;
+  padding-block: var(--item-padding-block);
+  padding-inline: var(--item-padding-inline);
+  border: 0;
+  border-radius: var(--item-radius, var(--radius-3));
+  background-color: var(--item-highlight);
+
+  font-family: var(--default-font-family);
+  font-style: var(--default-font-style);
+  font-weight: var(--font-weight-regular);
+  font-size: var(--item-font-size, var(--font-size-2));
+  line-height: var(--item-line-height, var(--line-height-2));
+  letter-spacing: var(--item-letter-spacing, var(--letter-spacing-2));
+  color: var(--neutral-12);
+  text-align: start;
+  text-decoration: none;
+  list-style: none;
+
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  /* leaving fades the wash; hover and press are instant (below) */
+  transition: --item-highlight 150ms ease;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SIZES — set on .x-item or on a parent .x-list; unsized items fall back to size 2                *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+:where(.x-item, .x-list, .x-list-label, .x-list-description):where([data-size="1"]) {
+  --item-min-height: var(--space-7);
+  --item-font-size: var(--font-size-1);
+  --item-line-height: var(--line-height-1);
+  --item-letter-spacing: var(--letter-spacing-1);
+  --item-description-font-size: var(--font-size-1);
+  --item-description-line-height: var(--line-height-1);
+  --item-description-letter-spacing: var(--letter-spacing-1);
+  --item-icon-size: calc(14px * var(--scaling));
+  --item-avatar-size: var(--space-5);
+  --item-radius: var(--radius-2);
+}
+
+:where(.x-item, .x-list, .x-list-label, .x-list-description):where([data-size="2"]) {
+  --item-min-height: var(--space-8);
+  --item-font-size: var(--font-size-2);
+  --item-line-height: var(--line-height-2);
+  --item-letter-spacing: var(--letter-spacing-2);
+  --item-description-font-size: var(--font-size-1);
+  --item-description-line-height: var(--line-height-1);
+  --item-description-letter-spacing: var(--letter-spacing-1);
+  --item-icon-size: calc(16px * var(--scaling));
+  --item-avatar-size: var(--space-6);
+  --item-radius: var(--radius-3);
+}
+
+:where(.x-item, .x-list, .x-list-label, .x-list-description):where([data-size="3"]) {
+  --item-min-height: calc(56px * var(--scaling));
+  --item-font-size: var(--font-size-3);
+  --item-line-height: var(--line-height-3);
+  --item-letter-spacing: var(--letter-spacing-3);
+  --item-description-font-size: var(--font-size-2);
+  --item-description-line-height: var(--line-height-2);
+  --item-description-letter-spacing: var(--letter-spacing-2);
+  --item-icon-size: calc(18px * var(--scaling));
+  --item-avatar-size: var(--space-7);
+  --item-radius: var(--radius-3);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SPACING — iOS inset-grouped proportions, measured against its 44pt row and scaled to the row    *
+ * height of each size: side margin 16 · icon → text 15 · value → chevron 8 · text margin 11 ·      *
+ * title → subtitle 2 · header → card and card → footer 7.                                         *
+ *                                                                                                 *
+ *                        ratio    size 1 (40)   size 2 (48)   size 3 (56)                          *
+ *   --item-padding-inline 16/44     15            17            20                                 *
+ *   --item-gap            15/44     14            16            19                                 *
+ *   --item-trailing-gap    8/44      7             9            10                                 *
+ *   --item-padding-block  11/44     10            12            14                                 *
+ *   --item-description-gap 2/44      2             2             3                                 *
+ *   --item-label-gap       7/44      6             8             9                                 *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+:where(.x-item, .x-list, .x-list-label, .x-list-description) {
+  --item-row: var(--item-min-height, var(--space-8));
+  --item-padding-inline: round(calc(var(--item-row) * 16 / 44), 1px);
+  --item-gap: round(calc(var(--item-row) * 15 / 44), 1px);
+  --item-trailing-gap: round(calc(var(--item-row) * 8 / 44), 1px);
+  --item-padding-block: round(calc(var(--item-row) * 11 / 44), 1px);
+  --item-description-gap: round(calc(var(--item-row) * 2 / 44), 1px);
+  --item-label-gap: round(calc(var(--item-row) * 7 / 44), 1px);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * PARTS                                                                                           *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* leading: the element right before the content */
+.x-item > :has(+ .x-item-content) {
+  flex: none;
+  margin-inline-end: var(--item-gap);
+}
+
+/* a leading avatar sits in a square cell, like the artwork of a song row on music.apple.com: the
+ * same inset from the top, bottom and start edges, and that inset is the row's padding — the avatar
+ * fills the padding box instead of overhanging it. The text starts one text padding after it. */
+.x-item:has(> .x-avatar + .x-item-content) {
+  --item-media-inset: calc((var(--item-row) - var(--item-avatar-size, var(--space-6))) / 2);
+  --item-overhang-limit: var(--item-media-inset);
+  padding-block: var(--item-media-inset);
+  padding-inline-start: var(--item-media-inset);
+
+  & > .x-avatar {
+    margin-inline-end: var(--item-padding-block);
+  }
+}
+
+.x-item-content {
+  flex: 1 1 auto;
+  /* stretched to the row's content box, so .x-list can draw a divider from its top edge */
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-inline-size: 0;
+  position: relative;
+}
+
+/* trailing: everything after the content, 8px apart */
+.x-item-content ~ * {
+  flex: none;
+  margin-inline-start: var(--item-trailing-gap);
+}
+
+.x-item-title {
+  overflow-wrap: anywhere;
+}
+
+.x-item-description {
+  margin: var(--item-description-gap) 0 0;
+  font-size: var(--item-description-font-size, var(--font-size-1));
+  line-height: var(--item-description-line-height, var(--line-height-1));
+  letter-spacing: var(--item-description-letter-spacing, var(--letter-spacing-1));
+  color: var(--neutral-a11);
+  overflow-wrap: anywhere;
+}
+
+.x-item > :is(time, data, output) {
+  color: var(--neutral-a11);
+}
+
+.x-item-chevron,
+.x-item-indicator {
+  /* iOS disclosure glyphs are ~0.76× the text size, semibold. Material glyphs fill ~48% of their box
+   * height, so the box is 1.6em; a stroke brings the 400 weight up to semibold. */
+  /* rounded to even pixels so the overhang below is whole on both sides */
+  /* --item-glyph-size: the icon box (default fits the Material chevron / check);
+   * --item-glyph-start / --item-glyph-end: the box's empty side space, as fractions of the box */
+  --item-glyph-box: round(var(--item-glyph-size, 1.6em), 2px);
+  inline-size: var(--item-glyph-box);
+  block-size: var(--item-glyph-box);
+  stroke: currentColor;
+  stroke-width: 24;
+  stroke-linejoin: round;
+  paint-order: stroke;
+  transition:
+    rotate 200ms cubic-bezier(0.23, 1, 0.32, 1),
+    scale 150ms cubic-bezier(0.23, 1, 0.32, 1),
+    opacity 150ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.x-item-chevron {
+  color: var(--neutral-a9);
+  /* the glyph spans 36%–63% of the box: cancel the side whitespace so the glyph sits 8px after the
+   * previous element and ends at the row padding */
+  margin-inline: calc(var(--item-trailing-gap) - var(--item-glyph-box) * var(--item-glyph-start, 0.359))
+    calc(var(--item-glyph-box) * -1 * var(--item-glyph-end, 0.371));
+  &:dir(rtl) {
+    scale: -1 1;
+  }
+}
+details[open] > .x-item > .x-item-chevron {
+  rotate: 90deg;
+}
+
+/* grows in when checked — never from nothing */
+.x-item-indicator {
+  color: var(--accent-11);
+  /* the check spans 17%–83% of the box */
+  margin-inline: calc(var(--item-trailing-gap) - var(--item-glyph-box) * var(--item-glyph-start, 0.174))
+    calc(var(--item-glyph-box) * -1 * var(--item-glyph-end, 0.174));
+  opacity: 0;
+  scale: 0.8;
+}
+.x-item:has(.x-item-input:checked) .x-item-indicator {
+  opacity: 1;
+  scale: 1;
+}
+
+.x-item-input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* the primary link of a static item covers the row; interactive trailing controls stay on top */
+.x-item-link {
+  color: inherit;
+  text-decoration: none;
+  outline: none;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+  }
+}
+.x-item:has(.x-item-link) > :is(a:not(.x-item-link), button, input, select, label, [tabindex]) {
+  position: relative;
+  z-index: 1;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * ALIGNMENT — avatars and controls center on the text, whatever the row's height. In a row with    *
+ * a description, trailing values (time, data, output) sit on the title line. No attribute needed.  *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* the height each element is centered by; plain text elements (time, data, output) use the line */
+.x-item > .x-avatar {
+  --item-self-height: var(--avatar-size);
+}
+.x-item > .x-checkbox {
+  --item-self-height: var(--checkbox-size);
+}
+.x-item > .x-radio {
+  --item-self-height: var(--radio-size);
+}
+.x-item > .x-switch {
+  --item-self-height: var(--switch-height);
+}
+.x-item > .x-button {
+  --item-self-height: var(--base-button-height);
+}
+.x-item > .x-badge:where([data-size="1"]) {
+  --item-self-height: calc(var(--line-height-1) + var(--space-1));
+}
+.x-item > .x-badge:where([data-size="2"], :not([data-size])) {
+  --item-self-height: calc(var(--line-height-1) + var(--space-1) * 2);
+}
+.x-item > .x-badge:where([data-size="3"]) {
+  --item-self-height: calc(var(--line-height-2) + var(--space-1) * 2);
+}
+.x-item > .x-kbd {
+  /* line-height 1.7em + padding-bottom 0.05em, in the kbd's own font size (em resolves on the kbd) */
+  --item-self-height: 1.75em;
+}
+.x-item > :is(.x-item-chevron, .x-item-indicator) {
+  --item-self-height: round(var(--item-glyph-size, 1.6em), 2px);
+}
+
+/* Like iOS: images and controls are centered on the text — on the one line of a short row, on the
+ * whole text block of a tall one (Messages centers the avatar next to its two lines). The row stays
+ * centered for that; the text block is the tallest thing in a tall row, so it lands at the top. */
+
+/* anything taller than the line overhangs into the text padding rather than growing the row, but
+ * never past the row's own edge: a visual bigger than the row grows it instead of escaping it */
+.x-item > :not(.x-item-content, .x-item-input) {
+  margin-block: max(
+    calc(-1 * var(--item-overhang-limit, var(--item-padding-block))),
+    min(
+      0px,
+      calc((var(--item-line-height, var(--line-height-2)) - var(--item-self-height, var(--item-line-height, var(--line-height-2)))) / 2)
+    )
+  );
+}
+
+/* trailing values sit on the title line, like the timestamp in Messages; controls stay centered */
+.x-item:has(> .x-item-content > :nth-child(2)) > :is(time, data, output) {
+  align-self: flex-start;
+  margin-block: 0;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * STATES                                                                                          *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+:where(a[href], button, label, summary).x-item,
+.x-item:has(.x-item-link) {
+  cursor: var(--cursor-button, pointer);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :where(a[href], button, label, summary).x-item:hover,
+  .x-item:has(.x-item-link:hover):not(:has(> :is(a:not(.x-item-link), button, input, select, label):hover)) {
+    --item-highlight: var(--neutral-a2);
+    transition-duration: 0ms;
+  }
+}
+
+:where(a[href], button, label, summary).x-item:active,
+.x-item:has(.x-item-link:active) {
+  --item-highlight: var(--neutral-a3);
+  transition-duration: 0ms;
+}
+
+.x-item:focus-visible,
+.x-item:has(> .x-item-input:focus-visible),
+.x-item:has(.x-item-link:focus-visible) {
+  outline: 2px solid var(--focus-8);
+  outline-offset: -2px;
+}
+
+/* selected */
+.x-item:where([aria-current]:not([aria-current="false"]), [aria-selected="true"]) {
+  --item-highlight: var(--accent-a3);
+  color: var(--accent-11);
+
+}
+
+/* tinted text, e.g. a destructive action */
+.x-item:where([data-accent]) {
+  color: var(--accent-11);
+}
+
+/* disabled */
+.x-item:where([aria-disabled="true"], :disabled, :has(> .x-item-input:disabled)) {
+  opacity: 0.6;
+  pointer-events: none;
+  cursor: var(--cursor-disabled);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .x-item-chevron,
+  .x-item-indicator {
+    transition: opacity 150ms ease;
+  }
+  details[open] > .x-item > .x-item-chevron {
+    rotate: none;
+  }
+}

@@ -1,0 +1,90 @@
+---
+title: Menu
+description: A menu's content (items, trailing parts, labels and separators), styled like Radix Themes' menus.
+---
+
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
+
+The content of a dropdown or context menu: items, trailing parts, group [labels](/ui/label) and [separators](/ui/separator). The sizes and highlight follow Radix Themes' base menu. It's CSS only: keyboard navigation, typeahead and dismissal belong to the script or [overlay](/ui/overlay) that opens it.
+
+<StorybookEmbed story="ui-menu--solid" />
+
+## Install
+
+```ts
+import "elements-kit/ui/styles.css";
+import "elements-kit/ui/card/card.css"; // optional: the menu's surface
+import "elements-kit/ui/label/label.css";
+import "elements-kit/ui/separator/separator.css";
+import "elements-kit/ui/menu/menu.css";
+
+// for a destructive item with data-accent="red":
+import "elements-kit/ui/styles/palette/red.css";
+import "elements-kit/ui/styles/accent/red.css";
+```
+
+## API
+
+```html
+<div class="x-card x-menu" data-variant="elevated" data-size="2" role="menu">
+  <div class="x-label" data-variant="group">Message</div>
+  <button class="unset x-menu-item" role="menuitem">
+    <svg viewBox="0 0 24 24" width="1.25em" height="1.25em" aria-hidden="true">…</svg>
+    Edit
+    <span class="x-menu-trailing">⌘E</span>
+  </button>
+  <hr class="x-separator" />
+  <button class="unset x-menu-item" role="menuitem" data-accent="red">Delete</button>
+</div>
+```
+
+| Part | |
+| --- | --- |
+| `.x-menu` | the content: a column of items |
+| `.x-menu-item` | a row: `<button>`, `<a>` or `<label>` |
+| `.x-menu-trailing` | at the item's end, `--neutral-a11`: a shortcut, a chevron, a check, a count |
+| [`.x-label`](/ui/label) `data-variant="group"` | a group heading: regular weight, `--neutral-a10`, item height |
+| `.x-separator` | between groups, inset to the items' text |
+
+| Attribute | Values |
+| --- | --- |
+| `data-size` *(on `.x-menu`)* | `1`, `2` *(default)* |
+| `data-highlight` *(on `.x-menu`)* | `solid` *(default)*, `soft` |
+| `data-high-contrast` *(on `.x-menu`)* | a solid highlight in `--accent-12` |
+| `data-accent` *(on an item)* | accent text, highlighted in that accent (e.g. a destructive item) |
+| `data-highlighted` *(on an item)* | highlighted, for a script that moves a virtual focus |
+| `disabled`, `aria-disabled="true"`, `data-disabled` *(on an item)* | dimmed, never highlighted |
+
+## Surface
+
+With `.x-card`, the card paints the surface (its `data-variant`, material and border) and the menu sets the padding and radius, whatever the card's own `data-size`. Use `data-variant="elevated"` for a floating menu. Without a card, `.x-menu` paints a solid `--color-background` panel with `--shadow-5`.
+
+## Sizing
+
+| `data-size` | content padding | menu radius | item height | item padding-x | item radius | font |
+| --- | --- | --- | --- | --- | --- | --- |
+| `1` | `--space-1` | `--radius-3` | `--space-5` (24px) | `--space-2` | `--radius-1` | `--font-size-1` |
+| `2` *(default)* | `--space-2` | `--radius-4` | `--space-6` (32px) | `--space-3` | `--radius-2` | `--font-size-2` |
+
+Items keep their own radius, never a pill, whatever `data-radius` says.
+
+<StorybookEmbed story="ui-menu--small" />
+
+## Highlight
+
+An item highlights on hover (with a hover-capable pointer), on keyboard focus, and with `data-highlighted`. An item with `data-state="open"` or `aria-expanded="true"` (an open submenu's trigger) gets a quieter fill while the highlight is elsewhere.
+
+| `data-highlight` | highlighted | open submenu trigger |
+| --- | --- | --- |
+| `solid` *(default)* | `--accent-9` fill, `--accent-contrast` text | `--neutral-a3` |
+| `soft` | `--accent-a4` fill | `--accent-a3` |
+
+The trailing part takes the highlighted item's text color. `data-high-contrast` makes the solid highlight `--accent-12` with `--accent-1` text, except on items with their own `data-accent`.
+
+<StorybookEmbed story="ui-menu--soft" />
+
+## Accessibility
+
+- Give the container `role="menu"` and each item `role="menuitem"` (or `menuitemcheckbox` / `menuitemradio`).
+- A native `<hr>` inside the menu is a separator, which menus allow.
+- Arrow-key navigation, typeahead and closing on Escape come from the script that opens the menu. Without one, native `<button>` items still tab and activate.

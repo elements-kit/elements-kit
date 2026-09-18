@@ -1,0 +1,73 @@
+---
+title: Separator
+description: A hairline between content, on a native <hr>, horizontal or vertical, in four lengths.
+---
+
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
+
+A 1px line that separates content, modelled on Radix Themes' separator. It's a native `<hr>`, so it already has the `separator` role.
+
+<StorybookEmbed story="ui-separator--horizontal" />
+
+## Install
+
+```ts
+import "elements-kit/ui/styles.css";
+import "elements-kit/ui/separator/separator.css";
+```
+
+## API
+
+```html
+<hr class="x-separator" />
+<hr class="x-separator" aria-orientation="vertical" data-size="2" />
+```
+
+| Attribute | Values |
+| --- | --- |
+| `aria-orientation` | `horizontal` *(default)*, `vertical` |
+| `data-size` | `1`, `2`, `3`, `4` *(default)*: the length |
+| `data-accent` | an accent line; `--neutral-a6` without it |
+
+The class resets the `<hr>`'s native border and margin, so it doesn't need `unset`.
+
+## Sizing
+
+`data-size` sets the length. The line is always 1px thick.
+
+| `data-size` | length |
+| --- | --- |
+| `1` | `--space-4` (16px) |
+| `2` | `--space-6` (32px) |
+| `3` | `--space-9` (64px) |
+| `4` *(default)* | 100%: the container's width, or a vertical separator's row height |
+
+Radix defaults to size `1`. Here the default is the full length, what an `<hr>` usually means.
+
+<StorybookEmbed story="ui-separator--sizes" />
+
+## Vertical
+
+`aria-orientation="vertical"` turns it into a 1px column. At full length it stretches to a flex or grid row's height, and on its own it's one line tall. Sizes `1`–`3` give a fixed length, centered by the row's `align-items`. The attribute also tells assistive technology the orientation.
+
+```html
+<div style="display: flex; align-items: center; gap: 12px">
+  <button class="unset x-button" data-variant="borderless">Cut</button>
+  <hr class="x-separator" aria-orientation="vertical" data-size="2" />
+  <button class="unset x-button" data-variant="borderless">Copy</button>
+</div>
+```
+
+<StorybookEmbed story="ui-separator--vertical" />
+
+## Color
+
+The line is `--neutral-a6`. With `data-accent` it's `--accent-a6`: a bare `data-accent` uses the inherited accent, and `data-accent="iris"` picks a scale.
+
+## In a menu
+
+Directly inside an [`x-menu`](/ui/menu), a horizontal separator is inset to the items' text, with `--space-2` above and below.
+
+## See also
+
+- [Menu](/ui/menu): separators between groups of items

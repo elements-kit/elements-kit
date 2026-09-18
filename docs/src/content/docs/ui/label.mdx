@@ -1,0 +1,77 @@
+---
+title: Label
+description: A label for a control, a checkbox or a group of menu items.
+---
+
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
+
+A label styled like Radix Themes' forms: medium-weight `--neutral-12` above a text input, regular text beside a checkbox, radio or switch, or a group heading in a [menu](/ui/menu).
+
+<StorybookEmbed story="ui-label--above-input" />
+
+## Install
+
+```ts
+import "elements-kit/ui/styles.css";
+import "elements-kit/ui/label/label.css";
+```
+
+## API
+
+```html
+<label class="x-label" for="email">Email</label>
+<input class="unset x-text-input" id="email" type="email" />
+```
+
+| Attribute | Values |
+| --- | --- |
+| `data-variant` | `field` *(default)*, `group` |
+| `data-size` | `1`, `2` *(default)*, `3` |
+
+## Variants
+
+| `data-variant` | For | Weight | Color | Margin |
+| --- | --- | --- | --- | --- |
+| `field` *(default)* | a label above its control | medium | `--neutral-12` | `--space-2` below |
+| `group` | a heading for a group of options or menu items | regular | `--neutral-a10` | none |
+
+A label around a checkbox, radio or switch needs no variant: it becomes option text on its own (see [below](#checkbox-radio-and-switch)).
+
+| `data-size` | font |
+| --- | --- |
+| `1` | `--font-size-1` |
+| `2` *(default)* | `--font-size-2` |
+| `3` | `--font-size-3` |
+
+Match the label's `data-size` to the control's. A `field` label keeps `--space-2` below itself, so a control placed right after it needs no gap. The margin has zero specificity, so a utility class replaces it. In a flex or grid container with a `gap`, the gap adds to it.
+
+## Checkbox, radio and switch
+
+Wrapped around a checkbox, radio or switch, the label becomes the option text, as in Radix's checkbox group: regular weight, a `0.5em` gap, and only as wide as its content, so the empty space beside it isn't clickable. The control is centered on the first line's capitals, however many lines the text wraps to. Stack options 4px apart.
+
+```html
+<div role="group" aria-label="Notifications" style="display: flex; flex-direction: column; gap: 4px">
+  <label class="x-label"><input type="checkbox" class="x-checkbox" checked /> Email</label>
+  <label class="x-label"><input type="checkbox" class="x-checkbox" /> Push notifications</label>
+</div>
+```
+
+<StorybookEmbed story="ui-label--checkbox-group" />
+
+## Disabled
+
+A label that contains a disabled control dims to `--neutral-a8`. For a label linked with `for`, add `data-disabled` to the label.
+
+<StorybookEmbed story="ui-label--with-checkbox" />
+
+## In a menu
+
+In an [`x-menu`](/ui/menu), use `data-variant="group"` to head a group of items. The menu adds the item's height and side padding, as in Radix Themes.
+
+```html
+<div class="x-label" data-variant="group">Message</div>
+```
+
+## Accessibility
+
+Use a `<label>` with `for`, or wrap the control, so clicking the label focuses the control and screen readers announce it. In a menu, the label is a `<div>`; name the group with `role="group"` and `aria-labelledby` if the menu has several groups.
