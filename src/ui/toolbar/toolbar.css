@@ -229,24 +229,24 @@
   --x-bottom-rows: 3;
 }
 
-/* a stacked control: a button or toggle 56 units, a segmented track 58 */
+/* a stacked control (stacked, stacked-icon): a button or toggle 56 units, a segmented track 58 */
 :not(.x-toolbar):has(
   > .x-toolbar:not([data-position="bottom"])
-    :is(.x-button, .x-toggle)[data-layout="stacked"]
+    :is(.x-button, .x-toggle)[data-layout^="stacked"]
 ),
 :root:has(
   .x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar)
-    :is(.x-button, .x-toggle)[data-layout="stacked"]
+    :is(.x-button, .x-toggle)[data-layout^="stacked"]
 ) {
   --x-top-control: calc(var(--x-top-h) * 56 / 32);
 }
 :not(.x-toolbar):has(
   > .x-toolbar[data-position="bottom"]
-    :is(.x-button, .x-toggle)[data-layout="stacked"]
+    :is(.x-button, .x-toggle)[data-layout^="stacked"]
 ),
 :root:has(
   .x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar)
-    :is(.x-button, .x-toggle)[data-layout="stacked"]
+    :is(.x-button, .x-toggle)[data-layout^="stacked"]
 ) {
   --x-bottom-control: calc(var(--x-bottom-h) * 56 / 32);
 }

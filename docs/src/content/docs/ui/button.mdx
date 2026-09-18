@@ -47,7 +47,7 @@ The `unset` class ([Styles → Unset native styles](/ui/styles#unset-native-styl
 | `data-size` | `1`, `2`, `3`, `4` |
 | `data-accent` | any imported color scale (`mint`, `blue`, `iris`, …) |
 | `data-icon` | modifier — square shape sized by height. Use for icon-only buttons. |
-| `data-layout` | `stacked` — icon above the label; at least square, the label wraps when constrained (see [Icon and label](#icon-and-label)) |
+| `data-layout` | `stacked` — icon above the label; at least square, the label wraps when constrained; `stacked-icon` — the same without padding, the state on a highlight around the icon (see [Icon and label](#icon-and-label)) |
 | `data-back` | modifier — a leading back chevron sized to the text (see [Back button](#back-button)) |
 | `data-high-contrast` | modifier — boosts contrast against the page background |
 | `data-loading` | modifier — sets `position: relative` for a spinner overlay |
@@ -123,6 +123,19 @@ The height and width are minimums: a short label gives a square, a longer one wi
   <span>Share</span>
 </button>
 ```
+
+### Icon highlight
+
+`data-layout="stacked-icon"` drops the button's padding and paints the variant's fill, ring and filter on a highlight around the icon, not the whole button. At size `2` the highlight is a 36px square (the 24px icon with 6px around it) with the button's radius, and the label sits 4px below, so the button stays 56px square. Both scale with the size. A `solid` label, which has no fill behind it, takes the accent text color.
+
+```html
+<button class="unset x-button" data-variant="soft" data-size="2" data-layout="stacked-icon">
+  <svg viewBox="0 0 24 24" width="1.25em" height="1.25em" aria-hidden="true">…</svg>
+  <span>Share</span>
+</button>
+```
+
+For a selectable item (a navigation rail or bar), use a [`stacked-icon` toggle](/ui/toggle#icon-indicator).
 
 ## Back button
 

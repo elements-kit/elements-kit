@@ -128,6 +128,47 @@ describe("x-button data-layout=stacked", () => {
   });
 });
 
+describe("x-button data-layout=stacked-icon", () => {
+  const clear = "rgba(0, 0, 0, 0)";
+
+  it("has no padding: a 36px square highlight, 4px gap, 16px label, 56px square at size 2", () => {
+    const button = mount(`data-variant="soft" data-size="2" data-layout="stacked-icon"`, "Share");
+    const { outer, icon, label, style } = parts(button);
+
+    expect(style.padding).toBe("0px");
+    expect(icon.width).toBe(36);
+    expect(icon.height).toBe(36);
+    expect(icon.top).toBe(outer.top);
+    expect(label.top - icon.bottom).toBe(4);
+    expect(outer.height).toBe(56);
+    expect(outer.width).toBe(56);
+  });
+
+  it("moves every variant's fill and ring onto the icon, the button stays clear", () => {
+    for (const variant of ["solid", "soft", "surface", "outline"]) {
+      const button = mount(`data-variant="${variant}" data-layout="stacked-icon"`, "Share");
+      const style = getComputedStyle(button);
+      const icon = getComputedStyle(button.querySelector("svg")!);
+
+      expect(style.backgroundColor, variant).toBe(clear);
+      expect(style.boxShadow, variant).toBe("none");
+      expect(icon.backgroundColor !== clear || icon.boxShadow !== "none", variant).toBe(true);
+    }
+  });
+
+  it("follows the button's radius", () => {
+    const { style } = parts(mount(`data-variant="soft" data-size="3" data-layout="stacked-icon"`));
+    expect(getComputedStyle(host!.querySelector("svg")!).borderRadius).toBe(style.borderRadius);
+  });
+
+  it("solid: the label takes the accent text, not the contrast color", () => {
+    const button = mount(`data-variant="solid" data-layout="stacked-icon"`, "Share");
+    const label = getComputedStyle(button.querySelector("span")!).color;
+
+    expect(label).not.toBe(getComputedStyle(button).color);
+  });
+});
+
 describe("x-button data-back", () => {
   it.each(["1", "2", "3", "4"])("size %s: the chevron is one text line tall, right against the label", (size) => {
     const { icon, label, style } = parts(mount(`data-variant="text" data-size="${size}" data-back`, "Mailboxes", BACK));

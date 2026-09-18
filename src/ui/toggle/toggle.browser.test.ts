@@ -87,6 +87,39 @@ describe("x-toggle data-layout=stacked", () => {
   });
 });
 
+describe("x-toggle data-layout=stacked-icon", () => {
+  it("has no padding: a 36px square highlight, 4px gap, 16px label at size 2", () => {
+    const t = toggle(`data-variant="borderless" data-size="2" data-layout="stacked-icon"`, "Flag", true);
+    const icon = box(t.querySelector("svg")!);
+    const label = box(t.querySelector("span")!);
+
+    expect(getComputedStyle(t).padding).toBe("0px");
+    expect(icon.width).toBe(36);
+    expect(icon.height).toBe(36);
+    expect(icon.top).toBe(box(t).top);
+    expect(label.top - icon.bottom).toBe(4);
+    expect(box(t).height).toBe(56);
+    expect(box(t).width).toBe(56);
+  });
+
+  it("moves the variant's state onto the icon, the item stays clear", () => {
+    const off = toggle(`data-variant="surface" data-layout="stacked-icon"`);
+    expect(bg(off)).toBe("rgba(0, 0, 0, 0)");
+    expect(getComputedStyle(off).boxShadow).toBe("none");
+    expect(getComputedStyle(off.querySelector("svg")!).boxShadow).not.toBe("none");
+    off.parentElement!.remove();
+
+    const on = toggle(`data-variant="borderless" data-layout="stacked-icon"`, "Flag", true);
+    expect(bg(on)).toBe("rgba(0, 0, 0, 0)");
+    expect(bg(on.querySelector("svg")!)).not.toBe("rgba(0, 0, 0, 0)");
+  });
+
+  it("follows the toggle's radius", () => {
+    const t = toggle(`data-variant="borderless" data-size="2" data-layout="stacked-icon"`, "Flag", true);
+    expect(getComputedStyle(t.querySelector("svg")!).borderRadius).toBe(getComputedStyle(t).borderRadius);
+  });
+});
+
 describe("x-toggle variants", () => {
   it("borderless: no fill at rest, filled when pressed", () => {
     expect(bg(toggle(`data-variant="borderless"`))).toBe("rgba(0, 0, 0, 0)");

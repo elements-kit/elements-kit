@@ -11,6 +11,11 @@
   font-style: normal;
   text-align: center;
 
+  /* the variant sets these; stacked-icon moves them onto the icon's highlight */
+  background-color: var(--x-button-fill, transparent);
+  box-shadow: var(--x-button-ring, none);
+  filter: var(--x-button-filter, none);
+
   &:where([data-disabled], :disabled) {
     --spinner-opacity: 1;
   }
@@ -41,20 +46,24 @@
 .x-button {
   &:where([data-size="1"]) {
     --base-button-height: var(--space-5);
-    border-radius: max(var(--radius-1), var(--radius-pill));
+    --x-button-radius: max(var(--radius-1), var(--radius-pill));
+    border-radius: var(--x-button-radius);
   }
   /* size 2 is also the default when data-size is absent */
   &:where([data-size="2"], :not([data-size])) {
     --base-button-height: var(--space-6);
-    border-radius: max(var(--radius-2), var(--radius-pill));
+    --x-button-radius: max(var(--radius-2), var(--radius-pill));
+    border-radius: var(--x-button-radius);
   }
   &:where([data-size="3"]) {
     --base-button-height: var(--space-7);
-    border-radius: max(var(--radius-3), var(--radius-pill));
+    --x-button-radius: max(var(--radius-3), var(--radius-pill));
+    border-radius: var(--x-button-radius);
   }
   &:where([data-size="4"]) {
     --base-button-height: var(--space-8);
-    border-radius: max(var(--radius-4), var(--radius-pill));
+    --x-button-radius: max(var(--radius-4), var(--radius-pill));
+    border-radius: var(--x-button-radius);
   }
 }
 
@@ -83,20 +92,20 @@
 }
 
 .x-button:where(:not([data-variant]), [data-variant="solid"]) {
-  background-color: var(--accent-9);
+  --x-button-fill: var(--accent-9);
   color: var(--accent-contrast);
 
   @media (hover: hover) {
     &:where(:hover) {
-      background-color: var(--accent-10);
+      --x-button-fill: var(--accent-10);
     }
   }
   &:where([data-state="open"]) {
-    background-color: var(--accent-10);
+    --x-button-fill: var(--accent-10);
   }
   &:where(:active:not([data-state="open"])) {
-    background-color: var(--accent-10);
-    filter: var(--base-button-solid-active-filter);
+    --x-button-fill: var(--accent-10);
+    --x-button-filter: var(--base-button-solid-active-filter);
   }
   /* Better -webkit-tap-highlight-color */
   @media (pointer: coarse) {
@@ -110,29 +119,29 @@
     outline-offset: 2px;
   }
   &:where([data-high-contrast]) {
-    background-color: var(--accent-12);
+    --x-button-fill: var(--accent-12);
     color: var(--neutral-1);
 
     @media (hover: hover) {
       &:where(:hover) {
-        background-color: var(--accent-12);
-        filter: var(--base-button-solid-high-contrast-hover-filter);
+        --x-button-fill: var(--accent-12);
+        --x-button-filter: var(--base-button-solid-high-contrast-hover-filter);
       }
     }
     &:where([data-state="open"]) {
-      background-color: var(--accent-12);
-      filter: var(--base-button-solid-high-contrast-hover-filter);
+      --x-button-fill: var(--accent-12);
+      --x-button-filter: var(--base-button-solid-high-contrast-hover-filter);
     }
     &:where(:active:not([data-state="open"])) {
-      background-color: var(--accent-12);
-      filter: var(--base-button-solid-high-contrast-active-filter);
+      --x-button-fill: var(--accent-12);
+      --x-button-filter: var(--base-button-solid-high-contrast-active-filter);
     }
   }
   &:where([data-disabled], :disabled) {
     color: var(--neutral-a8);
-    background-color: var(--neutral-a3);
+    --x-button-fill: var(--neutral-a3);
     outline: none;
-    filter: none;
+    --x-button-filter: none;
   }
 }
 
@@ -150,12 +159,12 @@
   }
   &:where([data-disabled], :disabled) {
     color: var(--neutral-a8);
-    background-color: var(--neutral-a3);
+    --x-button-fill: var(--neutral-a3);
   }
 }
 
 .x-button:where([data-variant="soft"]) {
-  background-color: var(--accent-a3);
+  --x-button-fill: var(--accent-a3);
 
   &:where(:focus-visible) {
     outline: 2px solid var(--accent-8);
@@ -163,25 +172,25 @@
   }
   @media (hover: hover) {
     &:where(:hover) {
-      background-color: var(--accent-a4);
+      --x-button-fill: var(--accent-a4);
     }
   }
   &:where([data-state="open"]) {
-    background-color: var(--accent-a4);
+    --x-button-fill: var(--accent-a4);
   }
   &:where(:active:not([data-state="open"])) {
-    background-color: var(--accent-a5);
+    --x-button-fill: var(--accent-a5);
   }
   &:where([data-disabled], :disabled) {
     color: var(--neutral-a8);
-    background-color: var(--neutral-a3);
+    --x-button-fill: var(--neutral-a3);
   }
 }
 
 .x-button:where([data-variant="text"], [data-variant="borderless"]) {
   @media (hover: hover) {
     &:where(:hover) {
-      background-color: var(--accent-a3);
+      --x-button-fill: var(--accent-a3);
     }
   }
   &:where(:focus-visible) {
@@ -189,69 +198,69 @@
     outline-offset: -1px;
   }
   &:where([data-state="open"]) {
-    background-color: var(--accent-a3);
+    --x-button-fill: var(--accent-a3);
   }
   &:where(:active:not([data-state="open"])) {
-    background-color: var(--accent-a4);
+    --x-button-fill: var(--accent-a4);
   }
   &:where([data-disabled], :disabled) {
     color: var(--neutral-a8);
-    background-color: transparent;
+    --x-button-fill: transparent;
   }
 }
 
 /* outline */
 
 .x-button:where([data-variant="outline"]) {
-  box-shadow: inset 0 0 0 1px var(--accent-a8);
+  --x-button-ring: inset 0 0 0 1px var(--accent-a8);
   color: var(--accent-a11);
 
   @media (hover: hover) {
     &:where(:hover) {
-      background-color: var(--accent-a2);
+      --x-button-fill: var(--accent-a2);
     }
   }
   &:where([data-state="open"]) {
-    background-color: var(--accent-a2);
+    --x-button-fill: var(--accent-a2);
   }
   &:where(:active:not([data-state="open"])) {
-    background-color: var(--accent-a3);
+    --x-button-fill: var(--accent-a3);
   }
   &:where(:focus-visible) {
     outline: 2px solid var(--focus-8);
     outline-offset: -1px;
   }
   &:where([data-high-contrast]) {
-    box-shadow:
+    --x-button-ring:
       inset 0 0 0 1px var(--accent-a7),
       inset 0 0 0 1px var(--neutral-a11);
     color: var(--accent-12);
   }
   &:where([data-disabled], :disabled) {
     color: var(--neutral-a8);
-    box-shadow: inset 0 0 0 1px var(--neutral-a7);
-    background-color: transparent;
+    --x-button-ring: inset 0 0 0 1px var(--neutral-a7);
+    --x-button-fill: transparent;
   }
 }
 
 /* surface */
 
 .x-button:where([data-variant="surface"]) {
-  background-color: var(--accent-surface);
-  box-shadow: inset 0 0 0 1px var(--accent-a7);
+  --x-button-fill: var(--accent-surface);
+  --x-button-ring: inset 0 0 0 1px var(--accent-a7);
   color: var(--accent-a11);
 
   @media (hover: hover) {
     &:where(:hover) {
-      box-shadow: inset 0 0 0 1px var(--accent-a8);
+      --x-button-ring: inset 0 0 0 1px var(--accent-a8);
     }
   }
   &:where([data-state="open"]) {
-    box-shadow: inset 0 0 0 1px var(--accent-a8);
+    --x-button-ring: inset 0 0 0 1px var(--accent-a8);
   }
   &:where(:active:not([data-state="open"])) {
-    background-color: var(--accent-a3);
-    box-shadow: inset 0 0 0 1px var(--accent-a8);
+    --x-button-fill: var(--accent-a3);
+    --x-button-ring: inset 0 0 0 1px var(--accent-a8);
   }
   &:where(:focus-visible) {
     outline: 2px solid var(--focus-8);
@@ -262,8 +271,8 @@
   }
   &:where([data-disabled], :disabled) {
     color: var(--neutral-a8);
-    box-shadow: inset 0 0 0 1px var(--neutral-a6);
-    background-color: var(--neutral-a2);
+    --x-button-ring: inset 0 0 0 1px var(--neutral-a6);
+    --x-button-fill: var(--neutral-a2);
   }
 }
 
@@ -437,6 +446,7 @@
 /***************************************************************************************************
  *                                                                                                 *
  * STACKED — data-layout="stacked": icon above the label (an action item)                         *
+ * data-layout="stacked-icon": no padding, the state on a highlight around the icon only           *
  *                                                                                                 *
  ***************************************************************************************************/
 
@@ -449,7 +459,7 @@
  * the same minimum width, so a button is at least square and a
  * longer label widens it. Constrained, the label wraps and the button grows taller.
  */
-.x-button:where([data-layout="stacked"]) {
+.x-button:where([data-layout="stacked"], [data-layout="stacked-icon"]) {
   --x-stacked-unit: calc(var(--base-button-height) / 32);
 
   flex-direction: column;
@@ -496,6 +506,41 @@
   &:where([data-size="3"], [data-size="4"]) > :where(:not(svg)) {
     font-size: var(--font-size-1);
     letter-spacing: var(--letter-spacing-2);
+  }
+}
+
+/* the state on a 36-unit square around the icon, the button's radius; 36 + 4 + 16 = 56 */
+.x-button:where([data-layout="stacked-icon"]) {
+  --button-text-padding-x: 0px;
+  --button-text-padding-y: 0px;
+  gap: calc(4 * var(--x-stacked-unit));
+  min-height: 0;
+  padding: 0;
+  background-color: transparent;
+  box-shadow: none;
+  filter: none;
+
+  /* stylelint-disable-next-line selector-max-type */
+  & > :where(svg) {
+    box-sizing: content-box;
+    padding: calc(6 * var(--x-stacked-unit));
+    border-radius: var(--x-button-radius);
+    opacity: 1;
+    background-color: var(--x-button-fill, transparent);
+    box-shadow: var(--x-button-ring, none);
+    filter: var(--x-button-filter, none);
+  }
+
+  /* solid's contrast text would sit on no fill: the label takes the accent text */
+  &:where(:not([data-variant]), [data-variant="solid"]):where(:not([data-disabled], :disabled))
+    > :where(:not(svg)) {
+    color: var(--accent-a11);
+  }
+  &:where(:not([data-variant]), [data-variant="solid"]):where([data-high-contrast]):where(
+      :not([data-disabled], :disabled)
+    )
+    > :where(:not(svg)) {
+    color: var(--accent-12);
   }
 }
 

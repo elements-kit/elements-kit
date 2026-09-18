@@ -70,7 +70,7 @@ export const Icon: Story = {
 };
 
 /** A button with an icon before its label. */
-function iconButton(args: Args, layout?: "stacked") {
+function iconButton(args: Args, layout?: "stacked" | "stacked-icon") {
   const button = document.createElement("button");
   button.className = "unset x-button";
   button.dataset.variant = args.variant;
@@ -96,6 +96,13 @@ export const WithIcon: Story = {
 export const Stacked: Story = {
   args: { label: "Share", variant: "soft" },
   render: (args) => iconButton(args, "stacked"),
+};
+
+// Stacked icon — `data-layout="stacked-icon"`: no padding, the variant's fill on a highlight
+// around the icon only.
+export const StackedIcon: Story = {
+  args: { label: "Share", variant: "soft" },
+  render: (args) => iconButton(args, "stacked-icon"),
 };
 
 // Back — `data-back` sizes the leading chevron to one text line with a 4px gap. Use a glyph drawn

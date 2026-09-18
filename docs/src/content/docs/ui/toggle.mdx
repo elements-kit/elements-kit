@@ -55,7 +55,7 @@ The `unset` class on the input strips native chrome ([Styles → Unset native st
 | `data-variant` | `surface` *(default)*, `soft`, `borderless` |
 | `data-size` | `1`, `2` *(default)*, `3` |
 | `data-icon` | makes the toggle a square (icon-only) — drops horizontal padding, locks `aspect-ratio: 1` |
-| `data-layout` | `stacked` — icon above the label, same geometry as a [stacked button](/ui/button#icon-and-label) (see [Stacked](#stacked)) |
+| `data-layout` | `stacked` — icon above the label, same geometry as a [stacked button](/ui/button#icon-and-label); `stacked-icon` — no padding, the state on a highlight around the icon (see [Stacked](#stacked)) |
 | `data-accent` *(on element or any ancestor)* | any imported color scale |
 | `disabled` *(on the wrapped input)* | greys out + stops clicks |
 
@@ -102,6 +102,20 @@ Add `data-layout="stacked"` to put the icon above the label. The geometry matche
 ```
 
 A stacked toggle widens for its label. When its container constrains the width, as in a navigation rail, the label wraps into balanced lines and the toggle grows taller.
+
+### Icon indicator
+
+`data-layout="stacked-icon"` drops the item's padding and paints the state on a highlight around the icon, not the whole item. At size `2` the highlight is a 36px square (the 24px icon with 6px around it) with the toggle's radius, and the label sits 4px below, so the item stays 56px square. Both scale with the size.
+
+Every variant works: the highlight takes its fill, ring and hover. Use `borderless` so only the selected item shows one.
+
+```html
+<label class="x-toggle" data-variant="borderless" data-layout="stacked-icon">
+  <input type="radio" name="section" class="unset" checked />
+  <svg viewBox="0 0 24 24" aria-hidden="true">…</svg>
+  <span>Home</span>
+</label>
+```
 
 <StorybookEmbed story="ui-toggle--navigation-rail" />
 

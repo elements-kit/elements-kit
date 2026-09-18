@@ -142,14 +142,14 @@ export const Stacked: Story = {
   ),
 };
 
-/** Navigation rail (M3 narrow, 80px): full-width stacked radio toggles, 4px apart; slim inline padding keeps labels whole. */
+/** Navigation rail: data-layout="stacked-icon" radio toggles, the selection on a highlight around the icon. */
 export const NavigationRail: Story = {
   args: { variant: "borderless" },
   render: (args) => (
     <div style="display: flex; height: 360px; box-shadow: 0 0 0 1px var(--neutral-a5); border-radius: var(--radius-4); overflow: hidden">
       <nav
         aria-label="Sections"
-        style="display: flex; flex: none; flex-direction: column; width: 78px; max-width: 96px; gap: 8px; box-sizing: border-box; padding: 12px 8px; box-shadow: inset -1px 0 var(--neutral-a5)"
+        style="display: flex; flex: none; flex-direction: column; max-width: 96px; gap: 16px; box-sizing: border-box; padding: 16px 8px; box-shadow: inset -1px 0 var(--neutral-a5)"
       >
         {(
           [
@@ -161,7 +161,7 @@ export const NavigationRail: Story = {
         ).map(([label, name], i) => (
           <label
             class:x-toggle
-            data-layout="stacked"
+            data-layout="stacked-icon"
             data-variant={args.variant}
             data-size={args.size}
           >
