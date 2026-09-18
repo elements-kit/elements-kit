@@ -96,7 +96,20 @@ const stop = effectScope(() => {
 });
 ```
 
-Write it on the bars and the title rather than on the container or `<html>`: only they read it, and a variable set higher up restyles the whole page on every frame. For page scroll, read `window.scrollY` with `sync(fromEvent(window, "scroll"), () => window.scrollY)` instead.
+A bottom bar also needs the distance left to scroll, as `--scroll-y-end`, so it clears at the end:
+
+```ts
+const bottom = screen.querySelector<HTMLElement>('.x-toolbar[data-position="bottom"]');
+effect(() => {
+  y(); // re-run on scroll
+  const end = screen.scrollHeight - screen.clientHeight - screen.scrollTop;
+  bottom?.style.setProperty("--scroll-y-end", `${end}px`);
+});
+```
+
+Without `--scroll-y-end`, a bottom bar keeps its background.
+
+Write them on the bars and the title rather than on the container or `<html>`: only they read them, and a variable set higher up restyles the whole page on every frame. For page scroll, read `window.scrollY` with `sync(fromEvent(window, "scroll"), () => window.scrollY)` instead.
 
 As the title scrolls under the bar it fades out over its own height. The bar's background and title fade in over the last 40% of that distance. Both paths drive the same registered properties, so the numbers match in every browser.
 
