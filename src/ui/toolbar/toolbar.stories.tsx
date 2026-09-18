@@ -7,6 +7,7 @@ import { fromEvent, sync } from "../../utilities/event-driven";
 import "../../utilities/dom-lifecycle";
 import "../avatar/avatar.css";
 import "../button/button.css";
+import "../card/card.css";
 import "../group/group.css";
 import "../segmented-control/segmented-control.css";
 import "../text-input/text-input.css";
@@ -826,4 +827,42 @@ export const PageScroll: Story = {
       </main>
     );
   },
+};
+
+/** A dialog: data-inset bars in a card; the card drops its padding on their edges. */
+export const Dialog: Story = {
+  render: () => (
+    <div
+      class:x-card
+      role="dialog"
+      aria-labelledby="dialog-title"
+      data-variant="elevated"
+      data-size="2"
+      style="inline-size: min(360px, 100%)"
+    >
+      <header class:x-toolbar data-inset="top" data-size="2">
+        <span data-title data-align="start" id="dialog-title">
+          Delete “Q3 report”?
+        </span>
+      </header>
+      <p style="margin: 0; color: var(--neutral-11)">
+        It moves to Trash for 30 days, then it's gone for good.
+      </p>
+      <footer
+        class:x-toolbar
+        data-inset="bottom"
+        data-position="bottom"
+        data-size="2"
+      >
+        <div style="justify-self: end">
+          <button class:unset class:x-button data-variant="soft" data-accent="neutral">
+            Cancel
+          </button>
+          <button class:unset class:x-button data-variant="solid" data-accent="crimson">
+            Delete
+          </button>
+        </div>
+      </footer>
+    </div>
+  ),
 };

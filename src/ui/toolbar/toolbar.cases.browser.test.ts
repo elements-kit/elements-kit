@@ -7,6 +7,7 @@ import "../styles/neutral/gray.css";
 import "../styles/palette/mint.css";
 import "../styles/accent/mint.css";
 import "../button/button.css";
+import "../card/card.css";
 import "../group/group.css";
 import "../segmented-control/segmented-control.css";
 import "../text-input/text-input.css";
@@ -336,6 +337,32 @@ const setScroll = async (el: HTMLElement, y: number) => {
   await new Promise((r) => requestAnimationFrame(r));
   return el.scrollTop;
 };
+
+describe("in a card (a dialog)", () => {
+  const dialog = () =>
+    mount(
+      `<div class="x-card" data-variant="elevated" data-size="2" style="inline-size: 360px">
+        <header class="x-toolbar" data-inset="top" data-size="2"><span data-title data-align="start">Delete file?</span></header>
+        <p style="margin: 0">This can't be undone.</p>
+        <footer class="x-toolbar" data-inset="bottom" data-position="bottom" data-size="2"><div><button>Cancel</button></div></footer>
+      </div>`,
+    );
+
+  it("data-inset: the bars sit on the card's edges; nothing overlaps the body", async () => {
+    const el = dialog();
+    await frame();
+    const card = box(q(el, ".x-card"));
+    const header = box(q(el, "header"));
+    const body = box(q(el, "p"));
+    const footer = box(q(el, "footer"));
+
+    near(header.top, card.top + 1, "header on the top edge, inside the ring", 0.5);
+    near(header.left, card.left + 1, "header full width", 0.5);
+    near(body.top, header.bottom, "body right under the header", 0.5);
+    near(footer.top, body.bottom, "footer right under the body", 0.5);
+    near(footer.bottom, card.bottom - 1, "footer on the bottom edge", 0.5);
+  });
+});
 
 describe("painting", () => {
   it.each(POSITIONS)("surface %s: material background, hairline on the content side", async (position) => {

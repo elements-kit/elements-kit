@@ -16,6 +16,7 @@
  *   data-position="bottom"                 last child of the scroll container
  *   data-reveal="always"                   background (and a bar title under a large title) shown
  *                                          from the start, no fade
+ *   data-inset="top | bottom" in .x-card   the card drops its padding on that edge (a dialog's bars)
  *   [data-title] data-align="start"        title at the start, filling the free space (first: at the
  *                                          bar's start; after a back button: next to it)
  *   data-variant="surface | clean | soft"  surface: material background + hairline (default)
@@ -363,6 +364,16 @@
 /* data-reveal="always": revealed from the start (the timelines skip it, below) */
 .x-toolbar[data-reveal="always"] {
   --x-toolbar-reveal: 1;
+}
+
+/* inset in a card (a dialog): the card is a scroller (overflow: hidden) and a sticky bar stops at
+   a scroller's padding, so the card drops its padding on the bar's edge; the bar pads itself */
+.x-card:has(> .x-toolbar[data-inset="top"]) {
+  --card-padding-block-start: 0px;
+}
+
+.x-card:has(> .x-toolbar[data-inset="bottom"]) {
+  --card-padding-block-end: 0px;
 }
 
 /* with a large title (before or after the bar): background and bar title follow the collapse */

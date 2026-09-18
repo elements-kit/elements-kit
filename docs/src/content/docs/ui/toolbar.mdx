@@ -49,6 +49,7 @@ The bar and the large title are direct children of the scroll container. Everyth
 | `data-variant` | `surface` *(default)*, `clean`, `soft` |
 | `data-size` | `1`, `2` *(default)*, `3`, `4` — the `data-size` of the controls it holds (see [Sizing](#sizing)) |
 | `data-reveal` | `always` — the background, and a bar title under a large title, show from the start instead of fading in |
+| `data-inset` *(in an `.x-card`)* | `top`, `bottom` — the bar sits on the card's edge and the card drops its padding there (see [In a dialog](#in-a-dialog)) |
 | `data-radius` *(on a parent or the bar)* | any [radius](/ui/styles#radius); buttons and capsules follow it |
 
 | Attribute *(on `.x-large-title`)* | Values |
@@ -117,6 +118,27 @@ In browsers without scroll-driven animations (Firefox), a page whose script neve
 Add `data-position="bottom"` and make the bar the last child of the scroll container. It always shows its background and keeps focused elements above it. With short content the container becomes a column, so the bar still sits at the bottom. For page scroll, give the bar's parent `min-block-size: 100dvh`.
 
 The bar's height is a minimum: taller content, such as a [stacked segmented control](/ui/segmented-control#icons) used as a tab bar, grows it. A stacked [button](/ui/button#icon-and-label) or [toggle](/ui/toggle#stacked) counts too. In clean and soft bars, controls sit 16px from the bottom edge, the same as from the sides.
+
+## In a dialog
+
+Put the bars directly in an [`x-card`](/ui/card) with `data-inset="top"` and `data-inset="bottom"`. They span the card's width, and the card drops its own padding on those edges. The card clips its content (`overflow: hidden`), which makes it a scroll container, and a sticky bar stops at its scroll container's padding. With the padding gone, each bar sits on the card's edge and pads itself, so no `--card-padding-*` overrides are needed.
+
+```html
+<div class="x-card" data-variant="elevated" data-size="2" role="dialog" aria-labelledby="t">
+  <header class="x-toolbar" data-inset="top">
+    <span data-title data-align="start" id="t">Delete “Q3 report”?</span>
+  </header>
+  <p>It moves to Trash for 30 days.</p>
+  <footer class="x-toolbar" data-inset="bottom" data-position="bottom">
+    <div style="justify-self: end">
+      <button class="unset x-button" data-variant="soft" data-accent="neutral">Cancel</button>
+      <button class="unset x-button" data-variant="solid" data-accent="crimson">Delete</button>
+    </div>
+  </footer>
+</div>
+```
+
+<StorybookEmbed story="ui-toolbar--dialog" />
 
 ## Grouped bars
 
