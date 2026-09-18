@@ -148,6 +148,52 @@ describe.runIf(native)("bar title", () => {
   });
 });
 
+// ── data-align="start": the title's column ──────────────────────────────────────────────────────
+
+describe('bar title data-align="start"', () => {
+  const edges = (el: HTMLElement) => {
+    const bar = box(q(el, "header"));
+    const pad = parseFloat(getComputedStyle(q(el, "header")).paddingLeft);
+    return { start: bar.left + pad, end: bar.right - pad, top: bar.top };
+  };
+
+  it("first, then a middle and an end: title | middle | end on one row", async () => {
+    const el = mount(
+      `<header class="x-toolbar" data-size="2"><span data-title data-align="start">Playground</span><select><option>Preset</option></select><div><button>Run</button></div></header>`,
+    );
+    await frame();
+    const { start, end } = edges(el);
+    const title = box(q(el, "[data-title]"));
+    const select = box(q(el, "select"));
+    const div = box(q(el, "header > div"));
+
+    near(title.left, start, "title at the start");
+    expect(select.left).toBeGreaterThan(title.right);
+    near(div.right, end, "end at the end");
+    near(select.top + select.height / 2, div.top + div.height / 2, "one row", 1);
+  });
+
+  it("first of two: title | end", async () => {
+    const el = mount(`<header class="x-toolbar" data-size="2"><span data-title data-align="start">Playground</span><div><button>Run</button></div></header>`);
+    await frame();
+    const { start, end } = edges(el);
+    near(box(q(el, "[data-title]")).left, start, "title at the start");
+    near(box(q(el, "header > div")).right, end, "end at the end");
+  });
+
+  it("after a back button: next to it, not centered", async () => {
+    const el = mount(
+      `<header class="x-toolbar" data-size="2"><div><button>Back</button></div><span data-title data-align="start">Playground</span><div><button>Run</button></div></header>`,
+    );
+    await frame();
+    const back = box(q(el, "header > div"));
+    const title = box(q(el, "[data-title]"));
+    const gap = parseFloat(getComputedStyle(q(el, "header")).columnGap);
+
+    near(title.left, back.right + gap, "title right after the back region");
+  });
+});
+
 // ── page scroll: bars on <html> ─────────────────────────────────────────────────────────────────
 
 describe.each(SIZES)("page scroll, data-size=%s", (size) => {

@@ -38,6 +38,12 @@
   padding: 0;
   border: 0;
 
+  /* taps pass through to the segment: WebKit skips touch-action on SVG, so a tap on the icon zooms */
+  /* stylelint-disable-next-line selector-max-type */
+  & :where(svg) {
+    pointer-events: none;
+  }
+
   color: var(--neutral-12);
   background-color: var(--color-surface);
   background-image: linear-gradient(var(--neutral-a3), var(--neutral-a3));

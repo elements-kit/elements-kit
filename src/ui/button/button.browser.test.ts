@@ -169,6 +169,15 @@ describe("x-button data-layout=stacked-icon", () => {
   });
 });
 
+describe("x-button taps", () => {
+  it("a tap on the icon lands on the button (WebKit skips touch-action on SVG)", () => {
+    const button = mount(`data-variant="soft" data-layout="stacked-icon"`, "Share");
+    const icon = box(button.querySelector("svg")!);
+
+    expect(document.elementFromPoint(middle(icon.left, icon.right), middle(icon.top, icon.bottom))).toBe(button);
+  });
+});
+
 describe("x-button data-back", () => {
   it.each(["1", "2", "3", "4"])("size %s: the chevron is one text line tall, right against the label", (size) => {
     const { icon, label, style } = parts(mount(`data-variant="text" data-size="${size}" data-back`, "Mailboxes", BACK));

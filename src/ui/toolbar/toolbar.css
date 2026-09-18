@@ -16,7 +16,8 @@
  *   data-position="bottom"                 last child of the scroll container
  *   data-reveal="always"                   background (and a bar title under a large title) shown
  *                                          from the start, no fade
- *   [data-title] data-align="start"        title at the start of its column, not centered
+ *   [data-title] data-align="start"        title at the start, filling the free space (first: at the
+ *                                          bar's start; after a back button: next to it)
  *   data-variant="surface | clean | soft"  surface: material background + hairline (default)
  *                                          clean: no bar; float controls in
  *                                          <div class="x-group" data-variant="material">
@@ -432,9 +433,35 @@
   justify-self: center;
 }
 
-/* data-align="start": the title at the start of its column (alone, the bar's start edge) */
+/* data-align="start": the title at the start, its column takes the free space */
 :where(.x-toolbar > [data-title][data-align="start"]) {
   justify-self: start;
+}
+
+/* first: title | middle | end */
+.x-toolbar:has(> [data-title][data-align="start"]:first-child:not(:only-child)) {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+:where(.x-toolbar > [data-title][data-align="start"]:first-child) {
+  grid-column: 1;
+}
+
+/* first of two: title | end */
+.x-toolbar:has(> [data-title][data-align="start"]:first-child:nth-last-child(2)) {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+:where(
+  .x-toolbar:has(> [data-title][data-align="start"]:first-child:nth-last-child(2))
+    > :last-child
+) {
+  grid-column: 2;
+}
+
+/* after a start item (back): start | title | end */
+.x-toolbar:has(> [data-title][data-align="start"]:not(:first-child)) {
+  grid-template-columns: auto minmax(0, 1fr) auto;
 }
 
 /* a region holding the title may shrink (the title truncates); button regions keep their size */

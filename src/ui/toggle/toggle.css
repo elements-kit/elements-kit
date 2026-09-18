@@ -55,6 +55,12 @@
   pointer-events: none;
 }
 
+/* taps pass through to the label: WebKit skips touch-action on SVG, so a tap on the icon zooms */
+/* stylelint-disable-next-line selector-max-type */
+.x-toggle :where(svg) {
+  pointer-events: none;
+}
+
 /* Focus indication on the label when its input gets keyboard focus (not on click). */
 .x-toggle:where(:has(input:focus-visible)) {
   outline: 2px solid var(--focus-8);

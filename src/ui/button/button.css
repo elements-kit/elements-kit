@@ -23,6 +23,12 @@
   &:where([data-loading]) {
     position: relative;
   }
+
+  /* taps pass through to the button: WebKit skips touch-action on SVG, so a tap on the icon zooms */
+  /* stylelint-disable-next-line selector-max-type */
+  & :where(svg) {
+    pointer-events: none;
+  }
 }
 
 /***************************************************************************************************

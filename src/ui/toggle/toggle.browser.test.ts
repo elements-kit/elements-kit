@@ -136,6 +136,15 @@ describe("x-toggle variants", () => {
   });
 });
 
+describe("x-toggle taps", () => {
+  it("a tap on the icon lands on the label (WebKit skips touch-action on SVG)", () => {
+    const t = toggle(`data-variant="borderless" data-layout="stacked-icon"`);
+    const icon = box(t.querySelector("svg")!);
+
+    expect(document.elementFromPoint((icon.left + icon.right) / 2, (icon.top + icon.bottom) / 2)).toBe(t);
+  });
+});
+
 describe("x-toggle focus", () => {
   it("shows the ring for keyboard focus, not for a click", async () => {
     const t = toggle(`data-variant="soft"`);
