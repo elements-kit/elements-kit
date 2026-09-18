@@ -364,6 +364,68 @@ describe("in a card (a dialog)", () => {
   });
 });
 
+describe.runIf(native)("a long dialog: a data-inset=fill scroller inside the card", () => {
+  it("the bars pin to the scroller; the header's background fades in as the body scrolls", async () => {
+    const el = mount(
+      `<div class="x-card" data-variant="elevated" data-size="2" style="inline-size: 360px">
+        <div data-inset="fill" style="max-block-size: 300px; overflow: auto">
+          <header class="x-toolbar" data-size="2"><span data-title>Terms</span></header>
+          ${rows(20)}
+          <footer class="x-toolbar" data-position="bottom" data-size="2"><div><button>Accept</button></div></footer>
+        </div>
+      </div>`,
+    );
+    const scroller = q(el, ".x-card > div");
+    const header = q(el, "header");
+    await frame();
+    const card = box(q(el, ".x-card"));
+    near(box(scroller).top, card.top + 1, "fill: the scroller reaches the ring", 0.5);
+    near(box(scroller).left, card.left + 1, "fill: every side", 0.5);
+    near(box(scroller).right, card.right - 1, "fill: every side", 0.5);
+    expect(getComputedStyle(header, "::before").opacity).toBe("0");
+    near(box(q(el, "footer")).bottom, box(scroller).bottom, "footer pinned at the bottom", 0.5);
+
+    scroller.scrollTop = 200;
+    await frame();
+    expect(getComputedStyle(header, "::before").opacity).toBe("1");
+    near(box(header).top, box(scroller).top, "header pinned at the top", 0.5);
+    near(box(q(el, "footer")).bottom, box(scroller).bottom, "footer still pinned", 0.5);
+  });
+
+  it("the footer shows its background while content is below it, and clears at the end", async () => {
+    const el = mount(
+      `<div class="x-card" data-variant="elevated" data-size="2" style="inline-size: 360px">
+        <div data-inset="fill" style="max-block-size: 300px; overflow: auto">
+          <header class="x-toolbar" data-size="2"><span data-title>Terms</span></header>
+          ${rows(20)}
+          <footer class="x-toolbar" data-position="bottom" data-size="2"><div><button>Accept</button></div></footer>
+        </div>
+      </div>`,
+    );
+    const scroller = q(el, "[data-inset='fill']");
+    const footer = q(el, "footer");
+    await frame();
+    expect(getComputedStyle(footer, "::before").opacity).toBe("1");
+
+    scroller.scrollTop = scroller.scrollHeight;
+    await frame();
+    expect(getComputedStyle(footer, "::before").opacity).toBe("0");
+  });
+
+  it("the footer is clear when nothing scrolls", async () => {
+    const el = mount(
+      `<div class="x-card" data-variant="elevated" data-size="2" style="inline-size: 360px">
+        <div data-inset="fill" style="max-block-size: 300px; overflow: auto">
+          <p style="margin: 0">Short.</p>
+          <footer class="x-toolbar" data-position="bottom" data-size="2"><div><button>OK</button></div></footer>
+        </div>
+      </div>`,
+    );
+    await frame();
+    expect(getComputedStyle(q(el, "footer"), "::before").opacity).toBe("0");
+  });
+});
+
 describe("painting", () => {
   it.each(POSITIONS)("surface %s: material background, hairline on the content side", async (position) => {
     const tag = position === "top" ? "header" : "footer";

@@ -115,7 +115,7 @@ In browsers without scroll-driven animations (Firefox), a page whose script neve
 
 ## Bottom bar
 
-Add `data-position="bottom"` and make the bar the last child of the scroll container. It always shows its background and keeps focused elements above it. With short content the container becomes a column, so the bar still sits at the bottom. For page scroll, give the bar's parent `min-block-size: 100dvh`.
+Add `data-position="bottom"` and make the bar the last child of the scroll container. It shows its background and hairline while content is below it, and clears over the last few pixels of scroll. When nothing scrolls, it stays clear. Browsers without scroll-driven animations always show the background; `data-reveal="always"` does that everywhere. It keeps focused elements above it. With short content the container becomes a column, so the bar still sits at the bottom. For page scroll, give the bar's parent `min-block-size: 100dvh`.
 
 The bar's height is a minimum: taller content, such as a [stacked segmented control](/ui/segmented-control#icons) used as a tab bar, grows it. A stacked [button](/ui/button#icon-and-label) or [toggle](/ui/toggle#stacked) counts too. In clean and soft bars, controls sit 16px from the bottom edge, the same as from the sides.
 
@@ -139,6 +139,24 @@ Put the bars directly in an [`x-card`](/ui/card) with `data-inset="top"` and `da
 ```
 
 <StorybookEmbed story="ui-toolbar--dialog" />
+
+### A long dialog
+
+A card can't scroll itself: it paints its surface with pseudo-elements, and those would scroll away with the content. Put a scroller inside the card with [`data-inset="fill"`](/ui/card#inset), which bleeds to the card's ring on every side, and put the bars and the body in it. The bars pin to the scroller, and the header's background fades in once the body scrolls under it, as on a page. The body pads its sides with `var(--card-padding)`, so it follows the card's `data-size`.
+
+```html
+<div class="x-card" data-variant="elevated" data-size="2" role="dialog" aria-labelledby="t">
+  <div data-inset="fill" style="max-block-size: 360px; overflow: auto">
+    <header class="x-toolbar"><span data-title data-align="start" id="t">Terms of service</span></header>
+    <div style="padding-inline: var(--card-padding)">…</div>
+    <footer class="x-toolbar" data-position="bottom">
+      <div style="justify-self: end"><button class="unset x-button" data-variant="solid">Accept</button></div>
+    </footer>
+  </div>
+</div>
+```
+
+<StorybookEmbed story="ui-toolbar--dialog-scroll" />
 
 ## Grouped bars
 

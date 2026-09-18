@@ -376,3 +376,13 @@
   border-end-start-radius: 0;
   border-end-end-radius: var(--inset-radius);
 }
+
+/* fill: bleeds on every side, e.g. a scroller holding a dialog's bars and body (the card itself
+   can't scroll: its surface is painted on pseudo-elements, which would scroll away) */
+.x-card > [data-inset="fill"] {
+  margin-block: calc(var(--card-border-width) - var(--card-padding-block-start, var(--card-padding)))
+    calc(var(--card-border-width) - var(--card-padding-block-end, var(--card-padding)));
+  margin-inline: calc(var(--card-border-width) - var(--card-padding-inline-start, var(--card-padding)))
+    calc(var(--card-border-width) - var(--card-padding-inline-end, var(--card-padding)));
+  border-radius: var(--inset-radius);
+}

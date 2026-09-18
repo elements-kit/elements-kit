@@ -189,7 +189,7 @@
 
   background-color: var(--seg-indicator-bg);
   border-radius: var(--seg-indicator-radius);
-  /* A flat 1px ring, no drop shadow — matches Radix Themes' surface variant.
+  /* A flat 1px ring, no drop shadow.
    * A y-offset shadow puts ring + shadow on the bottom edge and ring alone on
    * the top; a 0.5px spread lands on a half-pixel and rounds unevenly between
    * the two. Either one reads as a thicker bottom border. */

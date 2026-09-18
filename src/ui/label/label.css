@@ -1,6 +1,6 @@
 /***************************************************************************************************
  *                                                                                                 *
- * x-label — a label, styled like Radix Themes' forms                                              *
+ * x-label — a label for a control, an option or a group                                          *
  *                                                                                                 *
  *   <label class="x-label" for="email">Email</label>          above a control: medium, 4px below  *
  *   <label class="x-label">                                   around a checkbox, radio or switch: *

@@ -5,7 +5,7 @@ description: A label for a control, a checkbox or a group of menu items.
 
 import StorybookEmbed from "@/components/StorybookEmbed.astro";
 
-A label styled like Radix Themes' forms: medium-weight `--neutral-12` above a text input, regular text beside a checkbox, radio or switch, or a group heading in a [menu](/ui/menu).
+A label: medium-weight `--neutral-12` above a text input, regular text beside a checkbox, radio or switch, or a group heading in a [menu](/ui/menu).
 
 <StorybookEmbed story="ui-label--above-input" />
 
@@ -47,7 +47,7 @@ Match the label's `data-size` to the control's. A `field` label keeps `--space-2
 
 ## Checkbox, radio and switch
 
-Wrapped around a checkbox, radio or switch, the label becomes the option text, as in Radix's checkbox group: regular weight, a `0.5em` gap, and only as wide as its content, so the empty space beside it isn't clickable. The control is centered on the first line's capitals, however many lines the text wraps to. Stack options 4px apart.
+Wrapped around a checkbox, radio or switch, the label becomes the option text: regular weight, a `0.5em` gap, and only as wide as its content, so the empty space beside it isn't clickable. The control is centered on the first line's capitals, however many lines the text wraps to. Stack options 4px apart.
 
 ```html
 <div role="group" aria-label="Notifications" style="display: flex; flex-direction: column; gap: 4px">
@@ -66,7 +66,7 @@ A label that contains a disabled control dims to `--neutral-a8`. For a label lin
 
 ## In a menu
 
-In an [`x-menu`](/ui/menu), use `data-variant="group"` to head a group of items. The menu adds the item's height and side padding, as in Radix Themes.
+In an [`x-menu`](/ui/menu), use `data-variant="group"` to head a group of items. The menu adds the item's height and side padding.
 
 ```html
 <div class="x-label" data-variant="group">Message</div>

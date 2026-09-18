@@ -98,6 +98,34 @@ describe("x-toolbar --scroll-y", () => {
   });
 });
 
+describe("x-toolbar --scroll-y-end (bottom bar)", () => {
+  const end = (px: number, bar: HTMLElement) => bar.style.setProperty("--scroll-y-end", `${px}px`);
+
+  it("without a script: shown where there are no scroll timelines, else resting clear", async () => {
+    const el = mount(`${rows()}<footer class="x-toolbar" data-position="bottom"><div><button>OK</button></div></footer>`);
+    await frame();
+    // with timelines, --scroll-y-end rests at 0 until the timeline runs (off here)
+    expect(opacity(q(el, "footer"), "::before")).toBe(CSS.supports("animation-timeline: view()") ? 0 : 1);
+  });
+
+  it("a script's --scroll-y-end fades it over the last 8px, clear at the end", async () => {
+    const el = mount(`${rows()}<footer class="x-toolbar" data-position="bottom"><div><button>OK</button></div></footer>`);
+    const bar = q(el, "footer");
+    for (const [px, expected] of [[200, 1], [8, 1], [6, 0.375], [4, 0], [0, 0]] as const) {
+      end(px, bar);
+      await frame();
+      expect(opacity(bar, "::before"), `${px}px left`).toBeCloseTo(expected, 2);
+    }
+  });
+
+  it('data-reveal="always" keeps it shown at the end', async () => {
+    const el = mount(`${rows()}<footer class="x-toolbar" data-position="bottom" data-reveal="always"><div><button>OK</button></div></footer>`);
+    end(0, q(el, "footer"));
+    await frame();
+    expect(opacity(q(el, "footer"), "::before")).toBe(1);
+  });
+});
+
 describe("x-toolbar data-reveal", () => {
   it('"always": the background and a bar title under a large title show at the top, and stay', async () => {
     const el = mount(`<header class="x-toolbar" data-reveal="always"><div></div><span data-title>Inbox</span><div></div></header><h1 class="x-large-title">Inbox</h1>${rows()}`);

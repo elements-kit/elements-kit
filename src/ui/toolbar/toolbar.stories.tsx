@@ -28,7 +28,7 @@ interface Args {
  * Writes raw scroll (px) as --scroll-y on the bars and the large title under `host`; toolbar.css turns it
  * into progress. Only they read it: set on `host` (e.g. <html>) it would restyle the whole page every frame.
  */
-function driveScroll(host: HTMLElement, y: () => number) {
+function driveScroll(host: HTMLElement, y: () => number, end: () => number) {
   const targets = [
     ...host.querySelectorAll<HTMLElement>(
       ".x-toolbar:not(.x-toolbar .x-toolbar), .x-large-title",
@@ -38,6 +38,11 @@ function driveScroll(host: HTMLElement, y: () => number) {
     '.x-toolbar:not([data-position="bottom"]) [data-title]',
   );
   const hasLargeTitle = host.querySelector(".x-large-title") !== null;
+  const bottom = [
+    ...host.querySelectorAll<HTMLElement>(
+      '.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar)',
+    ),
+  ];
 
   effect(() => {
     const value = `${y()}px`;
@@ -45,10 +50,19 @@ function driveScroll(host: HTMLElement, y: () => number) {
     // expanded: large title is the heading, bar title stays silent
     barTitle?.toggleAttribute("aria-hidden", hasLargeTitle && y() <= 0);
   });
+  effect(() => {
+    const value = `${end()}px`;
+    for (const bar of bottom) bar.style.setProperty("--scroll-y-end", value);
+  });
   onCleanup(() => {
     for (const target of targets) target.style.removeProperty("--scroll-y");
+    for (const bar of bottom) bar.style.removeProperty("--scroll-y-end");
   });
 }
+
+/** the distance left to scroll the page */
+const pageEnd = () =>
+  document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
 
 // ── Building blocks ──────────────────────────────────────────────────────────
 
@@ -313,7 +327,8 @@ function Screen(props: { variant?: Variant; children?: Children }) {
           if (CSS.supports("animation-timeline: view()")) return;
           stop = effectScope(() => {
             const [y] = sync(fromEvent(window, "scroll"), () => window.scrollY);
-            driveScroll(document.documentElement, y);
+            const [end] = sync(fromEvent(window, "scroll"), pageEnd);
+            driveScroll(document.documentElement, y, end);
           });
         }}
         onDisconnect={() => stop?.()}
@@ -778,7 +793,11 @@ export const Editor: Story = {
             ))}
           </Group>
           <Group variant={args.variant}>
-            <IconButton variant={args.variant} label="Share" name={ICONS.share} />
+            <IconButton
+              variant={args.variant}
+              label="Share"
+              name={ICONS.share}
+            />
             <IconButton variant={args.variant} label="More" name={ICONS.more} />
           </Group>
         </header>
@@ -819,7 +838,8 @@ export const PageScroll: Story = {
                 fromEvent(window, "scroll"),
                 () => window.scrollY,
               );
-              driveScroll(document.documentElement, y);
+              const [end] = sync(fromEvent(window, "scroll"), pageEnd);
+              driveScroll(document.documentElement, y, end);
             });
           }}
           onDisconnect={() => stop?.()}
@@ -855,14 +875,87 @@ export const Dialog: Story = {
         data-size="2"
       >
         <div style="justify-self: end">
-          <button class:unset class:x-button data-variant="soft" data-accent="neutral">
+          <button
+            class:unset
+            class:x-button
+            data-variant="soft"
+            data-accent="neutral"
+          >
             Cancel
           </button>
-          <button class:unset class:x-button data-variant="solid" data-accent="crimson">
+          <button
+            class:unset
+            class:x-button
+            data-variant="solid"
+            data-accent="crimson"
+          >
             Delete
           </button>
         </div>
       </footer>
+    </div>
+  ),
+};
+
+/** A long dialog: the card can't scroll itself, so a data-inset="fill" scroller holds the bars and
+ *  the body. The header's background fades in once the body scrolls under it. */
+export const DialogScroll: Story = {
+  render: () => (
+    <div
+      class:x-card
+      role="dialog"
+      aria-labelledby="terms-title"
+      data-variant="elevated"
+      data-size="2"
+      style="inline-size: min(360px, 100%)"
+    >
+      {/* scroll timelines drive the reveal in CSS; without them (Firefox), --scroll-y and --scroll-y-end from the scroller */}
+      <dom-lifecycle
+        onConnect={(el: HTMLElement) => {
+          if (CSS.supports("animation-timeline: view()")) return;
+          const scroller = el.nextElementSibling as HTMLElement;
+          const [y] = sync(fromEvent(scroller, "scroll"), () => scroller.scrollTop);
+          const [end] = sync(
+            fromEvent(scroller, "scroll"),
+            () => scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop,
+          );
+          driveScroll(scroller, y, end);
+        }}
+      />
+      <div
+        data-inset="fill"
+        style="max-block-size: 360px; overflow: auto; overscroll-behavior: contain"
+      >
+        <header class:x-toolbar data-size="2">
+          <span data-title data-align="start" id="terms-title">
+            Terms of service
+          </span>
+        </header>
+        <div style="padding-inline: var(--card-padding); color: var(--neutral-11)">
+          {Array.from({ length: 8 }, (_, i) => (
+            <p style="margin: 0 0 12px">
+              {i + 1}. You keep the rights to everything you upload. We store it
+              only to run the service, and delete it when you delete your
+              account.
+            </p>
+          ))}
+        </div>
+        <footer class:x-toolbar data-position="bottom" data-size="2">
+          <div style="justify-self: end">
+            <button
+              class:unset
+              class:x-button
+              data-variant="soft"
+              data-accent="neutral"
+            >
+              Decline
+            </button>
+            <button class:unset class:x-button data-variant="solid">
+              Accept
+            </button>
+          </div>
+        </footer>
+      </div>
     </div>
   ),
 };

@@ -13,7 +13,7 @@ import "../label/label.css";
 import "../separator/separator.css";
 import "./menu.css";
 
-// Real browsers: menu geometry and highlight are computed styles (Radix Themes' base menu).
+// Real browsers: menu geometry and highlight are computed styles.
 
 document.documentElement.dataset.neutral = "gray";
 document.documentElement.dataset.accent = "mint";

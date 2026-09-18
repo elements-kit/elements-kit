@@ -1,6 +1,6 @@
 /***************************************************************************************************
  *                                                                                                 *
- * x-menu — a menu's content: items, labels and separators. CSS-only; Radix Themes' base menu.     *
+ * x-menu — a menu's content: items, labels and separators. CSS-only.                              *
  *                                                                                                 *
  *   <div class="x-card x-menu" data-variant="elevated" data-size="2" role="menu">                 *
  *     <div class="x-label" data-variant="group">Actions</div>                                     *
@@ -14,7 +14,7 @@
  * Parts:                                                                                          *
  *   .x-menu-item       a row; <button>, <a> or <label>                                            *
  *   .x-menu-trailing   at the item's end: a shortcut, a chevron, a check, a count                 *
- *   .x-label           data-variant="group": a group heading (label/label.css), like Radix       *
+ *   .x-label           data-variant="group": a group heading (label/label.css)                   *
  *   .x-separator       between groups (separator/separator.css)                                   *
  *                                                                                                 *
  * Attributes:                                                                                     *

@@ -3,7 +3,8 @@
  *
  * Where view timelines are supported (Chrome 115+, Safari 26), the large title's own timeline drives
  * the collapse (COLLAPSE below), no JS. Elsewhere JS writes the scroll position (px) as --scroll-y on
- * the bars and the large title, and they compute their own progress from it.
+ * the bars and the large title, and the distance left to scroll as --scroll-y-end on a bottom bar;
+ * they compute their own progress from it.
  *
  *   <header class="x-toolbar">…regions…</header>   bar (optional)
  *   <h1 class="x-large-title">Settings</h1>        large title (optional), one line
@@ -13,7 +14,8 @@
  * Regions follow child order: start, center, end. A bare [data-title] is the center, a lone
  * child centers, a region holding an input fills its column.
  *
- *   data-position="bottom"                 last child of the scroll container
+ *   data-position="bottom"                 last child of the scroll container; background while
+ *                                          content is below it, clear at the end
  *   data-reveal="always"                   background (and a bar title under a large title) shown
  *                                          from the start, no fade
  *   data-inset="top | bottom" in .x-card   the card drops its padding on that edge (a dialog's bars)
@@ -506,11 +508,21 @@
   padding-block: var(--x-bottom-start)
     calc(var(--x-bottom-end) + var(--x-safe-bottom));
 
-  /* always shown, hairline on the top edge */
+  /* hairline on the top edge */
   &::before {
-    opacity: 1;
+    opacity: var(--x-toolbar-reveal);
     box-shadow: inset 0 1px 0 var(--neutral-a5);
   }
+}
+
+/* shown while content is below it: --scroll-y-end is the distance left to scroll (a timeline, or a
+   script without one); unset, always shown */
+.x-toolbar[data-position="bottom"]:not([data-reveal="always"]) {
+  --x-toolbar-reveal: clamp(
+    0,
+    (tan(atan2(var(--scroll-y-end, 100vh), var(--x-toolbar-distance))) - 0.6) / 0.4,
+    1
+  );
 }
 
 /***************************************************************************************************
@@ -770,6 +782,16 @@
     animation-timeline: scroll(nearest block);
     animation-range: calc(0.6 * var(--x-toolbar-distance))
       var(--x-toolbar-distance);
+  }
+
+  /* bottom bar: clear at the end of the scroll; nothing scrolls, the timeline is inactive and the
+     resting --scroll-y-end: 0 keeps it clear */
+  .x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar, [data-reveal="always"]) {
+    --scroll-y-end: 0px;
+    animation: x-toolbar-reveal linear both reverse;
+    animation-timeline: scroll(nearest block);
+    animation-range: calc(100% - var(--x-toolbar-distance))
+      calc(100% - 0.4 * var(--x-toolbar-distance));
   }
 }
 
