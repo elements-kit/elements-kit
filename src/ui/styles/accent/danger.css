@@ -1,4 +1,4 @@
-[data-accent="error"] {
+[data-accent="danger"] {
   --accent-1: var(--red-1);
   --accent-2: var(--red-2);
   --accent-3: var(--red-3);
