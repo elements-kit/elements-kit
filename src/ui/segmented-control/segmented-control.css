@@ -215,6 +215,12 @@
     display: none;
   }
 
+  /* The name is global: without a scope, another control's active label (a
+   * tab bar, say, when this one is in a top-layer dialog) can win the lookup. */
+  .x-segmented-control {
+    anchor-scope: --x-seg-active;
+  }
+
   .x-segmented-control > label:where(:has(:checked)) {
     anchor-name: --x-seg-active;
   }
