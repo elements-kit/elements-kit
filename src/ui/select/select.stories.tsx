@@ -83,6 +83,40 @@ export const Truncation: Story = {
     ),
 };
 
+// The chevron and its reserved space follow the inline end.
+export const RTL: Story = {
+  render: (args) =>
+    (
+      <div
+        dir="rtl"
+        style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px"
+      >
+        {VARIANTS.map((variant) => (
+          <select
+            class:unset
+            class:x-select
+            data-variant={variant}
+            data-size={args.size}
+            disabled={args.disabled}
+          >
+            <option>تفاح</option>
+            <option>برتقال</option>
+            <option>إجاص</option>
+          </select>
+        ))}
+        <select
+          class:unset
+          class:x-select
+          data-variant={args.variant}
+          data-size={args.size}
+          style="width: 16ch"
+        >
+          <option>خيار طويل جدًا يتجاوز عرض القائمة</option>
+        </select>
+      </div>
+    ),
+};
+
 export const Disabled: Story = {
   args: { disabled: true },
   render: (args) =>

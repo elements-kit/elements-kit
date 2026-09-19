@@ -46,6 +46,11 @@
   background-repeat: no-repeat;
   background-position: right var(--select-chevron-inset) center;
   background-size: var(--select-chevron-size) var(--select-chevron-size);
+
+  /* chevron at the inline end */
+  &:dir(rtl) {
+    background-position: left var(--select-chevron-inset) center;
+  }
 }
 
 /* Ancestor form covers the usual `<html class="dark">`; self form covers a
