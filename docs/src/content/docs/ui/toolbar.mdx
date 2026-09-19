@@ -54,6 +54,7 @@ The bar and the large title are direct children of the scroll container. Everyth
 
 | Attribute *(on `.x-large-title`)* | Values |
 | --- | --- |
+| `data-size` | `1`, `2`, `3` *(default)* |
 | `data-align` | `start` *(default)*, `center` |
 
 | Attribute *(on the bar's `[data-title]`)* | Values |
@@ -229,10 +230,13 @@ A bar is as tall as its controls plus fixed insets. Set the bar's `data-size` to
 | bottom, size `2` | 56px | 60px |
 | bottom, size `3` | 64px | 68px |
 | two rows, top, size `3` | 116px | 136px |
-| large title | 64px — one 40px line, 16px above, 8px below | same |
+| large title, size `1` | 54px — one 30px line (`--font-size-6`, 24px), 16px above, 8px below | same |
+| large title, size `2` | 60px — one 36px line (`--font-size-7`, 28px) | same |
+| large title, size `3` *(default)* | 64px — one 40px line (`--font-size-8`, 35px) | same |
 
 - **`surface`** — 12px above and below the controls.
 - **`clean`, `soft`** — controls sit in 4px capsules; 16px above and 8px below at the top, 4px above and 16px below at the bottom.
+- **Large title** — `data-size` changes the type only; the padding stays. The bar beside it collapses over the title's own height, so a smaller title collapses sooner.
 
 Bars add `safe-area-inset-top` or `safe-area-inset-bottom`. Every size scales with `--scaling`. The scroll container's padding matches the bars, so focused elements and anchors stop below them.
 

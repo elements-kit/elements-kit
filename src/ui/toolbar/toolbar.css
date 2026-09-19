@@ -7,7 +7,8 @@
  * they compute their own progress from it.
  *
  *   <header class="x-toolbar">…regions…</header>   bar (optional)
- *   <h1 class="x-large-title">Settings</h1>        large title (optional), one line
+ *   <h1 class="x-large-title">Settings</h1>        large title (optional), one line;
+ *                                                  data-size="1 | 2 | 3" 24 / 28 / 35px (default 3)
  *   <div>…content…</div>                           everything after the title, in one element
  *
  * The bar may come after the title instead (search): the title scrolls away, the bar pins.
@@ -305,10 +306,25 @@
 
 .x-toolbar,
 .x-large-title {
-  /* one line + padding: known without measuring */
+  /* the title's line (data-size, below); one line + padding: known without measuring */
+  --x-large-title-line: var(--heading-line-height-8);
   --x-large-title-height: calc(
-    var(--heading-line-height-8) + var(--space-4) + var(--space-2)
+    var(--x-large-title-line) + var(--space-4) + var(--space-2)
   );
+}
+
+/* large title data-size: 1 · 2 · 3 (default); the bar beside it reads the same line for its
+   collapse distance */
+.x-large-title[data-size="1"],
+.x-toolbar:has(+ .x-large-title[data-size="1"]),
+.x-large-title[data-size="1"] + .x-toolbar {
+  --x-large-title-line: var(--heading-line-height-6);
+}
+
+.x-large-title[data-size="2"],
+.x-toolbar:has(+ .x-large-title[data-size="2"]),
+.x-large-title[data-size="2"] + .x-toolbar {
+  --x-large-title-line: var(--heading-line-height-7);
 }
 
 .x-toolbar {
@@ -631,7 +647,7 @@
 
   font-family: var(--default-font-family);
   font-size: var(--font-size-8);
-  line-height: var(--heading-line-height-8);
+  line-height: var(--x-large-title-line);
   font-weight: var(--font-weight-bold);
   letter-spacing: var(--letter-spacing-8);
 
@@ -658,7 +674,7 @@
 
 .x-large-title:has(+ .x-toolbar),
 .x-large-title + .x-toolbar {
-  --x-large-title-height: calc(var(--heading-line-height-8) + var(--space-4));
+  --x-large-title-height: calc(var(--x-large-title-line) + var(--space-4));
 }
 
 /* a bar right before the title is its space above (the title sits right under the bar) */
@@ -668,7 +684,7 @@
 
 .x-toolbar:has(+ .x-large-title),
 .x-toolbar + .x-large-title {
-  --x-large-title-height: calc(var(--heading-line-height-8) + var(--space-2));
+  --x-large-title-height: calc(var(--x-large-title-line) + var(--space-2));
 }
 
 /* a bar after the title isn't at the screen edge until it pins: no inset in its height; it pins
@@ -681,6 +697,16 @@
   &::before {
     inset-block-start: calc(-1 * var(--x-safe-top));
   }
+}
+
+.x-large-title[data-size="1"] {
+  font-size: var(--font-size-6);
+  letter-spacing: var(--letter-spacing-6);
+}
+
+.x-large-title[data-size="2"] {
+  font-size: var(--font-size-7);
+  letter-spacing: var(--letter-spacing-7);
 }
 
 .x-large-title[data-align="center"] {
@@ -705,7 +731,7 @@
 
   /* centered: mirror the accessory's room, so the title centers on the row */
   &[data-align="center"] > [data-title] {
-    padding-inline-start: calc(var(--heading-line-height-8) + var(--space-3));
+    padding-inline-start: calc(var(--x-large-title-line) + var(--space-3));
   }
 }
 

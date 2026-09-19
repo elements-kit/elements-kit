@@ -426,6 +426,29 @@ describe.runIf(native)("a long dialog: a data-inset=fill scroller inside the car
   });
 });
 
+describe("large title data-size", () => {
+  it.each([
+    ["1", "24px", "30px"],
+    ["2", "28px", "36px"],
+    ["3", "35px", "40px"],
+    ["", "35px", "40px"],
+  ])("data-size=%s: %s on a %s line", (size, font, line) => {
+    const el = mount(`<h1 class="x-large-title" ${size ? `data-size="${size}"` : ""}>Inbox</h1>${rows()}`);
+    const title = getComputedStyle(q(el, ".x-large-title"));
+    expect(title.fontSize).toBe(font);
+    expect(title.lineHeight).toBe(line);
+  });
+
+  it("the bar beside it collapses over the title's own height", () => {
+    const el = mount(`<header class="x-toolbar"><span data-title>Inbox</span></header><h1 class="x-large-title" data-size="1">Inbox</h1>${rows()}`);
+    const bar = getComputedStyle(q(el, "header"));
+    const title = getComputedStyle(q(el, ".x-large-title"));
+    // a bar before the title: its 30px line + the 8px below it
+    expect(box(q(el, ".x-large-title")).height).toBe(30 + 8);
+    expect(title.getPropertyValue("--x-large-title-line").trim()).toBe(bar.getPropertyValue("--x-large-title-line").trim());
+  });
+});
+
 describe("painting", () => {
   it.each(POSITIONS)("surface %s: material background, hairline on the content side", async (position) => {
     const tag = position === "top" ? "header" : "footer";

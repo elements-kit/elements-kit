@@ -22,6 +22,8 @@ interface Args {
   variant: Variant;
   /** theme radius (Theme controls): pill by default */
   radius?: "none" | "small" | "medium" | "large" | "pill";
+  /** data-size of the large title */
+  titleSize?: "1" | "2" | "3";
 }
 
 /**
@@ -419,8 +421,13 @@ const meta = {
       description:
         "surface: material bar + hairline · clean: no bar, material controls · soft: clean + gradient blur edge",
     },
+    titleSize: {
+      control: "inline-radio",
+      options: ["1", "2", "3"],
+      description: "large title data-size: 24 · 28 · 35px",
+    },
   },
-  args: { variant: "surface", radius: "pill" },
+  args: { variant: "surface", radius: "pill", titleSize: "3" },
   // edge to edge, so a story opened on a phone is the screen
   parameters: { layout: "fullscreen" },
 } satisfies Meta<Args>;
@@ -434,7 +441,9 @@ type Story = StoryObj<Args>;
 export const Settings: Story = {
   render: (args) => (
     <Screen variant={args.variant}>
-      <h1 class:x-large-title>Settings</h1>
+      <h1 class:x-large-title data-size={args.titleSize}>
+        Settings
+      </h1>
       <header
         class:x-toolbar
         data-variant={args.variant}
@@ -466,7 +475,9 @@ export const Inbox: Story = {
           <TextButton variant={args.variant} label="Edit" />
         </Group>
       </header>
-      <h1 class:x-large-title>Inbox</h1>
+      <h1 class:x-large-title data-size={args.titleSize}>
+        Inbox
+      </h1>
       <div>
         <Controls>
           <Segmented
@@ -521,7 +532,9 @@ export const Notes: Story = {
           <IconButton variant={args.variant} label="More" name={ICONS.more} />
         </Group>
       </header>
-      <h1 class:x-large-title>Notes</h1>
+      <h1 class:x-large-title data-size={args.titleSize}>
+        Notes
+      </h1>
       <div>
         <Rows items={NOTES} />
       </div>
@@ -592,7 +605,9 @@ export const TabBar: Story = {
       >
         <Title text="Library" />
       </header>
-      <h1 class:x-large-title>Library</h1>
+      <h1 class:x-large-title data-size={args.titleSize}>
+        Library
+      </h1>
       <div>
         <Rows items={NOTES} />
       </div>
@@ -623,7 +638,9 @@ export const Mail: Story = {
           <TextButton variant={args.variant} label="Edit" />
         </Group>
       </header>
-      <h1 class:x-large-title>Mail</h1>
+      <h1 class:x-large-title data-size={args.titleSize}>
+        Mail
+      </h1>
       <div>
         <Rows items={MAIL} />
       </div>
@@ -817,7 +834,9 @@ export const PageScroll: Story = {
     return (
       <main>
         <section>
-          <h1 class:x-large-title>Settings</h1>
+          <h1 class:x-large-title data-size={args.titleSize}>
+            Settings
+          </h1>
           <header
             class:x-toolbar
             data-variant={args.variant}
@@ -914,10 +933,16 @@ export const DialogScroll: Story = {
         onConnect={(el: HTMLElement) => {
           if (CSS.supports("animation-timeline: view()")) return;
           const scroller = el.nextElementSibling as HTMLElement;
-          const [y] = sync(fromEvent(scroller, "scroll"), () => scroller.scrollTop);
+          const [y] = sync(
+            fromEvent(scroller, "scroll"),
+            () => scroller.scrollTop,
+          );
           const [end] = sync(
             fromEvent(scroller, "scroll"),
-            () => scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop,
+            () =>
+              scroller.scrollHeight -
+              scroller.clientHeight -
+              scroller.scrollTop,
           );
           driveScroll(scroller, y, end);
         }}
