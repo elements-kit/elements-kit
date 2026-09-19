@@ -9,7 +9,7 @@ import "../separator/separator.css";
 import "./menu.css";
 
 interface Args {
-  size: "1" | "2";
+  size: "1" | "2" | "3";
   highlight: "solid" | "soft";
   highContrast: boolean;
 }
@@ -17,7 +17,7 @@ interface Args {
 const meta = {
   title: "UI/Menu",
   argTypes: {
-    size: { control: "select", options: ["1", "2"] },
+    size: { control: "select", options: ["1", "2", "3"] },
     highlight: { control: "select", options: ["solid", "soft"] },
     highContrast: { control: "boolean" },
   },
@@ -69,3 +69,12 @@ type Story = StoryObj<Args>;
 export const Solid: Story = {};
 export const Soft: Story = { args: { highlight: "soft" } };
 export const Small: Story = { args: { size: "1" } };
+export const Large: Story = { args: { size: "3" } };
+
+export const Sizes: Story = {
+  render: (args) => (
+    <div style="display: flex; flex-wrap: wrap; align-items: start; gap: 24px">
+      {(["1", "2", "3"] as const).map((size) => meta.render({ ...args, size }))}
+    </div>
+  ),
+};

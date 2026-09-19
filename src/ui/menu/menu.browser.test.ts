@@ -112,6 +112,19 @@ describe("x-menu size 1", () => {
   });
 });
 
+describe("x-menu size 3", () => {
+  it("12px content padding; items 40px tall with 16px side padding", () => {
+    const el = menu(`class="x-card x-menu" data-variant="elevated" data-size="3"`);
+    const edit = items(el)[0]!;
+
+    expect(css(el).paddingTop).toBe("12px");
+    expect(box(edit).height).toBe(40);
+    expect(css(edit).paddingLeft).toBe("16px");
+    expect(css(edit).fontSize).toBe("16px");
+    expect(css(edit).lineHeight).toBe("24px");
+  });
+});
+
 describe("x-menu highlight", () => {
   it("solid (default): no fill at rest; keyboard focus fills with --accent-9 and contrast text", async () => {
     const el = menu();
