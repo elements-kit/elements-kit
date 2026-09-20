@@ -33,7 +33,7 @@ import type { JSX as DomJSX } from "dom-expressions/src/jsx";
 // Omitting by `keyof <interface>` is augmentation-proof — the empty `use:` /
 // `attr:` / `bool:` / `oncapture:` namespaces are stripped if a consumer ever
 // augments Solid's `Directives` / `ExplicitAttributes` / etc.
-type UnsupportedDomKeys =
+export type UnsupportedDomKeys =
   | "ref"
   | "children"
   | "classList"

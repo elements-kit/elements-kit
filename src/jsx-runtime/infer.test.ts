@@ -227,6 +227,61 @@ type _EV_OnReady = Assert<Extends<ReadyHandler, NonNullable<XP["on:ready"]>>>;
 // their read type flows through PropertiesOf like any other field.
 type _SL_Header = Assert<Equal<XP["header"], Node | null | undefined>>;
 
+// ─ ElementProps: global HTML attributes ──────────────────────────────────────
+
+// Global attributes type-check on every custom element.
+const _xj_global: JSX.IntrinsicElements["x-range"] = {
+  dir: "ltr",
+  lang: "ar",
+  title: "Range",
+  hidden: true,
+  tabindex: 0,
+  role: "slider",
+};
+void _xj_global;
+
+// An element's own attribute shadows the global one of the same name: `role`
+// takes the handler's `string | null`, not dom-expressions' ARIA role union.
+class WithRole extends HTMLElement {
+  static [ATTRIBUTES] = {
+    role(this: WithRole, _v: string | null) {},
+  } satisfies Attributes<WithRole>;
+}
+type _GA_OwnWins = Assert<
+  Equal<Exclude<ElementProps<typeof WithRole>["role"], undefined>, string | null>
+>;
+
+// Globals accept value-or-reactive like every other key, and sit beside the
+// element's own attributes and properties in the same literal.
+const _xj_global_signal: JSX.IntrinsicElements["x-range"] = {
+  dir: () => "rtl",
+  hidden: () => true,
+  min: 0,
+  variant: "primary",
+  "aria-label": "Range",
+  class: "x-range",
+  style: { color: "red" },
+  "on:commit": () => {},
+};
+void _xj_global_signal;
+
+// The `DOMAttributes` surface the base swap replaced is still there.
+type _GA_KeepsClass = Assert<HasKey<XP, "class">>;
+type _GA_KeepsStyle = Assert<HasKey<XP, "style">>;
+type _GA_KeepsId = Assert<HasKey<XP, "id">>;
+// …and the keys the runtime can't honor stay stripped, as on the intrinsics:
+// a camelCase or lowercase handler would silently become an attribute.
+type _GA_NoCamelEvent = Assert<
+  Equal<HasKey<JSX.IntrinsicElements["x-range"], "onClick">, false>
+>;
+type _GA_NoLowerEvent = Assert<
+  Equal<HasKey<JSX.IntrinsicElements["x-range"], "onclick">, false>
+>;
+type _GA_NoClassList = Assert<
+  Equal<HasKey<JSX.IntrinsicElements["x-range"], "classList">, false>
+>;
+// `data-*` needs no typing: hyphenated JSX attribute names are always allowed.
+
 // ─ ElementProps: children ────────────────────────────────────────────────────
 
 // Children key is always present (intersection with DomJSX attrs ensures this).

@@ -3,6 +3,7 @@ import type { MaybeReactive } from "../signals";
 import type { JSX as DomJSX } from "dom-expressions/src/jsx";
 import type { JSX } from "elements-kit/jsx-runtime";
 import type { Children } from "./children";
+import type { UnsupportedDomKeys } from "./element";
 
 // ─ Props (public user-facing helpers) ────────────────────────────────────────
 
@@ -128,7 +129,12 @@ type ChildrenOf<C> = C extends { children: never }
   ? {}
   : { children?: Children };
 
-type BaseDOMAttrs = DomJSX.DOMAttributes<HTMLElement>;
+// `HTMLAttributes`, not `DOMAttributes`: the latter stops at events, `class`,
+// `style` and `id`, so global attributes (`dir`, `lang`, `title`, `hidden`,
+// `tabindex`, …) failed to type-check on every custom element.
+// Stripped by the same key set as the intrinsics, so a camelCase `onClick`
+// (which the runtime turns into an attribute) doesn't type-check here either.
+type BaseDOMAttrs = Omit<DomJSX.HTMLAttributes<HTMLElement>, UnsupportedDomKeys>;
 
 // Namespaces (`class:`, `style:`, `prop:`, `ref`) are added at the
 // JSX layer via `OurProps` in [src/jsx-runtime/index.ts]. They're not part of
@@ -177,7 +183,12 @@ type BaseDOMAttrs = DomJSX.DOMAttributes<HTMLElement>;
  *
  * @see {@link PropsOf} for class-components / function components (no attr/event synthesis).
  */
-export type ElementProps<C extends AnyElementCtor> = BaseDOMAttrs &
+export type ElementProps<C extends AnyElementCtor> = Omit<
+  BaseDOMAttrs,
+  // The element's own attributes and properties win over a global one of the
+  // same name — intersecting would leave a conflicting, unusable type.
+  keyof (AttrsOf<C> & PropertiesOf<C>)
+> &
   AttrsOf<C> &
   PropertiesOf<C> &
   PropNamespacedOf<C> &
