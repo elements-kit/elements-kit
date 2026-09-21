@@ -1,10 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { effect, effectScope, signal } from "@/signals/index.ts";
 import { MarginBox, ViewportBox, WINDOW_BOX } from "./box.ts";
-import type { Box } from "./box.ts";
 
 /** Edges at x 300→420, y 260→300. */
-const inner = (): Box => ({ x: 300, y: 260, w: 120, h: 40 });
+const inner = () => ({ x: 300, y: 260, w: 120, h: 40 });
 
 const edges = (b: MarginBox) => ({
   left: b.x,

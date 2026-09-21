@@ -3,9 +3,7 @@ import { direction } from "@/utilities/direction";
 import { createElementRect } from "@/utilities/element-rect.ts";
 import { visualViewport } from "@/utilities/visual-viewport.ts";
 import { windowSize } from "@/utilities/window-size.ts";
-
-/** The channel axes a box value moves along. */
-export type Axis = keyof ReadonlyBox;
+import type { Region } from "./area.ts";
 
 export interface IDirection {
   readonly direction: "ltr" | "rtl";
@@ -16,25 +14,36 @@ export interface Point {
   y: number;
 }
 
-export interface ReadonlyPoint {
-  readonly x: number;
-  readonly y: number;
-}
-
 export interface ReadonlyBox {
   readonly x: number;
   readonly y: number;
   readonly w: number;
   readonly h: number;
 }
-export interface Box extends ReadonlyBox {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
+
+/** A box that is also a {@link Region}: its edges read through `x/y/w/h`,
+ * so it bounds anything a region does. */
+export abstract class RegionBox implements ReadonlyBox, Region {
+  abstract readonly x: number;
+  abstract readonly y: number;
+  abstract readonly w: number;
+  abstract readonly h: number;
+
+  get xmin() {
+    return this.x;
+  }
+  get xmax() {
+    return this.x + this.w;
+  }
+  get ymin() {
+    return this.y;
+  }
+  get ymax() {
+    return this.y + this.h;
+  }
 }
 
-export class WindowBox implements ReadonlyBox, IDirection {
+export class WindowBox extends RegionBox implements IDirection {
   get x() {
     return 0;
   }
@@ -64,7 +73,7 @@ export const WINDOW_BOX = new WindowBox();
  * (and `svh`) keep reporting the full screen — a surface docked to their
  * block-end edge ends up under the keyboard. Dock to this one instead.
  */
-export class ViewportBox implements ReadonlyBox, IDirection {
+export class ViewportBox extends RegionBox implements IDirection {
   get x() {
     return visualViewport.offsetLeft();
   }
@@ -94,7 +103,7 @@ export const VIEWPORT_BOX = new ViewportBox();
  * the box or a side can be swapped, or driven. Reads through, so it tracks
  * whatever the wrapped box tracks.
  */
-export class MarginBox implements ReadonlyBox {
+export class MarginBox extends RegionBox {
   @reactive() box: MaybeReactive<ReadonlyBox>;
   @reactive() top: MaybeReactive<number>;
   @reactive() right: MaybeReactive<number>;
@@ -108,6 +117,7 @@ export class MarginBox implements ReadonlyBox {
     bottom: MaybeReactive<number> = top,
     left: MaybeReactive<number> = right,
   ) {
+    super();
     this.box = box;
     this.top = top;
     this.right = right;
@@ -129,9 +139,10 @@ export class MarginBox implements ReadonlyBox {
   }
 }
 
-export class ElementBox implements ReadonlyBox {
+export class ElementBox extends RegionBox {
   #rect: ReturnType<typeof createElementRect>;
   constructor(el: MaybeReactive<Element>) {
+    super();
     this.#rect = createElementRect(el);
   }
   [Symbol.dispose]() {

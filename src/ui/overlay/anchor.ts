@@ -1,7 +1,7 @@
 import { type Computed, computed, reactive } from "@/signals";
-import { originX, originY, placePinned } from "./area.ts";
-import type { Origin, Pin, Region } from "./area.ts";
-import type { Box, IDirection, Point, ReadonlyBox } from "./box.ts";
+import { Align, intersect } from "./area.ts";
+import type { Area, Region } from "./area.ts";
+import { type IDirection, type ReadonlyBox, WINDOW_BOX } from "./box.ts";
 
 /**
  * The anchor-side vocabulary of the CSS `anchor()` function, reimplemented
@@ -54,7 +54,7 @@ export type Inset =
  * box's reactive geometry, so calling it inside an `effect` tracks the anchor.
  */
 export function anchor_length(
-  box: Box & Partial<IDirection>,
+  box: ReadonlyBox & Partial<IDirection>,
   inset: Inset,
   side: BlockSide | InlineSide | number,
 ): number {
@@ -112,13 +112,9 @@ function resolveInset(inset: Inset): PhysicalInset {
     case "inset-block-end":
       return "bottom";
     case "inset-inline-start":
-      return getComputedStyle(document.documentElement).direction === "rtl"
-        ? "right"
-        : "left";
+      return rootDirection() === "rtl" ? "right" : "left";
     case "inset-inline-end":
-      return getComputedStyle(document.documentElement).direction === "rtl"
-        ? "left"
-        : "right";
+      return rootDirection() === "rtl" ? "left" : "right";
     default:
       return inset;
   }
@@ -143,7 +139,7 @@ type AxisRegion =
   | "span-all";
 
 /** A resolved `position-area` value — one physical region per axis. */
-interface Area {
+interface Resolved {
   block: AxisRegion;
   inline: AxisRegion;
 }
@@ -310,7 +306,7 @@ function toPhysical(
 }
 
 /**
- * Parse a `position-area` value into a physical {@link Area}. One or two
+ * Parse a `position-area` value into a physical {@link Resolved}. One or two
  * keywords, order-independent; an axis-specific single keyword spans the
  * other axis, an ambiguous one applies to both. Unknown/empty → `block-end`.
  */
@@ -318,9 +314,9 @@ function resolveArea(
   area: string,
   dir: "ltr" | "rtl" = "ltr",
   selfDir: "ltr" | "rtl" = dir,
-): Area {
+): Resolved {
   const tokens = area.trim().toLowerCase().split(/\s+/).filter(Boolean);
-  const fallback = (): Area => ({ block: "end", inline: "center" });
+  const fallback = (): Resolved => ({ block: "end", inline: "center" });
   if (tokens.length === 0 || tokens.length > 2) return fallback();
 
   const kws: Keyword[] = [];
@@ -368,82 +364,138 @@ function resolveArea(
 }
 
 /**
- * The reactive `position-area` property: which of the anchor's edges a box
- * pins to, and the self-alignment that follows — outward regions hug the
- * anchor's near edge, spans its far edge, center is `anchor-center`. Not a
- * box: a pin per axis, with no geometry of its own.
+ * The reactive `position-area` property: the room a box has around the
+ * anchor inside its `container` — the containing block, the window by
+ * default — and the self-alignment that follows: outward regions hug the
+ * anchor's near edge, spans its far edge, center is `anchor-center`. Its
+ * edges are CSS's inset-modified containing block.
+ *
+ * A centred axis is a room symmetric around the anchor's middle, to the
+ * container's nearer edge — so set the container here, not by intersecting
+ * afterwards, or the middle moves. One containing block per area, as in CSS.
  *
  * The area is assignable — reassigning re-aims the region in place, so a menu
- * can flip side without a new one. Parsed on assignment; the pins read the
- * anchor on every access, so an `effect` tracks both.
+ * can flip side without a new one. Parsed on assignment; the edges read the
+ * anchor and container on every access, so an `effect` tracks all three.
  *
  * No gap parameter, for the same reason CSS has none: the offset off the
  * anchor is the overlay's own `margin`.
  */
-export class PositionArea implements Region {
+export class PositionArea implements Area {
   @reactive() area: PositionAreaValue;
   @reactive() anchor: ReadonlyBox & Partial<IDirection>;
-  #resolved: Computed<Area>;
+  /** The containing block — what the room reaches to, never what moves
+   * the box. */
+  @reactive() container: Region;
+  #resolved: Computed<Resolved>;
 
   constructor(
     anchor: ReadonlyBox & Partial<IDirection>,
     area: PositionAreaValue,
+    container: Region = WINDOW_BOX,
   ) {
     this.anchor = anchor;
     this.area = area;
+    this.container = container;
     this.#resolved = computed(() =>
       resolveArea(this.area, this.anchor.direction ?? rootDirection()),
     );
   }
 
-  get #px() {
+  /** The area now: from the anchor's edge to the container's far edge. The
+   * anchor side is never cut, so the box follows the anchor; the room only
+   * shrinks — crossed, empty — as the anchor nears or passes the container. */
+  get #now(): Area {
+    const b = this.container;
     const a = this.anchor;
-    const area = this.#resolved();
-    return pinOf(area.inline, a.x, a.x + a.w);
-  }
-  get #py() {
-    const a = this.anchor;
-    const area = this.#resolved();
-    return pinOf(area.block, a.y, a.y + a.h);
+    const { inline, block } = this.#resolved();
+    const [x, xalign] = sideOf(inline, a.x, a.x + a.w, b.xmin, b.xmax);
+    const [y, yalign] = sideOf(block, a.y, a.y + a.h, b.ymin, b.ymax);
+    return { xmin: x.min, xmax: x.max, xalign, ymin: y.min, ymax: y.max, yalign };
   }
 
-  /** The pin lines — the viewport point {@link origin} lands on. */
-  get x(): number {
-    return this.#px.at;
+  get xmin() {
+    return this.#now.xmin;
   }
-  get y(): number {
-    return this.#py.at;
+  get xmax() {
+    return this.#now.xmax;
+  }
+  get ymin() {
+    return this.#now.ymin;
+  }
+  get ymax() {
+    return this.#now.ymax;
+  }
+  get xalign() {
+    return this.#now.xalign;
+  }
+  get yalign() {
+    return this.#now.yalign;
   }
 
-  /** The box point landing on ({@link x}, {@link y}). Two axes, not one
-   * side: a corner area pins a corner. */
-  get origin(): Origin {
-    return { x: originX(this.#px), y: originY(this.#py) };
-  }
-
-  /** Every axis is pinned, so only the box's size is read. */
-  place(box: Pick<ReadonlyBox, "w" | "h">): Point {
+  /**
+   * This area cut by `regions`, keeping its alignment — a live {@link Area}.
+   * Cut by its own container, the anchor side stops at the container's edge
+   * instead of following the anchor out:
+   *
+   *   area.intersect(area.container)
+   *
+   * With no shared room it keeps its own crossed edges, so `PositionTry`
+   * passes it over.
+   */
+  intersect(...regions: Region[]): Area {
+    const edges = () => intersect(this, ...regions) ?? this;
+    const self = this;
     return {
-      x: placePinned(this.#px, box.w),
-      y: placePinned(this.#py, box.h),
+      get xmin() {
+        return edges().xmin;
+      },
+      get xmax() {
+        return edges().xmax;
+      },
+      get ymin() {
+        return edges().ymin;
+      },
+      get ymax() {
+        return edges().ymax;
+      },
+      get xalign() {
+        return self.xalign;
+      },
+      get yalign() {
+        return self.yalign;
+      },
     };
   }
 }
 
-/** A region's default self-alignment as a pin on the anchor's `[lo, hi]` —
- * outward regions hug the anchor's near edge, spans its far edge; `center`
- * and `span-all` are `anchor-center`, which may overflow the rect. */
-function pinOf(region: AxisRegion, lo: number, hi: number): NonNullable<Pin> {
+/** One axis of the area against the anchor's `[lo, hi]` and the container's
+ * `[min, max]`: from the anchor edge the box hugs to the container's far
+ * edge — outward hugs the anchor's near edge, a span its far edge; `center`
+ * and `span-all` are `anchor-center`, symmetric to the nearer container
+ * edge. Open container edges stay open. */
+function sideOf(
+  region: AxisRegion,
+  lo: number,
+  hi: number,
+  min?: number,
+  max?: number,
+): [{ min?: number; max?: number }, Align] {
   switch (region) {
     case "start":
-      return { align: "end", at: lo };
+      return [{ min, max: lo }, Align.end];
     case "span-start":
-      return { align: "end", at: hi };
+      return [{ min, max: hi }, Align.end];
     case "end":
-      return { align: "start", at: hi };
+      return [{ min: hi, max }, Align.start];
     case "span-end":
-      return { align: "start", at: lo };
-    default:
-      return { align: "center", at: (lo + hi) / 2 };
+      return [{ min: lo, max }, Align.start];
+    default: {
+      const c = (lo + hi) / 2;
+      const r = Math.min(c - (min ?? -Infinity), (max ?? Infinity) - c);
+      return Number.isFinite(r)
+        ? [{ min: c - r, max: c + r }, Align.center]
+        : [{}, Align.center];
+    }
   }
 }

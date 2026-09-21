@@ -1,154 +1,114 @@
-import { signal } from "@/signals";
-import type { Point, ReadonlyBox } from "./box.ts";
+import { reactive } from "@/signals";
 
-/** Which of a box's points sits on a pin: its lo edge, hi edge, or middle. */
-export type Align = "start" | "end" | "center";
-
-/** One axis of a region: a coordinate and the box point that sits on it,
- * or `null` — the axis is free and the box keeps its own coordinate. */
-export type Pin = { readonly align: Align; readonly at: number } | null;
-
-/** A pinned block edge and its coordinate. */
-type BlockEdge =
-  | { top: number; bottom?: never }
-  | { bottom: number; top?: never };
-/** A pinned inline edge and its coordinate. */
-type InlineEdge =
-  | { left: number; right?: never }
-  | { right: number; left?: never };
-/** Neither block edge pinned — the axis is free. */
-type NoBlock = { top?: never; bottom?: never };
-/** Neither inline edge pinned — the axis is free. */
-type NoInline = { left?: never; right?: never };
+/** Which point of a box sits on an area's line: 0 its start edge, 1 its end
+ * edge, anything between — CSS's `0%`…`100%`, SwiftUI's `UnitPoint`. */
+export type Align = number;
+export const Align = { start: 0, center: 0.5, end: 1 } as const;
 
 /**
- * A corner (one edge pinned on each axis: a tooltip, a popover) or a side
- * (one edge, the other axis free: a bottom sheet). Never empty, and never
- * both edges of one axis.
+ * Space: its edges as viewport coordinates, y down — never insets, so `ymax`
+ * is where the bottom edge is, not how far it is from anything. `undefined`
+ * is open. As Blender's `rcti` and Core Graphics' `minX…maxY`.
  */
-export type Boundary =
-  | (BlockEdge & InlineEdge) // corner
-  | (BlockEdge & NoInline) // side
-  | (NoBlock & InlineEdge); // side
-
-/** Horizontal origin keyword, as CSS spells it. */
-export type OriginX = "left" | "center" | "right";
-/** The vertical one. */
-export type OriginY = "top" | "center" | "bottom";
-
-/** Which point of a box lands on its position. A `transform-origin`. */
-export interface Origin {
-  readonly x: OriginX;
-  readonly y: OriginY;
-}
-
-/** Has an origin. */
-export interface IOrigin {
-  readonly origin: Origin;
+export interface Region {
+  readonly xmin?: number;
+  readonly xmax?: number;
+  readonly ymin?: number;
+  readonly ymax?: number;
 }
 
 /**
- * Somewhere a box may go: each axis pinned or free. `place` never writes, so
- * the caller takes the channels it wants, and never returns a size, so a box
- * larger than its room overflows rather than shrinks, as CSS does.
+ * A {@link Region} and where a box sits in it, per axis: {@link Align}, or
+ * `undefined` — free. {@link line} gives where it lands; each align needs
+ * its edges:
  *
- * `x`/`y` are the pin lines, `origin` the box point landing on them — the
- * pair places a box without measuring it. A free axis has no pin (`null`).
+ *   0 (start)       min only     line = min
+ *   1 (end)         max only     line = max
+ *   between         both         line = min + (max − min) · align
+ *
+ * Missing one, the axis is free.
  */
-export interface Region extends IOrigin {
-  readonly x: number | null;
-  readonly y: number | null;
-  place(box: ReadonlyBox): Point;
+export interface Area extends Region {
+  readonly xalign?: Align;
+  readonly yalign?: Align;
 }
 
-/** Where a box `n` long starts on a pinned axis. */
-export function placePinned(pin: NonNullable<Pin>, n: number): number {
-  if (pin.align === "start") return pin.at;
-  if (pin.align === "end") return pin.at - n;
-  return pin.at - n / 2;
+const open = (v: number) => (Number.isFinite(v) ? v : undefined);
+
+/**
+ * The space every bound shares: per edge, the tightest. `null` when they
+ * share none — an empty region is reported, never crossed. Computed now:
+ * call it where it should track (an `effect`, a `computed`).
+ */
+export function intersect(...regions: Region[]): Region | null {
+  let xmin = -Infinity;
+  let xmax = Infinity;
+  let ymin = -Infinity;
+  let ymax = Infinity;
+  for (const r of regions) {
+    if (r.xmin !== undefined) xmin = Math.max(xmin, r.xmin);
+    if (r.xmax !== undefined) xmax = Math.min(xmax, r.xmax);
+    if (r.ymin !== undefined) ymin = Math.max(ymin, r.ymin);
+    if (r.ymax !== undefined) ymax = Math.min(ymax, r.ymax);
+  }
+  if (xmin > xmax || ymin > ymax) return null;
+  return { xmin: open(xmin), xmax: open(xmax), ymin: open(ymin), ymax: open(ymax) };
 }
 
-/** One axis of {@link Region.place}: pinned, or `own` if free. */
-export function placeAxis(pin: Pin, own: number, n: number): number {
-  return pin ? placePinned(pin, n) : own;
+/** The room on one axis — `Infinity` when open. */
+function length(min = -Infinity, max = Infinity): number {
+  return max - min;
 }
 
-/** The box point a pin lands. Physical: direction is resolved before a pin
- * exists, so `left` is left in RTL. A free axis lands the near edge. */
-export function originX(pin: Pin): OriginX {
-  if (!pin) return "left";
-  return pin.align === "start" ? "left" : pin.align === "end" ? "right" : "center";
-}
-export function originY(pin: Pin): OriginY {
-  if (!pin) return "top";
-  return pin.align === "start" ? "top" : pin.align === "end" ? "bottom" : "center";
+/** Whether `box` fits inside `room` by size — where it sits does not
+ * matter. An open axis of the room fits anything. Box classes are regions. */
+export function fits(room: Region, box: Region): boolean {
+  return (
+    length(room.xmin, room.xmax) >= length(box.xmin, box.xmax) &&
+    length(room.ymin, room.ymax) >= length(box.ymin, box.ymax)
+  );
 }
 
-/** The inset a pin yields on one edge: its coordinate if it pins that edge. */
-export function inset(pin: Pin, edge: "start" | "end"): number | null {
-  return pin?.align === edge ? pin.at : null;
+/** One axis of {@link line}. */
+function lineAxis(min?: number, max?: number, align?: Align): number | null {
+  if (align === undefined) return null;
+  if (min !== undefined && max !== undefined) return min + (max - min) * align;
+  if (align === 0) return min ?? null;
+  if (align === 1) return max ?? null;
+  return null;
 }
 
 /**
- * A {@link Region} driven by writes — for gestures, where the box grows away
- * from the edge the user is not dragging. Assigning an inset pins that edge
- * and releases its opposite; assigning `null` frees the axis.
+ * The line each axis's aligned point lands on — `null` where free. Set
+ * `OverlayBox.origin` to the area's aligns and write these to its `x/y`: the
+ * box lands without being measured, and scales from the same point.
+ *
+ *   overlay.origin = { x: area.xalign, y: area.yalign };
+ *   const { x, y } = line(area);
  */
-export class MutableRegion implements Region {
-  #x = signal<Pin>(null);
-  #y = signal<Pin>(null);
+export function line(area: Area): { x: number | null; y: number | null } {
+  return {
+    x: lineAxis(area.xmin, area.xmax, area.xalign),
+    y: lineAxis(area.ymin, area.ymax, area.yalign),
+  };
+}
 
-  constructor(boundary: Boundary) {
-    const { left, right, top, bottom } = boundary;
-    if (left !== undefined) this.left = left;
-    if (right !== undefined) this.right = right;
-    if (top !== undefined) this.top = top;
-    if (bottom !== undefined) this.bottom = bottom;
-  }
+/** An {@link Area} you can write — every field reactive, so an `effect`
+ * placing a box in it follows each write. */
+export class MutableArea implements Area {
+  @reactive() xmin: number | undefined;
+  @reactive() xmax: number | undefined;
+  @reactive() ymin: number | undefined;
+  @reactive() ymax: number | undefined;
+  @reactive() xalign: Align | undefined;
+  @reactive() yalign: Align | undefined;
 
-  /** The pin line on each axis — `null` where the axis is free. */
-  get x() {
-    return this.#x()?.at ?? null;
-  }
-  get y() {
-    return this.#y()?.at ?? null;
-  }
-
-  /** The box point that lands on ({@link x}, {@link y}). */
-  get origin(): Origin {
-    return { x: originX(this.#x()), y: originY(this.#y()) };
-  }
-
-  get left() {
-    return inset(this.#x(), "start");
-  }
-  get right() {
-    return inset(this.#x(), "end");
-  }
-  get top() {
-    return inset(this.#y(), "start");
-  }
-  get bottom() {
-    return inset(this.#y(), "end");
-  }
-
-  set left(v: number | null) {
-    this.#x(v === null ? null : { align: "start", at: v });
-  }
-  set right(v: number | null) {
-    this.#x(v === null ? null : { align: "end", at: v });
-  }
-  set top(v: number | null) {
-    this.#y(v === null ? null : { align: "start", at: v });
-  }
-  set bottom(v: number | null) {
-    this.#y(v === null ? null : { align: "end", at: v });
-  }
-
-  place(box: ReadonlyBox): Point {
-    return {
-      x: placeAxis(this.#x(), box.x, box.w),
-      y: placeAxis(this.#y(), box.y, box.h),
-    };
+  constructor(area: Area = {}) {
+    this.xmin = area.xmin;
+    this.xmax = area.xmax;
+    this.ymin = area.ymin;
+    this.ymax = area.ymax;
+    this.xalign = area.xalign;
+    this.yalign = area.yalign;
   }
 }

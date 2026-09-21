@@ -18,9 +18,9 @@
  * Three orthogonal primitives:
  *
  *   LOCATION — the box channels, written by `OverlayBox` (overlay.ts) from
- *   a reactive box model. Placement is JS and pure: a `Region`
- *   (`PositionArea`, `MutableRegion`) computes a point, the caller assigns
- *   it. There is no CSS clamp, dock or flip.
+ *   a reactive box model. Placement is JS and pure: an `Area`
+ *   (`PositionArea`, `PositionTry`, `MutableArea`) gives a line and an
+ *   alignment, the caller assigns them. There is no CSS clamp, dock or flip.
  *
  *   RESIZE / MOVE — `.x-handle` children, one `data-placement` each:
  *     block-start | block-end     horizontal grabber, height drag
@@ -70,8 +70,13 @@
  *     </dialog>
  *
  *     const overlay = new OverlayBox(menu);
- *     const region = new PositionArea(new ElementBox(trigger), "block-end");
- *     effect(() => Object.assign(overlay, region.place(overlay)));
+ *     const area = new PositionArea(new ElementBox(trigger), "block-end");
+ *     effect(() => {
+ *       overlay.origin = { x: area.xalign, y: area.yalign };
+ *       const { x, y } = line(area);
+ *       if (x !== null) overlay.x = x;
+ *       if (y !== null) overlay.y = y;
+ *     });
  *
  * Writing a channel on an open overlay morphs it with a plain CSS
  * transition — everything is expressed in interpolable lengths.

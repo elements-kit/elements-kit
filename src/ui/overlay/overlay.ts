@@ -1,12 +1,12 @@
 import { batch, effect, reactive } from "@/signals/index.ts";
 import { scope } from "@/signals/scope";
-import { Box, IDirection, ReadonlyBox } from "./box.ts";
-import type { IOrigin, Origin, OriginX, OriginY } from "./area.ts";
+import { IDirection, ReadonlyBox, RegionBox } from "./box.ts";
+import type { Align } from "./area.ts";
 
 import { createElementRect } from "@/utilities/element-rect.ts";
 
 export const AUTO = NaN;
-class PartialBox implements Partial<Box> {
+class PartialBox implements Partial<ReadonlyBox> {
   @reactive() x: number | undefined;
   @reactive() y: number | undefined;
   @reactive() w: number | undefined;
@@ -25,11 +25,12 @@ class PartialBox implements Partial<Box> {
   }
 }
 
-class TransformableBox implements ReadonlyBox, Transformable {
+class TransformableBox extends RegionBox {
   readonly transform: PartialBox;
   readonly displacement: Displacement;
 
   constructor(transform = new PartialBox()) {
+    super();
     this.transform = transform;
     this.displacement = new Displacement(this);
   }
@@ -90,20 +91,21 @@ class Displacement extends PartialBox {
   }
 }
 
-/** An origin keyword as the offset to shift back by. */
-const OFFSET: Record<OriginX | OriginY, string> = {
-  left: "0%",
-  top: "0%",
-  center: "50%",
-  right: "100%",
-  bottom: "100%",
-};
+/** Which point of the box lands on (x, y), per axis — an {@link Align}.
+ * Unset is start. Pass an area's own `{ x: area.xalign, y: area.yalign }`. */
+export interface Origin {
+  readonly x?: Align;
+  readonly y?: Align;
+}
 
-export class OverlayBox extends TransformableBox implements IDirection, IOrigin {
+/** An align as a percentage of the box. */
+const percent = (a: Align | undefined) => `${(a ?? 0) * 100}%`;
+
+export class OverlayBox extends TransformableBox implements IDirection {
   readonly element: HTMLElement;
   readonly #rect: ReturnType<typeof createElementRect>;
   // Neutral: the channels place the top-left corner, so no shift.
-  #origin: Origin = { x: "left", y: "top" };
+  #origin: Origin = {};
 
   constructor(element: HTMLElement) {
     super();
@@ -154,10 +156,10 @@ export class OverlayBox extends TransformableBox implements IDirection, IOrigin 
   }
   set origin({ x, y }: Origin) {
     this.#origin = { x, y };
-    // A keyword cannot be negated, so the channels take it as a length.
-    this.element.style.setProperty("--_ox", OFFSET[x]);
-    this.element.style.setProperty("--_oy", OFFSET[y]);
-    this.element.style.transformOrigin = `${x} ${y}`;
+    // Percentages of this box: the shift needs no measurement.
+    this.element.style.setProperty("--_ox", percent(x));
+    this.element.style.setProperty("--_oy", percent(y));
+    this.element.style.transformOrigin = `${percent(x)} ${percent(y)}`;
   }
 
   /** Write a size channel, or unset it when the axis is AUTO (NaN) so the
@@ -210,6 +212,3 @@ export class OverlayBox extends TransformableBox implements IDirection, IOrigin 
   }
 }
 
-export interface Transformable {
-  displacement: Displacement;
-}
