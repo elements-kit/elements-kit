@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/html-vite";
-import { computed, effect, signal } from "elements-kit/signals";
+import { batch, computed, effect, signal } from "elements-kit/signals";
 import "@/utilities/dom-lifecycle.ts";
 import "../card/card.css";
 import "../button/button.css";
@@ -11,6 +11,10 @@ import {
   MarginBox,
   PositionTry as PositionTryRegion,
   WINDOW_BOX,
+  VIEWPORT_BOX,
+  Align,
+  Gestures,
+  Motion,
   anchor_length,
   place,
   PositionArea as PositionAreaRegion,
@@ -485,4 +489,164 @@ export const PositionTryScroll: StoryObj<ScrollArgs> = {
       return root;
     };
   })(),
+};
+
+const SHEET_STOPS = ["peek", "half", "full"] as const;
+
+/**
+ * A bottom sheet from the existing primitives — no sheet class. Docked with an
+ * area on the visual viewport (so it rides above the keyboard), sized by
+ * `OverlayBox.h`, dragged through `displacement` with `Motion` for velocity,
+ * `Gestures.rubber` past the top stop and `Gestures.snap` on release.
+ *
+ * Stops are fractions of the viewport, recomputed as it resizes. Above the
+ * lowest stop a drag grows or shrinks the sheet; below it the sheet keeps its
+ * height and slides down, so the content never reflows. Released low or
+ * flicked down, it closes.
+ */
+export const BottomSheet: StoryObj = {
+  render: () => {
+    const id = `overlay-story-${uid++}`;
+    const stop = signal(1);
+
+    const wire = () => {
+      const el = document.getElementById(id) as HTMLDialogElement;
+      const opener = document.getElementById(`${id}-open`);
+      if (!el || !opener) return;
+      const grips = el.querySelectorAll<HTMLElement>("[data-grip]");
+
+      const sheet = new OverlayBox(el);
+      // The visual viewport's bottom edge, centred across it. Read in the
+      // effect, so it follows the keyboard.
+      effect(() => {
+        const { xmin, xmax, ymax } = VIEWPORT_BOX;
+        place(sheet, { xmin, xmax, ymax, xalign: Align.center, yalign: Align.end });
+      });
+      effect(() => {
+        sheet.w = Math.min(VIEWPORT_BOX.w, 560);
+      });
+
+      // Heights per stop. The top one leaves headroom: a handle on the very
+      // top edge can only be grabbed by dragging off the display.
+      const heights = computed(() => {
+        const v = VIEWPORT_BOX.h;
+        return [Math.min(180, v * 0.3), v * 0.5, v * 0.9];
+      });
+      effect(() => {
+        sheet.h = heights()[stop()]!;
+      });
+
+      opener.addEventListener("click", () => {
+        // Back at half, whatever the last close left behind.
+        batch(() => {
+          sheet.displacement.clear();
+          stop(1);
+        });
+        el.showModal();
+      });
+      // A click on the dialog itself is the backdrop.
+      el.addEventListener("click", (e) => {
+        if (e.target === el) el.close();
+      });
+
+      const motion = new Motion();
+      let pointer: number | undefined;
+      /** When the last move landed: a held pointer releases with no fling. */
+      let moved = 0;
+
+      /** The height the finger asks for, unconstrained. */
+      const asked = () => heights()[stop()]! - motion.displacement;
+
+      const drag = (e: PointerEvent) => {
+        if (e.pointerId !== pointer) return;
+        motion.value = e.clientY;
+        moved = e.timeStamp;
+        const [low, , high] = heights();
+        const h = asked();
+        const settled = heights()[stop()]!;
+        batch(() => {
+          // Above the lowest stop: resize, resisting past the top one.
+          // Below it: keep the height and slide down instead.
+          const resist = Gestures.rubber(low!, high!, VIEWPORT_BOX.h);
+          sheet.displacement.h = Math.max(resist(h), low!) - settled;
+          sheet.displacement.y = Math.max(0, low! - h);
+        });
+      };
+
+      const release = (e: PointerEvent, cancelled = false) => {
+        if (e.pointerId !== pointer) return;
+        pointer = undefined;
+        const stale = e.timeStamp - moved > 100;
+        // clientY falls as the height rises: the velocity flips sign.
+        const target = cancelled
+          ? heights()[stop()]!
+          : Gestures.snap(asked(), stale ? 0 : -motion.velocity, [0, ...heights()]);
+        // Thaw first, or the sheet jumps to the stop instead of gliding.
+        el.toggleAttribute("data-no-transition", false);
+        if (target === 0) {
+          // Keep the offset: the exit slide continues from where it is.
+          el.close();
+          return;
+        }
+        batch(() => {
+          sheet.displacement.clear();
+          stop(heights().indexOf(target));
+        });
+      };
+
+      for (const grip of grips) {
+        grip.addEventListener("pointerdown", (e) => {
+          if (pointer !== undefined || !e.isPrimary) return;
+          if (e.pointerType === "mouse" && e.button !== 0) return;
+          pointer = e.pointerId;
+          grip.setPointerCapture(e.pointerId);
+          el.toggleAttribute("data-no-transition", true);
+          moved = e.timeStamp;
+          motion.abort(e.clientY);
+        });
+        grip.addEventListener("pointermove", drag);
+        grip.addEventListener("pointerup", (e) => release(e));
+        grip.addEventListener("pointercancel", (e) => release(e, true));
+        grip.addEventListener("lostpointercapture", (e) => release(e, true));
+      }
+    };
+
+    return (
+      <div>
+        <button
+          class:unset
+          class:x-button
+          data-variant="solid"
+          data-size="2"
+          id={`${id}-open`}
+        >
+          Open sheet
+        </button>
+        <dom-lifecycle onConnect={wire} />
+        <dialog id={id} class:unset class:x-overlay>
+          <div class:unset class:x-handle data-placement="block-start" data-grip />
+          <div
+            class:unset
+            class:x-card
+            data-variant="elevated"
+            data-size="2"
+            style="display: flex; flex-direction: column; border-end-start-radius: 0; border-end-end-radius: 0; padding-bottom: env(safe-area-inset-bottom)"
+          >
+            <header data-grip style="touch-action: none; cursor: grab; padding-block: var(--space-2)">
+              <strong>Sheet</strong> · {() => SHEET_STOPS[stop()]}
+            </header>
+            <div style="flex: 1 1 auto; overflow: auto; min-height: 0">
+              <p>Drag the handle or the header. Flick up for full, down to close.</p>
+              {Array.from({ length: 12 }, (_, i) => (
+                <p>
+                  Paragraph {i + 1}. The content scrolls inside the sheet; it never
+                  reflows while the sheet slides below its lowest stop.
+                </p>
+              ))}
+            </div>
+          </div>
+        </dialog>
+      </div>
+    );
+  },
 };
