@@ -10,7 +10,7 @@
  *   Region / Area        space as edges (xmin…ymax) / plus where a box sits
  *   PositionArea         an anchor's `position-area` region, live
  *   PositionTry          the first candidate region/box that fits
- *   line                 where an area's aligned point lands
+ *   place                lands an overlay in an area, unmeasured
  *   Draggable/Resizable  pointer→box gestures on the `.x-handle` children
  *
  * Geometry is pure CSS (index.css / overlay.css) driven by the box's channels;
@@ -37,7 +37,7 @@ export { OverlayBox, type Origin } from "./overlay.ts";
 export {
   Align,
   MutableArea,
-  line,
+  place,
   type Area,
   type Region,
 } from "./area.ts";

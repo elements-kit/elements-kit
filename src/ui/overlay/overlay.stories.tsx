@@ -12,7 +12,7 @@ import {
   PositionTry as PositionTryRegion,
   WINDOW_BOX,
   anchor_length,
-  line,
+  place,
   PositionArea as PositionAreaRegion,
   type Area,
   type Region,
@@ -144,7 +144,7 @@ interface AreaArgs {
 
 /**
  * The same anchoring through `PositionArea` — a live region of the anchor,
- * and the panel lands on its `line` with the area's aligns as origin. The offset off the anchor is the
+ * and `place` lands the panel on it. The offset off the anchor is the
  * panel's own `margin`, as in CSS.
  *
  * Changing an arg re-runs `render`, and Storybook's HTML renderer wipes the
@@ -194,7 +194,7 @@ export const PositionArea: StoryObj<AreaArgs> = {
                 const anchor_box = new ElementBox(trigger);
                 panel.showPopover();
                 effect(() => {
-                  land(overlay, new PositionAreaRegion(anchor_box, live().area));
+                  place(overlay, new PositionAreaRegion(anchor_box, live().area));
                 });
               }}
             />
@@ -205,15 +205,6 @@ export const PositionArea: StoryObj<AreaArgs> = {
     };
   })(),
 };
-
-/** Land `overlay` in `area` without measuring it: the aligned point on the
- * area's line, scaling from that point too. */
-function land(overlay: OverlayBox, area: Area): void {
-  overlay.origin = { x: area.xalign, y: area.yalign };
-  const { x, y } = line(area);
-  if (x !== null) overlay.x = x;
-  if (y !== null) overlay.y = y;
-}
 
 /** Place `overlay` through `tried`, and outline the chosen room. */
 function follow(
@@ -230,7 +221,7 @@ function follow(
     outline.style.height = `${Math.max(0, bottom - top)}px`;
     outline.style.borderColor = tried.fits ? "" : "var(--red-9, red)";
   });
-  effect(() => land(overlay, tried));
+  effect(() => place(overlay, tried));
 }
 
 const OUTLINE =

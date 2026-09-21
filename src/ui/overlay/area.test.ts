@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { effect } from "@/signals/index.ts";
-import { fits, intersect, line, MutableArea } from "./area.ts";
+import { fits, intersect, line, MutableArea, place } from "./area.ts";
 import type { Area } from "./area.ts";
 import { MarginBox } from "./box.ts";
 
@@ -100,6 +100,16 @@ describe("line", () => {
   it("a free axis keeps the box's own coordinate", () => {
     const sheet = { ...WINDOW, yalign: 1 } as const;
     expect(placed(sheet, size)).toEqual({ x: 50, y: 560 });
+  });
+});
+
+describe("place", () => {
+  it("sets the origin and the line, leaving a free axis alone", () => {
+    const box = { origin: {}, x: 7, y: 9 };
+    place(box, { xmin: 0, xmax: 200, xalign: 0.5, ymax: 300, yalign: 1 });
+    expect(box).toEqual({ origin: { x: 0.5, y: 1 }, x: 100, y: 300 });
+    place(box, { ymin: 20, yalign: 0 });
+    expect(box).toEqual({ origin: { x: undefined, y: 0 }, x: 100, y: 20 });
   });
 });
 

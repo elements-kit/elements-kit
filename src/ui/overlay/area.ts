@@ -81,16 +81,35 @@ function lineAxis(min?: number, max?: number, align?: Align): number | null {
 /**
  * The line each axis's aligned point lands on — `null` where free. Set
  * `OverlayBox.origin` to the area's aligns and write these to its `x/y`: the
- * box lands without being measured, and scales from the same point.
- *
- *   overlay.origin = { x: area.xalign, y: area.yalign };
- *   const { x, y } = line(area);
+ * box lands without being measured, and scales from the same point —
+ * {@link place} does both.
  */
 export function line(area: Area): { x: number | null; y: number | null } {
   return {
     x: lineAxis(area.xmin, area.xmax, area.xalign),
     y: lineAxis(area.ymin, area.ymax, area.yalign),
   };
+}
+
+/** Anything that lands on a point: an `OverlayBox`. */
+interface Placeable {
+  origin: { x?: Align; y?: Align };
+  x: number;
+  y: number;
+}
+
+/**
+ * Lands `box` in `area` without measuring it: its origin on the area's
+ * aligns, its x/y on {@link line}. A free axis is left alone. Run it in an
+ * `effect` to follow the area.
+ *
+ *   effect(() => place(overlay, area));
+ */
+export function place(box: Placeable, area: Area): void {
+  box.origin = { x: area.xalign, y: area.yalign };
+  const { x, y } = line(area);
+  if (x !== null) box.x = x;
+  if (y !== null) box.y = y;
 }
 
 /** An {@link Area} you can write — every field reactive, so an `effect`

@@ -41,7 +41,7 @@ import {
   PositionTry,
   MutableArea,
   Align,
-  line,
+  place,
   anchor_length,
   Motion,
   Gestures,
@@ -153,7 +153,7 @@ overlay.displacement.apply(); // → --x: 125px, --dx removed
 
 ## Areas
 
-An **area** is somewhere a box may go: a region's edges plus where the box sits between them. You place a box in one without measuring it — set its `origin` to the area's alignment and write `line(area)` to its position.
+An **area** is somewhere a box may go: a region's edges plus where the box sits between them. You place a box in one without measuring it — `place(overlay, area)` sets its `origin` to the area's alignment and moves that point onto the area's line.
 
 ```ts
 // Region: edges as viewport coordinates, y down. undefined = open.
@@ -170,17 +170,12 @@ Align.end; // 1
 
 Edges are coordinates, never insets: `ymax` is where the bottom edge is, not how far it is from anything.
 
-### `line(area)`
+### `place(overlay, area)`
 
-`line` returns, per axis, the coordinate the aligned point lands on — `null` where the axis is free. `OverlayBox` shifts itself back by `align × its own size` in CSS, so the box lands without being measured.
+Per axis, the aligned point lands on the area's line: `min` at 0, `max` at 1, `min + (max − min) · align` between. `OverlayBox` shifts itself back by `align × its own size` in CSS, so the box lands without being measured. A free axis — no align, or a centre without both edges — is left alone.
 
 ```ts
-effect(() => {
-  overlay.origin = { x: area.xalign, y: area.yalign };
-  const { x, y } = line(area);
-  if (x !== null) overlay.x = x;
-  if (y !== null) overlay.y = y;
-});
+effect(() => place(overlay, area));
 ```
 
 A box larger than its room overflows rather than shrinks, as in CSS.
