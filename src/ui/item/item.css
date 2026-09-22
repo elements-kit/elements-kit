@@ -1,0 +1,256 @@
+/* x-item — a row: .x-avatar, .x-item-content (.x-item-title, .x-item-description),
+ * .x-item-trailing. Titles are one size up; data-variant="compact" keeps the row's size,
+ * for a title over a description. data-wrap on a title or description wraps it.
+ * Optional: .x-item-link, .x-item-chevron, and .x-item-hint below a
+ * card of items (outside a sized .x-card, give the hint the rows' data-size).
+ * data-size="1 | 2 | 3"   row 40 / 48 / 64 (default 3), or from a sized .x-card;
+ *                         give the avatar the same data-size
+ * data-align="start"      tall rows: avatar on top, trailing on the title line
+ * data-interactive        hover and press
+ * data-separator          a line under the row, from where its text starts
+ * data-accent             tinted text, e.g. a destructive action
+ * aria-current, aria-selected="true"   selected
+ */
+
+/* SIZES — size 3 is the fallback everywhere below */
+:where(.x-card, .x-item, .x-item-hint):where([data-size="1"]) {
+  --item-spacing: var(--space-2);
+  --item-avatar-size: var(--space-5);
+  --item-font-size: var(--font-size-0);
+  --item-line-height: calc(12px * var(--scaling));
+  --item-letter-spacing: var(--letter-spacing-1);
+  /* titles: one step up */
+  --item-title-font-size: var(--font-size-1);
+  --item-title-line-height: var(--line-height-1);
+  --item-title-letter-spacing: var(--letter-spacing-1);
+  --item-hint-font-size: var(--font-size-0);
+  --item-hint-line-height: calc(12px * var(--scaling));
+}
+
+:where(.x-card, .x-item, .x-item-hint):where([data-size="2"]) {
+  --item-spacing: var(--space-2);
+  --item-avatar-size: var(--space-6);
+  --item-font-size: var(--font-size-1);
+  --item-line-height: var(--line-height-1);
+  --item-letter-spacing: var(--letter-spacing-1);
+  /* titles: one step up */
+  --item-title-font-size: var(--font-size-2);
+  --item-title-line-height: var(--line-height-2);
+  --item-title-letter-spacing: var(--letter-spacing-2);
+  --item-hint-font-size: var(--font-size-0);
+  --item-hint-line-height: calc(12px * var(--scaling));
+}
+
+:where(.x-card, .x-item, .x-item-hint):where([data-size="3"]) {
+  --item-spacing: var(--space-3);
+  --item-avatar-size: var(--space-7);
+  --item-font-size: var(--font-size-2);
+  --item-line-height: var(--line-height-2);
+  --item-letter-spacing: var(--letter-spacing-2);
+  /* titles: one step up */
+  --item-title-font-size: var(--font-size-3);
+  --item-title-line-height: var(--line-height-3);
+  --item-title-letter-spacing: var(--letter-spacing-3);
+  --item-hint-font-size: var(--font-size-1);
+  --item-hint-line-height: var(--line-height-1);
+}
+
+/* ITEM */
+.x-item {
+  display: flex;
+  align-items: center;
+  /* avatar → text → trailing; the same value pads the row */
+  gap: var(--item-spacing, var(--space-3));
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-inline-size: 0;
+  padding: var(--item-spacing, var(--space-3));
+  font-family: var(--default-font-family);
+  font-weight: var(--font-weight-regular);
+  font-size: var(--item-font-size, var(--font-size-2));
+  line-height: var(--item-line-height, var(--line-height-2));
+  letter-spacing: var(--item-letter-spacing, var(--letter-spacing-2));
+  text-align: start;
+  text-decoration: none;
+  color: var(--neutral-12);
+}
+
+.x-item-content {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.x-item-title,
+.x-item-description {
+  display: block;
+  margin: 0;
+  /* clip sideways only: tight lines keep their descenders */
+  overflow-x: clip;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font: inherit;
+}
+
+/* one step up */
+.x-item-title {
+  font-size: var(--item-title-font-size, var(--font-size-3));
+  line-height: var(--item-title-line-height, var(--line-height-3));
+  letter-spacing: var(--item-title-letter-spacing, var(--letter-spacing-3));
+}
+
+/* compact: the row's size and medium, for a title over a description;
+ * the description is the row's size too, and the two lines are as tall as the avatar */
+.x-item-title:where([data-variant="compact"]) {
+  font: inherit;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: inherit;
+}
+
+.x-item-title,
+.x-item-description {
+  &:where([data-wrap]) {
+    white-space: normal;
+  }
+}
+
+.x-item-description,
+.x-item-trailing {
+  color: var(--neutral-a11);
+}
+
+.x-item-trailing {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+  margin-inline-start: auto;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* an icon button at the end: its glyph, not its box, lines up with chevrons and text */
+.x-item-trailing > .x-button:where([data-icon]):last-child {
+  margin-inline-end: calc((1.25em - var(--base-button-height)) / 2);
+}
+
+.x-item-chevron {
+  flex: none;
+  color: var(--neutral-a9);
+
+  &:dir(rtl) {
+    scale: -1 1;
+  }
+}
+
+/* the row's link: its hit area covers the row; trailing controls stay on top */
+.x-item:has(.x-item-link) {
+  position: relative;
+
+  & .x-item-trailing :where(a, button, input, label, select) {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+.x-item-link {
+  color: inherit;
+  text-decoration: none;
+  outline: none;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
+}
+
+/* data-separator: a line under the row from where its text starts; none under the last row */
+.x-item:where([data-separator]) {
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset-block-end: 0;
+    inset-inline: var(--item-spacing, var(--space-3)) 0;
+    border-block-end: 1px solid var(--neutral-a6);
+    pointer-events: none;
+  }
+
+  &:has(> .x-avatar)::after {
+    inset-inline-start: calc(
+      var(--item-spacing, var(--space-3)) * 2 + var(--item-avatar-size, var(--space-7))
+    );
+  }
+
+  /* the last row, whether it is the <li> or sits alone inside one */
+  &:where(:last-child:not(li > *), li:last-child > *)::after {
+    content: none;
+  }
+}
+
+/* helper text below a card of items, one step down; outside the card, so it takes its own data-size */
+.x-item-hint {
+  margin: 0;
+  font-family: var(--default-font-family);
+  font-size: var(--item-hint-font-size, var(--font-size-1));
+  line-height: var(--item-hint-line-height, var(--line-height-1));
+  color: var(--neutral-a11);
+}
+
+/* data-align="start" — for tall, multi-line rows: the description wraps (3 lines
+ * max), the avatar tops the row, trailing items center on the title line. */
+.x-item:where([data-align="start"]) {
+  align-items: flex-start;
+
+  & .x-item-description {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    /* the clamp hides the lines past 3 only when they're clipped */
+    overflow: hidden;
+    white-space: normal;
+  }
+
+  /* one compact title line tall: taller children (a button) overhang it evenly */
+  & .x-item-trailing {
+    block-size: var(--item-line-height, var(--line-height-2));
+  }
+}
+
+/* STATES — explicit opt-in, independent of the element or its children. */
+.x-item:where([data-interactive]) {
+  cursor: var(--cursor-button);
+  touch-action: manipulation;
+
+  @media (hover: hover) {
+    &:where(:hover) {
+      background-color: var(--neutral-a3);
+    }
+  }
+  /* pressing a trailing control doesn't press the row */
+  &:where(:active):not(:has(.x-item-trailing :active)) {
+    background-color: var(--neutral-a4);
+  }
+}
+
+.x-item:where([aria-current]:not([aria-current="false"]), [aria-selected="true"]) {
+  background-color: var(--accent-a3);
+}
+
+.x-item:where([data-accent]) {
+  color: var(--accent-11);
+}
+
+.x-item:where(:focus-visible, :has(.x-item-link:focus-visible)) {
+  outline: 2px solid var(--accent-8);
+  outline-offset: -2px;
+}
+
+.x-item:where(:disabled, [aria-disabled="true"], [data-disabled]) {
+  background-color: transparent;
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: default;
+}

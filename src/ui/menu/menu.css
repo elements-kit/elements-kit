@@ -149,6 +149,7 @@
 /* a group heading: quieter, regular weight, item height */
 .x-menu > .x-label {
   cursor: default;
+  color: var(--neutral-a10);
 
   :where(.x-menu-item) + & {
     margin-block-start: var(--space-2);

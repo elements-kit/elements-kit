@@ -9,3 +9,6 @@ storybook-static
 
 .tscache
 chrome/
+
+__screenshots__
+.vitest-attachments

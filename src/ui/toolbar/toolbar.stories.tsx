@@ -9,6 +9,7 @@ import "../avatar/avatar.css";
 import "../button/button.css";
 import "../card/card.css";
 import "../group/group.css";
+import "../item/item.css";
 import "../segmented-control/segmented-control.css";
 import "../text-input/text-input.css";
 import "../toggle/toggle.css";
@@ -302,16 +303,24 @@ const Controls = (props: { children?: Children }) => (
 
 /** List rows; colored swatches show what translucent bars let through. */
 const Rows = (props: { items: string[] }) => (
-  <>
+  <ul class:unset role="list">
     {props.items.map((item, i) => (
-      <p style="display:flex;align-items:center;gap:var(--space-3);margin:0;padding:var(--space-3) var(--space-4);box-shadow:inset 0 -1px var(--neutral-a3)">
+      <li class:unset class:x-item data-size="3" data-separator>
         <span
-          style={`width:var(--space-7);height:var(--space-7);border-radius:var(--radius-3);flex:none;background:oklch(0.72 0.14 ${(i * 37) % 360})`}
+          class:x-avatar
+          data-size="3"
+          data-radius="large"
+          aria-hidden="true"
+          style={`background:oklch(0.72 0.14 ${(i * 37) % 360})`}
         />
-        {item}
-      </p>
+        <div class:x-item-content>
+          <span class:x-item-title>
+            {item}
+          </span>
+        </div>
+      </li>
     ))}
-  </>
+  </ul>
 );
 
 /**

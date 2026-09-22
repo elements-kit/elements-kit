@@ -1,0 +1,157 @@
+---
+title: Item
+description: A row with an avatar, a title and description, and trailing values or actions.
+---
+
+import StorybookEmbed from "@/components/StorybookEmbed.astro";
+
+A row for lists: an avatar, a title with an optional description, and trailing content such as a time, a badge, a switch or a chevron. Rows sit in a [card](/ui/card) or stand alone, and every part is centered on the row.
+
+<StorybookEmbed story="ui-item--default" />
+
+## Install
+
+```ts
+import "elements-kit/ui/styles.css";
+import "elements-kit/ui/avatar/avatar.css";
+import "elements-kit/ui/item/item.css";
+```
+
+## API
+
+```html
+<div class="x-card" data-size="3">
+  <ul class="unset" role="list" data-inset="fill" aria-label="Songs">
+    <li>
+      <a class="x-item" href="/songs/dreams" data-interactive>
+        <span class="x-avatar" data-size="3" aria-hidden="true">
+          <span class="x-avatar-fallback">FM</span>
+        </span>
+        <div class="x-item-content">
+          <span class="x-item-title" data-variant="compact">Dreams</span>
+          <span class="x-item-description">Fleetwood Mac</span>
+        </div>
+        <div class="x-item-trailing">
+          <time>4:17</time>
+          <svg class="x-item-chevron" aria-hidden="true">…</svg>
+        </div>
+      </a>
+    </li>
+  </ul>
+</div>
+```
+
+| Part | For |
+| --- | --- |
+| `.x-avatar` | the leading visual; give it the item's `data-size` |
+| `.x-item-content` | holds the title and description, takes the free width |
+| `.x-item-title`, `.x-item-description` | one line each, truncated with an ellipsis; `data-wrap` wraps them; `data-variant="compact"` on the title keeps it the row's size |
+| `.x-item-trailing` | values and controls at the end, `--space-2` apart |
+| `.x-item-chevron` | a disclosure icon you place; muted, mirrored in RTL |
+| `.x-item-link` | the row's link when the row also holds buttons |
+| `.x-item-hint` | helper text below a card of items; give it the card's `data-size` |
+
+| Attribute | Values |
+| --- | --- |
+| `data-size` | `1`, `2`, `3` *(default)*; on the item or a parent `.x-card` |
+| `data-align` | `start` for tall rows |
+| `data-interactive` | hover and press backgrounds |
+| `data-separator` | a line under the row, from where its text starts; none under the last row |
+| `data-accent` | accent text, e.g. a destructive action |
+
+## Sizes
+
+One spacing value per size pads the row and separates the avatar, the text and the trailing content, so the avatar sits in a square cell.
+
+| `data-size` | Avatar | Spacing | Row | Title | Compact title | Description |
+| --- | --- | --- | --- | --- | --- | --- |
+| `1` | 24 | 8 | 40 | 12px regular | 10px medium | 10px |
+| `2` | 32 | 8 | 48 | 14px regular | 12px medium | 12px |
+| `3` *(default)* | 40 | 12 | 64 | 16px regular | 14px medium | 14px |
+
+Set `data-size` on the card to size every row inside; a row's own `data-size` overrides it.
+
+### Compact titles
+
+A title is one step larger than the row's text, for a title that stands alone, like a setting or an action. Over a description, use `data-variant="compact"`: the title keeps the row's size in medium weight, and the description is the same size in a muted colour. Both lines together are exactly the avatar's height, so rows with and without a description are the same height. Use it on every row of a list whose rows mostly have descriptions, so the titles read evenly.
+
+```html
+<div class="x-item-content">
+  <span class="x-item-title" data-variant="compact">Dreams</span>
+  <span class="x-item-description">Fleetwood Mac</span>
+</div>
+```
+
+### Wrapping
+
+Add `data-wrap` to a title or description to wrap it instead of truncating it, for long names or addresses.
+
+```html
+<span class="x-item-description" data-wrap>12 Rue de la Paix, 75002 Paris, France</span>
+```
+
+## Tall rows
+
+Add `data-align="start"` to a row with a long description, like a message preview. The description wraps to three lines, the avatar moves to the top, and trailing content stays on the title line.
+
+```html
+<a class="x-item" href="/messages/1" data-interactive data-align="start">…</a>
+```
+
+## A link with actions
+
+When the row opens something and also holds buttons, make the title the link with `.x-item-link`. The link covers the whole row, and trailing controls stay clickable above it. Pressing a trailing control doesn't press the row.
+
+```html
+<li class="unset x-item" data-interactive>
+  <span class="x-avatar" data-size="3">…</span>
+  <div class="x-item-content">
+    <a class="x-item-link x-item-title" data-variant="compact" href="/songs/dreams">Dreams</a>
+    <span class="x-item-description">Fleetwood Mac</span>
+  </div>
+  <div class="x-item-trailing">
+    <button class="unset x-button" data-variant="borderless" data-icon aria-label="More">…</button>
+  </div>
+</li>
+```
+
+An icon button at the end is pulled out so its glyph lines up with chevrons and text in other rows.
+
+## Groups
+
+Head a card with a [label](/ui/label), and add helper text below it. `data-separator` on a row draws a line under it, starting where the text starts.
+
+```html
+<div class="x-label" data-variant="group" data-size="3" id="settings">Settings</div>
+<div class="x-card" data-size="3">
+  <ul class="unset" role="list" aria-labelledby="settings" data-inset="fill">
+    <li><a class="x-item" href="/wifi" data-interactive data-separator>…</a></li>
+    <li><label class="x-item" data-interactive data-separator>…</label></li>
+    <li><a class="x-item" href="/notifications" data-interactive>…</a></li>
+  </ul>
+</div>
+<p class="x-item-hint" data-size="3">Changes apply to all your devices.</p>
+```
+
+## States
+
+| State | How |
+| --- | --- |
+| Hover, press | `data-interactive` |
+| Selected | `aria-current` or `aria-selected="true"` |
+| Destructive | `data-accent="red"` |
+| Disabled | `:disabled`, `aria-disabled="true"` or `data-disabled` |
+
+## Accessibility
+
+Put rows of the same kind (songs, messages, people) in a `<ul role="list">`, one row per `<li>`. Screen readers then announce the count and position. The `role` keeps that in Safari, which drops list semantics once `unset` removes the bullets. A row can be the `<li>` itself, or an `<a>`, `<button>` or `<label>` inside it.
+
+Use the element that matches what the row does: `<a>` to navigate, `<button>` for an action, `<label>` around a switch or checkbox. Never put buttons inside a `<button>` or `<a>` row; use `.x-item-link` instead. Hide decorative avatars and chevrons with `aria-hidden="true"`, and name icon buttons with `aria-label`.
+
+
+## See also
+
+- [Card](/ui/card)
+- [Avatar](/ui/avatar)
+- [Label](/ui/label)
+- [Menu](/ui/menu)

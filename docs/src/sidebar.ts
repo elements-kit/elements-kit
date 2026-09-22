@@ -112,6 +112,7 @@ export const uiSidebar: SidebarItem[] = [
       { label: "Checkbox", slug: "ui/checkbox", badge: cssBadge },
       { label: "Code", slug: "ui/code", badge: cssBadge },
       { label: "Group", slug: "ui/group", badge: cssBadge },
+      { label: "Item", slug: "ui/item", badge: cssBadge },
       { label: "Kbd", slug: "ui/kbd", badge: cssBadge },
       { label: "Label", slug: "ui/label", badge: cssBadge },
       { label: "Link", slug: "ui/link", badge: cssBadge },

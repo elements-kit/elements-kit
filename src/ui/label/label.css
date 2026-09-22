@@ -9,7 +9,7 @@
  *   <div class="x-label" data-variant="group">Message</div>   a group heading: quiet, e.g. a menu  *
  *                                                                                                 *
  * Attributes:                                                                                     *
- *   data-variant="field | group"   field (default): medium, --space-2 below; group: regular, a10 *
+ *   data-variant="field | group"   field (default): medium, --space-2 below; group: regular, a11 *
  *   data-size="1 | 2 | 3"          --font-size-1 / 2 / 3 (default 2)                              *
  *                                                                                                 *
  ***************************************************************************************************/
@@ -36,7 +36,7 @@
 /* group: heads a group of options or menu items, quieter than a field label */
 .x-label:where([data-variant="group"]) {
   font-weight: var(--font-weight-regular);
-  color: var(--neutral-a10);
+  color: var(--neutral-a11);
 }
 
 .x-label:where([data-size="1"]) {
