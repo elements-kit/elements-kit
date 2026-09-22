@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { effect } from "@/signals/index.ts";
-import { fits, intersect, line, MutableArea, place } from "./area.ts";
+import { Align, fits, intersect, line, MutableArea, place } from "./area.ts";
 import type { Area } from "./area.ts";
 import { MarginBox } from "./box.ts";
 
@@ -30,6 +30,25 @@ describe("RegionBox", () => {
     const inner = { x: 300, y: 260, w: 120, h: 40 }; // a plain box
     const m = new MarginBox(inner, 10);
     expect([m.xmin, m.xmax, m.ymin, m.ymax]).toEqual([290, 430, 250, 310]);
+  });
+});
+
+describe("toArea", () => {
+  it("is the box's edges, live, landing on its top-left by default", () => {
+    const inner = { x: 300, y: 260, w: 120, h: 40 };
+    const m = new MarginBox(inner, 10);
+    const a = m.toArea();
+    expect(line(a)).toEqual({ x: 290, y: 250 });
+    m.top = 20;
+    expect(a.ymin).toBe(240);
+    expect(line(m.toArea(Align.center, Align.end))).toEqual({ x: 360, y: 310 });
+  });
+
+  it("intersect cuts it live, keeping its aligns", () => {
+    const below = { ymin: 280 };
+    const a = new MarginBox({ x: 0, y: 0, w: 400, h: 600 }, 0).toArea(Align.center, Align.start).intersect(below);
+    expect([a.xmin, a.xmax, a.ymin, a.ymax, a.xalign, a.yalign]).toEqual([0, 400, 280, 600, 0.5, 0]);
+    expect(line(a)).toEqual({ x: 200, y: 280 });
   });
 });
 

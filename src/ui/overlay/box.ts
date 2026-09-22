@@ -3,7 +3,8 @@ import { direction } from "@/utilities/direction";
 import { createElementRect } from "@/utilities/element-rect.ts";
 import { visualViewport } from "@/utilities/visual-viewport.ts";
 import { windowSize } from "@/utilities/window-size.ts";
-import type { Region } from "./area.ts";
+import { Align, cut } from "./area.ts";
+import type { CutArea, Region } from "./area.ts";
 
 export interface IDirection {
   readonly direction: "ltr" | "rtl";
@@ -40,6 +41,15 @@ export abstract class RegionBox implements ReadonlyBox, Region {
   }
   get ymax() {
     return this.y + this.h;
+  }
+
+  /** This box as an area, live: its edges, and the box point that sits on
+   * each axis — the top-left corner by default, as `OverlayBox.origin`.
+   *
+   *   place(sheet, VIEWPORT_BOX.toArea(Align.center, Align.end));
+   */
+  toArea(xalign: Align = Align.start, yalign: Align = Align.start): CutArea {
+    return cut({ xalign, yalign }, [this]);
   }
 }
 

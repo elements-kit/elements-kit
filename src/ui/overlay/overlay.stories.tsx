@@ -516,12 +516,10 @@ export const BottomSheet: StoryObj = {
       const grips = el.querySelectorAll<HTMLElement>("[data-grip]");
 
       const sheet = new OverlayBox(el);
-      // The visual viewport's bottom edge, centred across it. Read in the
-      // effect, so it follows the keyboard.
-      effect(() => {
-        const { xmin, xmax, ymax } = VIEWPORT_BOX;
-        place(sheet, { xmin, xmax, ymax, xalign: Align.center, yalign: Align.end });
-      });
+      // The visual viewport's bottom edge, centred across it: live, so it
+      // follows the keyboard.
+      const dock = VIEWPORT_BOX.toArea(Align.center, Align.end);
+      effect(() => place(sheet, dock));
       effect(() => {
         sheet.w = Math.min(VIEWPORT_BOX.w, 560);
       });

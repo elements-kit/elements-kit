@@ -209,6 +209,18 @@ below.intersect(below.container); // stops at the scroller's edge
 
 The result is live. With no shared room it keeps its own crossed edges, so `PositionTry` passes it over.
 
+### `box.toArea(xalign?, yalign?)`
+
+Any box becomes a live area: its edges, plus the box point that sits on each axis — the top-left corner by default, as `origin`. It has the same `intersect`.
+
+```ts
+// A bottom sheet, docked above the keyboard.
+place(sheet, VIEWPORT_BOX.toArea(Align.center, Align.end));
+
+// Centred in the page column, under a header.
+column.toArea(Align.center, Align.start).intersect({ ymin: 64 });
+```
+
 ### `PositionTry(subject, candidates, order?)`
 
 The CSS `position-try-fallbacks` property: the first candidate with room for `subject` — usually the overlay itself. It is an area, so you place with it as with any other. When none fits it keeps the first, as CSS does, and `fits` turns false.

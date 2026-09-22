@@ -55,6 +55,41 @@ export function intersect(...regions: Region[]): Region | null {
   return { xmin: open(xmin), xmax: open(xmax), ymin: open(ymin), ymax: open(ymax) };
 }
 
+/** A live cut area: cut again by more regions, still live. */
+export interface CutArea extends Area {
+  intersect(...regions: Region[]): CutArea;
+}
+
+/**
+ * `area` cut by `regions`, live: each edge is read through the intersection
+ * on every access, the aligns are the area's. With no shared room it keeps
+ * its own edges, so `PositionTry` passes it over.
+ */
+export function cut(area: Area, regions: Region[]): CutArea {
+  const edges = () => intersect(area, ...regions) ?? area;
+  return {
+    intersect: (...more) => cut(area, [...regions, ...more]),
+    get xmin() {
+      return edges().xmin;
+    },
+    get xmax() {
+      return edges().xmax;
+    },
+    get ymin() {
+      return edges().ymin;
+    },
+    get ymax() {
+      return edges().ymax;
+    },
+    get xalign() {
+      return area.xalign;
+    },
+    get yalign() {
+      return area.yalign;
+    },
+  };
+}
+
 /** The room on one axis — `Infinity` when open. */
 function length(min = -Infinity, max = Infinity): number {
   return max - min;

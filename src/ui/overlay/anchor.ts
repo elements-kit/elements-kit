@@ -1,6 +1,6 @@
 import { type Computed, computed, reactive } from "@/signals";
-import { Align, intersect } from "./area.ts";
-import type { Area, Region } from "./area.ts";
+import { Align, cut } from "./area.ts";
+import type { Area, CutArea, Region } from "./area.ts";
 import { type IDirection, type ReadonlyBox, WINDOW_BOX } from "./box.ts";
 
 /**
@@ -443,29 +443,8 @@ export class PositionArea implements Area {
    * With no shared room it keeps its own crossed edges, so `PositionTry`
    * passes it over.
    */
-  intersect(...regions: Region[]): Area {
-    const edges = () => intersect(this, ...regions) ?? this;
-    const self = this;
-    return {
-      get xmin() {
-        return edges().xmin;
-      },
-      get xmax() {
-        return edges().xmax;
-      },
-      get ymin() {
-        return edges().ymin;
-      },
-      get ymax() {
-        return edges().ymax;
-      },
-      get xalign() {
-        return self.xalign;
-      },
-      get yalign() {
-        return self.yalign;
-      },
-    };
+  intersect(...regions: Region[]): CutArea {
+    return cut(this, regions);
   }
 }
 
