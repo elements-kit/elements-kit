@@ -170,7 +170,9 @@
     position: absolute;
     inset-block-end: 0;
     inset-inline: var(--item-spacing, var(--space-2)) 0;
-    border-block-end: 1px solid var(--neutral-a6);
+    /* a hairline (one device pixel on 2x screens), centred on the boundary between rows */
+    border-block-end: 0.5px solid var(--neutral-a6);
+    translate: 0 50%;
     pointer-events: none;
   }
 

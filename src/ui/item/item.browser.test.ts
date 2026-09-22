@@ -93,7 +93,10 @@ for (const [size, avatarSize, spacing, height, title, compact] of [
       first.dataset.separator = "";
       last.dataset.separator = "";
       const line = css(first, "::after");
-      expect(line.borderBottomWidth).toBe("1px");
+      // a hairline: browsers round 0.5px up to one device pixel
+      expect(parseFloat(line.borderBottomWidth)).toBeGreaterThan(0);
+      expect(parseFloat(line.borderBottomWidth)).toBeLessThanOrEqual(1);
+      expect(line.translate).toBe("0px 50%");
       expect(box(first).left + parseFloat(line.left)).toBe(box(q(".x-item-content")).left);
       expect(parseFloat(line.bottom)).toBe(0);
       expect(css(last, "::after").content).toBe("none");
