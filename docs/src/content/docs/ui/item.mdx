@@ -46,14 +46,14 @@ import "elements-kit/ui/item/item.css";
 | `.x-avatar` | the leading visual; give it the item's `data-size` |
 | `.x-item-content` | holds the title and description, takes the free width |
 | `.x-item-title`, `.x-item-description` | one line each, truncated with an ellipsis; `data-wrap` wraps them; `data-variant="compact"` on the title keeps it the row's size |
-| `.x-item-trailing` | values and controls at the end, `--space-2` apart |
-| `.x-item-chevron` | a disclosure icon you place; muted, mirrored in RTL |
+| `.x-item-trailing` | values and controls at the end, `--space-1` apart |
+| `.x-item-chevron` | a disclosure icon you place (e.g. `arrow_forward_ios`); 1em of the row's text, muted, mirrored in RTL |
 | `.x-item-link` | the row's link when the row also holds buttons |
 | `.x-item-hint` | helper text below a card of items; give it the card's `data-size` |
 
 | Attribute | Values |
 | --- | --- |
-| `data-size` | `1`, `2`, `3` *(default)*; on the item or a parent `.x-card` |
+| `data-size` | `1`, `2` *(default)*, `3`; on the item or a parent `.x-card` |
 | `data-align` | `start` for tall rows |
 | `data-interactive` | hover and press backgrounds |
 | `data-separator` | a line under the row, from where its text starts; none under the last row |
@@ -66,8 +66,8 @@ One spacing value per size pads the row and separates the avatar, the text and t
 | `data-size` | Avatar | Spacing | Row | Title | Compact title | Description |
 | --- | --- | --- | --- | --- | --- | --- |
 | `1` | 24 | 8 | 40 | 12px regular | 10px medium | 10px |
-| `2` | 32 | 8 | 48 | 14px regular | 12px medium | 12px |
-| `3` *(default)* | 40 | 12 | 64 | 16px regular | 14px medium | 14px |
+| `2` *(default)* | 32 | 8 | 48 | 14px regular | 12px medium | 12px |
+| `3` | 40 | 12 | 64 | 16px regular | 14px medium | 14px |
 
 Set `data-size` on the card to size every row inside; a row's own `data-size` overrides it.
 
@@ -110,12 +110,12 @@ When the row opens something and also holds buttons, make the title the link wit
     <span class="x-item-description">Fleetwood Mac</span>
   </div>
   <div class="x-item-trailing">
-    <button class="unset x-button" data-variant="borderless" data-icon aria-label="More">…</button>
+    <button class="unset x-button" data-variant="text" data-icon aria-label="More">…</button>
   </div>
 </li>
 ```
 
-An icon button at the end is pulled out so its glyph lines up with chevrons and text in other rows.
+Use `data-variant="text"` for an icon button at the end: its negative margin lines its glyph up with chevrons and text in other rows.
 
 ## Groups
 

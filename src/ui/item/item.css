@@ -3,7 +3,7 @@
  * for a title over a description. data-wrap on a title or description wraps it.
  * Optional: .x-item-link, .x-item-chevron, and .x-item-hint below a
  * card of items (outside a sized .x-card, give the hint the rows' data-size).
- * data-size="1 | 2 | 3"   row 40 / 48 / 64 (default 3), or from a sized .x-card;
+ * data-size="1 | 2 | 3"   row 40 / 48 / 64 (default 2), or from a sized .x-card;
  *                         give the avatar the same data-size
  * data-align="start"      tall rows: avatar on top, trailing on the title line
  * data-interactive        hover and press
@@ -12,7 +12,7 @@
  * aria-current, aria-selected="true"   selected
  */
 
-/* SIZES — size 3 is the fallback everywhere below */
+/* SIZES — size 2 is the fallback everywhere below */
 :where(.x-card, .x-item, .x-item-hint):where([data-size="1"]) {
   --item-spacing: var(--space-2);
   --item-avatar-size: var(--space-5);
@@ -60,16 +60,16 @@
   display: flex;
   align-items: center;
   /* avatar → text → trailing; the same value pads the row */
-  gap: var(--item-spacing, var(--space-3));
+  gap: var(--item-spacing, var(--space-2));
   box-sizing: border-box;
   inline-size: 100%;
   min-inline-size: 0;
-  padding: var(--item-spacing, var(--space-3));
+  padding: var(--item-spacing, var(--space-2));
   font-family: var(--default-font-family);
   font-weight: var(--font-weight-regular);
-  font-size: var(--item-font-size, var(--font-size-2));
-  line-height: var(--item-line-height, var(--line-height-2));
-  letter-spacing: var(--item-letter-spacing, var(--letter-spacing-2));
+  font-size: var(--item-font-size, var(--font-size-1));
+  line-height: var(--item-line-height, var(--line-height-1));
+  letter-spacing: var(--item-letter-spacing, var(--letter-spacing-1));
   text-align: start;
   text-decoration: none;
   color: var(--neutral-12);
@@ -93,9 +93,9 @@
 
 /* one step up */
 .x-item-title {
-  font-size: var(--item-title-font-size, var(--font-size-3));
-  line-height: var(--item-title-line-height, var(--line-height-3));
-  letter-spacing: var(--item-title-letter-spacing, var(--letter-spacing-3));
+  font-size: var(--item-title-font-size, var(--font-size-2));
+  line-height: var(--item-title-line-height, var(--line-height-2));
+  letter-spacing: var(--item-title-letter-spacing, var(--letter-spacing-2));
 }
 
 /* compact: the row's size and medium, for a title over a description;
@@ -128,14 +128,11 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* an icon button at the end: its glyph, not its box, lines up with chevrons and text */
-.x-item-trailing > .x-button:where([data-icon]):last-child {
-  margin-inline-end: calc((1.25em - var(--base-button-height)) / 2);
-}
-
+/* one em of the row's text */
 .x-item-chevron {
   flex: none;
-  color: var(--neutral-a9);
+  inline-size: 1em;
+  block-size: 1em;
 
   &:dir(rtl) {
     scale: -1 1;
@@ -172,14 +169,15 @@
     content: "";
     position: absolute;
     inset-block-end: 0;
-    inset-inline: var(--item-spacing, var(--space-3)) 0;
+    inset-inline: var(--item-spacing, var(--space-2)) 0;
     border-block-end: 1px solid var(--neutral-a6);
     pointer-events: none;
   }
 
   &:has(> .x-avatar)::after {
     inset-inline-start: calc(
-      var(--item-spacing, var(--space-3)) * 2 + var(--item-avatar-size, var(--space-7))
+      var(--item-spacing, var(--space-2)) * 2 +
+        var(--item-avatar-size, var(--space-6))
     );
   }
 
@@ -193,8 +191,8 @@
 .x-item-hint {
   margin: 0;
   font-family: var(--default-font-family);
-  font-size: var(--item-hint-font-size, var(--font-size-1));
-  line-height: var(--item-hint-line-height, var(--line-height-1));
+  font-size: var(--item-hint-font-size, var(--font-size-0));
+  line-height: var(--item-hint-line-height, calc(12px * var(--scaling)));
   color: var(--neutral-a11);
 }
 
@@ -215,7 +213,7 @@
 
   /* one compact title line tall: taller children (a button) overhang it evenly */
   & .x-item-trailing {
-    block-size: var(--item-line-height, var(--line-height-2));
+    block-size: var(--item-line-height, var(--line-height-1));
   }
 }
 
@@ -235,7 +233,10 @@
   }
 }
 
-.x-item:where([aria-current]:not([aria-current="false"]), [aria-selected="true"]) {
+.x-item:where(
+  [aria-current]:not([aria-current="false"]),
+  [aria-selected="true"]
+) {
   background-color: var(--accent-a3);
 }
 

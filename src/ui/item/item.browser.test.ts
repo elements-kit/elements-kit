@@ -22,7 +22,7 @@ afterEach(() => host?.remove());
 const avatar = (size: string) =>
   `<span class="x-avatar" data-size="${size}"><span class="x-avatar-fallback">FM</span></span>`;
 
-function mount(html: string, { size = "3", dir = "ltr", width = 480 } = {}) {
+function mount(html: string, { size = "2", dir = "ltr", width = 480 } = {}) {
   host = document.createElement("div");
   host.dataset.neutral = "gray";
   host.dataset.accent = "mint";
@@ -42,7 +42,7 @@ const song = (size: string, description = true) => `
     </div>
     <div class="x-item-trailing">
       <span>4:11</span>
-      <button class="unset x-button" data-variant="borderless" data-icon data-size="${size}" aria-label="More">
+      <button class="unset x-button" data-variant="text" data-icon data-size="${size}" aria-label="More">
         <svg width="1.25em" height="1.25em" viewBox="0 0 24 24"></svg>
       </button>
     </div>
@@ -82,7 +82,7 @@ for (const [size, avatarSize, spacing, height, title, compact] of [
       expect(box(row).height).toBe(height);
     });
 
-    it("ends an icon button's glyph at the row padding, like a chevron", () => {
+    it("ends a text icon button's glyph at the row padding, like a chevron", () => {
       const row = mount(song(size), { size });
       expect(box(row).right - box(q(".x-item-trailing svg")).right).toBe(spacing);
     });
@@ -173,11 +173,19 @@ it("tints selected rows, colors accent rows, and dims disabled rows", () => {
   expect(css(row).pointerEvents).toBe("none");
 });
 
+const chevronRow = `<a class="x-item" href="#"><div class="x-item-content"><span class="x-item-title">Wi-Fi</span></div>
+  <div class="x-item-trailing"><svg class="x-item-chevron" width="20" height="20" viewBox="0 -960 960 960"></svg></div></a>`;
+
+it("sizes the chevron to 1em of the row's text and ends its box on the padding", () => {
+  const row = mount(chevronRow);
+  const c = box(q(".x-item-chevron"));
+  const em = parseFloat(css(row).fontSize);
+  expect([c.width, c.height]).toEqual([em, em]);
+  expect(box(row).right - c.right).toBe(parseFloat(css(row).paddingRight));
+  expect(mid(c)).toBe(mid(box(row)));
+});
+
 it("mirrors the chevron in RTL", () => {
-  mount(
-    `<a class="x-item" href="#"><div class="x-item-content"><span class="x-item-title">Wi-Fi</span></div>
-      <div class="x-item-trailing"><svg class="x-item-chevron" width="20" height="20"></svg></div></a>`,
-    { dir: "rtl" },
-  );
+  mount(chevronRow, { dir: "rtl" });
   expect(css(q(".x-item-chevron")).scale).toBe("-1 1");
 });

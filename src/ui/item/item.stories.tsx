@@ -11,6 +11,10 @@ import "../styles/palette/red.css";
 import "../styles/accent/red.css";
 import "./item.css";
 
+const Chevron = () => (
+  <StoryIcon name="arrow_forward_ios" class="x-item-chevron" />
+);
+
 const songs = [
   {
     title: "Dreams",
@@ -63,7 +67,7 @@ const messages = [
 
 const meta = {
   title: "UI/Item",
-  args: { size: "3" },
+  args: { size: "2" },
   argTypes: { size: { control: "select", options: ["1", "2", "3"] } },
   render: ({ size }) => (
     <div style="display: grid; gap: var(--space-5)">
@@ -101,7 +105,7 @@ const meta = {
                 <button
                   class:unset
                   class:x-button
-                  data-variant="borderless"
+                  data-variant="text"
                   data-icon
                   data-size={size}
                   aria-label={`More options for ${song.title}`}
@@ -123,7 +127,7 @@ const meta = {
                 <span class:x-item-description>128 songs</span>
               </div>
               <div class:x-item-trailing>
-                <StoryIcon name="chevron_right" class="x-item-chevron" />
+                <Chevron />
               </div>
             </a>
           </li>
@@ -153,7 +157,7 @@ const meta = {
               </div>
               <div class:x-item-trailing>
                 <time>{message.time}</time>
-                <StoryIcon name="chevron_right" class="x-item-chevron" />
+                <Chevron />
               </div>
             </a>
             </li>
@@ -194,7 +198,7 @@ const meta = {
               </div>
               <div class:x-item-trailing>
                 <span>Home</span>
-                <StoryIcon name="chevron_right" class="x-item-chevron" />
+                <Chevron />
               </div>
             </a>
             </li>
@@ -247,7 +251,7 @@ const meta = {
                 <span class:x-badge data-size="1" data-accent="red">
                   3
                 </span>
-                <StoryIcon name="chevron_right" class="x-item-chevron" />
+                <Chevron />
               </div>
             </a>
             </li>
@@ -331,7 +335,7 @@ const meta = {
               <span class:x-item-description>48 GB of 128 GB used</span>
             </div>
             <div class:x-item-trailing>
-              <StoryIcon name="chevron_right" class="x-item-chevron" />
+              <Chevron />
             </div>
           </a>
           <a class:x-item href="#" data-interactive>
@@ -344,7 +348,7 @@ const meta = {
               </span>
             </div>
             <div class:x-item-trailing>
-              <StoryIcon name="chevron_right" class="x-item-chevron" />
+              <Chevron />
             </div>
           </a>
           <a class:x-item href="#" data-interactive>
@@ -355,7 +359,7 @@ const meta = {
             </div>
             <div class:x-item-trailing>
               <span>English</span>
-              <StoryIcon name="chevron_right" class="x-item-chevron" />
+              <Chevron />
             </div>
           </a>
           <hr class:x-separator />

@@ -38,6 +38,8 @@ import Symbol36 from "@material-symbols/svg-400/rounded/chevron_right-fill.svg?e
 import Symbol37 from "@material-symbols/svg-400/rounded/check-fill.svg?ek";
 import Symbol38 from "@material-symbols/svg-400/rounded/open_in_new-fill.svg?ek";
 import Symbol39 from "@material-symbols/svg-400/rounded/delete-fill.svg?ek";
+import Symbol40 from "@material-symbols/svg-400/rounded/chevron_forward-fill.svg?ek";
+import Symbol41 from "@material-symbols/svg-400/rounded/arrow_forward_ios-fill.svg?ek";
 
 const icons = {
   wifi: Symbol0,
@@ -71,12 +73,14 @@ const icons = {
   format_italic: Symbol28,
   format_underlined: Symbol29,
   arrow_back_ios: Symbol30,
+  arrow_forward_ios: Symbol41,
   arrow_back_ios_new: Symbol31,
   reply: Symbol32,
   forward: Symbol33,
   flag: Symbol34,
   notifications_off: Symbol35,
   chevron_right: Symbol36,
+  chevron_forward: Symbol40,
   check: Symbol37,
   open_in_new: Symbol38,
   delete: Symbol39,
@@ -85,7 +89,10 @@ const icons = {
 export type IconName = keyof typeof icons;
 
 /** Rounded Filled symbols at weight 400; heavier dots keep More legible. */
-export function StoryIcon(props: { name: IconName; size?: string; class?: string; style?: string; "data-accent"?: string }) {
+/** `viewBox` crops the glyph (e.g. to its ink); the box is then left to CSS. */
+export function StoryIcon(props: { name: IconName; size?: string; viewBox?: string; class?: string; style?: string; "data-accent"?: string }) {
   const Symbol = icons[props.name];
-  return <Symbol aria-hidden="true" width={props.size ?? "1.25em"} height={props.size ?? "1.25em"} class={props.class} style={props.style} data-accent={props["data-accent"]} />;
+  const size = props.size ?? (props.viewBox ? undefined : "1.25em");
+  const crop = props.viewBox ? { viewBox: props.viewBox } : {};
+  return <Symbol aria-hidden="true" width={size} height={size} {...crop} class={props.class} style={props.style} data-accent={props["data-accent"]} />;
 }
