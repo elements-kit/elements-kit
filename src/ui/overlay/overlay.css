@@ -29,7 +29,7 @@
  *     end-start | end-end         (block side first, inline second)
  *     move                        top-center grab pill, x/y window move
  *   An edge handle also picks the enter/exit slide (it implies the opposite
- *   edge is docked); no edge handle → scale + settle. NOTE: the handles
+ *   edge is docked); no edge handle → fade + scale. NOTE: the handles
  *   currently PAINT and select motion only — no pointer engine is exported
  *   yet, so drive `OverlayBox`'s `displacement` yourself and set
  *   `data-no-transition` for the duration of the drag.
@@ -186,21 +186,21 @@
  * settle in from a scale instead. Gestures (which only add                                        *
  * --overlay-dx/-dy) compose cleanly.                                                              *
  *                                                                                                 *
- * The frame never animates `opacity` — an ancestor below 1 is a BACKDROP                          *
- * ROOT, killing a translucent card's blur until the last frame.                                   *
+ * A window also fades. An ancestor below opacity 1 is a BACKDROP ROOT: a                          *
+ * translucent card's blur is off while the frame fades.                                           *
  *                                                                                                 *
  ***************************************************************************************************/
 
 @supports (transition-behavior: allow-discrete) {
   .x-overlay {
-    transition-property: translate, width, height, scale, display;
+    transition-property: translate, width, height, opacity, scale, display;
     transition-duration: var(--overlay-duration);
     transition-timing-function: var(--overlay-easing);
     transition-behavior: allow-discrete;
   }
 
   /* windows (no edge handle — none, a corner grip, or move-only) —
-   * settle in from a scale (no opacity — backdrop root, see above) */
+   * fade + settle in from a scale */
   .x-overlay:where(
     :not(
       :has(
@@ -209,12 +209,15 @@
       )
     )
   ) {
+    opacity: 0;
     scale: 0.94;
 
     &:where([open], :popover-open) {
+      opacity: 1;
       scale: 1;
 
       @starting-style {
+        opacity: 0;
         scale: 0.94;
       }
     }
@@ -336,7 +339,7 @@
   @supports (overlay: auto) {
     .x-overlay {
       transition-property:
-        translate, width, height, scale, display, overlay;
+        translate, width, height, opacity, scale, display, overlay;
     }
     .x-overlay::backdrop {
       transition-property: opacity, display, overlay;
