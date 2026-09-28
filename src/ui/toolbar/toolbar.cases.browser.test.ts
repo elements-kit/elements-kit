@@ -136,6 +136,39 @@ describe.runIf(native)("bar title", () => {
     expect(getComputedStyle(q(el, "header"), "::before").opacity).toBe("1");
   });
 
+  it('data-reveal="none": hidden at the top and scrolled, no scroll timeline', async () => {
+    const el = mount(`<header class="x-toolbar" data-reveal="none"><span data-title>Playground</span></header>${rows()}`);
+    await frame();
+    const bar = q(el, "header");
+    expect(getComputedStyle(bar).animationName).toBe("none");
+    expect(getComputedStyle(bar, "::before").opacity).toBe("0");
+    el.scrollTop = 400;
+    // Where there's no timeline, a script drives --scroll-y instead: none holds against it too.
+    bar.style.setProperty("--scroll-y", "400px");
+    await frame();
+    expect(getComputedStyle(bar, "::before").opacity).toBe("0");
+  });
+
+  it('data-reveal="none": a bottom bar stays clear with content below it', async () => {
+    const el = mount(`${rows()}<footer class="x-toolbar" data-position="bottom" data-reveal="none"><div><button>OK</button></div></footer>`);
+    await frame();
+    const bar = q(el, "footer");
+    expect(getComputedStyle(bar).animationName).toBe("none");
+    // A script's distance-left-to-scroll would reveal an ordinary bottom bar.
+    bar.style.setProperty("--scroll-y-end", "400px");
+    await frame();
+    expect(getComputedStyle(bar, "::before").opacity).toBe("0");
+  });
+
+  it('data-reveal="none": a bar title under a large title stays hidden', async () => {
+    const el = mount(`<header class="x-toolbar" data-reveal="none"><span data-title>Inbox</span></header><h1 class="x-large-title">Inbox</h1>${rows()}`);
+    await frame();
+    el.scrollTop = 400;
+    await frame();
+    expect(getComputedStyle(q(el, "[data-title]")).opacity).toBe("0");
+    expect(getComputedStyle(q(el, "header"), "::before").opacity).toBe("0");
+  });
+
   it("a title in a grouped row appears as the large title collapses", async () => {
     const el = mount(
       `<header class="x-toolbar"><div class="x-toolbar"><span data-title>Recents</span></div><div class="x-toolbar"><span>Search</span></div></header><h1 class="x-large-title">Recents</h1>${rows()}`,

@@ -19,6 +19,8 @@
  *                                          content is below it, clear at the end
  *   data-reveal="always"                   background (and a bar title under a large title) shown
  *                                          from the start, no fade
+ *   data-reveal="none"                     never revealed: no background or hairline, and no bar
+ *                                          title under a large title (top and bottom bars)
  *   data-inset="top | bottom" in .x-card   the card drops its padding on that edge (a dialog's bars)
  *   [data-title] data-align="start"        title at the start, filling the free space (first: at the
  *                                          bar's start; after a back button: next to it)
@@ -385,9 +387,13 @@
   }
 }
 
-/* data-reveal="always": revealed from the start (the timelines skip it, below) */
+/* data-reveal="always" | "none": held revealed or hidden (the timelines skip both, below) */
 .x-toolbar[data-reveal="always"] {
   --x-toolbar-reveal: 1;
+}
+
+.x-toolbar[data-reveal="none"] {
+  --x-toolbar-reveal: 0;
 }
 
 /* inset in a card (a dialog): the card is a scroller (overflow: hidden) and a sticky bar stops at
@@ -529,7 +535,7 @@
 
 /* shown while content is below it: --scroll-y-end is the distance left to scroll (a timeline, or a
    script without one); unset, always shown */
-.x-toolbar[data-position="bottom"]:not([data-reveal="always"]) {
+.x-toolbar[data-position="bottom"]:not([data-reveal="always"], [data-reveal="none"]) {
   --x-toolbar-reveal: clamp(
     0,
     (tan(atan2(var(--scroll-y-end, 100vh), var(--x-toolbar-distance))) - 0.6) / 0.4,
@@ -782,7 +788,10 @@
   }
 
   /* the bar animates its reveal; its background and title read it */
-  :is(.x-toolbar:has(+ .x-large-title), .x-large-title + .x-toolbar):not([data-reveal="always"]) {
+  :is(.x-toolbar:has(+ .x-large-title), .x-large-title + .x-toolbar):not(
+      [data-reveal="always"],
+      [data-reveal="none"]
+    ) {
     animation: x-toolbar-reveal linear both;
     animation-timeline: --x-large-title;
     animation-range: exit calc(0.6 * var(--x-toolbar-distance)) exit
@@ -798,7 +807,9 @@
     :is(.x-toolbar:has(+ .x-large-title), .x-large-title + .x-toolbar)
       > .x-toolbar,
     [data-reveal="always"],
-    [data-reveal="always"] > .x-toolbar
+    [data-reveal="always"] > .x-toolbar,
+    [data-reveal="none"],
+    [data-reveal="none"] > .x-toolbar
   ) {
     animation: x-toolbar-reveal linear both;
     animation-timeline: scroll(nearest block);
@@ -808,7 +819,11 @@
 
   /* bottom bar: clear at the end of the scroll; nothing scrolls, the timeline is inactive and the
      resting --scroll-y-end: 0 keeps it clear */
-  .x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar, [data-reveal="always"]) {
+  .x-toolbar[data-position="bottom"]:not(
+      .x-toolbar .x-toolbar,
+      [data-reveal="always"],
+      [data-reveal="none"]
+    ) {
     --scroll-y-end: 0px;
     animation: x-toolbar-reveal linear both reverse;
     animation-timeline: scroll(nearest block);
