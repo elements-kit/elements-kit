@@ -186,14 +186,22 @@
  * settle in from a scale instead. Gestures (which only add                                        *
  * --overlay-dx/-dy) compose cleanly.                                                              *
  *                                                                                                 *
- * A window also fades. An ancestor below opacity 1 is a BACKDROP ROOT: a                          *
- * translucent card's blur is off while the frame fades.                                           *
+ * A window also fades — its layers, never the frame: an ancestor below                            *
+ * opacity 1 is a BACKDROP ROOT, and would cut the card's blur until the fade                      *
+ * ends. The frame animates --overlay-fade; the glass (::before), the ring                         *
+ * (::after) and the content take it as their own opacity.                                         *
  *                                                                                                 *
  ***************************************************************************************************/
 
+@property --overlay-fade {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+
 @supports (transition-behavior: allow-discrete) {
   .x-overlay {
-    transition-property: translate, width, height, opacity, scale, display;
+    transition-property: translate, width, height, --overlay-fade, scale, display;
     transition-duration: var(--overlay-duration);
     transition-timing-function: var(--overlay-easing);
     transition-behavior: allow-discrete;
@@ -209,18 +217,25 @@
       )
     )
   ) {
-    opacity: 0;
+    --overlay-fade: 0;
     scale: 0.94;
 
     &:where([open], :popover-open) {
-      opacity: 1;
+      --overlay-fade: 1;
       scale: 1;
 
       @starting-style {
-        opacity: 0;
+        --overlay-fade: 0;
         scale: 0.94;
       }
     }
+  }
+
+  :where(.x-overlay) > :where(:not(.x-card)),
+  :where(.x-overlay > .x-card) > *,
+  :where(.x-overlay) > .x-card::before,
+  :where(.x-overlay) > .x-card::after {
+    opacity: var(--overlay-fade);
   }
 
   /* anchored — the settle scales FROM the anchor's side (data-placed is
@@ -339,7 +354,7 @@
   @supports (overlay: auto) {
     .x-overlay {
       transition-property:
-        translate, width, height, opacity, scale, display, overlay;
+        translate, width, height, --overlay-fade, scale, display, overlay;
     }
     .x-overlay::backdrop {
       transition-property: opacity, display, overlay;
