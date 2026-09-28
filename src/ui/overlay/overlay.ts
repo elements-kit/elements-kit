@@ -1,4 +1,4 @@
-import { batch, effect, reactive } from "@/signals/index.ts";
+import { batch, effect, onCleanup, reactive } from "@/signals/index.ts";
 import { scope } from "@/signals/scope";
 import { IDirection, ReadonlyBox, RegionBox } from "./box.ts";
 import type { Align } from "./area.ts";
@@ -144,10 +144,17 @@ export class OverlayBox extends TransformableBox implements IDirection {
         this.#project("--dy", this.displacement.y);
       });
     });
+    let disposed = false;
     this.dispose = () => {
+      if (disposed) return;
+      disposed = true;
       stop();
       this.#rect[Symbol.dispose]();
     };
+    // Its effects and resize observer live in a scope of their own, which the
+    // creator's teardown can't reach: tie them to it here. Outside any scope
+    // (a page-lifetime overlay) this does nothing, and `dispose` stays manual.
+    onCleanup(this.dispose);
   }
 
   /** The box point that lands on (x, y), and the scale's origin. */

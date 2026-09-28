@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { effectScope } from "@/signals/index.ts";
 import { AUTO, OverlayBox } from "./overlay.ts";
 
 /** A rect-mocked `.x-overlay` dialog (happy-dom has no layout). */
@@ -132,5 +133,39 @@ describe("OverlayBox", () => {
     o.x = 20;
     expect(channel(el, "--x")).toBe("10px");
     el.remove();
+  });
+});
+
+describe("OverlayBox lifetime", () => {
+  it("is disposed with the scope that created it", () => {
+    const el = overlayEl();
+    let o!: OverlayBox;
+    const stop = effectScope(() => {
+      o = new OverlayBox(el);
+    });
+    o.x = 10;
+    expect(channel(el, "--x")).toBe("10px");
+    stop();
+    // Its projection effects are gone: writes no longer reach the element.
+    o.x = 30;
+    expect(channel(el, "--x")).toBe("10px");
+  });
+
+  it("lives on when created outside any scope", () => {
+    const el = overlayEl();
+    const o = new OverlayBox(el);
+    o.x = 5;
+    expect(channel(el, "--x")).toBe("5px");
+    o.dispose();
+    o.x = 6;
+    expect(channel(el, "--x")).toBe("5px");
+  });
+
+  it("takes a manual dispose before its scope ends", () => {
+    const el = overlayEl();
+    const stop = effectScope(() => {
+      new OverlayBox(el).dispose();
+    });
+    expect(() => stop()).not.toThrow();
   });
 });
