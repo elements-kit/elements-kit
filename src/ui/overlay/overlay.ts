@@ -1,12 +1,24 @@
 import { batch, effect, onCleanup, reactive, signal } from "@/signals/index.ts";
 import { scope } from "@/signals/scope";
-import { createResizeObserver } from "@/utilities/resize-observer.ts";
+import { on } from "@/utilities/event-listener.ts";
+import { createMutationObserver } from "@/utilities/mutation-observer.ts";
 import { IDirection, ReadonlyBox, RegionBox } from "./box.ts";
 import {
   createElementRect,
   type ElementRect,
 } from "@/utilities/element-rect.ts";
 import type { Align } from "./area.ts";
+
+/** A popover or dialog is shown while open; any other element always is. */
+function isOpen(el: HTMLElement): boolean {
+  if (el.hasAttribute("open")) return true;
+  try {
+    if (el.matches(":popover-open")) return true;
+  } catch {
+    // no Popover API: nothing is a popover
+  }
+  return !el.hasAttribute("popover") && !(el instanceof HTMLDialogElement);
+}
 
 export const AUTO = NaN;
 class PartialBox implements Partial<ReadonlyBox> {
@@ -107,8 +119,7 @@ const percent = (a: Align | undefined) => `${(a ?? 0) * 100}%`;
 export class OverlayBox extends TransformableBox implements IDirection {
   readonly element: HTMLElement;
   readonly #rect: ElementRect;
-  // Set by the observer below; a hidden element never gets an observation.
-  readonly #open = signal(false);
+  readonly #open: ReturnType<typeof signal<boolean>>;
   // Neutral: the channels place the top-left corner, so no shift.
   #origin: Origin = {};
 
@@ -116,6 +127,7 @@ export class OverlayBox extends TransformableBox implements IDirection {
     super();
     this.element = element;
     this.#rect = createElementRect(element);
+    this.#open = signal(isOpen(element));
 
     element.style.setProperty("top", "0");
     element.style.setProperty("left", "0");
@@ -149,13 +161,19 @@ export class OverlayBox extends TransformableBox implements IDirection {
         this.#project("--dy", this.displacement.y);
       });
 
-      // A closed popover or dialog is `display: none`, so 0×0. The observer
-      // fires after layout and before paint, so an opening box is placed
-      // before it shows.
-      createResizeObserver(element, ([entry]) => {
-        const { width, height } = entry.contentRect;
-        this.#open(width > 0 || height > 0);
-      });
+      // Set before the first style of an opening box, so it's placed there
+      // rather than gliding in from where it was. `beforetoggle` for popovers;
+      // a dialog's `open` attribute (a microtask, still before render) for
+      // browsers that fire no toggle events on dialogs.
+      on(element, "beforetoggle", (event) =>
+        this.#open((event as ToggleEvent).newState === "open"),
+      );
+      if (element instanceof HTMLDialogElement)
+        createMutationObserver(
+          element,
+          { attributes: true, attributeFilter: ["open"] },
+          () => this.#open(isOpen(element)),
+        );
     });
     let disposed = false;
     this.dispose = () => {
@@ -170,8 +188,9 @@ export class OverlayBox extends TransformableBox implements IDirection {
     onCleanup(this.dispose);
   }
 
-  /** Whether the element has a size — reactive. A closed popover or dialog
-   * doesn't, so `place` skips it and its anchor isn't measured. */
+  /** Whether the element is shown — reactive. A closed popover or dialog is
+   * not placed (see `place`), so nothing it anchors to is measured. Create
+   * the box before it opens: its `beforetoggle` is what it listens to. */
   get open(): boolean {
     return this.#open();
   }

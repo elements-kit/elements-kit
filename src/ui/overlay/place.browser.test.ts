@@ -27,11 +27,11 @@ async function scrollPage(y: number) {
   await frame();
 }
 
-function setup(kind: "popover" | "dialog") {
-  // Where the overlay is placed, not how it glides there: `.x-overlay`
-  // transitions `translate`, which would leave it mid-way when measured.
+function setup(kind: "popover" | "dialog", { glide = false } = {}) {
+  // `.x-overlay` transitions `translate`: off by default, so a box that
+  // follows its anchor is measured where it lands, not mid-way.
   document.body.innerHTML = `
-    <style>.x-overlay { transition: none !important; }</style>
+    ${glide ? "" : "<style>.x-overlay { transition: none !important; }</style>"}
     <div style="block-size: 3000px">
       <button data-trigger style="margin-block-start: 200px">Open</button>
     </div>
@@ -58,17 +58,14 @@ describe("place: a closed overlay", () => {
     expect(measure).not.toHaveBeenCalled();
   });
 
-  it("is placed under its anchor before its first frame when it opens", async () => {
-    const { trigger, menu } = setup("popover");
-    let placedAt: number | undefined;
-    menu.addEventListener("toggle", () => {
-      placedAt = menu.getBoundingClientRect().top;
-    });
+  it("opens under its anchor, not gliding in from where it was", async () => {
+    // Transitions on: placed after its first style, it would glide from 0,0.
+    const { trigger, menu } = setup("popover", { glide: true });
 
     menu.showPopover();
     await frame();
 
-    expect(placedAt).toBeCloseTo(trigger.getBoundingClientRect().bottom, 0);
+    expect(menu.getBoundingClientRect().top).toBeCloseTo(trigger.getBoundingClientRect().bottom, 0);
   });
 
   it("follows its anchor on scroll while open, and stops once closed", async () => {
