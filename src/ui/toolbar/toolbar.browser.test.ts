@@ -86,6 +86,42 @@ describe("x-toolbar regions", () => {
     expect(box(bar).right - box(end).right).toBeCloseTo(16, 0);
   });
 
+  it("puts the end of a two-region bar in the second column, not an implicit third", () => {
+    const el = mount(`<header class="x-toolbar"><div>${button("Back")}</div><div>${button("More")}</div></header>`);
+    const bar = q(el, ".x-toolbar");
+
+    expect(getComputedStyle(bar.lastElementChild!).gridColumnStart).toBe("2");
+    expect(getComputedStyle(bar).gridTemplateColumns.split(" ")).toHaveLength(2);
+  });
+
+  it("puts the end of a three-region bar in the third column", () => {
+    const el = mount(`
+      <header class="x-toolbar">${button("Back")}<span data-title>Inbox</span>${button("Edit")}</header>`);
+
+    expect(getComputedStyle(q(el, ".x-toolbar").lastElementChild!).gridColumnStart).toBe("3");
+  });
+
+  it("a start title with one end item: title | end in two columns", () => {
+    const el = mount(`
+      <header class="x-toolbar"><span data-title data-align="start">Inbox</span>${button("Edit")}</header>`);
+    const bar = q(el, ".x-toolbar");
+
+    expect(getComputedStyle(bar.lastElementChild!).gridColumnStart).toBe("2");
+    expect(getComputedStyle(bar).gridTemplateColumns.split(" ")).toHaveLength(2);
+    expect(box(bar.lastElementChild!).left).toBeGreaterThan(box(q(bar, "[data-title]")).right);
+  });
+
+  it("a nested bar lays out its own regions, not the outer bar's", () => {
+    const el = mount(`
+      <header class="x-toolbar">
+        <div class="x-toolbar">${button("Back")}<span data-title>Inbox</span>${button("Edit")}</div>
+        <div>${button("More")}</div>
+      </header>`);
+    const inner = q(el, ".x-toolbar .x-toolbar");
+
+    expect(getComputedStyle(inner.lastElementChild!).gridColumnStart).toBe("3");
+  });
+
   it("centers a lone child", () => {
     const el = mount(`<header class="x-toolbar"><div>${button("Pen")}${button("Text")}</div></header>`);
     const bar = q(el, ".x-toolbar");
@@ -268,6 +304,18 @@ describe("x-toolbar data-position=bottom", () => {
 
     expect(opacity(q(el, "footer"), "::before")).toBe(1);
     expect(getComputedStyle(el).scrollPaddingBottom).toBe("56px");
+  });
+
+  it("keeps every child of its container from shrinking: before, the bar, and after", () => {
+    const el = mount(`<div data-before></div>${footer}<div data-after></div>`);
+
+    for (const child of el.children) expect(getComputedStyle(child).flexShrink).toBe("0");
+  });
+
+  it("leaves elements outside its container alone", () => {
+    const el = mount(`<div data-content><p>Row</p></div>${footer}`);
+
+    expect(getComputedStyle(q(el, "p")).flexShrink).toBe("1");
   });
 });
 

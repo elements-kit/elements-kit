@@ -141,7 +141,11 @@
     outline: 2px solid var(--text-input-focus-color);
     outline-offset: -1px;
   }
+}
 
+/* The field's own rules: a child input already implies the wrapper above, so no `:has()` on the
+   parent — one there is re-checked on every DOM change in the page. */
+.x-text-input {
   > :where(input) {
     flex: 1 1 auto;
     min-width: 0;
@@ -207,7 +211,10 @@
     outline: 2px solid var(--text-input-focus-color);
     outline-offset: -1px;
   }
+}
 
+/* As for input: a child textarea implies the wrapper. */
+.x-text-input {
   > :where(textarea) {
     flex: 1 1 auto;
     min-height: 0;
@@ -247,12 +254,17 @@
  *                                                                                                 *
  ***************************************************************************************************/
 
+.x-text-input {
+  /* set by DISABLED / READ-ONLY; declared here so a nested field doesn't inherit it */
+  --x-text-input-affix-cursor: text;
+}
+
 .x-text-input > :where(:not(input, textarea)) {
   box-sizing: border-box;
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  cursor: text;
+  cursor: var(--x-text-input-affix-cursor);
 }
 
 /***************************************************************************************************
@@ -362,11 +374,8 @@
   color: var(--neutral-12);
 
   &:where(input)::placeholder,
-  &:where(textarea)::placeholder {
-    color: var(--neutral-a10);
-  }
-  &:where(:has(> :is(input, textarea)))
-    > :where(:is(input, textarea))::placeholder {
+  &:where(textarea)::placeholder,
+  & > :where(:is(input, textarea))::placeholder {
     color: var(--neutral-a10);
   }
 
@@ -389,12 +398,8 @@
   color: var(--accent-12);
 
   &:where(input)::placeholder,
-  &:where(textarea)::placeholder {
-    color: var(--accent-12);
-    opacity: 0.6;
-  }
-  &:where(:has(> :is(input, textarea)))
-    > :where(:is(input, textarea))::placeholder {
+  &:where(textarea)::placeholder,
+  & > :where(:is(input, textarea))::placeholder {
     color: var(--accent-12);
     opacity: 0.6;
   }
@@ -426,24 +431,24 @@
   }
 }
 
+/* The wrapper's own state is a `:has()` on itself (cheap). What its children need is keyed on the
+   field itself, or handed down as a property — never a `:has()` above the child. */
 .x-text-input:where(:has(> :is(input, textarea):is(:disabled, :read-only))) {
   background-color: var(--neutral-a2);
 
-  & > :where(:is(input, textarea)) {
-    cursor: text;
-    color: var(--neutral-a11);
-    -webkit-text-fill-color: var(--neutral-a11);
-
-    &::placeholder {
-      opacity: 0.5;
-    }
-  }
   &:where(:has(> :is(input, textarea):placeholder-shown)) {
     cursor: var(--cursor-disabled);
+    --x-text-input-affix-cursor: var(--cursor-disabled);
+  }
+}
 
-    & > :where(:not(input, textarea)) {
-      cursor: var(--cursor-disabled);
-    }
+.x-text-input > :where(:is(input, textarea)):where(:disabled, :read-only) {
+  cursor: text;
+  color: var(--neutral-a11);
+  -webkit-text-fill-color: var(--neutral-a11);
+
+  &::placeholder {
+    opacity: 0.5;
   }
 }
 

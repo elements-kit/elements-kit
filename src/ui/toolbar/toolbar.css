@@ -292,10 +292,14 @@
 :has(> .x-toolbar[data-position="bottom"]) {
   display: flex;
   flex-direction: column;
+}
 
-  & > * {
-    flex-shrink: 0;
-  }
+/* its children are the bar and the bar's siblings — named as such, not `:has(…) > *`, whose
+   `:has()` above the child is re-checked on every DOM change in the page */
+:has(~ .x-toolbar[data-position="bottom"]),
+.x-toolbar[data-position="bottom"],
+.x-toolbar[data-position="bottom"] ~ * {
+  flex-shrink: 0;
 }
 
 /***************************************************************************************************
@@ -330,6 +334,8 @@
 .x-toolbar {
   --toolbar-button-gap: var(--space-2);
   --toolbar-region-gap: var(--space-2);
+  /* the end region's column; layouts with two columns set 2 (REGIONS) */
+  --x-toolbar-end-column: 3;
   /* scroll distance to reveal the background: content under the bar (no large title) */
   --x-toolbar-distance: var(--space-2);
   /* fades in over the last 40% of the distance (atan2 trick = length ÷ length) */
@@ -435,21 +441,17 @@
   justify-self: center;
 }
 
+/* The column comes from the bar: a `:has()` on the bar itself is cheap, while one above the child
+   (`.x-toolbar:has(…) > :last-child`) is re-checked on every DOM change in the page. */
 :where(.x-toolbar > :last-child:not(:first-child)) {
-  grid-column: 3;
+  grid-column: var(--x-toolbar-end-column);
   justify-self: end;
 }
 
 /* start and end only: start takes the free space (title next to back) */
 .x-toolbar:not(:has(> :nth-child(3), > [data-title])) {
   grid-template-columns: minmax(0, 1fr) auto;
-}
-
-:where(
-  .x-toolbar:not(:has(> :nth-child(3), > [data-title]))
-    > :last-child:not(:first-child)
-) {
-  grid-column: 2;
+  --x-toolbar-end-column: 2;
 }
 
 :where(.x-toolbar > [data-title]) {
@@ -479,13 +481,7 @@
 /* first of two: title | end */
 .x-toolbar:has(> [data-title][data-align="start"]:first-child:nth-last-child(2)) {
   grid-template-columns: minmax(0, 1fr) auto;
-}
-
-:where(
-  .x-toolbar:has(> [data-title][data-align="start"]:first-child:nth-last-child(2))
-    > :last-child
-) {
-  grid-column: 2;
+  --x-toolbar-end-column: 2;
 }
 
 /* after a start item (back): start | title | end */
