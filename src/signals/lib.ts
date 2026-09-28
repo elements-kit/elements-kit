@@ -213,7 +213,9 @@ const { link, unlink, propagate, checkDirty, shallowPropagate } =
     unwatched(node) {
       if ("getter" in node) {
         const c = node as ComputedNode;
-        if (c.depsTail !== undefined) {
+        // A computed with no deps still owns what its cleanups release (a
+        // listener, an observer): flush those too, and re-run on next read.
+        if (c.depsTail !== undefined || c.onCleanup !== undefined) {
           if (c.onCleanup !== undefined) {
             const fns = c.onCleanup;
             c.onCleanup = undefined;

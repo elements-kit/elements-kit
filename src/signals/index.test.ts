@@ -974,6 +974,35 @@ describe("onCleanup in computed", () => {
     expect(log).toEqual(["cleanup-0", "cleanup-0", "cleanup-1"]);
   });
 
+  it("a computed that reads no signal still flushes its cleanups when unwatched, and re-runs when re-watched", () => {
+    const log: string[] = [];
+    const c = computed(() => {
+      log.push("run");
+      onCleanup(() => log.push("cleanup"));
+      return 1;
+    });
+
+    effect(() => void c())();
+    expect(log).toEqual(["run", "cleanup"]);
+
+    const stop = effect(() => void c());
+    expect(log).toEqual(["run", "cleanup", "run"]);
+    stop();
+    expect(log).toEqual(["run", "cleanup", "run", "cleanup"]);
+  });
+
+  it("the cleanup of a dep-less computed runs when an outer computed's last reader goes", () => {
+    const log: string[] = [];
+    const inner = computed(() => {
+      onCleanup(() => log.push("inner cleanup"));
+      return 1;
+    });
+    const outer = computed(() => inner() + 1);
+
+    effect(() => void outer())();
+    expect(log).toEqual(["inner cleanup"]);
+  });
+
   it("Case 2: dep changes many times while unwatched — cleanup fires once, no re-evaluations", () => {
     const url = signal("A");
     const log: string[] = [];
