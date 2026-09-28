@@ -8,7 +8,7 @@
 /* * * * * * * * * * * * * * * * * * * */
 
 :where(:root) {
-  --color-background: white;
+  --color-background: var(--neutral-2);
   --color-overlay: var(--black-a6);
   --color-surface: rgba(255, 255, 255, 0.85);
 }
