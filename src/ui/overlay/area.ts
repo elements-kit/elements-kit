@@ -131,6 +131,8 @@ interface Placeable {
   origin: { x?: Align; y?: Align };
   x: number;
   y: number;
+  /** Reactive; `false` skips placing. Absent is always open. */
+  readonly open?: boolean;
 }
 
 /**
@@ -138,9 +140,13 @@ interface Placeable {
  * aligns, its x/y on {@link line}. A free axis is left alone. Run it in an
  * `effect` to follow the area.
  *
+ * A closed box isn't placed, and the area isn't read: whatever it anchors to
+ * (an `ElementBox`) stops tracking scroll until the box opens again.
+ *
  *   effect(() => place(overlay, area));
  */
 export function place(box: Placeable, area: Area): void {
+  if (box.open === false) return;
   box.origin = { x: area.xalign, y: area.yalign };
   const { x, y } = line(area);
   if (x !== null) box.x = x;

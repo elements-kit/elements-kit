@@ -124,6 +124,7 @@ export default defineConfig({
             "src/ui/toolbar/*.browser.test.ts",
             "src/ui/group/*.browser.test.ts",
             "src/ui/button/*.browser.test.ts",
+            "src/ui/overlay/place.browser.test.ts",
           ],
           browser: {
             enabled: true,

@@ -6,7 +6,7 @@ import "../styles/index.css";
 import "./index.css";
 import "./overlay.css";
 
-// Real Chromium: popover/dialog open state, and whether a closed overlay's anchor is measured.
+// Real Chromium: open is having a size, and a closed overlay's anchor isn't measured.
 
 let stop: (() => void) | undefined;
 afterEach(() => {
@@ -88,6 +88,7 @@ describe("place: a closed overlay", () => {
 
   it("reads a dialog's open state, show() and close() alike", async () => {
     const { trigger, menu, measure, overlay } = setup("dialog");
+    await frame();
     expect(overlay.open).toBe(false);
 
     (menu as HTMLDialogElement).show();
@@ -103,12 +104,13 @@ describe("place: a closed overlay", () => {
     expect(measure).not.toHaveBeenCalled();
   });
 
-  it("an element that is neither popover nor dialog is always placed", () => {
+  it("any element with a size is open", async () => {
     document.body.innerHTML = `<div data-plain>Tip</div>`;
     let overlay!: OverlayBox;
     stop = effectScope(() => {
       overlay = new OverlayBox(document.querySelector<HTMLElement>("[data-plain]")!);
     });
+    await frame();
     expect(overlay.open).toBe(true);
   });
 });

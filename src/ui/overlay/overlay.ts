@@ -1,9 +1,12 @@
-import { batch, effect, onCleanup, reactive } from "@/signals/index.ts";
+import { batch, effect, onCleanup, reactive, signal } from "@/signals/index.ts";
 import { scope } from "@/signals/scope";
+import { createResizeObserver } from "@/utilities/resize-observer.ts";
 import { IDirection, ReadonlyBox, RegionBox } from "./box.ts";
-import { createElementRect, type ElementRect } from "@/utilities/element-rect.ts";
+import {
+  createElementRect,
+  type ElementRect,
+} from "@/utilities/element-rect.ts";
 import type { Align } from "./area.ts";
-
 
 export const AUTO = NaN;
 class PartialBox implements Partial<ReadonlyBox> {
@@ -104,6 +107,8 @@ const percent = (a: Align | undefined) => `${(a ?? 0) * 100}%`;
 export class OverlayBox extends TransformableBox implements IDirection {
   readonly element: HTMLElement;
   readonly #rect: ElementRect;
+  // Set by the observer below; a hidden element never gets an observation.
+  readonly #open = signal(false);
   // Neutral: the channels place the top-left corner, so no shift.
   #origin: Origin = {};
 
@@ -144,6 +149,13 @@ export class OverlayBox extends TransformableBox implements IDirection {
         this.#project("--dy", this.displacement.y);
       });
 
+      // A closed popover or dialog is `display: none`, so 0×0. The observer
+      // fires after layout and before paint, so an opening box is placed
+      // before it shows.
+      createResizeObserver(element, ([entry]) => {
+        const { width, height } = entry.contentRect;
+        this.#open(width > 0 || height > 0);
+      });
     });
     let disposed = false;
     this.dispose = () => {
@@ -156,6 +168,12 @@ export class OverlayBox extends TransformableBox implements IDirection {
     // creator's teardown can't reach: tie them to it here. Outside any scope
     // (a page-lifetime overlay) this does nothing, and `dispose` stays manual.
     onCleanup(this.dispose);
+  }
+
+  /** Whether the element has a size — reactive. A closed popover or dialog
+   * doesn't, so `place` skips it and its anchor isn't measured. */
+  get open(): boolean {
+    return this.#open();
   }
 
   /** The box point that lands on (x, y), and the scale's origin. */
@@ -219,4 +237,3 @@ export class OverlayBox extends TransformableBox implements IDirection {
     this.dispose();
   }
 }
-
