@@ -1,6 +1,6 @@
 import { MaybeReactive, reactive, resolve } from "@/signals";
 import { direction } from "@/utilities/direction";
-import { createElementRect } from "@/utilities/element-rect.ts";
+import { createElementRect, type ElementRect } from "@/utilities/element-rect.ts";
 import { visualViewport } from "@/utilities/visual-viewport.ts";
 import { windowSize } from "@/utilities/window-size.ts";
 import { Align, cut } from "./area.ts";
@@ -150,7 +150,7 @@ export class MarginBox extends RegionBox {
 }
 
 export class ElementBox extends RegionBox {
-  #rect: ReturnType<typeof createElementRect>;
+  readonly #rect: ElementRect;
   constructor(el: MaybeReactive<Element>) {
     super();
     this.#rect = createElementRect(el);
@@ -159,15 +159,15 @@ export class ElementBox extends RegionBox {
     this.#rect[Symbol.dispose]();
   }
   get x() {
-    return this.#rect().left;
+    return this.#rect.x();
   }
   get y() {
-    return this.#rect().top;
+    return this.#rect.y();
   }
   get w() {
-    return this.#rect().width;
+    return this.#rect.width();
   }
   get h() {
-    return this.#rect().height;
+    return this.#rect.height();
   }
 }

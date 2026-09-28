@@ -1,9 +1,9 @@
 import { batch, effect, onCleanup, reactive } from "@/signals/index.ts";
 import { scope } from "@/signals/scope";
 import { IDirection, ReadonlyBox, RegionBox } from "./box.ts";
+import { createElementRect, type ElementRect } from "@/utilities/element-rect.ts";
 import type { Align } from "./area.ts";
 
-import { createElementRect } from "@/utilities/element-rect.ts";
 
 export const AUTO = NaN;
 class PartialBox implements Partial<ReadonlyBox> {
@@ -103,7 +103,7 @@ const percent = (a: Align | undefined) => `${(a ?? 0) * 100}%`;
 
 export class OverlayBox extends TransformableBox implements IDirection {
   readonly element: HTMLElement;
-  readonly #rect: ReturnType<typeof createElementRect>;
+  readonly #rect: ElementRect;
   // Neutral: the channels place the top-left corner, so no shift.
   #origin: Origin = {};
 
@@ -143,6 +143,7 @@ export class OverlayBox extends TransformableBox implements IDirection {
       effect(() => {
         this.#project("--dy", this.displacement.y);
       });
+
     });
     let disposed = false;
     this.dispose = () => {
@@ -181,28 +182,28 @@ export class OverlayBox extends TransformableBox implements IDirection {
   }
 
   get w(): number {
-    return this.#rect().width;
+    return this.#rect.width();
   }
   set w(value: number) {
     this.transform.w = value;
   }
 
   get h(): number {
-    return this.#rect().height;
+    return this.#rect.height();
   }
   set h(value: number) {
     this.transform.h = value;
   }
 
   get x(): number {
-    return this.#rect().left;
+    return this.#rect.x();
   }
   set x(value: number) {
     this.transform.x = value;
   }
 
   get y(): number {
-    return this.#rect().top;
+    return this.#rect.y();
   }
   set y(value: number) {
     this.transform.y = value;

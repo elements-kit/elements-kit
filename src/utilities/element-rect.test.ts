@@ -1,17 +1,61 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { effectScope, signal } from "@/signals/index.ts";
-import { createElementRect } from "./element-rect.ts";
+import { effect, effectScope, isReactive, signal } from "@/signals/index.ts";
+import { createElementRect, type ElementRect } from "./element-rect.ts";
 
 const live: Array<() => void> = [];
 /** Create inside a scope and register teardown — a leaked window listener
  * from one test would otherwise fire during the next one. */
 const make = (target: Parameters<typeof createElementRect>[0]) => {
-  let rect!: ReturnType<typeof createElementRect>;
+  let rect!: ElementRect;
   effectScope(() => {
     rect = createElementRect(target);
   });
   live.push(() => rect[Symbol.dispose]());
   return rect;
+};
+
+/** Read every field as callers do — from an effect, which is what keeps the
+ * rect tracking — and return the latest values. */
+const watch = (rect: ElementRect) => {
+  const seen = { x: 0, y: 0, width: 0, height: 0 };
+  live.push(
+    effect(() => {
+      seen.x = rect.x();
+      seen.y = rect.y();
+      seen.width = rect.width();
+      seen.height = rect.height();
+    }),
+  );
+  return seen;
+};
+
+const box = (x: number, y: number, width = 10, height = 10) =>
+  ({
+    x, y, width, height,
+    top: y, right: x + width, bottom: y + height, left: x,
+    toJSON: () => ({}),
+  }) as DOMRect;
+
+/** A ResizeObserver stand-in whose callback the test fires. */
+const fakeObserver = () => {
+  const handle = {
+    fire: (_entries: Partial<ResizeObserverEntry>[]) => {},
+    created: 0,
+    disconnects: [] as number[],
+  };
+  vi.stubGlobal("ResizeObserver", function MockRO(cb: ResizeObserverCallback) {
+    const id = handle.created++;
+    handle.fire = (entries) => cb(entries as ResizeObserverEntry[], {} as ResizeObserver);
+    return { observe: vi.fn(), unobserve: vi.fn(), disconnect: () => handle.disconnects.push(id) };
+  });
+  return handle;
+};
+
+const element = (rect: DOMRect) => {
+  const el = document.createElement("div");
+  document.body.appendChild(el);
+  const gbcr = vi.spyOn(el, "getBoundingClientRect").mockReturnValue(rect);
+  return { el, gbcr };
 };
 
 afterEach(() => {
@@ -22,229 +66,193 @@ afterEach(() => {
 });
 
 describe("createElementRect", () => {
-  it("returns initial rect values from getBoundingClientRect", () => {
-    const el = document.createElement("div");
-    document.body.appendChild(el);
+  it("reads position and size from the element", () => {
+    const { el } = element(box(10, 20, 100, 50));
+    const seen = watch(make(el));
 
-    vi.spyOn(el, "getBoundingClientRect").mockReturnValue({
-      x: 10,
-      y: 20,
-      width: 100,
-      height: 50,
-      top: 20,
-      right: 110,
-      bottom: 70,
-      left: 10,
-      toJSON: () => ({}),
-    });
-
-    const rect = make(el);
-
-    expect(rect().x).toBe(10);
-    expect(rect().y).toBe(20);
-    expect(rect().width).toBe(100);
-    expect(rect().height).toBe(50);
-    expect(rect().top).toBe(20);
-    expect(rect().right).toBe(110);
-    expect(rect().bottom).toBe(70);
-    expect(rect().left).toBe(10);
+    expect(seen).toEqual({ x: 10, y: 20, width: 100, height: 50 });
   });
 
-  it("updates all rect properties when ResizeObserver fires", () => {
-    const el = document.createElement("div");
-    document.body.appendChild(el);
+  it("refreshes every field when the ResizeObserver fires", () => {
+    const ro = fakeObserver();
+    const { el, gbcr } = element(box(0, 0, 0, 0));
+    const seen = watch(make(el));
+    expect(seen.width).toBe(0);
 
-    // A mutable mock, not a `mockReturnValueOnce` chain: the test's subject is
-    // "an RO callback refreshes every property", not how many times the
-    // implementation happens to measure.
-    const gbcr = vi.spyOn(el, "getBoundingClientRect");
-    gbcr.mockReturnValue({
-      x: 0, y: 0, width: 0, height: 0,
-      top: 0, right: 0, bottom: 0, left: 0,
-      toJSON: () => ({}),
-    });
+    gbcr.mockReturnValue(box(5, 15, 200, 80));
+    ro.fire([{ target: el }]);
 
-    let observerCallback!: ResizeObserverCallback;
-    vi.stubGlobal(
-      "ResizeObserver",
-      function MockRO(cb: ResizeObserverCallback) {
-        observerCallback = cb;
-        return { observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() };
-      },
-    );
-
-    const rect = make(el);
-    expect(rect().width).toBe(0);
-
-    gbcr.mockReturnValue({
-      x: 5, y: 15, width: 200, height: 80,
-      top: 15, right: 205, bottom: 95, left: 5,
-      toJSON: () => ({}),
-    });
-    observerCallback(
-      [{ target: el } as unknown as ResizeObserverEntry],
-      {} as ResizeObserver,
-    );
-
-    expect(rect().width).toBe(200);
-    expect(rect().height).toBe(80);
-    expect(rect().top).toBe(15);
+    expect(seen).toEqual({ x: 5, y: 15, width: 200, height: 80 });
   });
 
   it("takes size from the entry's border box, not the scaled visual rect", () => {
-    const el = document.createElement("div");
-    document.body.appendChild(el);
-
+    const ro = fakeObserver();
     // A `scale: 0.94` animation: the rect runs 6% short of the layout box.
-    vi.spyOn(el, "getBoundingClientRect").mockReturnValue({
-      x: 10, y: 20, width: 94, height: 47,
-      top: 20, right: 104, bottom: 67, left: 10,
-      toJSON: () => ({}),
-    } as DOMRect);
+    const { el } = element(box(10, 20, 94, 47));
+    const seen = watch(make(el));
 
-    let observerCallback!: ResizeObserverCallback;
-    vi.stubGlobal("ResizeObserver", function MockRO(cb: ResizeObserverCallback) {
-      observerCallback = cb;
-      return { observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn() };
-    });
+    ro.fire([
+      {
+        target: el,
+        borderBoxSize: [{ inlineSize: 100, blockSize: 50 }] as unknown as readonly ResizeObserverSize[],
+      },
+    ]);
 
-    const rect = make(el);
-    observerCallback(
-      [
-        {
-          target: el,
-          borderBoxSize: [{ inlineSize: 100, blockSize: 50 }],
-        } as unknown as ResizeObserverEntry,
-      ],
-      {} as ResizeObserver,
-    );
-
-    expect(rect().width).toBe(100);
-    expect(rect().height).toBe(50);
-    // Position stays the rect's; edges follow the size.
-    expect(rect().x).toBe(10);
-    expect(rect().y).toBe(20);
-    expect(rect().right).toBe(110);
-    expect(rect().bottom).toBe(70);
-  });
-
-  it("disconnects on Symbol.dispose", () => {
-    const disconnect = vi.fn();
-    vi.stubGlobal("ResizeObserver", function MockRO() {
-      return { observe: vi.fn(), disconnect, unobserve: vi.fn() };
-    });
-
-    const el = document.createElement("div");
-    const rect = make(el);
-
-    rect[Symbol.dispose]();
-    expect(disconnect).toHaveBeenCalledOnce();
-  });
-  it("re-measures when a reactive target changes", () => {
-    const a = document.createElement("div");
-    const b = document.createElement("div");
-    document.body.append(a, b);
-
-    vi.spyOn(a, "getBoundingClientRect").mockReturnValue({
-      x: 1, y: 2, width: 3, height: 4,
-      top: 2, right: 4, bottom: 6, left: 1,
-      toJSON: () => ({}),
-    });
-    vi.spyOn(b, "getBoundingClientRect").mockReturnValue({
-      x: 10, y: 20, width: 30, height: 40,
-      top: 20, right: 40, bottom: 60, left: 10,
-      toJSON: () => ({}),
-    });
-
-    const target = signal<Element>(a);
-    const rect = make(target);
-
-    expect(rect().x).toBe(1);
-    expect(rect().width).toBe(3);
-
-    target(b);
-
-    expect(rect().x).toBe(10);
-    expect(rect().width).toBe(30);
-  });
-
-  it("disconnects the previous observer when the target changes", () => {
-    const disconnects: number[] = [];
-    let created = 0;
-    vi.stubGlobal("ResizeObserver", function MockRO() {
-      const id = created++;
-      return {
-        observe: vi.fn(),
-        unobserve: vi.fn(),
-        disconnect: () => disconnects.push(id),
-      };
-    });
-
-    const a = document.createElement("div");
-    const b = document.createElement("div");
-    const target = signal<Element>(a);
-
-    make(target);
-
-    expect(created).toBe(1);
-    expect(disconnects).toEqual([]);
-
-    target(b);
-
-    expect(created).toBe(2);
-    expect(disconnects).toEqual([0]);
-  });
-
-
-  const rectAt = (x: number, y: number) => ({
-    x, y, width: 10, height: 10,
-    top: y, right: x + 10, bottom: y + 10, left: x,
-    toJSON: () => ({}),
+    expect(seen).toEqual({ x: 10, y: 20, width: 100, height: 50 });
   });
 
   it("re-measures position when the viewport resizes", () => {
-    const el = document.createElement("div");
-    document.body.appendChild(el);
-    const gbcr = vi.spyOn(el, "getBoundingClientRect").mockReturnValue(rectAt(100, 50));
-
-    const rect = make(el);
-    expect(rect().x).toBe(100);
+    const { el, gbcr } = element(box(100, 50));
+    const seen = watch(make(el));
 
     // The element moves without changing size — ResizeObserver stays silent.
-    gbcr.mockReturnValue(rectAt(30, 50));
+    gbcr.mockReturnValue(box(30, 50));
     window.dispatchEvent(new Event("resize"));
 
-    expect(rect().x).toBe(30);
+    expect(seen.x).toBe(30);
   });
 
   it("re-measures position when an ancestor scrolls", () => {
     const scroller = document.createElement("div");
-    const el = document.createElement("div");
-    scroller.appendChild(el);
     document.body.appendChild(scroller);
-    const gbcr = vi.spyOn(el, "getBoundingClientRect").mockReturnValue(rectAt(0, 200));
+    const { el, gbcr } = element(box(0, 200));
+    scroller.appendChild(el);
+    const seen = watch(make(el));
 
-    const rect = make(el);
-    expect(rect().y).toBe(200);
-
-    gbcr.mockReturnValue(rectAt(0, 40));
+    gbcr.mockReturnValue(box(0, 40));
     // `scroll` does not bubble; a capture-phase listener on window still sees it.
     scroller.dispatchEvent(new Event("scroll"));
 
-    expect(rect().y).toBe(40);
+    expect(seen.y).toBe(40);
   });
 
-  it("stops re-measuring after dispose", () => {
-    const el = document.createElement("div");
-    document.body.appendChild(el);
-    const gbcr = vi.spyOn(el, "getBoundingClientRect").mockReturnValue(rectAt(100, 50));
-
+  it("notifies per field: a reader of the width alone ignores a scroll", () => {
+    const { el, gbcr } = element(box(0, 100));
     const rect = make(el);
-    rect[Symbol.dispose]();
+    let runs = 0;
+    live.push(
+      effect(() => {
+        rect.width();
+        runs++;
+      }),
+    );
 
-    gbcr.mockReturnValue(rectAt(30, 50));
+    gbcr.mockReturnValue(box(0, 40));
+    document.body.dispatchEvent(new Event("scroll"));
+
+    expect(runs).toBe(1);
+  });
+
+  it("follows a reactive target, measuring the new one", () => {
+    const a = element(box(1, 2, 3, 4)).el;
+    const b = element(box(10, 20, 30, 40)).el;
+    const target = signal<Element>(a);
+    const seen = watch(make(target));
+    expect(seen).toEqual({ x: 1, y: 2, width: 3, height: 4 });
+
+    target(b);
+
+    expect(seen).toEqual({ x: 10, y: 20, width: 30, height: 40 });
+  });
+
+  it("disconnects the previous observer when the target changes", () => {
+    const ro = fakeObserver();
+    const target = signal<Element>(document.createElement("div"));
+    watch(make(target));
+    expect(ro.created).toBe(1);
+
+    target(document.createElement("div"));
+
+    expect(ro.created).toBe(2);
+    expect(ro.disconnects).toEqual([0]);
+  });
+
+  it("is a reactive source to resolve(), field by field", () => {
+    const rect = make(document.createElement("div"));
+    expect(isReactive(rect.x)).toBe(true);
+    expect(isReactive(rect.height)).toBe(true);
+  });
+});
+
+describe("createElementRect: tracks only while read", () => {
+  it("starts no observer or listener until something reactive reads it", () => {
+    const ro = fakeObserver();
+    const add = vi.spyOn(window, "addEventListener");
+
+    make(document.createElement("div"));
+
+    expect(ro.created).toBe(0);
+    expect(add).not.toHaveBeenCalledWith("scroll", expect.anything(), expect.anything());
+  });
+
+  it("stops measuring once its last reader is gone", () => {
+    const ro = fakeObserver();
+    const { el, gbcr } = element(box(0, 10));
+    const rect = make(el);
+
+    effect(() => void rect.y())();
+    gbcr.mockClear();
+    document.body.dispatchEvent(new Event("scroll"));
     window.dispatchEvent(new Event("resize"));
 
-    expect(rect().x).toBe(100);
+    expect(gbcr).not.toHaveBeenCalled();
+    expect(ro.disconnects).toEqual([0]);
+  });
+
+  it("measures fresh when a reader returns", () => {
+    const { el, gbcr } = element(box(0, 10));
+    const rect = make(el);
+    effect(() => void rect.y())();
+
+    // Moved while nobody read it: no event reached it.
+    gbcr.mockReturnValue(box(0, 70));
+
+    expect(watch(rect).y).toBe(70);
+  });
+
+  it("measures on the spot when read outside any effect", () => {
+    const { el, gbcr } = element(box(0, 10));
+    const rect = make(el);
+
+    expect(rect.y()).toBe(10);
+    gbcr.mockReturnValue(box(0, 30));
+    expect(rect.y()).toBe(30);
+  });
+});
+
+describe("createElementRect: dispose", () => {
+  it("disconnects the observer, even while read", () => {
+    const ro = fakeObserver();
+    const rect = make(document.createElement("div"));
+    watch(rect);
+
+    rect[Symbol.dispose]();
+
+    expect(ro.disconnects).toEqual([0]);
+  });
+
+  it("stops re-measuring and keeps its last values", () => {
+    const { el, gbcr } = element(box(100, 50));
+    const rect = make(el);
+    const seen = watch(rect);
+
+    rect[Symbol.dispose]();
+    gbcr.mockReturnValue(box(30, 50));
+    window.dispatchEvent(new Event("resize"));
+
+    expect(seen.x).toBe(100);
+    expect(rect.x()).toBe(100);
+  });
+
+  it("disposes with the scope that created it", () => {
+    const ro = fakeObserver();
+    const stop = effectScope(() => {
+      const rect = createElementRect(document.createElement("div"));
+      effect(() => void rect.x());
+    });
+
+    stop();
+
+    expect(ro.disconnects).toEqual([0]);
   });
 });

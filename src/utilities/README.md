@@ -116,7 +116,7 @@ Page-level singletons. Importing is safe — reading before DOM is available ret
 
 | Module | Export | Returns | Deps |
 |--------|--------|---------|------|
-| **element-rect** | `createElementRect(target)` | `Computed<DOMRect> & Disposable` | `resize-observer` |
+| **element-rect** | `createElementRect(target)` | `ElementRect` — `{ x, y, width, height }` computeds, `Disposable`; tracks only while read | `resize-observer` |
 
 ---
 
