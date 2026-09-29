@@ -364,45 +364,13 @@
 
 /***************************************************************************************************
  *                                                                                                 *
- * DECK EFFECT (opt-in recipe)                                                                     *
- *                                                                                                 *
- * Put `data-overlay-deck` on the page wrapper to scale it back as a card deck                    *
- * while a bottom sheet (block-start handle) is open. Degrades to nothing                          *
- * without `:has()`.                                                                               *
- *                                                                                                 *
- ***************************************************************************************************/
-
-@supports selector(:has(*)) {
-  [data-overlay-deck] {
-    transform-origin: 50% 0;
-    transition-property: scale, translate, border-radius;
-    transition-duration: var(--overlay-duration, 300ms);
-    transition-timing-function: var(
-      --overlay-easing,
-      cubic-bezier(0.32, 0.72, 0, 1)
-    );
-  }
-
-  /* one :has(): a :has() inside another never matches */
-  :root:has(.x-overlay[open] > .x-handle[data-placement="block-start"])
-    [data-overlay-deck] {
-    scale: 0.96;
-    translate: 0 var(--space-2);
-    border-radius: var(--radius-4);
-    overflow: clip;
-  }
-}
-
-/***************************************************************************************************
- *                                                                                                 *
  * MOTION                                                                                          *
  *                                                                                                 *
  ***************************************************************************************************/
 
 @media (prefers-reduced-motion: reduce) {
   .x-overlay,
-  .x-overlay::backdrop,
-  [data-overlay-deck] {
+  .x-overlay::backdrop {
     transition: none;
   }
 }

@@ -106,7 +106,6 @@ Authored properties — set these in CSS or inline style:
 | `data-placed` | frame | `top` / `bottom` / `left` / `right` — the settled side; sets the scale origin for anchored enters |
 | `data-placement` | `.x-handle` | The affordance to paint (see below) |
 | `data-material-background` | frame or ancestor | Cards default to solid inside an overlay; `translucent` opts into frosted glass |
-| `data-overlay-deck` | page wrapper | deck effect while a bottom sheet is open |
 
 Changing any channel on an open overlay morphs it — every value is an interpolable length. Position and size interpolate together, and with `interpolate-size: allow-keywords` a content-sized height morphs against a pinned one.
 
@@ -315,13 +314,9 @@ onpointerup = () => {
 };
 ```
 
-## Deck effect
-
-Put `data-overlay-deck` on the page wrapper to scale it back like a card deck while a bottom-docked sheet (a `block-start` handle) is open. Pure CSS, degrades to nothing without `:has()`.
-
 ## Browser support
 
-Position and size morphs work everywhere the `translate` property exists (Chrome 104+). Enter/exit transitions layer on under `@supports (transition-behavior: allow-discrete)` via `@starting-style`, and `@supports (overlay: auto)` keeps the exit inside the top layer (Firefox clips it; entry is unaffected). Anchoring is JS in every browser — `PositionArea`, `PositionTry` and `anchor_length` reimplement the CSS semantics rather than gating on them. `prefers-reduced-motion` drops every transition, including the deck.
+Position and size morphs work everywhere the `translate` property exists (Chrome 104+). Enter/exit transitions layer on under `@supports (transition-behavior: allow-discrete)` via `@starting-style`, and `@supports (overlay: auto)` keeps the exit inside the top layer (Firefox clips it; entry is unaffected). Anchoring is JS in every browser — `PositionArea`, `PositionTry` and `anchor_length` reimplement the CSS semantics rather than gating on them. `prefers-reduced-motion` drops every transition.
 
 ## See also
 

@@ -90,17 +90,17 @@
   text-wrap: balance;
 }
 
-.hero:has(.river[data-align="start"]) {
+.hero:has(> .river[data-align="start"]) {
   padding-block: 6rem;
 }
-.hero:has(.river[data-align="start"]) .section-paragraph {
+.hero:has(> .river[data-align="start"]) .section-paragraph {
   font-size: var(--font-size-3) !important;
   line-height: var(--line-height-3) !important;
   text-wrap: pretty;
 }
 
 @media (min-width: 48rem) {
-  .hero:has(.river[data-align="start"]) {
+  .hero:has(> .river[data-align="start"]) {
     padding-block: 8rem;
   }
 }

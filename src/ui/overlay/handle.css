@@ -16,7 +16,7 @@
  * These are affordances and motion hints, not wiring: no pointer engine is
  * exported yet, so a handle paints its grip, offers the hit-target, and names
  * the gesture a caller implements against `OverlayBox`'s `displacement`.
- * overlay.css keys the enter/exit slide and deck effect off the same child via
+ * overlay.css keys the enter/exit slide off the same child via
  * `:has(> .x-handle[data-placement=…])`.
  */
 
