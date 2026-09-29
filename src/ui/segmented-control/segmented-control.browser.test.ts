@@ -106,3 +106,25 @@ describe("x-segmented-control data-layout=stacked", () => {
     expect(long.scrollWidth).toBeGreaterThan(long.clientWidth);
   });
 });
+
+describe("x-segmented-control state", () => {
+  it("colors the checked segment and hides the slider without a selection", () => {
+    const control = mount(`data-size="2"`);
+    const [first, second] = control.querySelectorAll("label");
+
+    expect(getComputedStyle(first).color).not.toBe(getComputedStyle(second).color);
+    expect(getComputedStyle(control, "::after").display).not.toBe("none");
+
+    first.querySelector("input")!.checked = false;
+    expect(getComputedStyle(control, "::after").display).toBe("none");
+  });
+
+  it("mutes the slider when the checked segment is disabled", () => {
+    const control = mount(`data-size="2"`);
+    const enabled = getComputedStyle(control, "::after").boxShadow;
+    control.querySelector("input")!.disabled = true;
+
+    expect(enabled).not.toBe("none");
+    expect(getComputedStyle(control, "::after").boxShadow).toBe("none");
+  });
+});

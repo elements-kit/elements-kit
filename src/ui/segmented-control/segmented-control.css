@@ -6,7 +6,7 @@
  * checked, disabled). CSS owns layout, indicator, transitions.
  *
  * Indicator is two-tier:
- *   Tier 1 (universal) — per-label ::before crossfades on :has(:checked).
+ *   Tier 1 (universal) — per-label ::before crossfades on :has(input:checked).
  *   Tier 2 (modern)    — single ::after slides via CSS Anchor Positioning.
  *
  * Markup contract:
@@ -126,12 +126,12 @@
  * reshape per selection. The anchored indicator then sees a different cell
  * width each frame and visually stretches mid-transition. The indicator
  * itself + a11y semantics carry the active state. */
-.x-segmented-control > label:where(:has(:checked)) {
+.x-segmented-control > label:where(:has(input:checked)) {
   color: var(--neutral-12);
 }
 
 /* Focus ring surfaces on the label (input is visually hidden). */
-.x-segmented-control > label:where(:has(:focus-visible)) {
+.x-segmented-control > label:where(:has(input:focus-visible)) {
   outline: 2px solid var(--focus-8);
   outline-offset: -1px;
   border-radius: inherit;
@@ -139,7 +139,7 @@
 
 /* Hover wash on inactive segments only. */
 @media (hover: hover) {
-  .x-segmented-control > label:where(:not(:has(:checked, :disabled)):hover) {
+  .x-segmented-control > label:where(:not(:has(input:checked, input:disabled)):hover) {
     background-color: var(--neutral-a2);
   }
 }
@@ -161,9 +161,9 @@
   z-index: -1;
   transition: opacity var(--seg-transition-duration) ease-out;
 }
-.x-segmented-control > label:where(:has(:checked, :focus-visible))::after,
+.x-segmented-control > label:where(:has(input:checked, input:focus-visible))::after,
 .x-segmented-control
-  > label:where(:has(:checked, :focus-visible))
+  > label:where(:has(input:checked, input:focus-visible))
   + label::after {
   opacity: 0;
 }
@@ -199,7 +199,7 @@
   transition: opacity var(--seg-transition-duration) ease-out;
 }
 
-.x-segmented-control > label:where(:has(:checked))::before {
+.x-segmented-control > label:where(:has(input:checked))::before {
   opacity: 1;
 }
 
@@ -221,7 +221,7 @@
     anchor-scope: --x-seg-active;
   }
 
-  .x-segmented-control > label:where(:has(:checked)) {
+  .x-segmented-control > label:where(:has(input:checked)) {
     anchor-name: --x-seg-active;
   }
 
@@ -250,7 +250,7 @@
   }
 
   /* No selection — hide the slider. */
-  .x-segmented-control:not(:has(:checked))::after {
+  .x-segmented-control:not(:has(input:checked))::after {
     display: none;
   }
 }
@@ -267,22 +267,20 @@
 }
 
 .x-segmented-control:where(:disabled, [data-disabled]) > label,
-.x-segmented-control > label:where(:has(:disabled)) {
+.x-segmented-control > label:where(:has(input:disabled)) {
   cursor: var(--cursor-disabled);
   color: var(--neutral-a8);
 }
 
 .x-segmented-control:where(:disabled, [data-disabled]) > label::before,
-.x-segmented-control > label:where(:has(:disabled))::before {
+.x-segmented-control > label:where(:has(input:disabled))::before {
   background-color: var(--neutral-a3);
   box-shadow: none;
 }
 
 @supports (anchor-name: --x) {
   .x-segmented-control:where(:disabled, [data-disabled])::after,
-  .x-segmented-control:where(
-      :has(> label:where(:has(:disabled)):has(:checked))
-    )::after {
+  .x-segmented-control:where(:has(> label > input:checked:disabled))::after {
     background-color: var(--neutral-a3);
     box-shadow: none;
   }
@@ -318,7 +316,7 @@
   .x-segmented-control > label {
     color: ButtonText;
   }
-  .x-segmented-control > label:where(:has(:checked)) {
+  .x-segmented-control > label:where(:has(input:checked)) {
     color: HighlightText;
   }
   .x-segmented-control > label::before,
@@ -327,7 +325,7 @@
     box-shadow: none;
     border: 1px solid HighlightText;
   }
-  .x-segmented-control > label:where(:has(:focus-visible)) {
+  .x-segmented-control > label:where(:has(input:focus-visible)) {
     outline-color: Highlight;
   }
 }
@@ -407,7 +405,7 @@
     inset: 0;
   }
 
-  & > label:where(:has(:focus-visible)) {
+  & > label:where(:has(input:focus-visible)) {
     outline-offset: calc(-1 * var(--seg-inset));
   }
 
@@ -461,7 +459,7 @@
   & > label {
     color: var(--accent-a11);
   }
-  & > label:where(:has(:checked)) {
+  & > label:where(:has(input:checked)) {
     color: var(--accent-a12, var(--accent-12));
   }
   & > label + label::after {
@@ -470,10 +468,10 @@
 }
 
 /* High contrast — boost active text against indicator. */
-.x-segmented-control:where([data-high-contrast]) > label:where(:has(:checked)) {
+.x-segmented-control:where([data-high-contrast]) > label:where(:has(input:checked)) {
   color: var(--neutral-12);
 }
 .x-segmented-control:where([data-high-contrast][data-variant="soft"])
-  > label:where(:has(:checked)) {
+  > label:where(:has(input:checked)) {
   color: var(--accent-12);
 }
