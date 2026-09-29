@@ -27,6 +27,8 @@ afterEach(() => {
 /** A 390×560 scroll container holding `html`. */
 function mount(html: string): HTMLElement {
   host = document.createElement("div");
+  // the frame opts in: it gets the bars' scroll padding
+  host.className = "x-frame";
   host.style.cssText = "block-size: 560px; inline-size: 390px; overflow: auto";
   host.innerHTML = html;
   document.body.append(host);
@@ -316,6 +318,32 @@ describe("x-toolbar data-position=bottom", () => {
     const el = mount(`<div data-content><p>Row</p></div>${footer}`);
 
     expect(getComputedStyle(q(el, "p")).flexShrink).toBe("1");
+  });
+});
+
+describe("x-toolbar outside a frame", () => {
+  // A bar sizes itself from its own attributes; only the scroll padding needs a frame.
+  const cases = [
+    ["surface", `<header class="x-toolbar"><span data-title>Title</span></header>`],
+    ["size 1", `<header class="x-toolbar" data-size="1"><span data-title>Title</span></header>`],
+    ["soft, size 4", `<header class="x-toolbar" data-variant="soft" data-size="4"><span data-title>Title</span></header>`],
+    ["clean bottom", `<footer class="x-toolbar" data-variant="clean" data-position="bottom">${button("OK")}</footer>`],
+    ["a group of two rows", `<header class="x-toolbar"><div class="x-toolbar"><span data-title>Title</span></div><div class="x-toolbar">${button("Search")}</div></header>`],
+    ["a stacked button", `<footer class="x-toolbar" data-position="bottom"><button class="unset x-button" data-layout="stacked" data-size="2">Share</button></footer>`],
+  ] as const;
+
+  it.each(cases)("%s: the same height as in a frame", (_, html) => {
+    const framed = mount(`${html}${rows()}`);
+    const expected = box(q(framed, ".x-toolbar")).height;
+    const { scrollPaddingTop, scrollPaddingBottom } = getComputedStyle(framed);
+    expect([scrollPaddingTop, scrollPaddingBottom]).not.toEqual(["auto", "auto"]);
+    host!.remove();
+
+    const plain = mount(`${html}${rows()}`);
+    plain.className = "";
+    expect(box(q(plain, ".x-toolbar")).height).toBe(expected);
+    // …and no scroll padding: the container didn't opt in
+    expect([getComputedStyle(plain).scrollPaddingTop, getComputedStyle(plain).scrollPaddingBottom]).toEqual(["auto", "auto"]);
   });
 });
 

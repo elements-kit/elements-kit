@@ -64,6 +64,8 @@ afterEach(() => {
 /** A 390×560 scroll container at a scaling. */
 function mount(scaling: string, html: string): HTMLElement {
   host = document.createElement("div");
+  // the frame opts in: it gets the bars' scroll padding
+  host.className = "x-frame";
   host.dataset.scaling = scaling;
   host.style.cssText = "block-size: 560px; inline-size: 390px; overflow: auto";
   host.innerHTML = html;

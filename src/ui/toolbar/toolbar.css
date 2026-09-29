@@ -73,14 +73,16 @@
  *   clean / soft, bottom  start --space-1, gap --space-4, end --space-4                           *
  *                                                                                                 *
  * A stacked control is taller, in units of h / 32: a button or toggle 56, a segmented track 58.   *
- * The scroll container states the parameters — it needs the height for its scroll padding and    *
- * can't read the bar's properties — and the bars inherit them (a group is a bar, not a            *
- * container, so its rows inherit too). A bar's height is a minimum: taller content grows it.      *
+ * A bar states the parameters from its own attributes; its rows inherit them (a group is a bar,  *
+ * not a frame). An .x-frame with a bar as a child gets them too, for its scroll padding and for  *
+ * the large title. The :has() is anchored on .x-frame: one whose subject can be any element is   *
+ * re-checked for every element the page restyles. A bar's height is a minimum: taller content   *
+ * grows it.                                                                                       *                                                               *
  *                                                                                                 *
  ***************************************************************************************************/
 
-:not(.x-toolbar):has(> .x-toolbar:not([data-position="bottom"])),
-:root:has(.x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar)) {
+.x-toolbar:not([data-position="bottom"]):not(.x-toolbar .x-toolbar),
+.x-frame:has(> .x-toolbar:not([data-position="bottom"])) {
   --x-top-h: var(--space-6);
   --x-top-control: var(--x-top-h);
   --x-top-cap: 0px;
@@ -97,8 +99,8 @@
   scroll-padding-block-start: var(--toolbar-height);
 }
 
-:not(.x-toolbar):has(> .x-toolbar[data-position="bottom"]),
-:root:has(.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar)) {
+.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar),
+.x-frame:has(> .x-toolbar[data-position="bottom"]) {
   --x-bottom-h: var(--space-6);
   --x-bottom-control: var(--x-bottom-h);
   --x-bottom-cap: 0px;
@@ -116,73 +118,41 @@
 }
 
 /* h */
-:not(.x-toolbar):has(> .x-toolbar:not([data-position="bottom"])[data-size="1"]),
-:root:has(
-  .x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar)[data-size="1"]
-) {
+.x-toolbar:not([data-position="bottom"]):not(.x-toolbar .x-toolbar)[data-size="1"],
+.x-frame:has(> .x-toolbar:not([data-position="bottom"])[data-size="1"]) {
   --x-top-h: var(--space-5);
 }
-:not(.x-toolbar):has(> .x-toolbar:not([data-position="bottom"])[data-size="3"]),
-:root:has(
-  .x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar)[data-size="3"]
-) {
+.x-toolbar:not([data-position="bottom"]):not(.x-toolbar .x-toolbar)[data-size="3"],
+.x-frame:has(> .x-toolbar:not([data-position="bottom"])[data-size="3"]) {
   --x-top-h: var(--space-7);
 }
-:not(.x-toolbar):has(> .x-toolbar:not([data-position="bottom"])[data-size="4"]),
-:root:has(
-  .x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar)[data-size="4"]
-) {
+.x-toolbar:not([data-position="bottom"]):not(.x-toolbar .x-toolbar)[data-size="4"],
+.x-frame:has(> .x-toolbar:not([data-position="bottom"])[data-size="4"]) {
   --x-top-h: var(--space-8);
 }
-:not(.x-toolbar):has(> .x-toolbar[data-position="bottom"][data-size="1"]),
-:root:has(
-  .x-toolbar[data-position="bottom"][data-size="1"]:not(.x-toolbar .x-toolbar)
-) {
+.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar)[data-size="1"],
+.x-frame:has(> .x-toolbar[data-position="bottom"][data-size="1"]) {
   --x-bottom-h: var(--space-5);
 }
-:not(.x-toolbar):has(> .x-toolbar[data-position="bottom"][data-size="3"]),
-:root:has(
-  .x-toolbar[data-position="bottom"][data-size="3"]:not(.x-toolbar .x-toolbar)
-) {
+.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar)[data-size="3"],
+.x-frame:has(> .x-toolbar[data-position="bottom"][data-size="3"]) {
   --x-bottom-h: var(--space-7);
 }
-:not(.x-toolbar):has(> .x-toolbar[data-position="bottom"][data-size="4"]),
-:root:has(
-  .x-toolbar[data-position="bottom"][data-size="4"]:not(.x-toolbar .x-toolbar)
-) {
+.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar)[data-size="4"],
+.x-frame:has(> .x-toolbar[data-position="bottom"][data-size="4"]) {
   --x-bottom-h: var(--space-8);
 }
 
 /* clean / soft */
-:not(.x-toolbar):has(
-  > .x-toolbar:not([data-position="bottom"]):is(
-      [data-variant="soft"],
-      [data-variant="clean"]
-    )
-),
-:root:has(
-  .x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar):is(
-      [data-variant="soft"],
-      [data-variant="clean"]
-    )
-) {
+.x-toolbar:not([data-position="bottom"]):not(.x-toolbar .x-toolbar):is([data-variant="soft"], [data-variant="clean"]),
+.x-frame:has(> .x-toolbar:not([data-position="bottom"]):is([data-variant="soft"], [data-variant="clean"])) {
   --x-top-cap: var(--space-1);
   --x-top-start: var(--space-4);
   --x-top-gap: var(--space-4);
   --x-top-end: var(--space-2);
 }
-:not(.x-toolbar):has(
-  > .x-toolbar[data-position="bottom"]:is(
-      [data-variant="soft"],
-      [data-variant="clean"]
-    )
-),
-:root:has(
-  .x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar):is(
-      [data-variant="soft"],
-      [data-variant="clean"]
-    )
-) {
+.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar):is([data-variant="soft"], [data-variant="clean"]),
+.x-frame:has(> .x-toolbar[data-position="bottom"]:is([data-variant="soft"], [data-variant="clean"])) {
   --x-bottom-cap: var(--space-1);
   --x-bottom-start: var(--space-1);
   --x-bottom-gap: var(--space-4);
@@ -190,115 +160,62 @@
 }
 
 /* rows of a group */
-:not(.x-toolbar):has(
-  > .x-toolbar:not([data-position="bottom"]) > .x-toolbar + .x-toolbar
-),
-:root:has(
-  .x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar)
-    > .x-toolbar
-    + .x-toolbar
-) {
+.x-toolbar:not([data-position="bottom"]):not(.x-toolbar .x-toolbar):has(> .x-toolbar + .x-toolbar),
+.x-frame:has(> .x-toolbar:not([data-position="bottom"]) > .x-toolbar + .x-toolbar) {
   --x-top-rows: 2;
 }
-:not(.x-toolbar):has(
-  > .x-toolbar:not([data-position="bottom"])
-    > .x-toolbar
-    + .x-toolbar
-    + .x-toolbar
-),
-:root:has(
-  .x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar)
-    > .x-toolbar
-    + .x-toolbar
-    + .x-toolbar
-) {
+.x-toolbar:not([data-position="bottom"]):not(.x-toolbar .x-toolbar):has(> .x-toolbar + .x-toolbar + .x-toolbar),
+.x-frame:has(> .x-toolbar:not([data-position="bottom"]) > .x-toolbar + .x-toolbar + .x-toolbar) {
   --x-top-rows: 3;
 }
-:not(.x-toolbar):has(
-  > .x-toolbar[data-position="bottom"] > .x-toolbar + .x-toolbar
-),
-:root:has(
-  .x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar)
-    > .x-toolbar
-    + .x-toolbar
-) {
+.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar):has(> .x-toolbar + .x-toolbar),
+.x-frame:has(> .x-toolbar[data-position="bottom"] > .x-toolbar + .x-toolbar) {
   --x-bottom-rows: 2;
 }
-:not(.x-toolbar):has(
-  > .x-toolbar[data-position="bottom"] > .x-toolbar + .x-toolbar + .x-toolbar
-),
-:root:has(
-  .x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar)
-    > .x-toolbar
-    + .x-toolbar
-    + .x-toolbar
-) {
+.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar):has(> .x-toolbar + .x-toolbar + .x-toolbar),
+.x-frame:has(> .x-toolbar[data-position="bottom"] > .x-toolbar + .x-toolbar + .x-toolbar) {
   --x-bottom-rows: 3;
 }
 
 /* a stacked control (stacked, stacked-icon): a button or toggle 56 units, a segmented track 58 */
-:not(.x-toolbar):has(
-  > .x-toolbar:not([data-position="bottom"])
-    :is(.x-button, .x-toggle)[data-layout^="stacked"]
-),
-:root:has(
-  .x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar)
-    :is(.x-button, .x-toggle)[data-layout^="stacked"]
-) {
+.x-toolbar:not([data-position="bottom"]):not(.x-toolbar .x-toolbar):has(:is(.x-button, .x-toggle)[data-layout^="stacked"]),
+.x-frame:has(> .x-toolbar:not([data-position="bottom"]) :is(.x-button, .x-toggle)[data-layout^="stacked"]) {
   --x-top-control: calc(var(--x-top-h) * 56 / 32);
 }
-:not(.x-toolbar):has(
-  > .x-toolbar[data-position="bottom"]
-    :is(.x-button, .x-toggle)[data-layout^="stacked"]
-),
-:root:has(
-  .x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar)
-    :is(.x-button, .x-toggle)[data-layout^="stacked"]
-) {
+.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar):has(:is(.x-button, .x-toggle)[data-layout^="stacked"]),
+.x-frame:has(> .x-toolbar[data-position="bottom"] :is(.x-button, .x-toggle)[data-layout^="stacked"]) {
   --x-bottom-control: calc(var(--x-bottom-h) * 56 / 32);
 }
-:not(.x-toolbar):has(
-  > .x-toolbar:not([data-position="bottom"])
-    .x-segmented-control[data-layout="stacked"]
-),
-:root:has(
-  .x-toolbar:not([data-position="bottom"], .x-toolbar .x-toolbar)
-    .x-segmented-control[data-layout="stacked"]
-) {
+.x-toolbar:not([data-position="bottom"]):not(.x-toolbar .x-toolbar):has(.x-segmented-control[data-layout="stacked"]),
+.x-frame:has(> .x-toolbar:not([data-position="bottom"]) .x-segmented-control[data-layout="stacked"]) {
   --x-top-control: calc(var(--x-top-h) * 58 / 32);
 }
-:not(.x-toolbar):has(
-  > .x-toolbar[data-position="bottom"]
-    .x-segmented-control[data-layout="stacked"]
-),
-:root:has(
-  .x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar)
-    .x-segmented-control[data-layout="stacked"]
-) {
+.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar):has(.x-segmented-control[data-layout="stacked"]),
+.x-frame:has(> .x-toolbar[data-position="bottom"] .x-segmented-control[data-layout="stacked"]) {
   --x-bottom-control: calc(var(--x-bottom-h) * 58 / 32);
 }
 
 /***************************************************************************************************
  *                                                                                                 *
- * SCROLL CONTAINER — focus stops below the bars                                                    *
+ * FRAME — .x-frame: the box the bars sit on the edges of; focus stops below them                 *
  *                                                                                                 *
  ***************************************************************************************************/
 
 /* the large title's view timeline, visible to the bars (see COLLAPSE) */
-:not(.x-toolbar):has(> .x-large-title),
-:root:has(.x-large-title) {
+.x-frame:has(> .x-large-title) {
   timeline-scope: --x-large-title;
 }
 
 /* short content: a column, so the bottom bar's margin-block-start: auto keeps it at the bottom */
-:has(> .x-toolbar[data-position="bottom"]) {
+.x-frame:has(> .x-toolbar[data-position="bottom"]) {
   display: flex;
   flex-direction: column;
 }
 
 /* its children are the bar and the bar's siblings — named as such, not `:has(…) > *`, whose
-   `:has()` above the child is re-checked on every DOM change in the page */
-:has(~ .x-toolbar[data-position="bottom"]),
+   `:has()` above the child is re-checked on every DOM change in the page; the parent is named
+   first, so the `:has()` runs only on a frame's children */
+:is(.x-frame > *):has(~ .x-toolbar[data-position="bottom"]),
 .x-toolbar[data-position="bottom"],
 .x-toolbar[data-position="bottom"] ~ * {
   flex-shrink: 0;
@@ -422,10 +339,11 @@
  *                                                                                                 *
  ***************************************************************************************************/
 
-/* regions, and any wrapper of buttons inside them (so buttons center on the title) */
+/* regions, and any wrapper of buttons inside them (so buttons center on the title). Region
+   `:has()`s name their parent first, so they run only inside a bar. */
 :where(
   .x-toolbar > :not([data-title]),
-  .x-toolbar :not(.x-button):has(> .x-button)
+  :is(.x-toolbar *):not(.x-button):has(> .x-button)
 ) {
   display: flex;
   align-items: center;
@@ -433,7 +351,7 @@
 }
 
 /* between text buttons: twice their bleed, so neighbours' tap areas touch */
-:where(.x-toolbar > :has(> .x-button[data-variant="text"])) {
+:where(:is(.x-toolbar > *):has(> .x-button[data-variant="text"])) {
   gap: var(--space-4);
 }
 
@@ -496,13 +414,13 @@
 }
 
 /* a region holding the title may shrink (the title truncates); button regions keep their size */
-:where(.x-toolbar > :has([data-title])) {
+:where(:is(.x-toolbar > *):has([data-title])) {
   min-inline-size: 0;
   max-inline-size: 100%;
 }
 
 /* a region holding an input (search) fills its column; a toggle's input is a button, not a field */
-:where(.x-toolbar > :has(input:not(.x-toggle > input), textarea)) {
+:where(:is(.x-toolbar > *):has(input:not(.x-toggle > input), textarea)) {
   justify-self: stretch;
   min-inline-size: 0;
 }

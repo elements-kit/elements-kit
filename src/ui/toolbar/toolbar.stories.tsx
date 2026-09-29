@@ -330,7 +330,7 @@ const Rows = (props: { items: string[] }) => (
 function Screen(props: { variant?: Variant; children?: Children }) {
   let stop: (() => void) | undefined;
   return (
-    <div style="min-height:100dvh">
+    <div class:x-frame style="min-height:100dvh">
       {/* first, so it isn't a sibling after the large title or after a bottom bar */}
       <dom-lifecycle
         onConnect={() => {
@@ -882,6 +882,7 @@ export const Dialog: Story = {
   render: () => (
     <div
       class:x-card
+      class:x-frame
       role="dialog"
       aria-labelledby="dialog-title"
       data-variant="elevated"
@@ -957,6 +958,7 @@ export const DialogScroll: Story = {
         }}
       />
       <div
+        class:x-frame
         data-inset="fill"
         style="max-block-size: 360px; overflow: auto; overscroll-behavior: contain"
       >

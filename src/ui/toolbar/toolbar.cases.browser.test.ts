@@ -56,6 +56,8 @@ afterEach(async () => {
 
 function mount(html: string, style = "block-size: 560px; inline-size: 390px; overflow: auto"): HTMLElement {
   host = document.createElement("div");
+  // the frame opts in: it gets the bars' scroll padding
+  host.className = "x-frame";
   host.style.cssText = style;
   host.innerHTML = html;
   document.body.append(host);
@@ -228,28 +230,28 @@ describe('bar title data-align="start"', () => {
   });
 });
 
-// ── page scroll: bars on <html> ─────────────────────────────────────────────────────────────────
+// ── page scroll: bars in a frame ─────────────────────────────────────────────────────────────────
 
 describe.each(SIZES)("page scroll, data-size=%s", (size) => {
-  it.each(VARIANTS)("%s: <html> gets the bars' scroll padding; the bars stick to the viewport edges", async (variant) => {
+  it.each(VARIANTS)("%s: the frame gets the bars' scroll padding; the bars stick to the viewport edges", async (variant) => {
     const inner = wrap(variant, iconButton(size, variant) + iconButton(size, variant));
     mount(
-      `<main><section style="min-block-size: 100dvh; display: flex; flex-direction: column">
+      `<main><section class="x-frame" style="min-block-size: 100dvh">
         ${bar("header", size, variant, "top", inner)}
         <div style="flex: 1">${rows(60)}</div>
         ${bar("footer", size, variant, "bottom", inner)}
       </section></main>`,
       "",
     );
-    const root = document.documentElement;
+    const frame = q(host!, "section");
     const header = q(host!, "header");
     const footer = q(host!, "footer");
     const label = `page size ${size} ${variant}`;
 
     near(box(header).height, barHeight(size, variant, "top"), `${label}: top bar height`);
     near(box(footer).height, barHeight(size, variant, "bottom"), `${label}: bottom bar height`);
-    near(scrollPadding(root, "top"), box(header).height, `${label}: <html> scroll padding top`);
-    near(scrollPadding(root, "bottom"), box(footer).height, `${label}: <html> scroll padding bottom`);
+    near(scrollPadding(frame, "top"), box(header).height, `${label}: frame scroll padding top`);
+    near(scrollPadding(frame, "bottom"), box(footer).height, `${label}: frame scroll padding bottom`);
 
     window.scrollTo(0, 400);
     await new Promise((r) => requestAnimationFrame(r));

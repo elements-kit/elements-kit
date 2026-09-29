@@ -30,7 +30,7 @@ See [Styles](/ui/styles) for the token system and theming.
 ## API
 
 ```html
-<div class="screen" style="block-size: 100dvh; overflow: auto">
+<div class="screen x-frame" style="block-size: 100dvh; overflow: auto">
   <header class="x-toolbar">
     <button class="unset x-button" data-variant="text" data-size="2">Back</button>
     <span data-title>Inbox</span>
@@ -41,7 +41,9 @@ See [Styles](/ui/styles) for the token system and theming.
 </div>
 ```
 
-The bar and the large title are direct children of the scroll container. Everything after the large title goes in one element.
+The bar and the large title are direct children of a frame: an element with `class="x-frame"`, usually the scroll container. Everything after the large title goes in one element.
+
+A bar sizes itself from its own attributes, frame or not. The frame is what receives the bars' heights: its scroll padding keeps focused elements and anchors clear of the bars, the large title's collapse reads it, and `--toolbar-height` / `--toolbar-bottom-height` are set on it for your own layout. Without `x-frame` the bars still lay out and stick; nothing else learns their size.
 
 | Attribute *(on `.x-toolbar`)* | Values |
 | --- | --- |
@@ -129,7 +131,7 @@ In browsers without scroll-driven animations (Firefox), a page whose script neve
 
 ## Bottom bar
 
-Add `data-position="bottom"` and make the bar the last child of the scroll container. It shows its background and hairline while content is below it, and clears over the last few pixels of scroll. When nothing scrolls, it stays clear. Browsers without scroll-driven animations always show the background; `data-reveal="always"` does that everywhere. It keeps focused elements above it. With short content the container becomes a column, so the bar still sits at the bottom. For page scroll, give the bar's parent `min-block-size: 100dvh`.
+Add `data-position="bottom"` and make the bar the last child of the frame. It shows its background and hairline while content is below it, and clears over the last few pixels of scroll. When nothing scrolls, it stays clear. Browsers without scroll-driven animations always show the background; `data-reveal="always"` does that everywhere. It keeps focused elements above it. With short content the frame becomes a column, so the bar still sits at the bottom. For page scroll, give the frame `min-block-size: 100dvh`.
 
 The bar's height is a minimum: taller content, such as a [stacked segmented control](/ui/segmented-control#icons) used as a tab bar, grows it. A stacked [button](/ui/button#icon-and-label) or [toggle](/ui/toggle#stacked) counts too. In clean and soft bars, controls sit 16px from the bottom edge, the same as from the sides.
 
@@ -138,7 +140,7 @@ The bar's height is a minimum: taller content, such as a [stacked segmented cont
 Put the bars directly in an [`x-card`](/ui/card) with `data-inset="top"` and `data-inset="bottom"`. They span the card's width, and the card drops its own padding on those edges. The card clips its content (`overflow: hidden`), which makes it a scroll container, and a sticky bar stops at its scroll container's padding. With the padding gone, each bar sits on the card's edge and pads itself, so no `--card-padding-*` overrides are needed.
 
 ```html
-<div class="x-card" data-variant="elevated" data-size="2" role="dialog" aria-labelledby="t">
+<div class="x-card x-frame" data-variant="elevated" data-size="2" role="dialog" aria-labelledby="t">
   <header class="x-toolbar" data-inset="top">
     <span data-title data-align="start" id="t">Delete “Q3 report”?</span>
   </header>
@@ -160,7 +162,7 @@ A card can't scroll itself: it paints its surface with pseudo-elements, and thos
 
 ```html
 <div class="x-card" data-variant="elevated" data-size="2" role="dialog" aria-labelledby="t">
-  <div data-inset="fill" style="max-block-size: 360px; overflow: auto">
+  <div class="x-frame" data-inset="fill" style="max-block-size: 360px; overflow: auto">
     <header class="x-toolbar"><span data-title data-align="start" id="t">Terms of service</span></header>
     <div style="padding-inline: var(--card-padding)">…</div>
     <footer class="x-toolbar" data-position="bottom">
@@ -221,7 +223,7 @@ Use `text` or `borderless` buttons inside capsules: the capsule is their backgro
 
 ## Sizing
 
-A bar is as tall as its controls plus fixed insets. Set the bar's `data-size` to match its controls' `data-size`; the scroll container reads it to size its scroll padding.
+A bar is as tall as its controls plus fixed insets. Set the bar's `data-size` to match its controls' `data-size`; the frame reads it to size its scroll padding.
 
 | | `surface` | `clean`, `soft` |
 | --- | --- | --- |
@@ -238,7 +240,7 @@ A bar is as tall as its controls plus fixed insets. Set the bar's `data-size` to
 - **`clean`, `soft`** — controls sit in 4px capsules; 16px above and 8px below at the top, 4px above and 16px below at the bottom.
 - **Large title** — `data-size` changes the type only; the padding stays. The bar beside it collapses over the title's own height, so a smaller title collapses sooner.
 
-Bars add `safe-area-inset-top` or `safe-area-inset-bottom`. Every size scales with `--scaling`. The scroll container's padding matches the bars, so focused elements and anchors stop below them.
+Bars add `safe-area-inset-top` or `safe-area-inset-bottom`. Every size scales with `--scaling`. The frame's scroll padding matches the bars, so focused elements and anchors stop below them.
 
 ## Accessibility
 

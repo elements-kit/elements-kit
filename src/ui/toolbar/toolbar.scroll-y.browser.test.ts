@@ -26,6 +26,8 @@ afterEach(() => {
 function mount(html: string): HTMLElement {
   document.head.append(off);
   host = document.createElement("div");
+  // the frame opts in: it gets the bars' scroll padding
+  host.className = "x-frame";
   host.style.cssText = "block-size: 560px; inline-size: 390px; overflow: auto";
   host.innerHTML = html;
   document.body.append(host);
