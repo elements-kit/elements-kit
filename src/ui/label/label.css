@@ -69,37 +69,32 @@
   inline-size: fit-content;
   margin-block-end: 0;
   font-weight: var(--font-weight-regular);
+}
 
-  /* …then centered on the capitals: any font, line height or number of lines */
-  &
-    > :where(
-      .x-checkbox,
-      .x-radio,
-      .x-switch,
-      [type="checkbox"],
-      [type="radio"]
-    ) {
-    /* 1cap is the label's font, not the input's own UA font */
-    font-size: inherit;
-    /* whole pixels keep the box edges crisp */
-    translate: 0
-      round(
-        calc(
-          (
-              var(
-                  --checkbox-size,
-                  var(--radio-size, var(--switch-height, 1em))
-                ) -
-                1cap
-            ) /
-            2
-        ),
-        1px
-      );
-  }
+/* …then centered on the capitals: any font, line height or number of lines. The child implies the
+   `:has()` above, so it's keyed on the child alone. */
+.x-label
+  > :where(.x-checkbox, .x-radio, .x-switch, [type="checkbox"], [type="radio"]) {
+  /* 1cap is the label's font, not the input's own UA font */
+  font-size: inherit;
+  /* whole pixels keep the box edges crisp */
+  translate: 0
+    round(
+      calc(
+        (
+            var(
+                --checkbox-size,
+                var(--radio-size, var(--switch-height, 1em))
+              ) -
+              1cap
+          ) /
+          2
+      ),
+      1px
+    );
 }
 
 /* for a disabled control */
-.x-label:where(:has(:disabled), [data-disabled]) {
+.x-label:where(:has(:is(input, select, textarea, button):disabled), [data-disabled]) {
   color: var(--neutral-a8);
 }

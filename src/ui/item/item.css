@@ -142,11 +142,12 @@
 /* the row's link: its hit area covers the row; trailing controls stay on top */
 .x-item:has(.x-item-link) {
   position: relative;
+}
 
-  & .x-item-trailing :where(a, button, input, label, select) {
-    position: relative;
-    z-index: 1;
-  }
+/* keyed on the control, not under the `:has()`: harmless in a row without a link */
+.x-item .x-item-trailing :where(a, button, input, label, select) {
+  position: relative;
+  z-index: 1;
 }
 
 .x-item-link {
