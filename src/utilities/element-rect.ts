@@ -25,12 +25,21 @@ type Rect = { x: number; y: number; width: number; height: number };
 
 const EMPTY: Rect = { x: 0, y: 0, width: 0, height: 0 };
 
+/** Whether `scroller` is `el` or holds it, across shadow roots. */
+const encloses = (scroller: Node, el: Node): boolean => {
+  for (let n: Node | null = el; n; n = n.parentNode ?? (n as ShadowRoot).host ?? null) {
+    if (n === scroller) return true;
+  }
+  return false;
+};
+
 /**
  * `target`'s viewport box as four reactive fields. Size comes from a
  * `ResizeObserver`'s border box, not the bounding rect: a transform scales the
  * rect and never fires the observer. Position comes from the bounding rect,
  * refreshed on capture-phase `scroll` and window `resize`, since an element
- * that merely moves fires no observer.
+ * that merely moves fires no observer. Only a scroll of the document or of a
+ * container holding the element re-measures: others can't move it.
  *
  * Each field notifies only when it changes: a scroll moves `y`, and a reader of
  * `width` alone doesn't re-run.
@@ -77,6 +86,10 @@ export function createElementRect(target: MaybeReactive<Element>): ElementRect {
     // A swapped target's border box is its own.
     size = undefined;
     const update = () => fresh({ run, rect: measure(el) });
+    // Measuring forces layout: skip scrollers that can't move `el` (an editor's own).
+    const onScroll = (event: Event) => {
+      if (event.target instanceof Node && encloses(event.target, el)) update();
+    };
     const observer = createResizeObserver(el, (entries) => {
       for (const entry of entries) {
         const box = entry.borderBoxSize?.[0];
@@ -84,13 +97,13 @@ export function createElementRect(target: MaybeReactive<Element>): ElementRect {
       }
       update();
     });
-    window.addEventListener("scroll", update, { capture: true, passive: true });
+    window.addEventListener("scroll", onScroll, { capture: true, passive: true });
     window.addEventListener("resize", update, { passive: true });
     // The observer disconnects itself with this run (`createResizeObserver`
     // registers that); the listeners are ours. `halt` is for a `dispose` while
     // still read, which no cleanup reaches.
     const off = () => {
-      window.removeEventListener("scroll", update, { capture: true });
+      window.removeEventListener("scroll", onScroll, { capture: true });
       window.removeEventListener("resize", update);
       if (halt === stop) halt = undefined;
     };

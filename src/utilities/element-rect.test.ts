@@ -126,6 +126,44 @@ describe("createElementRect", () => {
     expect(seen.y).toBe(40);
   });
 
+  it("re-measures when the document scrolls", () => {
+    const { el, gbcr } = element(box(0, 200));
+    const seen = watch(make(el));
+
+    gbcr.mockReturnValue(box(0, 40));
+    document.dispatchEvent(new Event("scroll"));
+
+    expect(seen.y).toBe(40);
+  });
+
+  it("ignores a scroll in a container that doesn't hold it", () => {
+    const other = document.createElement("div");
+    document.body.appendChild(other);
+    const { el, gbcr } = element(box(0, 200));
+    watch(make(el));
+    gbcr.mockClear();
+
+    other.dispatchEvent(new Event("scroll"));
+
+    expect(gbcr).not.toHaveBeenCalled();
+  });
+
+  it("re-measures when a scroller outside its shadow root scrolls", () => {
+    const scroller = document.createElement("div");
+    const host = document.createElement("div");
+    scroller.appendChild(host);
+    document.body.appendChild(scroller);
+    const el = document.createElement("div");
+    host.attachShadow({ mode: "open" }).appendChild(el);
+    const gbcr = vi.spyOn(el, "getBoundingClientRect").mockReturnValue(box(0, 200));
+    const seen = watch(make(el));
+
+    gbcr.mockReturnValue(box(0, 40));
+    scroller.dispatchEvent(new Event("scroll"));
+
+    expect(seen.y).toBe(40);
+  });
+
   it("notifies per field: a reader of the width alone ignores a scroll", () => {
     const { el, gbcr } = element(box(0, 100));
     const rect = make(el);
