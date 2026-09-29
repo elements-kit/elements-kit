@@ -9,9 +9,9 @@ import { on } from "@/utilities/event-listener.ts";
 import { HTMLElementBase, isBrowser } from "@/utilities/environment.ts";
 import shadowCss from "./otp-input.shadow.css?inline";
 
+// A no-op when the attribute already agrees: no mutation, no restyle.
 function toggleAttr(el: Element, name: string, on: boolean): void {
-  if (on) el.setAttribute(name, "");
-  else el.removeAttribute(name);
+  el.toggleAttribute(name, on);
 }
 
 // One shared constructable stylesheet, adopted into every instance's shadow
@@ -248,7 +248,9 @@ export class XOtpInput extends HTMLElementBase {
       for (const slot of this.querySelectorAll("x-otp-slot")) {
         const i = Number(slot.getAttribute("index")) || 0;
         const char = value[i];
-        slot.textContent = char ?? "";
+        // Replacing the text node relayouts the slot: only when it changed.
+        const text = char ?? "";
+        if (slot.textContent !== text) slot.textContent = text;
         const hasSel = focused && s !== null && e !== null;
         // Single caret (start === end) → one active cell with the ring + caret.
         // A multi-cell range → those cells get a continuous selection tint (no

@@ -383,7 +383,8 @@
     );
   }
 
-  :root:has(.x-overlay[open]:has(> .x-handle[data-placement="block-start"]))
+  /* one :has(): a :has() inside another never matches */
+  :root:has(.x-overlay[open] > .x-handle[data-placement="block-start"])
     [data-overlay-deck] {
     scale: 0.96;
     translate: 0 var(--space-2);

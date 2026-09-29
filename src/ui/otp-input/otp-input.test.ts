@@ -68,6 +68,25 @@ describe("x-otp-input", () => {
     expect(slots(root)).toEqual(["1", "2", "3", "", "", ""]);
   });
 
+  it("leaves unchanged cells alone when only focus moves", async () => {
+    const { root, input } = mount({ maxlength: "6" });
+    type(input, "12");
+    input.dispatchEvent(new Event("focus"));
+    await Promise.resolve();
+    const changes: MutationRecord[] = [];
+    const observer = new MutationObserver((records) => changes.push(...records));
+    observer.observe(root, { subtree: true, childList: true, characterData: true, attributes: true });
+
+    input.dispatchEvent(new Event("blur"));
+    await Promise.resolve();
+    observer.disconnect();
+
+    expect(slots(root)).toEqual(["1", "2", "", "", "", ""]);
+    // blur clears the ring and caret on the one active cell; no text rewrites
+    expect(changes.filter((r) => r.type !== "attributes")).toEqual([]);
+    expect(changes.every((r) => r.attributeName !== "data-disabled")).toBe(true);
+  });
+
   it("truncates to maxlength", () => {
     const { root, input } = mount({ maxlength: "4" }, 4);
     type(input, "1234567");
