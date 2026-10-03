@@ -18,7 +18,7 @@ import { lintGutter, linter } from '@codemirror/lint';
 import { vscodeKeymap } from '@replit/codemirror-vscode-keymap';
 import { javascript } from '@codemirror/lang-javascript';
 import { json } from '@codemirror/lang-json';
-import { createTypescriptSession, typescriptLspExtras, typescriptLspTheme } from './typescriptLsp';
+import { createTypescriptSession, typescriptLspExtras, typescriptLspTheme, type TypescriptSession } from './typescriptLsp';
 import { darkTheme, lightTheme, darkHighlightStyle, lightHighlightStyle } from './themes';
 import type { WorkerClient } from '../kernel/workerClient';
 
@@ -69,8 +69,15 @@ const baseExtensions = (): Extension => [
 // Re-lint without an edit (types arrived).
 const relintRequested = StateEffect.define<null>();
 
+// One TypeScript worker per page, shared by every editor on it (docs pages
+// carry several embeds); each host keeps its files under its own folder.
+let shared: TypescriptSession | undefined;
+const sharedSession = () => (shared ??= createTypescriptSession());
+// Types are shared too: when they change, every editor re-checks.
+const hosts = new Set<EditorHost>();
+
 export class EditorHost {
-  private session = createTypescriptSession();
+  private session = sharedSession();
   private editors = new Map<string, FileEditor>();
   /** LSP documents: uri → last synced source. */
   private documents = new Map<string, string>();
@@ -79,6 +86,11 @@ export class EditorHost {
 
   constructor(private opts: EditorHostOptions) {
     this.dark = opts.dark;
+    hosts.add(this);
+  }
+
+  private relint() {
+    for (const { view } of this.editors.values()) view.dispatch({ effects: relintRequested.of(null) });
   }
 
   private uriOf = (name: string) => `file:///${this.opts.folder}/${name}`;
@@ -203,20 +215,27 @@ export class EditorHost {
     view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: res.code } });
   }
 
+  private imports: Record<string, string> = {};
+
   syncTypes(importMap: Record<string, string>) {
+    this.imports = importMap;
+    // The worker holds one package set: send every editor's imports, not just ours.
+    const all = Object.assign({}, ...[...hosts].map((host) => host.imports));
     this.session
-      .syncTypes(importMap)
+      .syncTypes(all)
       .then((changed) => {
-        if (!changed) return;
-        for (const { view } of this.editors.values()) view.dispatch({ effects: relintRequested.of(null) });
+        if (changed) for (const host of hosts) host.relint();
       })
       .catch((e) => console.warn('[playground] type acquisition failed', e));
   }
 
   destroy() {
+    hosts.delete(this);
     for (const { view } of this.editors.values()) view.destroy();
     this.editors.clear();
-    this.session.client.disconnect();
-    this.session.worker.terminate();
+    for (const uri of this.documents.keys()) {
+      this.session.worker.postMessage({ method: 'textDocument/didClose', params: { textDocument: { uri } } });
+    }
+    this.documents.clear();
   }
 }

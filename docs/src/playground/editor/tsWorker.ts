@@ -49,6 +49,38 @@ const openDocs = new Map<string, string>();
 // Auto-import only suggests exports of modules already in the program, so a synthetic root
 // pulls in every package entry point known to the vfs.
 const AUTO_IMPORT_ROOT = 'file:///__auto_imports__.d.ts';
+
+// The preview's test runtime (see previewDocument.ts).
+const TEST_GLOBALS = 'file:///__test_globals__.d.ts';
+fsMap.set(
+  TEST_GLOBALS,
+  `interface Matchers {
+  toBe(expected: unknown): void;
+  toEqual(expected: unknown): void;
+  toStrictEqual(expected: unknown): void;
+  toBeUndefined(): void;
+  toBeDefined(): void;
+  toBeNull(): void;
+  toBeTruthy(): void;
+  toBeFalsy(): void;
+  toBeInstanceOf(expected: abstract new (...args: any[]) => unknown): void;
+  toBeGreaterThan(expected: number): void;
+  toBeLessThan(expected: number): void;
+  toContain(expected: unknown): void;
+  toHaveLength(expected: number): void;
+  toThrow(): void;
+}
+declare function expect(actual: unknown): Matchers & { not: Matchers };
+declare function test(name: string, fn: () => unknown): void;
+declare function it(name: string, fn: () => unknown): void;
+declare function describe(name: string, fn: () => void): void;
+declare module "*.css?raw" {
+  const css: string;
+  export default css;
+}
+declare module "*.css";
+`,
+);
 const autoImportSpecifiers = () => {
   const specs = new Set<string>();
   for (const pkg of typeAcquisition.packageNames()) {
@@ -73,7 +105,7 @@ const buildEnv = () => {
       .map((s) => `import '${s}';\n`)
       .join('') + 'export {};\n',
   );
-  return createVirtualTypeScriptEnvironment(system, [AUTO_IMPORT_ROOT], ts, {
+  return createVirtualTypeScriptEnvironment(system, [AUTO_IMPORT_ROOT, TEST_GLOBALS], ts, {
     ...compilerOptions,
     jsxImportSource: typeAcquisition.jsxImportSource() ?? compilerOptions.jsxImportSource,
   });

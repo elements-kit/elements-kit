@@ -22,7 +22,7 @@
 | [src/polyfill.ts](src/polyfill.ts) | `Symbol.dispose` shim only |
 | [docs/](docs/) | Astro + fumadocs docs |
 | [docs/content/docs/](docs/content/docs/) | `.mdx` guides |
-| [docs/src/playground/files/](docs/src/playground/files/) | Sandpack demos (`?raw` imports) |
+| [docs/src/playground/files/](docs/src/playground/files/) | Playground examples (`?raw` imports; registry in `examples.ts`) |
 | [example/](example/) | Vite sandbox |
 | [tsdown.config.ts](tsdown.config.ts) | Build config |
 | [vitest.config.ts](vitest.config.ts) | Tests |

@@ -4,6 +4,7 @@ import { AstroProvider } from "fumadocs-core/framework/astro";
 import { RootProvider } from "fumadocs-ui/provider/base";
 import { HomeLayout } from "fumadocs-ui/layouts/home";
 import { baseOptions, playgroundLink } from "@/docs/layout";
+import { ExamplesSidebar } from "./ExamplesSidebar";
 import "./playground.css";
 
 const PagefindDialog = lazy(() => import("@/docs/search"));
@@ -21,12 +22,16 @@ export default function Playground() {
             // The docs' Playground button points here.
             ...(baseOptions.links ?? []).filter((link) => link !== playgroundLink),
           ]}>
-          <main className="flex h-[calc(100dvh-3.5rem)] min-w-0 flex-col">
-            <ClientOnly>
-              <Suspense fallback={null}>
-                <Repl />
-              </Suspense>
-            </ClientOnly>
+          <main className="relative flex h-[calc(100dvh-3.5rem)] min-w-0">
+            {/* Server-rendered: crawlable links to every example. */}
+            <ExamplesSidebar />
+            <div className="flex min-w-0 flex-1 flex-col">
+              <ClientOnly>
+                <Suspense fallback={null}>
+                  <Repl />
+                </Suspense>
+              </ClientOnly>
+            </div>
           </main>
         </HomeLayout>
       </RootProvider>

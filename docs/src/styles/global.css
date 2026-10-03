@@ -69,19 +69,13 @@
   cursor: not-allowed;
 }
 
-/* Playground: container-responsive + user-resizable. */
+/* Playground embeds: a bordered figure, like fumadocs' code blocks. */
 .ek-playground-frame {
-  container-type: inline-size;
-  container-name: playground;
-  width: 100%;
-  max-width: 100%;
-  min-height: 240px;
-  max-height: 90cqh;
-  height: clamp(320px, 60cqh, 720px);
   margin-block: 1rem;
-  resize: vertical;
   overflow: hidden;
-  border-radius: 0.5rem;
+  border: 1px solid var(--color-fd-border);
+  border-radius: 0.75rem;
+  background: var(--color-fd-card);
 }
 /* Alone in a tab: fill the panel edge to edge, like fumadocs' code figures. */
 [role="tabpanel"]:has(> .ek-playground-frame:only-child) {
@@ -90,61 +84,6 @@
 }
 [role="tabpanel"] > .ek-playground-frame:only-child {
   margin: 0;
+  border: 0;
   border-radius: 0;
-}
-@container playground (max-width: 768px) {
-  .ek-playground-frame {
-    min-height: 56rem;
-    height: clamp(56rem, 100cqh, 72rem);
-  }
-}
-.ek-playground-frame > .sp-wrapper,
-.ek-playground-frame .sp-layout {
-  height: 100%;
-  max-width: 100%;
-}
-
-/* Sandpack internals: fill the stack container. */
-.ek-playground-frame .sp-preview,
-.ek-playground-frame .sp-preview-container,
-.ek-playground-frame .sp-preview-iframe {
-  height: 100% !important;
-  width: 100%;
-}
-
-/* Tests panel: match the preview's full-fill behavior. */
-.ek-playground-frame--tests .sp-tests {
-  height: 100% !important;
-  width: 100%;
-}
-
-/* Sandpack's stdout wrapper skips `colors.base`; log rows go black in dark mode. */
-.ek-playground-frame .sp-console-item {
-  color: var(--sp-colors-base, currentColor);
-}
-
-/* Panels: even split, no per-panel resize. */
-.ek-playground-frame > * {
-  min-width: 0;
-  max-width: 100cqw;
-  height: 100%;
-  flex: 1 1 0;
-}
-
-/* Stacked below ~768px container width (covers tablets). */
-@container playground (max-width: 768px) {
-  .ek-playground-frame .sp-layout {
-    flex-direction: column-reverse;
-  }
-  /* Tests: keep natural order (code on top, results below). */
-  .ek-playground-frame--tests .sp-layout {
-    flex-direction: column;
-  }
-  .ek-playground-frame .sp-stack {
-    width: 100% !important;
-    max-width: 100% !important;
-    height: 50%;
-    min-height: 0;
-    flex: 1 1 50%;
-  }
 }

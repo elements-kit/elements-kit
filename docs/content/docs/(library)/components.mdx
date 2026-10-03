@@ -3,21 +3,9 @@ title: Components
 description: Class components — reactive state and element rendering in one place.
 ---
 
-import COMPONENTS_FILE from "@/playground/files/components.tsx?raw";
-
 A **component** is a class with a `render()` method that returns an `Element`. It combines a [store](/stores) (reactive state) with element construction (JSX). The simplest possible component:
 
-<Playground
-  provider={{
-    files: {
-      "/main.tsx": {
-        code: COMPONENTS_FILE,
-        active: true,
-      },
-    },
-  }}
-  preview={{}}
-/>
+<Playground example="components" />
 
 ## Write a component that owns its state
 

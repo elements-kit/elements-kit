@@ -3,14 +3,9 @@ title: Infinite scroll
 description: Sentinel-driven pagination with createIntersectionObserver + async + a cursor signal. No scroll listeners, no rAF, no manual viewport math.
 ---
 
-import INFINITE from "@/playground/files/infinite-scroll.tsx?raw";
-
 Append the next page when the bottom sentinel scrolls into view. `IntersectionObserver` does the visibility math; an `async` controller drives the fetch; cleanup is automatic when the surrounding scope disposes.
 
-<Playground
-  provider={{ files: { "/main.tsx": { code: INFINITE, active: true } } }}
-  preview={{}}
-/>
+<Playground example="infinite-scroll" />
 
 ## The recipe
 

@@ -1,11 +1,11 @@
 /** @jsxImportSource react */
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { DockviewReact, type DockviewApi, type DockviewTheme } from "dockview-react";
 import "dockview-react/dist/styles/dockview.css";
-import CompilerWorker from "./workers/compiler?worker";
-import FormatterWorker from "./workers/formatter?worker";
-import { EditorHost, isTsFile, type PlaygroundFile } from "./editor/host";
-import { createWorkerClient, latest, type WorkerClient } from "./kernel/workerClient";
+import { EditorHost, type PlaygroundFile } from "./editor/host";
+import { formatterClient, useBuild, useDark } from "./engine";
+import { exampleById, exampleFiles } from "./examples";
+import { CURRENT_EVENT, LOAD_EVENT, exampleUrl } from "./ExamplesSidebar";
 import { IMPORT_MAP_FILE, parseImportMap, serializeImportMap, syncImportMap } from "./kernel/importMap";
 import { decodeState, encodeState } from "./share";
 import { defaultFiles, ENTRY } from "./defaults";
@@ -25,33 +25,22 @@ import {
 
 const PINNED = [ENTRY, IMPORT_MAP_FILE];
 
-// Share format (`share.ts`): `{ "/main.tsx": code }`.
+// Share format (`share.ts`): `{ "/main.tsx": code }`; examples come as `{ "main.tsx": code }`.
 const fromShared = (files: Record<string, string>): PlaygroundFile[] =>
   Object.entries(files).map(([path, source]) => ({ name: path.replace(/^\//, ""), source }));
 const toShared = (files: PlaygroundFile[]) => Object.fromEntries(files.map((f) => [`/${f.name}`, f.source]));
 
-/** Entry first, import map last, the rest in between. */
-const ordered = (files: PlaygroundFile[]) => {
-  const rank = (name: string) => (name === ENTRY ? 0 : name === IMPORT_MAP_FILE ? 2 : 1);
-  return [...files].sort((a, b) => rank(a.name) - rank(b.name));
-};
+/** The code, minus the generated import map. */
+const sourcesKey = (files: PlaygroundFile[]) =>
+  JSON.stringify(files.filter((f) => f.name !== IMPORT_MAP_FILE).map((f) => [f.name, f.source]).sort());
 
-const isCompiled = (name: string) => isTsFile(name) || name.endsWith(".css");
-
-function subscribeClass(onChange: () => void) {
-  const observer = new MutationObserver(onChange);
-  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-  return () => observer.disconnect();
-}
-const useDark = () =>
-  useSyncExternalStore(subscribeClass, () => document.documentElement.classList.contains("dark"));
+/** As given (an example's focus file leads), with the import map last. */
+const ordered = (files: PlaygroundFile[]) => [
+  ...files.filter((f) => f.name !== IMPORT_MAP_FILE),
+  ...files.filter((f) => f.name === IMPORT_MAP_FILE),
+];
 
 const narrow = () => matchMedia("(width < 768px)").matches;
-
-interface RollupResult {
-  compiled: Record<string, string>;
-  externals: string[];
-}
 
 const theme: DockviewTheme = { name: "ek", className: "dockview-theme-ek", dndTabIndicator: "line" };
 const components = { file: FilePanel, preview: PreviewPanel, devtools: DevtoolsPanel };
@@ -118,57 +107,86 @@ function reconcile(api: DockviewApi, names: string[]) {
   }
 }
 
+/** A freshly loaded example: its files, in its order, in one pane; the first one active. */
+function arrange(api: DockviewApi, names: string[]) {
+  for (const panel of [...api.panels]) {
+    if (isFilePanel(panel.id) && !names.includes(panel.id)) api.removePanel(panel);
+  }
+  const home = api.panels.find((p) => isFilePanel(p.id))?.group;
+  names.forEach((name, index) => {
+    const panel = api.getPanel(name);
+    if (panel && home) panel.api.moveTo({ group: home, index });
+    else if (!panel) {
+      api.addPanel({
+        id: name,
+        component: "file",
+        title: name,
+        position: home ? { referenceGroup: home.id, index } : { referencePanel: PREVIEW, direction: "left" },
+        inactive: true,
+      });
+    }
+  });
+  api.getPanel(names[0])?.api.setActive();
+}
+
 export default function Repl() {
   const dark = useDark();
   const [files, setFiles] = useState<PlaygroundFile[]>();
   const [active, setActive] = useState(ENTRY);
-  const [output, setOutput] = useState<Record<string, string>>({});
-  const [error, setError] = useState("");
+  /** The example the files came from (none: the starter). */
+  const [example, setExample] = useState<string>();
   const [renaming, setRenaming] = useState<string>();
   const [dock, setDock] = useState<DockviewApi>();
 
-  const engine = useRef<{ host: EditorHost; compiler: WorkerClient; workers: Worker[] }>(undefined);
+  const host = useRef<EditorHost>(undefined);
+  /** The loaded example's sources, to tell untouched code from edits. */
+  const baseline = useRef<string>(undefined);
 
-  // Workers and editors live as long as the page.
+  // Editors live as long as the page.
   useEffect(() => {
-    const workers = [new CompilerWorker(), new FormatterWorker()];
-    const compiler = createWorkerClient(workers[0]);
-    const host = new EditorHost({
+    host.current = new EditorHost({
       folder: "playground",
       dark: document.documentElement.classList.contains("dark"),
-      formatter: createWorkerClient(workers[1]),
+      formatter: formatterClient(),
       onChange: (name, source) =>
         setFiles((prev) => prev?.map((f) => (f.name === name && f.source !== source ? { ...f, source } : f))),
     });
-    engine.current = { host, compiler, workers };
-    decodeState(location.hash.slice(1)).then((state) => {
+    // The hash (edited code) wins; then ?example=id; then the starter.
+    decodeState(location.hash.slice(1)).then(async (state) => {
+      const linked = new URLSearchParams(location.search).get("example");
+      if (!state && linked && exampleById(linked)) return loadExample(linked);
       const start = state ? fromShared(state.files) : defaultFiles();
       if (!start.some((f) => f.name === ENTRY)) start.unshift({ name: ENTRY, source: "" });
+      baseline.current = state ? undefined : sourcesKey(start);
       setFiles(ordered(start));
+      if (state?.example && exampleById(state.example)) setExample(state.example);
       if (state?.active && start.some((f) => f.name === state.active!.replace(/^\//, ""))) {
         setActive(state.active.replace(/^\//, ""));
       }
     });
-    return () => {
-      host.destroy();
-      for (const worker of workers) worker.terminate();
-    };
+    return () => host.current?.destroy();
   }, []);
 
-  useEffect(() => engine.current?.host.setDark(dark), [dark]);
+  useEffect(() => host.current?.setDark(dark), [dark]);
   useEffect(() => {
-    if (files) engine.current?.host.setFiles(files);
+    if (files) host.current?.setFiles(files);
   }, [files]);
 
   // Layout: restored per device class, else the default; then kept in sync with the files.
   const names = files?.map((f) => f.name);
   const namesKey = names?.join("\n");
   const laidOut = useRef(false);
+  /** Set by loadExample: lay the next file set out in its own order. */
+  const arrangeNext = useRef(false);
+  const [loads, setLoads] = useState(0);
   useEffect(() => {
     if (!dock || !names) return;
     if (!laidOut.current) {
       laidOut.current = true;
       if (!restoreLayout(dock, names)) defaultLayout(dock, names);
+      // Opened from ?example=: its tab order wins over the saved layout's.
+      if (arrangeNext.current) arrange(dock, names);
+      arrangeNext.current = false;
       dock.getPanel(active)?.api.setActive();
       const subs = [
         dock.onDidActivePanelChange(({ panel }) => panel && isFilePanel(panel.id) && setActive(panel.id)),
@@ -180,8 +198,11 @@ export default function Repl() {
       ];
       return () => subs.forEach((s) => s.dispose());
     }
-    reconcile(dock, names);
-  }, [dock, namesKey]);
+    if (arrangeNext.current) {
+      arrangeNext.current = false;
+      arrange(dock, names);
+    } else reconcile(dock, names);
+  }, [dock, namesKey, loads]);
 
   const importMapSource = files?.find((f) => f.name === IMPORT_MAP_FILE)?.source;
   const imports = useMemo(() => {
@@ -189,55 +210,72 @@ export default function Repl() {
     return syncImportMap(state, Object.keys(state.imports)).imports;
   }, [importMapSource]);
   const importsKey = JSON.stringify(imports);
-  useEffect(() => engine.current?.host.syncTypes(imports), [importsKey]);
+  useEffect(() => host.current?.syncTypes(imports), [importsKey]);
 
-  const preview = usePreview({ importMap: imports, code: output, dark });
-
-  // Compile, then add an import map entry for every new bare import.
-  const rollup = useMemo(
-    () => latest((code: PlaygroundFile[]) => engine.current!.compiler.request<RollupResult>("ROLLUP", { tabs: code })),
-    [],
-  );
+  // Compile; every new bare import gets an import map entry.
+  const build = useBuild(files);
   useEffect(() => {
     if (!files) return;
-    const timer = setTimeout(async () => {
-      try {
-        const result = await rollup(files.filter((f) => isCompiled(f.name)));
-        if (!result) return;
-        setError("");
-        setOutput((prev) => (JSON.stringify(prev) === JSON.stringify(result.compiled) ? prev : result.compiled));
-        const nextMap = serializeImportMap(syncImportMap(parseImportMap(importMapSource), result.externals));
-        if (nextMap !== importMapSource) {
-          setFiles((prev) =>
-            prev && ordered([...prev.filter((f) => f.name !== IMPORT_MAP_FILE), { name: IMPORT_MAP_FILE, source: nextMap }]),
-          );
-        }
-      } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
-      }
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [files]);
+    const nextMap = serializeImportMap(syncImportMap(parseImportMap(importMapSource), build.externals));
+    if (nextMap === importMapSource) return;
+    setFiles((prev) =>
+      prev && ordered([...prev.filter((f) => f.name !== IMPORT_MAP_FILE), { name: IMPORT_MAP_FILE, source: nextMap }]),
+    );
+  }, [build.externals, !files]);
 
-  // The URL hash is the saved state.
-  const writeHash = async (next: PlaygroundFile[]) =>
-    history.replaceState(null, "", `#${await encodeState({ files: toShared(next), active: `/${active}` })}`);
+  const preview = usePreview({ importMap: imports, code: build.output, dark });
+
+  // The URL is the saved state: a clean link while the code is untouched,
+  // the code itself (in the hash) once edited.
+  const pristine = files !== undefined && sourcesKey(files) === baseline.current;
+  const writeUrl = async (next: PlaygroundFile[], force = false) => {
+    if (pristine && !force) return history.replaceState(null, "", example ? exampleUrl(example) : "/playground");
+    const hash = await encodeState({ files: toShared(next), active: `/${active}`, example });
+    history.replaceState(null, "", `/playground#${hash}`);
+  };
   useEffect(() => {
     if (!files) return;
-    const timer = setTimeout(() => writeHash(files), 300);
+    const timer = setTimeout(() => writeUrl(files), 300);
     return () => clearTimeout(timer);
-  }, [files, active]);
+  }, [files, active, example]);
 
-  if (!files || !engine.current) {
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent(CURRENT_EVENT, { detail: example }));
+  }, [example]);
+
+  const loadExample = async (id: string | undefined) => {
+    const next = id ? fromShared(exampleFiles(id)) : defaultFiles();
+    baseline.current = sourcesKey(next);
+    setExample(id);
+    arrangeNext.current = true;
+    setLoads((n) => n + 1);
+    setFiles(ordered(next));
+    setActive(next[0].name);
+  };
+  const loadRef = useRef(loadExample);
+  loadRef.current = loadExample;
+  const pristineRef = useRef(pristine);
+  pristineRef.current = pristine;
+  useEffect(() => {
+    const onLoad = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail;
+      if (!pristineRef.current && !confirm("Replace your edits with this example?")) return;
+      loadRef.current(id);
+    };
+    window.addEventListener(LOAD_EVENT, onLoad);
+    return () => window.removeEventListener(LOAD_EVENT, onLoad);
+  }, []);
+
+  if (!files || !host.current) {
     return <p className="m-auto text-sm text-fd-muted-foreground">Loading playground…</p>;
   }
 
   const repl: ReplApi = {
     files,
-    host: engine.current.host,
+    host: host.current,
     preview,
-    error,
-    dismissError: () => setError(""),
+    error: build.error,
+    dismissError: build.dismissError,
     renaming,
     setRenaming,
     isPinned: (name) => PINNED.includes(name),
@@ -257,7 +295,7 @@ export default function Repl() {
         alert(`${to} already exists`);
         return false;
       }
-      engine.current!.host.rename(from, to);
+      host.current!.rename(from, to);
       // Same pane, same place: panel ids are fixed, so swap the panel.
       const panel = dock?.getPanel(from);
       if (dock && panel) {
@@ -279,28 +317,30 @@ export default function Repl() {
     },
 
     reset() {
-      if (!confirm("Replace your files with the starter example?")) return;
-      setFiles(ordered(defaultFiles()));
+      const what = example ? `the “${exampleById(example)?.title}” example` : "the starter example";
+      if (confirm(`Replace your files with ${what}?`)) loadExample(example);
     },
 
     async share() {
-      await writeHash(files);
+      await writeUrl(files);
       await navigator.clipboard.writeText(location.href);
     },
   };
 
   return (
-    <ReplContext value={repl}>
-      <DockviewReact
-        className="h-full"
-        theme={theme}
-        components={components}
-        defaultTabComponent={Tab}
-        leftHeaderActionsComponent={LeftActions}
-        rightHeaderActionsComponent={RightActions}
-        disableFloatingGroups
-        onReady={({ api }) => setDock(api)}
-      />
-    </ReplContext>
+    <>
+      <ReplContext value={repl}>
+        <DockviewReact
+          className="h-full min-w-0 flex-1"
+          theme={theme}
+          components={components}
+          defaultTabComponent={Tab}
+          leftHeaderActionsComponent={LeftActions}
+          rightHeaderActionsComponent={RightActions}
+          disableFloatingGroups
+          onReady={({ api }) => setDock(api)}
+        />
+      </ReplContext>
+    </>
   );
 }

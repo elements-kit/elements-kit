@@ -3,14 +3,9 @@ title: Toast queue
 description: Per-item effectScope owns each toast's auto-dismiss timer. Closing the toast disposes the scope, cancelling the timer cleanly.
 ---
 
-import TOASTS from "@/playground/files/toasts.tsx?raw";
-
 Toasts auto-dismiss after a delay, but the user can also close them early. The natural shape: each toast owns a scoped lifetime. Disposing the scope cancels its timer — no manual `clearTimeout`, no leaked callbacks.
 
-<Playground
-  provider={{ files: { "/main.tsx": { code: TOASTS, active: true } } }}
-  preview={{}}
-/>
+<Playground example="toasts" />
 
 ## The recipe
 

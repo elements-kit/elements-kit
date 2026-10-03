@@ -4,21 +4,9 @@ description: JSX compiles to real DOM elements. Reactive props are effects under
 navTitle: "JSX & Elements"
 ---
 
-import PLAYGROUND_FILE from "@/playground/files/elements.tsx?raw";
-
 An **element** is a real DOM node. JSX in ElementsKit compiles directly to `document.createElement` — there is no virtual DOM, no diffing, no reconciliation. Every expression produces an actual node you can hold in a variable, append to the DOM, or pass to a function.
 
-<Playground
-  provider={{
-    files: {
-      "/main.tsx": {
-        code: PLAYGROUND_FILE,
-        active: true,
-      },
-    },
-  }}
-  preview={{}}
-/>
+<Playground example="elements" />
 
 Configure JSX once in `tsconfig.json`:
 
@@ -187,7 +175,6 @@ ElementsKit extends standard HTML props with namespaced prefixes for common reac
 | `ref={fn}` | Ref callback | `fn(el)` after element is created |
 
 ```tsx
-
 
 const active = signal(false);
 const color = signal("blue");

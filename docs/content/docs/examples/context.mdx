@@ -3,14 +3,9 @@ title: Context propagation
 description: Share a current-user signal with deeply-nested components via setContext + getContext, deferring the lookup with <dom-lifecycle> so it resolves after mount.
 ---
 
-import CONTEXT from "@/playground/files/context.tsx?raw";
-
 `setContext` registers a value on a host element. Any descendant — across open shadow boundaries, at any depth — can read it with `getContext`. No prop drilling, no global module state, no React-style provider component.
 
-<Playground
-  provider={{ files: { "/main.tsx": { code: CONTEXT, active: true } } }}
-  preview={{}}
-/>
+<Playground example="context" />
 
 ## The recipe
 

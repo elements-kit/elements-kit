@@ -11,15 +11,18 @@ import dd from 'dedent';
 
 import { serveWorker } from '../kernel/workerServer';
 
-// Mirrors docs/src/playground/files/tsconfig.json.
-const babelOptions = (plugins: PluginItem[]): InputOptions => ({
-  plugins: [['proposal-decorators', { version: '2023-11' }], ...plugins],
+// Mirrors docs/src/playground/files/tsconfig.json. Two passes: TypeScript
+// and JSX first, then standard decorators — in one pass the decorator
+// transform runs first and trips on `@reactive() field!: T`.
+const typescriptPass = (plugins: PluginItem[]): InputOptions => ({
+  plugins: [['syntax-decorators', { version: '2023-11' }], ...plugins],
   presets: [
     ['typescript', { onlyRemoveTypeImports: true }],
     // `on:click`, `prop:value`…: elements-kit's namespaced props.
     ['react', { runtime: 'automatic', importSource: 'elements-kit', throwIfNamespace: false }],
   ],
 });
+const decoratorPass: InputOptions = { plugins: [['proposal-decorators', { version: '2023-11' }]] };
 
 function uid(str: string) {
   return Array.from(str)
@@ -62,7 +65,10 @@ function babelTransform(filename: string, code: string, externals: Set<string>) 
     },
   });
 
-  const { code: transformedCode } = transform(code, { ...babelOptions([importRewriter]), filename })!;
+  const stripped = transform(code, { ...typescriptPass([importRewriter]), filename })!.code!;
+  const transformedCode = /@\w/.test(stripped)
+    ? transform(stripped, { ...decoratorPass, filename: filename.replace(/\.tsx?$/, '.js') })!.code
+    : stripped;
 
   // elements-kit's `render()` returns its unmount, which the preview calls on re-run.
   // Top-level call only: `render(` inside a class body is the element's own.
@@ -95,6 +101,8 @@ function compile(tabs: Tab[]) {
   for (const tab of tabs) {
     const key = `./${tab.name.replace(/\.[jt]sx?$/, '')}`;
     compiled[key] = transformTab(tab, externals);
+    // `import css from "./x.css?raw"`: the text, as bundlers inline it.
+    if (tab.name.endsWith('.css')) compiled[`${key}?raw`] = `export default ${JSON.stringify(tab.source)};`;
   }
   return { compiled, externals: [...externals] };
 }

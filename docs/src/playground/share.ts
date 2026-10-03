@@ -5,6 +5,8 @@ export interface SharedState {
   /** path → code, e.g. `{ "/main.tsx": "…" }`. */
   files: Record<string, string>;
   active?: string;
+  /** The docs example the files started from (`examples.ts`). */
+  example?: string;
 }
 
 async function pipe(bytes: Uint8Array<ArrayBuffer>, stream: GenericTransformStream) {

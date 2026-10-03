@@ -4,8 +4,6 @@ description: Native HTMLElement authoring, enhanced gradually with signals, JSX,
 navTitle: Overview
 ---
 
-import PLAYGROUND_FILE from "@/playground/files/custom-elements.tsx?raw";
-
 Custom elements are a native browser standard — a class that extends `HTMLElement` and registers under a hyphenated tag name. Once defined, they behave like built-in elements: usable in HTML, React, Vue, or any other context without adapters.
 
 ElementsKit enhances custom elements authoring with signals, JSX, and decorators — but these are optional. You can use the native API alone, then add features gradually as needed.
@@ -485,17 +483,7 @@ Custom elements are the right tool for **reusable, framework-agnostic UI**. They
 
 ## Playground
 
-<Playground
-  provider={{
-    files: {
-      "/main.tsx": {
-        code: PLAYGROUND_FILE,
-        active: true,
-      },
-    },
-  }}
-  preview={{}}
-/>
+<Playground example="custom-elements" />
 
 ## See also
 

@@ -34,8 +34,8 @@ Every page, top to bottom:
 ## Playground — position, size, style
 
 - **Default: top**, directly after the hook.
-- **Landing page: no Sandpack.** Static hero snippet + link to `/signals` — respects the 5-second budget.
-- **Height**: default `height: 300`. Increase only for multi-panel demos; add an inline comment explaining why.
+- **Landing page: no playground.** Static hero snippet + link to `/signals` — respects the 5-second budget.
+- **Embed**: register the file in [examples.ts](docs/src/playground/examples.ts) (id, title, section, page), import it `?raw`, then `<Playground example="id" source={RAW} />`. The source is server-rendered; the live editor loads when scrolled into view. Every registered example (tests excepted) is listed in `/playground`.
 - **One primary playground per page.** `<Tabs items={[…]}>` + `<Tab value>` + multiple `<Playground>` only when a single demo would obscure per-facet learning (see [signals.mdx](docs/content/docs/(library)/signals.mdx)).
 - **Tab labels** ≤ 12 chars. Lower case except proper nouns and identifiers (`Counter`, `Batch`, `onCleanup`).
 
@@ -44,7 +44,9 @@ Every page, top to bottom:
 - Imports at top. Everything runnable as-is.
 - Realistic names (`cart`, `user`, `todos`). No `foo` / `bar` outside type positions.
 - Inline CSS (`style="…"`). No external stylesheets unless the demo is about styling.
-- Mount via the shared entry ([docs/src/playground/files/index.js](docs/src/playground/files/index.js)) — export `App` from `main.tsx`.
+- Colours read on light and dark previews: neutral greys with alpha (`#8884` borders, `#8881` fills, `#888` muted text), not light-only hex.
+- Export `App` from the file; the playground mounts it (or call `render(…)` yourself).
+- Tests (`*.test.ts`): global `test` / `describe` / `expect` (common matchers); results show in the preview.
 
 ## Code blocks
 

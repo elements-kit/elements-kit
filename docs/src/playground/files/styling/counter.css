@@ -1,0 +1,18 @@
+:host {
+  display: block;
+  font-family: sans-serif;
+  padding: 1.5rem;
+  border: 1px solid #8884;
+  border-radius: 8px;
+  max-width: 240px;
+}
+p { margin: 0 0 0.75rem; font-size: 1.25rem; }
+.controls { display: flex; gap: 8px; }
+button {
+  padding: 4px 12px;
+  border: 1px solid #8884;
+  border-radius: 4px;
+  cursor: pointer;
+  background: Canvas;
+}
+button:hover { background: #8881; }

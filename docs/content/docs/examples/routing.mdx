@@ -3,14 +3,9 @@ title: Routing
 description: Build a single-page router from patchHistory + matches/match + navigate, with same-origin link interception. No router library.
 ---
 
-import ROUTING from "@/playground/files/routing.tsx?raw";
-
 Build a single-page router on top of the platform: `history.pushState` + `URLPattern`, wrapped in reactive helpers. You get reactive route matching, named params, and same-origin link interception in about 30 lines.
 
-<Playground
-  provider={{ files: { "/main.tsx": { code: ROUTING, active: true } } }}
-  preview={{}}
-/>
+<Playground example="routing" />
 
 ## The recipe
 

@@ -3,14 +3,9 @@ title: Debounced search
 description: Search-as-you-type with createDebounced + async + AbortController. The fetch tracks the debounced signal, so each keystroke restarts cleanly.
 ---
 
-import SEARCH from "@/playground/files/search.tsx?raw";
-
 Search-as-you-type without the usual race conditions. `createDebounced` smooths the input, `async` re-runs whenever the debounced value changes, and `onCleanup` aborts the previous fetch before the next one starts.
 
-<Playground
-  provider={{ files: { "/main.tsx": { code: SEARCH, active: true } } }}
-  preview={{}}
-/>
+<Playground example="search" />
 
 ## The recipe
 

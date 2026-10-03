@@ -2,52 +2,24 @@
 title: Signals
 description: Fine-grained reactivity with signal, computed, effect, and more.
 ---
-import COUNTER from "@/playground/files/signals-counter.tsx?raw";
-import BATCH from "@/playground/files/signals-batch.tsx?raw";
-import CLEANUP from "@/playground/files/signals-cleanup.tsx?raw";
-import EFFECT_SCOPE from "@/playground/files/signals-effect-scope.tsx?raw";
-import UNTRACKED from "@/playground/files/signals-untracked.tsx?raw";
-import TEST_SIGNAL from "@/playground/files/signals-signal.test.ts?raw";
-import TEST_COMPUTED from "@/playground/files/signals-computed.test.ts?raw";
-import TEST_EFFECT from "@/playground/files/signals-effect.test.ts?raw";
-import TEST_EFFECT_SCOPE from "@/playground/files/signals-effect-scope.test.ts?raw";
-import TEST_ON_CLEANUP from "@/playground/files/signals-on-cleanup.test.ts?raw";
-import TEST_BATCH from "@/playground/files/signals-batch.test.ts?raw";
-import TEST_UNTRACKED from "@/playground/files/signals-untracked.test.ts?raw";
-import TEST_REACTIVE from "@/playground/files/signals-reactive.test.ts?raw";
 
 Signals are the reactive core of ElementsKit. Every UI update, derived value, and side effect is driven by three primitives: `signal`, `computed`, and `effect`.
 
 <Tabs items={["Counter","Batch","onCleanup","effectScope","untracked"]}>
   <Tab value="Counter">
-    <Playground
-      provider={{ files: { "/main.tsx": { code: COUNTER, active: true } } }}
-      preview={{}}
-    />
+    <Playground example="signals-counter" />
   </Tab>
   <Tab value="Batch">
-    <Playground
-      provider={{ files: { "/main.tsx": { code: BATCH, active: true } } }}
-      preview={{}}
-    />
+    <Playground example="signals-batch" />
   </Tab>
   <Tab value="onCleanup">
-    <Playground
-      provider={{ files: { "/main.tsx": { code: CLEANUP, active: true } } }}
-      preview={{}}
-    />
+    <Playground example="signals-cleanup" />
   </Tab>
   <Tab value="effectScope">
-    <Playground
-      provider={{ files: { "/main.tsx": { code: EFFECT_SCOPE, active: true } } }}
-      preview={{}}
-    />
+    <Playground example="signals-effect-scope" />
   </Tab>
   <Tab value="untracked">
-    <Playground
-      provider={{ files: { "/main.tsx": { code: UNTRACKED, active: true } } }}
-      preview={{}}
-    />
+    <Playground example="signals-untracked" />
   </Tab>
 </Tabs>
 
@@ -107,10 +79,7 @@ In JSX, signal/computed values must be wrapped in a function:
 ```
 </Callout>
 
-<Playground
-  provider={{ template: "test-ts", files: { "/main.test.ts": { code: TEST_SIGNAL, active: true } } }}
-  tests={{ verbose: true }}
-/>
+<Playground example="signals-signal.test" />
 
 ## computed
 
@@ -161,10 +130,7 @@ fullName(); // "Grace Lovelace"
 
 A `computed` is read-only — you can only call it with no arguments.
 
-<Playground
-  provider={{ template: "test-ts", files: { "/main.test.ts": { code: TEST_COMPUTED, active: true } } }}
-  tests={{ verbose: true }}
-/>
+<Playground example="signals-computed.test" />
 
 ---
 
@@ -244,10 +210,7 @@ effect(() => console.log(name()));
 ```
 </Callout>
 
-<Playground
-  provider={{ template: "test-ts", files: { "/main.test.ts": { code: TEST_EFFECT, active: true } } }}
-  tests={{ verbose: true }}
-/>
+<Playground example="signals-effect.test" />
 
 ## effectScope
 
@@ -278,10 +241,7 @@ Use `effectScope` when you want to start and stop a group of related effects tog
 Function components, intrinsic elements, fragments, and `<For>` items each create their own `effectScope`. You only need to create one by hand in custom-element lifecycle hooks or other non-JSX entry points — see [Scopes & cleanup](/scopes/).
 </Callout>
 
-<Playground
-  provider={{ template: "test-ts", files: { "/main.test.ts": { code: TEST_EFFECT_SCOPE, active: true } } }}
-  tests={{ verbose: true }}
-/>
+<Playground example="signals-effect-scope.test" />
 
 ---
 
@@ -332,10 +292,7 @@ const derived = computed(() => {
 
 This ensures that any resources created inside the computed are always cleaned up at the right time.
 
-<Playground
-  provider={{ template: "test-ts", files: { "/main.test.ts": { code: TEST_ON_CLEANUP, active: true } } }}
-  tests={{ verbose: true }}
-/>
+<Playground example="signals-on-cleanup.test" />
 
 ---
 
@@ -360,10 +317,7 @@ batch(() => {
 // → 10 20  (single run)
 ```
 
-<Playground
-  provider={{ template: "test-ts", files: { "/main.test.ts": { code: TEST_BATCH, active: true } } }}
-  tests={{ verbose: true }}
-/>
+<Playground example="signals-batch.test" />
 
 ---
 
@@ -430,10 +384,7 @@ trigger(user);
 ```
 </Callout>
 
-<Playground
-  provider={{ template: "test-ts", files: { "/main.test.ts": { code: TEST_UNTRACKED, active: true } } }}
-  tests={{ verbose: true }}
-/>
+<Playground example="signals-untracked.test" />
 
 ---
 
@@ -470,10 +421,7 @@ class Store {
 }
 ```
 
-<Playground
-  provider={{ template: "test-ts", files: { "/main.test.ts": { code: TEST_REACTIVE, active: true } } }}
-  tests={{ verbose: true }}
-/>
+<Playground example="signals-reactive.test" />
 
 ---
 

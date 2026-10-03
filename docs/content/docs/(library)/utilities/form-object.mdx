@@ -3,21 +3,9 @@ title: Form object
 description: Read and write an HTMLFormElement as a nested plain object via field names.
 ---
 
-import FORM_OBJECT_FILE from "@/playground/files/form-object.tsx?raw";
-
 `FormObject` turns an `HTMLFormElement` into a structured plain object — and writes one back — using the control `name` to shape the result. It is a static snapshot, like `new FormData()`, with no reactivity or dependencies. Type into the form below and watch the object update.
 
-<Playground
-  provider={{
-    files: {
-      "/main.tsx": {
-        code: FORM_OBJECT_FILE,
-        active: true,
-      },
-    },
-  }}
-  preview={{}}
-/>
+<Playground example="form-object" />
 
 ## Field names shape the object
 

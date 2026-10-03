@@ -94,3 +94,12 @@
 .ek-pg-editor .cm-editor.cm-focused {
   outline: none;
 }
+.ek-pg-editor .cm-content,
+.ek-pg-editor .cm-gutters {
+  font-size: 14px;
+}
+/* Docs embeds: the size of fumadocs' code blocks. */
+.ek-playground-frame .ek-pg-editor .cm-content,
+.ek-playground-frame .ek-pg-editor .cm-gutters {
+  font-size: 13px;
+}
