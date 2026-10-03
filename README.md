@@ -163,7 +163,7 @@ Docs: [React](https://elements-kit.com/integrations/react) · [All integrations]
 
 ## License
 
-[MIT](LICENSE)
+[Apache License 2.0](LICENSE)
 
 ## Maintained by
 
