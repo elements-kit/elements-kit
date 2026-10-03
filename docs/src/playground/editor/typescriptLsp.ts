@@ -155,7 +155,7 @@ export const typescriptLspExtras: Extension = [
   }),
 ];
 
-function workerTransport(worker: Worker): Transport {
+function workerTransport(worker: ReturnType<typeof deferredWorker>): Transport {
   const handlers = new Set<(value: string) => void>();
   worker.addEventListener('message', (e: MessageEvent) => {
     const json = JSON.stringify(e.data);
@@ -190,13 +190,44 @@ interface TsDiagnostic {
 
 export interface TypescriptSession {
   client: LSPClient;
-  worker: Worker;
+  worker: Pick<Worker, 'postMessage'>;
   getDiagnostics(uri: string, view: EditorView): Promise<Diagnostic[]>;
   syncTypes(importMap: Record<string, string>): Promise<boolean>;
 }
 
+// The TypeScript worker is the page's largest download: it starts once the
+// first preview has compiled, so it doesn't compete with it. Until then,
+// messages queue.
+let started = false;
+const waiting = new Set<() => void>();
+export function startTypeChecking() {
+  started = true;
+  for (const start of waiting) start();
+  waiting.clear();
+}
+
+function deferredWorker() {
+  let worker: Worker | undefined;
+  const queue: unknown[] = [];
+  const listeners: ((e: MessageEvent) => void)[] = [];
+  const start = () => {
+    worker = new TsWorker();
+    for (const listener of listeners) worker.addEventListener('message', listener);
+    for (const message of queue.splice(0)) worker.postMessage(message);
+  };
+  if (started) start();
+  else waiting.add(start);
+  return {
+    postMessage: (message: unknown) => (worker ? worker.postMessage(message) : queue.push(message)),
+    addEventListener(_: 'message', listener: (e: MessageEvent) => void) {
+      listeners.push(listener);
+      worker?.addEventListener('message', listener);
+    },
+  };
+}
+
 export function createTypescriptSession(): TypescriptSession {
-  const worker = new TsWorker();
+  const worker = deferredWorker();
   const client = new LSPClient({
     extensions: languageServerExtensions(),
     // Type acquisition legitimately exceeds the 3s default on first sync.

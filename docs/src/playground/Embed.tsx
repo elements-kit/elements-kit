@@ -27,7 +27,7 @@ export default function Embed(props: { example: string; files: Record<string, st
     host.current = new EditorHost({
       folder,
       dark: document.documentElement.classList.contains("dark"),
-      formatter: formatterClient(),
+      formatter: formatterClient,
       onChange: (name, source) =>
         setFiles((prev) => prev?.map((f) => (f.name === name && f.source !== source ? { ...f, source } : f))),
     });

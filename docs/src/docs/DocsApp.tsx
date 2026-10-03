@@ -13,7 +13,7 @@ import { loadPage } from "#pages";
 import { IslandsContext } from "@/components/Island";
 import { pageFile, pageMeta, source, type DocsPage as Page } from "./source";
 import { mdxComponents } from "./mdx-components";
-import { baseOptions } from "./layout";
+import { baseOptions, SidebarFooter } from "./layout";
 
 // Lazy, like fumadocs' default dialog: its Markdown renderer stays off first load.
 const PagefindDialog = lazy(() => import("./search"));
@@ -40,6 +40,7 @@ export default function DocsApp({ slugs, pathname, ...islands }: Props) {
           nav={{ ...baseOptions.nav, mode: "top" }}
           tabMode="navbar"
           tree={source.getPageTree()}
+          sidebar={{ footer: SidebarFooter }}
         >
           <IslandsContext value={islands as Record<string, ReactNode>}>
             {/* No Suspense boundary: React would outline a large one (body

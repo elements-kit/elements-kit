@@ -17,7 +17,8 @@ import { serveWorker } from '../kernel/workerServer';
 const typescriptPass = (plugins: PluginItem[]): InputOptions => ({
   plugins: [['syntax-decorators', { version: '2023-11' }], ...plugins],
   presets: [
-    ['typescript', { onlyRemoveTypeImports: true }],
+    // Drops imports used only as types (`import { Children }`), as tsc does.
+    ['typescript', { onlyRemoveTypeImports: false }],
     // `on:click`, `prop:value`…: elements-kit's namespaced props.
     ['react', { runtime: 'automatic', importSource: 'elements-kit', throwIfNamespace: false }],
   ],

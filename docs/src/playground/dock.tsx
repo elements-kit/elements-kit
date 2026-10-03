@@ -11,7 +11,7 @@ export const DEVTOOLS = "devtools";
 export interface ReplApi {
   files: PlaygroundFile[];
   host: EditorHost;
-  preview: { preview: ReactElement; devtools: ReactElement };
+  preview: { preview: ReactElement; devtools: ReactElement; showDevtools(): void };
   error: string;
   dismissError(): void;
   /** The file whose name is being edited. */
@@ -61,8 +61,14 @@ export function PreviewPanel() {
   );
 }
 
-export function DevtoolsPanel() {
-  return useRepl().preview.devtools;
+export function DevtoolsPanel({ api }: IDockviewPanelProps) {
+  const { preview } = useRepl();
+  useEffect(() => {
+    if (api.isVisible) preview.showDevtools();
+    const sub = api.onDidVisibilityChange(({ isVisible }) => isVisible && preview.showDevtools());
+    return () => sub.dispose();
+  }, [api, preview]);
+  return preview.devtools;
 }
 
 // --- Tabs: fumadocs' code-block tab look (see playground.css) ---------------

@@ -147,7 +147,7 @@ export default function Repl() {
     host.current = new EditorHost({
       folder: "playground",
       dark: document.documentElement.classList.contains("dark"),
-      formatter: formatterClient(),
+      formatter: formatterClient,
       onChange: (name, source) =>
         setFiles((prev) => prev?.map((f) => (f.name === name && f.source !== source ? { ...f, source } : f))),
     });

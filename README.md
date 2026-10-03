@@ -528,3 +528,6 @@ Directions under consideration for the SSR/islands layer (nothing here is commit
 - [ARCHITECTURE.md](ARCHITECTURE.md) — how the library works
 - [CONTRIBUTING.md](CONTRIBUTING.md) — build, test, PR checklist
 
+## Maintained by
+
+ElementsKit is built and maintained by the [Quba](https://www.quba.co) team.

@@ -1,5 +1,6 @@
 /** @jsxImportSource react */
 import { Play } from "lucide-react";
+import type { ComponentProps } from "react";
 import type { BaseLayoutProps, LinkItemType } from "fumadocs-ui/layouts/shared";
 
 /** A pill, not a text link: the playground is a destination of its own. */
@@ -15,6 +16,21 @@ export const playgroundLink: LinkItemType = {
     </a>
   ),
 };
+
+/** Sidebar footer: the credit line, then fumadocs' own footer items (icon links below lg). */
+export function SidebarFooter({ children, className: _, ...props }: ComponentProps<"div">) {
+  return (
+    <div {...props} className="flex items-center gap-1 border-t px-4 py-2.5 text-xs text-fd-muted-foreground">
+      <span className="me-auto">
+        Maintained by{" "}
+        <a href="https://www.quba.co" target="_blank" rel="noopener" className="font-medium text-fd-foreground hover:text-fd-primary">
+          Quba
+        </a>
+      </span>
+      <div className="flex items-center lg:hidden">{children}</div>
+    </div>
+  );
+}
 
 export const baseOptions: BaseLayoutProps = {
   nav: {

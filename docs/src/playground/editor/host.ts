@@ -30,7 +30,8 @@ export interface PlaygroundFile {
 export interface EditorHostOptions {
   folder: string;
   dark: boolean;
-  formatter: WorkerClient;
+  /** Called on first Format: its worker starts then. */
+  formatter(): WorkerClient;
   onChange(name: string, source: string): void;
 }
 
@@ -210,7 +211,7 @@ export class EditorHost {
     const editor = typeof target === 'string' ? this.editors.get(target) : target;
     if (!editor || !isTsFile(editor.uri)) return;
     const { view } = editor;
-    const res = await this.opts.formatter.tryRequest<{ code?: string }>('FORMAT', { code: view.state.doc.toString() });
+    const res = await this.opts.formatter().tryRequest<{ code?: string }>('FORMAT', { code: view.state.doc.toString() });
     if (typeof res?.code !== 'string' || res.code === view.state.doc.toString()) return;
     view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: res.code } });
   }

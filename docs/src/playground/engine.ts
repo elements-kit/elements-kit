@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "reac
 import CompilerWorker from "./workers/compiler?worker";
 import FormatterWorker from "./workers/formatter?worker";
 import { isTsFile, type PlaygroundFile } from "./editor/host";
+import { startTypeChecking } from "./editor/typescriptLsp";
 import { createWorkerClient, latest, type WorkerClient } from "./kernel/workerClient";
 
 // One compiler and one formatter per page, shared by every playground on it.
@@ -48,6 +49,7 @@ export function useBuild(files: PlaygroundFile[] | undefined) {
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
       }
+      startTypeChecking();
     }, delay);
     return () => clearTimeout(timer);
   }, [key]);

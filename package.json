@@ -20,6 +20,12 @@
     "url": "https://x.com/waelbettayeb"
   },
   "license": "MIT",
+  "contributors": [
+    {
+      "name": "Quba",
+      "url": "https://www.quba.co"
+    }
+  ],
   "homepage": "https://elements-kit.com/",
   "repository": {
     "type": "git",

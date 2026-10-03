@@ -42,10 +42,20 @@ export function usePreview({ importMap, code, dark }: Options) {
     if (state.current.ready) iframe.current?.contentWindow?.postMessage(msg, "*");
   };
 
+  // DevTools (~1 MB) loads once its panel shows and the preview has code;
+  // chobitsu holds the console until it connects.
+  const devtools = useRef({ shown: false, loaded: false });
+  const loadDevtools = () => {
+    const d = devtools.current;
+    if (d.loaded || !d.shown || !latest.current.code["./main"] || !devtoolsIframe.current) return;
+    d.loaded = true;
+    devtoolsIframe.current.src = devtoolsSrc;
+  };
+
   // A DevTools session belongs to one preview document.
   const reloadDevtools = () => {
     state.current.pending.length = 0;
-    devtoolsIframe.current?.contentWindow?.location.reload();
+    if (devtools.current.loaded) devtoolsIframe.current?.contentWindow?.location.reload();
   };
 
   const freshDocument = () => {
@@ -93,6 +103,7 @@ export function usePreview({ importMap, code, dark }: Options) {
 
   useEffect(() => {
     if (!code["./main"]) return;
+    loadDevtools();
     if (state.current.ran && definesElements(code)) return freshDocument();
     send({ event: "CODE_UPDATE", value: code });
     if (state.current.ready) state.current.ran = true;
@@ -122,7 +133,11 @@ export function usePreview({ importMap, code, dark }: Options) {
           className="block size-full bg-white dark:bg-neutral-900"
         />
       ),
-      devtools: <iframe ref={devtoolsIframe} title="DevTools" src={devtoolsSrc} className="block size-full" />,
+      devtools: <iframe ref={devtoolsIframe} title="DevTools" className="block size-full" />,
+      showDevtools() {
+        devtools.current.shown = true;
+        loadDevtools();
+      },
     }),
     [devtoolsSrc],
   );
