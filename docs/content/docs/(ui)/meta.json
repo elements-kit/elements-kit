@@ -1,6 +1,6 @@
 {
-  "title": "Components",
-  "description": "Headless UI styled by CSS",
+  "title": "UI Kit",
+  "description": "Optional: components styled by CSS",
   "icon": "LayoutList",
   "root": true,
   "pages": [

@@ -38,26 +38,26 @@ export const examples: Example[] = [
     ["signals-reactive.test", "@reactive · tests"],
   ]),
   ...section("Stores", "/stores", [["stores", "Store"]]),
-  ...section("Promise", "/promise", [
+  ...section("Promise", "/primitives/promise", [
     ["promise-basic", "Basic"],
     ["promise.test", "Tests"],
   ]),
-  ...section("Async", "/async", [
+  ...section("Async", "/primitives/async", [
     ["async-flow", "Flow"],
     ["async.test", "Tests"],
   ]),
-  ...section("Components", "/components", [["components", "Components"]]),
+  ...section("Forms", "/primitives/form-object", [["form-object", "Form object"]]),
   ...section("Elements", "/elements", [
     ["elements", "JSX & elements"],
     ["for-keyed-list", "Keyed list", "/elements/for"],
   ]),
+  ...section("Components", "/components", [["components", "Components"]]),
   ...section("Custom elements", "/custom-elements", [
     ["custom-elements", "Overview"],
     ["attributes", "Attributes", "/custom-elements/attributes"],
     ["slots", "Slots", "/custom-elements/slots"],
     ["styling", "Styling", "/custom-elements/styling"],
   ]),
-  ...section("Utilities", "/utilities/form-object", [["form-object", "Form object"]]),
   ...section("Integrations", "/integrations/react", [["react", "React"]]),
   ...section("Examples", "/examples", [
     ["context", "Context", "/examples/context"],

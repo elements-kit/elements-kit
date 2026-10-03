@@ -88,7 +88,7 @@ The hidden input carries `autocomplete="one-time-code"`, so iOS and Android offe
 
 ## Form participation
 
-`x-otp-input` is a [form-associated custom element](https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements#form-associated_custom_elements). With a `name`, it submits its value in `FormData`, reflects `name`/`value` as properties (so serializers like [`FormObject`](/utilities) read it), participates in `reset`, and reports `valueMissing` (when `required`) and `tooShort` validity.
+`x-otp-input` is a [form-associated custom element](https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements#form-associated_custom_elements). With a `name`, it submits its value in `FormData`, reflects `name`/`value` as properties (so serializers like [`FormObject`](/primitives/form-object) read it), participates in `reset`, and reports `valueMissing` (when `required`) and `tooShort` validity.
 
 ```ts
 const form = document.querySelector("form")!;

@@ -1,0 +1,28 @@
+{
+  "title": "Primitives",
+  "description": "Data, routing, DOM, browser state",
+  "icon": "Blocks",
+  "root": true,
+  "pages": [
+    "index",
+    "---Data---",
+    "promise",
+    "async",
+    "retry",
+    "storage",
+    "---Forms---",
+    "form-object",
+    "---App---",
+    "routing",
+    "context",
+    "---DOM---",
+    "events",
+    "observers",
+    "browser-state",
+    "media",
+    "---Time---",
+    "timing",
+    "---Extend---",
+    "building-primitives"
+  ]
+}

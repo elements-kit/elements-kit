@@ -10,6 +10,7 @@ import { StorybookEmbed } from "@/components/StorybookEmbed";
 import { Diagram } from "@/components/Diagram";
 import { MagicMove } from "@/components/MagicMove";
 import { Island } from "@/components/Island";
+import { Modules } from "@/components/Modules";
 
 // Everything the content uses without importing: fumadocs defaults (Callout,
 // Cards, Card, code blocks), Tabs/Steps, twoslash popups, and ours.
@@ -42,4 +43,5 @@ export const mdxComponents: MDXComponents = {
   Diagram,
   MagicMove,
   Island,
+  Modules,
 };

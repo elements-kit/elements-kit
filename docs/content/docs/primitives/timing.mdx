@@ -1,0 +1,118 @@
+---
+title: Timing
+description: "Reactive timeouts, intervals, debounced and throttled signals, and previous values."
+---
+
+Time-based signal helpers. Each one stops its timer when its scope is disposed.
+
+## createTimeout
+
+Reactive `setTimeout` wrapper. Fires `callback` once after `delay` ms. Starts immediately unless `immediate` is `false`.
+
+```ts
+import { createTimeout } from "elements-kit/utilities/timeout";
+
+const { pending, stop, reset } = createTimeout(() => {
+  console.log("fired");
+}, 1000);
+```
+
+```ts
+function createTimeout(
+  callback: () => void,
+  delay: number | (() => number),
+  immediate?: boolean,
+): { pending: Computed<boolean>; start(): void; stop(): void; reset(): void } & Disposable
+```
+
+## createInterval
+
+Pausable `setInterval` wrapper. Starts running immediately on creation.
+
+```ts
+import { createInterval } from "elements-kit/utilities/interval";
+
+const { pending, stop } = createInterval(() => {
+  console.log("tick");
+}, 1000);
+
+stop(); // pause
+```
+
+```ts
+function createInterval(
+  callback: () => void,
+  delay: number | (() => number),
+): { pending: Computed<boolean>; start(): void; stop(): void; reset(): void } & Disposable
+```
+
+## createDebounced
+
+Returns a `Computed<T>` that mirrors `getter` but only updates after `delay` ms of silence.
+
+```ts twoslash
+// @noErrors
+import { createDebounced } from "elements-kit/utilities/debounced";
+import { signal } from "elements-kit/signals";
+
+const input = signal("");
+const debounced = createDebounced(input, 300);
+
+effect(() => console.log(debounced())); // fires 300ms after input stops changing
+```
+
+```ts
+function createDebounced<T>(getter: () => T, delay: number | (() => number)): Computed<T>
+```
+
+## createThrottled
+
+Returns a `Computed<T>` that mirrors `getter` but updates at most once per `interval` ms. A trailing-edge update ensures the final value is never dropped.
+
+```ts
+import { createThrottled } from "elements-kit/utilities/throttled";
+
+const throttledScroll = createThrottled(() => window.scrollY, 100);
+```
+
+```ts
+function createThrottled<T>(getter: () => T, interval: number): Computed<T>
+```
+
+---
+
+## createPrevious
+
+Returns a `Computed` that always holds the previous value of `source`. Starts as `undefined` until the source changes for the first time.
+
+```ts
+import { createPrevious } from "elements-kit/utilities/previous";
+import { signal } from "elements-kit/signals";
+
+const count = signal(0);
+const prev = createPrevious(count);
+
+count(1);
+effect(() => console.log(prev())); // 0
+```
+
+Pass `ignore` to skip updates when a condition is met:
+
+```ts
+// Only track previous when value actually changes
+const prev = createPrevious(count, (a, b) => a === b);
+```
+
+```ts
+function createPrevious<T>(
+  source: Computed<T>,
+  ignore?: (next: T, current: T) => boolean,
+): Computed<T | undefined>
+```
+
+---
+
+## See also
+
+- [Scopes & cleanup](/scopes)
+- [Search example](/examples/search)

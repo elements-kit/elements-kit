@@ -36,7 +36,7 @@ Every page, top to bottom:
 - **Default: top**, directly after the hook.
 - **Landing page: no playground.** Static hero snippet + link to `/signals` — respects the 5-second budget.
 - **Embed**: register the file in [examples.ts](docs/src/playground/examples.ts) (id, title, section, page), import it `?raw`, then `<Playground example="id" source={RAW} />`. The source is server-rendered; the live editor loads when scrolled into view. Every registered example (tests excepted) is listed in `/playground`.
-- **One primary playground per page.** `<Tabs items={[…]}>` + `<Tab value>` + multiple `<Playground>` only when a single demo would obscure per-facet learning (see [signals.mdx](docs/content/docs/(library)/signals.mdx)).
+- **One primary playground per page.** `<Tabs items={[…]}>` + `<Tab value>` + multiple `<Playground>` only when a single demo would obscure per-facet learning (see [signals.mdx](docs/content/docs/(core)/signals.mdx)).
 - **Tab labels** ≤ 12 chars. Lower case except proper nouns and identifiers (`Counter`, `Batch`, `onCleanup`).
 
 ### Playground file style
@@ -75,7 +75,18 @@ Provided by [docs/src/docs/mdx-components.tsx](docs/src/docs/mdx-components.tsx)
 
 ## Sidebar
 
-`meta.json` per folder sets order, separators (`"---Label---"`) and external links (`"external:[Label](url)"`). Root folders (`"root": true`) are the sidebar tabs: `(library)`, `(ui)`, `integrations`, `examples`. Parenthesised folders don't appear in URLs. A page that shares a name with a folder lives at `folder/index.mdx`. Unlisted pages build but stay out of the sidebar.
+`meta.json` per folder sets order, separators (`"---Label---"`) and external links (`"external:[Label](url)"`). Root folders (`"root": true`) are the sidebar tabs, one per layer:
+
+| Tab | Folder | Holds |
+|-----|--------|-------|
+| Core | `(core)` | Start pages, signals, stores, scopes |
+| Primitives | `primitives` | One page per area (data, forms, routing, context, DOM, browser state, timing…); `index.mdx` is the catalog |
+| Rendering | `(rendering)` | Optional: JSX, components, custom elements, SSR |
+| UI | `(ui)` | Components |
+| Integrations | `integrations` | Frameworks and bundlers |
+| Examples | `examples` | Composed recipes |
+
+A new primitive gets a row in the catalog table and a section on its area page; a new area (server, AI…) gets its own page and a `---Label---` group in `primitives/meta.json`. Never lead a non-Rendering page with JSX when plain signals show the point. Parenthesised folders don't appear in URLs. A page that shares a name with a folder lives at `folder/index.mdx`. Unlisted pages build but stay out of the sidebar.
 
 ## Length targets
 
@@ -102,22 +113,35 @@ One concept per page. Paths under [docs/content/docs/](docs/content/docs/). Curr
 
 | Page | Owns | Archetype | Playground |
 |------|------|-----------|------------|
-| `(library)/index.mdx` | Landing + pointers | landing | none (static snippet) |
-| `(library)/getting-started/installation.mdx` | `npm install`, tsconfig | how-to | top |
-| `(library)/getting-started/quick-start.mdx` | Counter five ways — signals → custom element | how-to | top |
-| `(library)/getting-started/philosophy.mdx` | Design philosophy — primitives, explicit contracts, batteries-included | concept | none |
-| `(library)/signals.mdx` | `signal` / `computed` / `effect` / `effectScope` / `batch` / `untracked` / `onCleanup` | reference | top (Tabs) |
-| `(library)/stores.mdx` | `@reactive` class pattern | how-to | top |
-| `(library)/elements/index.mdx` | JSX → DOM, prop namespaces, live bindings | concept | top |
-| `(library)/components.mdx` | `render()` classes | how-to | top |
-| `(library)/elements/for.mdx` | `For` — keyed list rendering | reference | top |
-| `(library)/custom-elements/index.mdx` | `HTMLElement` + overview | concept | bottom |
-| `(library)/custom-elements/attributes.mdx` | `@attributes`, `ATTRIBUTES` | reference | top |
-| `(library)/custom-elements/slots.mdx` | `Slot`, named slots | how-to | top |
-| `(library)/custom-elements/styling.mdx` | CSS strategies | how-to | top |
-| `(library)/promise.mdx` | `promise` / `ReactivePromise` / `ComputedPromise` | reference | top |
-| `(library)/async.mdx` | `async` / `Async` core reference | reference | top |
-| `(library)/utilities/index.mdx` | Utilities overview + catalog link | reference (index) | none |
+| `(core)/index.mdx` | Landing: layers, pointers | landing | none (static snippet) |
+| `(core)/getting-started/installation.mdx` | `npm install`, tsconfig | how-to | top |
+| `(core)/getting-started/quick-start.mdx` | Counter five ways — signals → custom element | how-to | top |
+| `(core)/getting-started/philosophy.mdx` | Design philosophy — primitives, explicit contracts, batteries-included | concept | none |
+| `(core)/signals.mdx` | `signal` / `computed` / `effect` / `effectScope` / `batch` / `untracked` / `onCleanup` | reference | top (Tabs) |
+| `(core)/stores.mdx` | `@reactive` class pattern | how-to | top |
+| `(core)/scopes.mdx` | Scopes and cleanup | concept | none |
+| `primitives/index.mdx` | Catalog: every primitive, area, runtime | reference (index) | none |
+| `primitives/promise.mdx` | `promise` / `ReactivePromise` / `ComputedPromise` | reference | top |
+| `primitives/async.mdx` | `async` / `Async` | reference | top |
+| `primitives/retry.mdx` | `retry` | reference | none |
+| `primitives/storage.mdx` | `createLocalStorage` / `createSessionStorage` | reference | none |
+| `primitives/form-object.mdx` | `FormObject` | reference | top |
+| `primitives/routing.mdx` | `currentLocation`, search params, `navigate`, `matches` / `match` | reference | none |
+| `primitives/context.mdx` | `setContext` / `getContext` | reference | none |
+| `primitives/events.mdx` | `on`, hover, focus-within, click-outside, long-press, `activeElement` | reference | none |
+| `primitives/observers.mdx` | Element rect/scroll, resize, intersection, mutation | reference | none |
+| `primitives/browser-state.mdx` | `createMediaQuery`, `windowSize`, `orientation`, `online`, media devices | reference | none |
+| `primitives/timing.mdx` | Timeout, interval, debounced, throttled, previous | reference | none |
+| `primitives/media.mdx` | `createMediaPlayer` | reference | none |
+| `primitives/building-primitives.mdx` | `fromEvent` / `sync` | reference | none |
+| `(rendering)/elements/index.mdx` | JSX → DOM, prop namespaces, live bindings | concept | top |
+| `(rendering)/components.mdx` | `render()` classes | how-to | top |
+| `(rendering)/elements/for.mdx` | `For` — keyed list rendering | reference | top |
+| `(rendering)/custom-elements/index.mdx` | `HTMLElement` + overview | concept | bottom |
+| `(rendering)/custom-elements/attributes.mdx` | `@attributes`, `ATTRIBUTES` | reference | top |
+| `(rendering)/custom-elements/slots.mdx` | `Slot`, named slots | how-to | top |
+| `(rendering)/custom-elements/styling.mdx` | CSS strategies | how-to | top |
+| `(rendering)/server-rendering.mdx` | `renderToStream` / `hydrate` | how-to | none |
 | `integrations/react.mdx` | `useSignal`, `useScope` | reference | top |
 | `examples/data-fetching.mdx` | `async` + retry + online + focus composition | how-to | top |
 | `examples/routing.mdx` | `patchHistory` + `matches` / `match` + `navigate` SPA router | how-to | top |

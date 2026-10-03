@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { loader, type VirtualFile } from "fumadocs-core/source";
 import type { Node as PageTreeNode } from "fumadocs-core/page-tree";
-import { BookOpen, LayoutList, Pencil, Puzzle } from "lucide-react";
+import { Atom, Blocks, BookOpen, Code, LayoutList, Pencil, Puzzle } from "lucide-react";
 
 // Hand-rolled source over Vite globs, not the generated .source/ index:
 // .source/server pulls node:path into the client island. Only frontmatter is
@@ -41,7 +41,7 @@ const files: VirtualFile[] = [
   })),
 ];
 
-const ICONS = { BookOpen, LayoutList, Pencil, Puzzle };
+const ICONS = { Atom, Blocks, BookOpen, Code, LayoutList, Pencil, Puzzle };
 
 export const source = loader({
   baseUrl: "/",

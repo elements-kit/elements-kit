@@ -1,0 +1,220 @@
+---
+title: Introduction
+description: "Reactive primitives for any runtime: signals, data, routing, DOM and browser state. JSX, custom elements and the UI Kit are optional modules."
+---
+
+**ElementsKit is a library of reactive primitives.** Pick one, use it in plain JavaScript, React, a custom element, or on the server. Everything builds on one small core; JSX, custom elements and the UI Kit are modules you add only if you want them.
+
+<Modules />
+
+Every piece is its own import, so you ship only what you use.
+
+- **Compose, don't configure.** Small focused APIs: `signal`, `computed`, `on`, `fromEvent`, `async`. Combine primitives instead of maintaining an overloaded interface.
+- **Close to the platform.** `promise` extends `Promise`. Custom elements *are* `HTMLElement`. JSX compiles to `document.createElement`. No virtual DOM, no proxies.
+- **Predictable and explicit, no magic.** Signals are reactive; nothing else is. No hidden subscriptions.
+- **Designed for the AI age.** Code is cheap; maintenance still isn't. Swap one block at a time.
+
+## Install
+
+<Tabs items={["pnpm","npm","yarn","bun"]}>
+  <Tab value="pnpm">
+    ```sh
+    pnpm add elements-kit
+    ```
+  </Tab>
+  <Tab value="npm">
+    ```sh
+    npm install elements-kit
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```sh
+    yarn add elements-kit
+    ```
+  </Tab>
+  <Tab value="bun">
+    ```sh
+    bun add elements-kit
+    ```
+  </Tab>
+</Tabs>
+
+Full setup (TypeScript JSX config, CDN, Deno) in [Installation](/getting-started/installation).
+
+
+
+<Tabs items={["Vanilla","React","Custom element","JSX","Async"]}>
+  <Tab value="Vanilla">
+```ts twoslash
+// @noErrors
+import { signal, computed, effect } from "elements-kit/signals";
+import { online } from "elements-kit/utilities/network";
+import { createMediaQuery } from "elements-kit/utilities/media-query";
+import { on } from "elements-kit/utilities/event-listener";
+
+const clicks = signal(0);
+const dark = createMediaQuery("(prefers-color-scheme: dark)");
+const label = computed(() => `${clicks()} clicks · ${online() ? "online" : "offline"}`);
+
+const button = document.querySelector("button")!;
+on(button, "click", () => clicks(clicks() + 1));
+
+effect(() => {
+  button.textContent = label();
+  document.body.classList.toggle("dark", dark());
+});
+```
+  </Tab>
+  <Tab value="React">
+```tsx twoslash
+// @noErrors
+/** @jsxImportSource react */
+
+import { signal, computed, effect } from "elements-kit/signals";
+import { useSignal, useScope } from "elements-kit/integrations/react";
+
+// Signals live outside React, shared with any other consumer.
+const count = signal(0);
+const doubled = computed(() => count() * 2);
+
+export default function Counter() {
+  const value = useSignal(count);
+  const double = useSignal(doubled);
+
+  useScope(() => {
+    effect(() => console.log("count:", count()));
+  });
+
+  return (
+    <section>
+      <p><strong>{value}</strong> × 2 = <strong>{double}</strong></p>
+      <button onClick={() => count(count() + 1)}>+1</button>{" "}
+      <button onClick={() => count(count() - 1)}>−1</button>
+    </section>
+  );
+}
+```
+  </Tab>
+  <Tab value="Custom element">
+```tsx twoslash
+// @noErrors
+import { reactive, computed } from "elements-kit/signals";
+import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
+import { render } from "elements-kit/render";
+
+@attributes
+class CounterElement extends HTMLElement {
+  static [attr] = {
+    initial(this: CounterElement, v: string | null) {
+      this.count = Number(v ?? 0);
+    },
+  };
+
+  @reactive() count = 0;
+  doubled = computed(() => this.count * 2);
+
+  #unmount?: () => void;
+
+  #template = () => (
+    <p>
+      <strong>{() => this.count}</strong> × 2 = <strong>{this.doubled}</strong>{" "}
+      <button on:click={() => this.count++}>+1</button>
+    </p>
+  );
+
+  connectedCallback() {
+    this.#unmount = render(this, this.#template);
+  }
+
+  disconnectedCallback() {
+    this.#unmount?.();
+    this.#unmount = undefined;
+  }
+}
+
+customElements.define("x-counter", CounterElement);
+
+// Usable anywhere: plain HTML, React, Vue.
+// <x-counter initial="5"></x-counter>
+```
+  </Tab>
+
+  <Tab value="JSX">
+```tsx twoslash
+// @noErrors
+import { signal, computed, resolve } from "elements-kit/signals";
+import { render } from "elements-kit/render";
+import type { Props } from "elements-kit/jsx-runtime";
+
+function Counter(props: Props<{ initial?: number }>) {
+  const count = signal(resolve(props.initial) ?? 0);
+  const doubled = computed(() => count() * 2);
+
+  return (
+    <section>
+      <p><strong>{count}</strong> × 2 = <strong>{doubled}</strong></p>
+      <button on:click={() => count(count() + 1)}>+1</button>{" "}
+      <button on:click={() => count(count() - 1)}>−1</button>
+    </section>
+  );
+}
+
+render(document.getElementById("app")!, () => <Counter initial={0} />);
+```
+  </Tab>
+  <Tab value="Async">
+```tsx twoslash
+// @noErrors
+import { signal } from "elements-kit/signals";
+import { async } from "elements-kit/utilities/async";
+import { render } from "elements-kit/render";
+
+const query = signal("hello");
+
+const search = async(async () => {
+  const res = await fetch(`/api/search?q=${query()}`);
+  return res.json();
+}).start();
+
+render(document.getElementById("app")!, () => (
+  <section>
+    <input
+      value={query}
+      on:input={(e) => query((e.target as HTMLInputElement).value)}
+    />
+    <p>state: <strong>{() => search.state}</strong></p>
+    <pre>{() => JSON.stringify(search.value, null, 2)}</pre>
+  </section>
+));
+```
+  </Tab>
+</Tabs>
+
+Same signals in every tab. See the full progression (signals → element → component → custom element) in the [Quick start](/getting-started/quick-start).
+
+<Callout type="info" title="Built for the AI age">
+Explicit contracts survive edits by humans or agents. Machine-readable index: [`/llms.txt`](/llms.txt) (short) · [`/llms-full.txt`](/llms-full.txt) (every page concatenated).
+</Callout>
+
+## Start here
+
+<Cards>
+  <Card title="Installation" href="/getting-started/installation" description="Install the package and configure JSX in your TypeScript project." />
+  <Card title="Quick start" href="/getting-started/quick-start" description="Build a reactive counter five ways, from signals to custom elements." />
+  <Card title="Philosophy" href="/getting-started/philosophy" description="Four principles behind the API: compose don't configure, close to the platform, predictable and explicit, designed for the AI age." />
+</Cards>
+
+## Explore
+
+<Cards>
+  <Card title="Signals" href="/signals" description="Core: signal · computed · effect · batch · onCleanup" />
+  <Card title="Stores" href="/stores" description="Core: @reactive classes shared across components and frameworks" />
+  <Card title="Primitives catalog" href="/primitives" description="Every primitive, by area, with where it runs" />
+  <Card title="Async & promise" href="/primitives/async" description="Primitives: queries, mutations, revalidation without a query library" />
+  <Card title="Routing" href="/primitives/routing" description="Primitives: location, URL patterns and navigate" />
+  <Card title="Form object" href="/primitives/form-object" description="Primitives: read and write a form as a nested object" />
+  <Card title="JSX elements" href="/elements" description="Rendering: JSX → real DOM with live bindings" />
+  <Card title="Custom elements" href="/custom-elements" description="Rendering: native HTMLElement with signals and decorators" />
+  <Card title="React" href="/integrations/react" description="Integrations: useSignal · useScope" />
+  <Card title="Data fetching recipe" href="/examples/data-fetching" description="Example: async + retry + online + window focus" />
+</Cards>

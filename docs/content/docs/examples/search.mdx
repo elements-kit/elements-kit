@@ -42,7 +42,7 @@ Type `apr` and the body re-runs three times — but only the last fetch survives
 
 ## Variations
 
-**Retry on transient failure** — wrap the fetch in [`retry`](/utilities), same as Data fetching:
+**Retry on transient failure** — wrap the fetch in [`retry`](/primitives/retry), same as Data fetching:
 
 ```ts
 import { retry } from "elements-kit/utilities/retry";
@@ -105,5 +105,5 @@ Without the `if (!q) return []` guard, the first keystroke (`""`) fires a wasted
 ## See also
 
 - [Data fetching](/examples/data-fetching) — same `async` + `onCleanup` + abort pattern, plus retry, online, focus.
-- [Utilities](/utilities) — `createDebounced`, `createThrottled`, `retry`.
-- [Async](/async) — full `async` / `Async` reference.
+- [Timing](/primitives/timing) — `createDebounced`, `createThrottled`; [Retry](/primitives/retry).
+- [Async](/primitives/async) — full `async` / `Async` reference.

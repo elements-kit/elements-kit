@@ -46,7 +46,7 @@ function show(message: string, ms = 3000) {
 
 ## Variations
 
-**Pause on hover** — read [`createHover`](/utilities) inside the timer scope. Reset the timeout when the pointer leaves:
+**Pause on hover** — read [`createHover`](/primitives/events#createhover) inside the timer scope. Reset the timeout when the pointer leaves:
 
 ```tsx
 const stop = effectScope(() => {
@@ -85,6 +85,6 @@ Filter-then-dispose works too, but disposing first means the timer can't fire mi
 
 ## See also
 
-- [Utilities](/utilities) — `createTimeout`, `createHover`.
+- [Timing](/primitives/timing) and [DOM events](/primitives/events) — `createTimeout`, `createHover`.
 - [Scopes](/scopes) — `effectScope` lifetime semantics.
 - [Lists](/elements/for) — `For` keyed reconciliation.

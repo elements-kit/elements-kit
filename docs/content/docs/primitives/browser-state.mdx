@@ -1,0 +1,153 @@
+---
+title: Browser state
+description: "Reactive window, viewport, network and device state: media queries, window size, orientation, online status, media devices."
+---
+
+Signals over page and device state. Singletons (`windowSize`, `online`, `orientation`) are shared app-wide; factories (`createMediaQuery`, `createMediaDevices`) clean up with their scope.
+
+## createMediaQuery
+
+Creates a `Computed<boolean>` that tracks a [CSS media query](https://developer.mozilla.org/en-US/docs/Web/API/Window/matchMedia). Returns `true` when the query matches, `false` otherwise.
+
+```ts twoslash
+import { createMediaQuery } from "elements-kit/utilities/media-query";
+
+const isDark = createMediaQuery("(prefers-color-scheme: dark)");
+
+isDark(); // true or false — live, updates on OS change
+```
+
+### Signature
+
+```ts
+function createMediaQuery(
+  query: string,
+  defaultState?: boolean,
+): Computed<boolean>
+```
+
+| Parameter | Description |
+|-----------|-------------|
+| `query` | Any valid CSS media query string |
+| `defaultState` | Value returned during SSR (where `window` is unavailable). Defaults to `false`. |
+
+### Examples
+
+**Dark mode toggle**
+
+```ts
+import { effect } from "elements-kit/signals";
+import { createMediaQuery } from "elements-kit/utilities/media-query";
+
+const isDark = createMediaQuery("(prefers-color-scheme: dark)");
+
+effect(() => {
+  document.documentElement.classList.toggle("dark", isDark());
+});
+```
+
+**Responsive layout**
+
+```ts
+const isMobile  = createMediaQuery("(max-width: 640px)");
+const isTablet  = createMediaQuery("(max-width: 1024px)");
+const prefersReducedMotion = createMediaQuery("(prefers-reduced-motion: reduce)");
+
+effect(() => {
+  if (isMobile()) {
+    // render compact layout
+  } else if (isTablet()) {
+    // render medium layout
+  }
+});
+```
+
+**SSR / hydration**
+
+Pass `defaultState` to control the value returned on the server before the browser environment is available:
+
+```ts
+// Server renders as if dark mode is off
+const isDark = createMediaQuery("(prefers-color-scheme: dark)", false);
+```
+
+### Cleanup
+
+The underlying `MediaQueryList` event listener is automatically removed when the signal goes out of scope — via `onCleanup` if created inside an effect, or `Symbol.dispose` for explicit resource management:
+
+```ts
+// Inside an effect or effectScope — cleanup is automatic
+effectScope(() => {
+  const isDark = createMediaQuery("(prefers-color-scheme: dark)");
+  effect(() => document.body.classList.toggle("dark", isDark()));
+});
+// ↑ stop() cleans up the MediaQueryList listener too
+
+// Explicit disposal
+using isDark = createMediaQuery("(prefers-color-scheme: dark)");
+// ↑ listener removed when `isDark` goes out of scope (TC39 `using` keyword)
+```
+
+---
+
+## windowSize
+
+Module-level singleton. Reactive `innerWidth` and `innerHeight` of the browser window.
+
+```ts
+import { windowSize } from "elements-kit/utilities/window-size";
+
+effect(() => console.log(windowSize.width(), windowSize.height()));
+```
+
+---
+
+## orientation
+
+Module-level singleton. Reactive `screen.orientation` angle and type.
+
+```ts
+import { orientation } from "elements-kit/utilities/orientation";
+
+effect(() => console.log(orientation.type(), orientation.angle()));
+```
+
+---
+
+## online
+
+Module-level singleton. `Computed<boolean>` — `true` when `navigator.onLine` is `true`. Reacts to `online` / `offline` window events.
+
+```ts
+import { online } from "elements-kit/utilities/network";
+
+effect(() => {
+  if (!online()) showOfflineBanner();
+});
+```
+
+---
+
+## createMediaDevices
+
+Returns a reactive list of available media devices, refreshed when devices are added or removed.
+
+```ts
+import { createMediaDevices } from "elements-kit/utilities/media-devices";
+
+const devices = createMediaDevices();
+
+effect(() => console.log(devices().map((d) => d.label)));
+```
+
+```ts
+function createMediaDevices(): Computed<MediaDeviceInfo[]>
+```
+
+---
+
+## See also
+
+- [DOM events](/primitives/events)
+- [Observers](/primitives/observers)
+- [Server rendering](/server-rendering)

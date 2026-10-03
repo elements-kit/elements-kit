@@ -1,0 +1,159 @@
+---
+title: Context
+description: "Pass values down a tree without props: setContext and getContext, for JSX, custom elements and plain scopes."
+---
+
+DOM-tree dependency injection: pass values down a custom-element subtree without prop drilling or globals. Provider registers a value on a host element; descendants look it up by walking `parentNode` (crossing into shadow hosts via `getRootNode().host`). Innermost provider wins. Reactivity is opt-in: pass a `Signal` / `Computed` and read it inside an effect.
+
+
+## setContext
+
+Registers `value` under `key` on `host`. Auto-removed via `onCleanup` when the surrounding scope disposes — must run inside a reactive scope (an `effect`, `effectScope`, the `render` setup, or a JSX `ref` callback, which all run inside one).
+
+```tsx
+import { signal } from "elements-kit/signals";
+import { setContext } from "elements-kit/utilities/context";
+
+const THEME = Symbol("theme");
+
+function ThemeProvider({ children }: { children: JSX.Element }) {
+  const theme = signal<"light" | "dark">("dark");
+  return setContext(<div>{children}</div>, THEME, theme);
+}
+```
+
+`setContext` returns the host so it composes inline. The equivalent `ref` form does the same thing — pick whichever reads better at the call site:
+
+```tsx
+function ThemeProvider({ children }: { children: JSX.Element }) {
+  const theme = signal<"light" | "dark">("dark");
+  return (
+    <div ref={(el) => setContext(el, THEME, theme)}>
+      {children}
+    </div>
+  );
+}
+```
+
+```ts
+function setContext<T>(host: EventTarget, key: PropertyKey, value: T): void
+```
+
+## getContext
+
+Walks up from `consumer` (across open shadow boundaries) and returns the first registered value for `key`, or `undefined`. One-shot — does not subscribe. Caller decides how to read the result (call signals inside an effect for reactive reads).
+
+The consumer must be in the DOM tree at call time. Inside a JSX `ref` callback the element has not yet been inserted, so a synchronous `getContext(el, …)` returns `undefined`. Defer the lookup to mount time with [`<dom-lifecycle>`](/components/dom-lifecycle/):
+
+```tsx
+import { signal } from "elements-kit/signals";
+import { getContext } from "elements-kit/utilities/context";
+import "elements-kit/utilities/dom-lifecycle";
+
+function ThemedButton() {
+  const theme = signal<"light" | "dark" | undefined>(undefined);
+  return (
+    <button data-theme={() => theme() ?? "light"}>
+      <dom-lifecycle
+        onConnect={(el) => theme(getContext<"light" | "dark">(el, THEME))}
+      />
+      Click
+    </button>
+  );
+}
+```
+
+For one-off reads, call `getContext` directly from an event handler — the tree is always connected by the time the handler fires:
+
+```tsx
+function ThemedButton() {
+  return (
+    <button
+      on:click={(e) => {
+        const theme = getContext<() => "light" | "dark">(e.currentTarget, THEME);
+        console.log("theme:", theme?.());
+      }}
+    >
+      Click
+    </button>
+  );
+}
+```
+
+```ts
+function getContext<T>(consumer: Element, key: PropertyKey): T | undefined
+```
+
+## Consuming context from a component
+
+For a component body that needs `getContext` after connection, defer with [`<dom-lifecycle>`](/components/dom-lifecycle/) — it's render-inert (zero layout box, no a11y role) and its `onConnect` fires once the consumer is in the tree:
+
+```tsx
+import { signal } from "elements-kit/signals";
+import { getContext } from "elements-kit/utilities/context";
+import "elements-kit/utilities/dom-lifecycle";
+
+function ThemeBadge() {
+  const theme = signal<"light" | "dark" | undefined>(undefined);
+  return (
+    <dom-lifecycle
+      onConnect={(el) => theme(getContext<"light" | "dark">(el, THEME))}
+    >
+      <span>{() => theme() ?? "light"}</span>
+    </dom-lifecycle>
+  );
+}
+```
+
+For a `Signal`/`Computed`-valued context that should drive reactivity, read the resolved signal inside an `effect`.
+
+## Nesting
+
+Innermost provider wins because the walk returns on first hit:
+
+```tsx
+<ThemeProvider>
+  <ThemedButton />            {/* outer theme */}
+  <ThemeProvider>
+    <ThemedButton />          {/* inner theme */}
+  </ThemeProvider>
+</ThemeProvider>
+```
+
+## Static values
+
+Reactivity is opt-in — plain values work the same way:
+
+```tsx
+const CONFIG = Symbol("config");
+
+function ConfigProvider({ children }: { children: JSX.Element }) {
+  return setContext(<div>{children}</div>, CONFIG, { apiUrl: "/v1" });
+}
+```
+
+## Custom elements
+
+Inside a custom element, `setContext(this, ...)` registers on the host directly — no wrapper needed. Use the `render(this, template)` lifecycle pattern so the entry is auto-cleaned on disconnect:
+
+```ts
+import { render } from "elements-kit/render";
+
+class ThemeProvider extends HTMLElement {
+  #unmount?: () => void;
+  #template = () => {
+    const theme = signal<"light" | "dark">("dark");
+    setContext(this, THEME, theme);
+    return null;
+  };
+  connectedCallback() { this.#unmount = render(this, this.#template); }
+  disconnectedCallback() { this.#unmount?.(); this.#unmount = undefined; }
+}
+```
+
+---
+
+## See also
+
+- [Context example](/examples/context)
+- [Scopes](/scopes)

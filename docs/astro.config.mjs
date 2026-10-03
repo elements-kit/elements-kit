@@ -51,6 +51,13 @@ export default defineConfig({
   // `/stores` directly, and canonicals, sitemap and links agree.
   trailingSlash: "never",
   build: { format: "file" },
+  // Pages moved by the Core / Primitives / Rendering split.
+  redirects: {
+    "/utilities": "/primitives",
+    "/utilities/form-object": "/primitives/form-object",
+    "/promise": "/primitives/promise",
+    "/async": "/primitives/async",
+  },
   adapter: cloudflare({ imageService: "compile" }),
   integrations: [
     elementsKit(),
