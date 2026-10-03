@@ -3,7 +3,7 @@
 - [ARCHITECTURE.md](ARCHITECTURE.md) — how the library works (reactive model, JSX, custom elements, cleanup, glossary).
 - [CONTRIBUTING.md](CONTRIBUTING.md) — quick start, build & test, quality bars, versioning, extending utilities, PR checklist.
 - [DOCS.md](DOCS.md) — doc-authoring rules (file ownership, page template, playground conventions, terminology).
-- [README.md](README.md) — user-facing API.
+- [README.md](README.md) — overview and module map; full API lives in the docs ([docs/content/docs/](docs/content/docs/)).
 
 ## Repo map
 
