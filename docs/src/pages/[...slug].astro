@@ -1,7 +1,7 @@
 ---
 import DocsShell from "@/docs/DocsShell.astro";
 import DocsApp from "@/docs/DocsApp";
-import { pageMeta, source } from "@/docs/source";
+import { pageMeta, pagePath, sectionTitle, source } from "@/docs/source";
 import IslandDemo from "@/islands/IslandDemo.astro";
 import islandStyles from "@/islands/islands.css?url";
 import AstroCounter from "@/islands/AstroCounter";
@@ -23,14 +23,15 @@ const slugs = Astro.params.slug ? Astro.params.slug.split("/") : [];
 const page = source.getPage(slugs);
 if (!page) return Astro.rewrite("/404");
 const { title, description } = pageMeta(page);
+const section = sectionTitle(page);
 
 // The Astro integration page demos real elements-kit islands. They ride in
 // as named slots and render where the MDX says `<Island name="…" />`.
 const astroIslands = slugs.join("/") === "integrations/astro";
-const props = { slugs, pathname: Astro.url.pathname };
+const props = { slugs, pathname: pagePath(Astro.url.pathname) };
 ---
 
-<DocsShell title={title} description={description}>
+<DocsShell title={title} description={description} section={section}>
   {astroIslands && <link slot="head" rel="stylesheet" href={islandStyles} />}
   {
     astroIslands ? (

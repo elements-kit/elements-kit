@@ -1,20 +1,22 @@
 /** @jsxImportSource react */
-import { use, type ReactNode } from "react";
-import { FrameworkProvider } from "fumadocs-core/framework";
+import { lazy, use, type ReactNode } from "react";
+import { AstroProvider } from "fumadocs-core/framework/astro";
 import { RootProvider } from "fumadocs-ui/provider/base";
-import { DocsLayout } from "fumadocs-ui/layouts/docs";
+import { DocsLayout } from "fumadocs-ui/layouts/notebook";
 import {
   DocsBody,
   DocsDescription,
   DocsPage,
   DocsTitle,
-} from "fumadocs-ui/layouts/docs/page";
+} from "fumadocs-ui/layouts/notebook/page";
 import { loadPage } from "#pages";
 import { IslandsContext } from "@/components/Island";
 import { pageFile, pageMeta, source, type DocsPage as Page } from "./source";
 import { mdxComponents } from "./mdx-components";
 import { baseOptions } from "./layout";
-import { PagefindDialog } from "./search";
+
+// Lazy, like fumadocs' default dialog: its Markdown renderer stays off first load.
+const PagefindDialog = lazy(() => import("./search"));
 
 interface Props {
   slugs: string[];
@@ -30,16 +32,15 @@ export default function DocsApp({ slugs, pathname, ...islands }: Props) {
   if (!page) throw new Error(`Docs page not found: /${slugs.join("/")}`);
 
   return (
-    <FrameworkProvider
-      usePathname={() => pathname}
-      useParams={() => ({ slug: slugs })}
-      useRouter={() => ({
-        push: (url: string) => window.location.assign(url),
-        refresh: () => window.location.reload(),
-      })}
-    >
+    <AstroProvider pathname={pathname} params={{ slug: slugs }}>
       <RootProvider search={{ SearchDialog: PagefindDialog }}>
-        <DocsLayout {...baseOptions} tree={source.getPageTree()}>
+        {/* Notebook, nav on top: the root folders become navbar tabs. */}
+        <DocsLayout
+          {...baseOptions}
+          nav={{ ...baseOptions.nav, mode: "top" }}
+          tabMode="navbar"
+          tree={source.getPageTree()}
+        >
           <IslandsContext value={islands as Record<string, ReactNode>}>
             {/* No Suspense boundary: React would outline a large one (body
                 hidden until a reveal script). In the browser the page chunk
@@ -49,7 +50,7 @@ export default function DocsApp({ slugs, pathname, ...islands }: Props) {
           </IslandsContext>
         </DocsLayout>
       </RootProvider>
-    </FrameworkProvider>
+    </AstroProvider>
   );
 }
 

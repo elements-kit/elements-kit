@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import type { Node } from "fumadocs-core/page-tree";
-import { pageMeta, source } from "@/docs/source";
+import { pageMeta, source, SITE, twinUrl } from "@/docs/source";
 
 export const prerender = true;
 
@@ -17,7 +17,7 @@ export const GET: APIRoute = () => {
     "",
     "> Universal reactive primitives for the web — signals, JSX, custom elements, and browser-API helpers.",
     "",
-    "Every page concatenated: [/llms-full.txt](/llms-full.txt)",
+    `Every page concatenated: [llms-full.txt](${SITE}/llms-full.txt)`,
     "",
     ...sections,
   ].join("\n");
@@ -30,15 +30,12 @@ export const GET: APIRoute = () => {
 function entries(nodes: Node[]): string[] {
   return nodes.flatMap((node) => {
     if (node.type === "folder") {
-      return [...(node.index ? [node.index] : []), ...node.children].flatMap(
-        (child) => entries([child]),
-      );
+      return entries([...(node.index ? [node.index] : []), ...node.children]);
     }
     if (node.type !== "page" || node.external) return [];
     const page = source.getNodePage(node);
     if (!page) return [];
     const { title, description } = pageMeta(page);
-    const url = `${page.url === "/" ? "/index" : page.url}.md`;
-    return [`- [${title}](${url})${description ? `: ${description}` : ""}`];
+    return [`- [${title}](${twinUrl(page)})${description ? `: ${description}` : ""}`];
   });
 }

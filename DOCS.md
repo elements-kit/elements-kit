@@ -87,7 +87,7 @@ Provided by [docs/src/docs/mdx-components.tsx](docs/src/docs/mdx-components.tsx)
 - MDX may link to [ARCHITECTURE.md](ARCHITECTURE.md) for rigor; ARCHITECTURE does **not** link back into MDX.
 - First mention of a primitive on a non-reference page links to its reference page.
 - "See also" footers: 2–5 links, no more.
-- Slug-relative paths (`/signals`), not full URLs.
+- Slug-relative paths without a trailing slash (`/signals`), not full URLs — pages build as `signals.html`.
 - External links for MDN / TC39 / GitHub only.
 
 ## Terminology

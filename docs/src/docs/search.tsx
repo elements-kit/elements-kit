@@ -10,61 +10,61 @@ import {
   SearchDialogOverlay,
   type SearchItemType,
   type SharedProps,
-} from "fumadocs-ui/components/dialog/search"
-import { useEffect, useRef, useState } from "react"
-import { loadPagefind } from "./pagefind"
+} from "fumadocs-ui/components/dialog/search";
+import { useEffect, useState } from "react";
+import { loadPagefind, searchPagefind } from "./pagefind";
 
-export function PagefindDialog(props: SharedProps) {
-  const [search, setSearch] = useState("")
-  const [items, setItems] = useState<SearchItemType[] | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [unavailable, setUnavailable] = useState(false)
-  const queryId = useRef(0)
+export default function PagefindDialog(props: SharedProps) {
+  const [search, setSearch] = useState("");
+  const [items, setItems] = useState<SearchItemType[] | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [unavailable, setUnavailable] = useState(false);
 
   useEffect(() => {
     if (props.open)
-      void loadPagefind().then((pf) => setUnavailable(pf === null))
-  }, [props.open])
+      void loadPagefind().then((pf) => setUnavailable(pf === null));
+  }, [props.open]);
 
   useEffect(() => {
+    setIsLoading(search.length > 0);
     if (search.length === 0) {
-      setItems(null)
-      return
+      setItems(null);
+      return;
     }
 
-    const id = ++queryId.current
-    setIsLoading(true)
+    let cancelled = false;
     const timer = setTimeout(async () => {
-      const pagefind = await loadPagefind()
-      if (!pagefind || id !== queryId.current) return
-
-      const { results } = await pagefind.search(search)
-      const resolved = await Promise.all(
-        results.slice(0, 8).map(async (result) => {
-          const data = await result.data()
-          return [
+      try {
+        const hits = await searchPagefind(search);
+        if (cancelled) return;
+        setItems(
+          hits.flatMap(({ id, hit }) => [
             {
-              id: `${result.id}-page`,
+              id: `${id}-page`,
               type: "page",
-              content: data.meta.title ?? data.url,
-              url: data.url,
+              content: hit.meta.title ?? hit.url,
+              url: hit.url,
             },
             {
-              id: `${result.id}-excerpt`,
+              id: `${id}-excerpt`,
               type: "text",
-              content: data.excerpt.replace(/<[^>]+>/g, ""),
-              url: data.url,
+              content: hit.excerpt.replace(/<[^>]+>/g, ""),
+              url: hit.url,
             },
-          ] satisfies SearchItemType[]
-        }),
-      )
-      if (id !== queryId.current) return
-      setItems(resolved.flat())
-      setIsLoading(false)
-    }, 150)
+          ]),
+        );
+      } catch {
+        if (!cancelled) setItems([]);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }, 150);
 
-    return () => clearTimeout(timer)
-  }, [search])
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [search]);
 
   return (
     <SearchDialog
@@ -92,5 +92,5 @@ export function PagefindDialog(props: SharedProps) {
         />
       </SearchDialogContent>
     </SearchDialog>
-  )
+  );
 }

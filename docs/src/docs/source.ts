@@ -1,5 +1,6 @@
 import { createElement } from "react";
 import { loader, type VirtualFile } from "fumadocs-core/source";
+import type { Node as PageTreeNode } from "fumadocs-core/page-tree";
 import { BookOpen, LayoutList, Pencil, Puzzle } from "lucide-react";
 
 // Hand-rolled source over Vite globs, not the generated .source/ index:
@@ -82,6 +83,42 @@ export type DocsPage = NonNullable<ReturnType<typeof source.getPage>>;
 /** Glob key of the page's module, for `#pages`. */
 export function pageFile(page: DocsPage): string {
   return (page.data as unknown as { file: string }).file;
+}
+
+export const SITE = "https://elements-kit.com";
+
+/** Prerendered pathnames carry the file (`/signals.html`); the URL doesn't. */
+export function pagePath(pathname: string): string {
+  return pathname.replace(/(\/index)?\.html$/, "").replace(/(.)\/$/, "$1") || "/";
+}
+
+/** Absolute URL of the page's Markdown twin. */
+export function twinUrl(page: DocsPage): string {
+  return `${SITE}${page.url === "/" ? "/index" : page.url.replace(/\/$/, "")}.md`;
+}
+
+/** Pages in sidebar order (tree walk), unlisted pages last. */
+export function orderedPages(): DocsPage[] {
+  const seen = new Set<DocsPage>();
+  const walk = (nodes: PageTreeNode[]) => {
+    for (const node of nodes) {
+      if (node.type === "folder") {
+        walk([...(node.index ? [node.index] : []), ...node.children]);
+      } else if (node.type === "page" && !node.external) {
+        const page = source.getNodePage(node);
+        if (page) seen.add(page);
+      }
+    }
+  };
+  walk(source.getPageTree().children);
+  for (const page of source.getPages()) seen.add(page);
+  return [...seen];
+}
+
+/** Title of the page's root folder (`Library`, `Components`…). */
+export function sectionTitle(page: DocsPage): string | undefined {
+  const root = page.path.split("/")[0];
+  return metas[`${PREFIX}${root}/meta.json`]?.title as string | undefined;
 }
 
 export function pageMeta(page: DocsPage): Frontmatter {

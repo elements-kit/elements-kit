@@ -29,6 +29,7 @@ export function MagicMove(props: { tokens: string; steps: string }) {
       tabIndex={0}
       onKeyDown={onKeyDown}
       aria-roledescription="code walkthrough"
+      aria-label={`Code walkthrough, step ${step + 1} of ${steps.length}. Arrow keys change step.`}
     >
       <div className="relative">
         <div className="overflow-auto px-4 py-3.5 font-mono text-[0.8125rem] leading-relaxed">
@@ -53,7 +54,10 @@ export function MagicMove(props: { tokens: string; steps: string }) {
         >
           Prev
         </button>
-        <span className="mx-auto flex items-center gap-3 tabular-nums text-fd-muted-foreground">
+        <span
+          className="mx-auto flex items-center gap-3 tabular-nums text-fd-muted-foreground"
+          aria-live="polite"
+        >
           {step + 1} / {steps.length}
           <span className="flex gap-1.5" aria-hidden>
             {steps.map((_, i) => (

@@ -9,6 +9,7 @@ import ts from "typescript";
 import { z } from "zod";
 import { CODE_THEMES } from "./src/mdx/themes";
 import { rehypeMagicMove, remarkMagicMove } from "./src/mdx/magic-move";
+import { filterElement, stringify } from "./src/mdx/markdown";
 
 export const docs = defineDocs({
   dir: "content/docs",
@@ -20,7 +21,13 @@ export const docs = defineDocs({
       badge: z.enum(["CSS", "JS"]).optional(),
     }),
     // `_markdown` export: served by the `.md` twins and llms.txt routes.
-    postprocess: { includeProcessedMarkdown: true },
+    postprocess: {
+      includeProcessedMarkdown: {
+        headingIds: false,
+        filterElement,
+        stringify,
+      },
+    },
   },
 });
 

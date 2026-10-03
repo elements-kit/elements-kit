@@ -78,7 +78,7 @@ Ten call sites importing the same file share one module, but each rendered insta
 </Callout>
 
 <Callout type="warn" title="The file is trusted input">
-The interior markup is inlined verbatim, unescaped — the same contract as [`<Fragment html>`](/server-rendering#raw-html---fragment-html). Only point the plugin at SVGs you control or vendor from a package you trust.
+The interior markup is inlined verbatim, unescaped — the same contract as [`<Fragment html>`](/server-rendering#raw-html--fragment-html). Only point the plugin at SVGs you control or vendor from a package you trust.
 </Callout>
 
 The plugin emits that region with [`ns="svg"`](/server-rendering#foreign-content--ns), so the interior parses in the SVG namespace and paints. It knows the namespace at build time, which is why nothing needs passing at the call site.

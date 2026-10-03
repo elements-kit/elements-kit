@@ -1,6 +1,4 @@
 User-agent: *
 Allow: /
 
-Disallow: /api/
-
 Sitemap: https://elements-kit.com/sitemap-index.xml

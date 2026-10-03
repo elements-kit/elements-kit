@@ -1,12 +1,10 @@
 /** @jsxImportSource react */
 import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
 
-export const GITHUB_URL = "https://github.com/elements-kit/elements-kit";
-
 export const baseOptions: BaseLayoutProps = {
   nav: {
     title: (
-      <span className="ek-wordmark flex items-center gap-2 font-medium tracking-tight">
+      <span className="flex items-center gap-2 tracking-tight">
         <span aria-hidden className="text-[1.2em] leading-none">
           🌱
         </span>
@@ -15,7 +13,7 @@ export const baseOptions: BaseLayoutProps = {
     ),
     url: "/",
   },
-  githubUrl: GITHUB_URL,
+  githubUrl: "https://github.com/elements-kit/elements-kit",
   links: [
     {
       type: "icon",

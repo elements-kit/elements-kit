@@ -9,6 +9,7 @@
     "search",
     "infinite-scroll",
     "context",
-    "toasts"
+    "toasts",
+    "event-delegation"
   ]
 }

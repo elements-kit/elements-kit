@@ -210,7 +210,7 @@ Because elements-kit touches the DOM, the module that calls `defineElement` must
 </script>
 ```
 
-The [environment guard](/utilities/environment) (`isBrowser`) is only needed for module-level reads of `window` / `document` outside of event handlers or lifecycle callbacks.
+A browser guard (`typeof window !== "undefined"`) is only needed for module-level reads of `window` / `document` outside of event handlers or lifecycle callbacks. elements-kit's own modules already guard theirs, so importing them during SSR is safe.
 
 ### Source the prop shape from the class
 

@@ -56,15 +56,16 @@ export default function Sandpack({
 
   return (
     <PlaygroundErrorBoundary>
-      <SandpackProvider
-        template="vite"
-        customSetup={SHARED_SETUP}
-        options={{ autorun: true }}
-        theme={isDark ? githubDark : githubLight}
-        {...provider}
-        files={{ ...SHARED_FILES, ...provider.files }}
-      >
-        <div className={frameClass}>
+      {/* Frame outside the provider: it must stay the tab panel's direct child. */}
+      <div className={frameClass}>
+        <SandpackProvider
+          template="vite"
+          customSetup={SHARED_SETUP}
+          options={{ autorun: true }}
+          theme={isDark ? githubDark : githubLight}
+          {...provider}
+          files={{ ...SHARED_FILES, ...provider.files }}
+        >
           <SandpackLayout>
             <SandpackCodeEditor
               showTabs
@@ -81,8 +82,8 @@ export default function Sandpack({
             )}
             {tests && <SandpackTests />}
           </SandpackLayout>
-        </div>
-      </SandpackProvider>
+        </SandpackProvider>
+      </div>
     </PlaygroundErrorBoundary>
   );
 }

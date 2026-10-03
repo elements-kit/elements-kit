@@ -25,10 +25,6 @@
   --color-fd-ring: #90dbb9;
 }
 
-.ek-wordmark {
-  color: var(--color-fd-primary);
-}
-
 /* Sidebar CSS / JS badges. */
 .ek-badge {
   margin-inline-start: auto;
@@ -86,6 +82,15 @@
   resize: vertical;
   overflow: hidden;
   border-radius: 0.5rem;
+}
+/* Alone in a tab: fill the panel edge to edge, like fumadocs' code figures. */
+[role="tabpanel"]:has(> .ek-playground-frame:only-child) {
+  padding: 0;
+  overflow: hidden;
+}
+[role="tabpanel"] > .ek-playground-frame:only-child {
+  margin: 0;
+  border-radius: 0;
 }
 @container playground (max-width: 768px) {
   .ek-playground-frame {
