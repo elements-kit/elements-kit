@@ -9,13 +9,15 @@ interface Props {
   section?: string;
   /** Pages with no canonical URL of their own (404). */
   noindex?: boolean;
+  /** Whether a `.md` twin exists for this page. */
+  markdown?: boolean;
 }
 
 const SITE_NAME = "ElementsKit";
 const SITE_DESCRIPTION =
   "Universal reactive primitives for the web — signals, JSX, custom elements, and browser-API helpers.";
 
-const { title, description = SITE_DESCRIPTION, section, noindex } = Astro.props;
+const { title, description = SITE_DESCRIPTION, section, noindex, markdown = true } = Astro.props;
 const path = pagePath(Astro.url.pathname);
 const isHome = path === "/";
 // Home leads with brand + category; inner pages lead with their topic.
@@ -101,7 +103,7 @@ const structuredData = {
     {noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={canonical} />}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="sitemap" type="application/xml" href="/sitemap-index.xml" />
-    {!noindex && <link rel="alternate" type="text/markdown" href={`${isHome ? "/index" : path}.md`} />}
+    {!noindex && markdown && <link rel="alternate" type="text/markdown" href={`${isHome ? "/index" : path}.md`} />}
     <meta name="theme-color" content="#007d58" />
     <meta name="author" content="Wael Bettayeb" />
     <meta

@@ -10,3 +10,9 @@ allowBuilds:
   esbuild: true
   sharp: true
   workerd: true
+# One CodeMirror core across Sandpack and the playground REPL: duplicate
+# instances break CodeMirror's extension identity checks.
+overrides:
+  "@codemirror/state": ^6.7.6
+  "@codemirror/view": ^6.43.13
+  "@codemirror/language": ^6.12.4

@@ -1,0 +1,96 @@
+/* dockview in the docs' colours; tabs drawn like fumadocs' code-block tabs. */
+.dockview-theme-ek {
+  --dv-paneview-active-outline-color: var(--color-fd-ring);
+  --dv-tabs-and-actions-container-font-size: 0.875rem;
+  --dv-tabs-and-actions-container-height: 2.5rem;
+  --dv-tabs-and-actions-container-background-color: var(--color-fd-card);
+  --dv-group-view-background-color: var(--color-fd-background);
+  --dv-drag-over-background-color: color-mix(in oklab, var(--color-fd-primary) 12%, transparent);
+  --dv-drag-over-border-color: var(--color-fd-primary);
+  --dv-edge-dock-indicator-color: var(--color-fd-primary);
+  --dv-tabs-container-scrollbar-color: var(--color-fd-border);
+  --dv-icon-hover-background-color: var(--color-fd-accent);
+  --dv-overlay-z-index: 30;
+  --dv-tab-font-size: inherit;
+  --dv-border-radius: 0px;
+  --dv-tab-margin: 0;
+  --dv-sash-color: transparent;
+  --dv-active-sash-color: var(--color-fd-primary);
+  --dv-active-sash-transition-duration: 0.1s;
+  --dv-active-sash-transition-delay: 0.3s;
+  --dv-spacing-padding: 0px;
+  --dv-tab-border-radius: 0px;
+  --dv-sash-border-radius: 0px;
+  --dv-dropdown-border-radius: 0.375rem;
+  --dv-tab-close-icon-size: inherit;
+  --dv-floating-group-border: none;
+  --dv-drag-over-border: none;
+  --dv-separator-border: var(--color-fd-border);
+  --dv-tab-divider-color: transparent;
+  --dv-scrollbar-background-color: var(--color-fd-border);
+  --dv-activegroup-visiblepanel-tab-background-color: transparent;
+  --dv-activegroup-hiddenpanel-tab-background-color: transparent;
+  --dv-inactivegroup-visiblepanel-tab-background-color: transparent;
+  --dv-inactivegroup-hiddenpanel-tab-background-color: transparent;
+  --dv-activegroup-visiblepanel-tab-color: var(--color-fd-primary);
+  --dv-activegroup-hiddenpanel-tab-color: var(--color-fd-muted-foreground);
+  --dv-inactivegroup-visiblepanel-tab-color: var(--color-fd-foreground);
+  --dv-inactivegroup-hiddenpanel-tab-color: var(--color-fd-muted-foreground);
+  --dv-context-menu-background-color: var(--color-fd-popover);
+  --dv-context-menu-color: var(--color-fd-popover-foreground);
+  color: var(--color-fd-foreground);
+}
+
+.dockview-theme-ek .dv-tabs-and-actions-container {
+  border-bottom: 1px solid var(--color-fd-border);
+  padding-inline-start: 0.5rem;
+}
+/* Panes split by a hairline. */
+.dockview-theme-ek .dv-split-view-container > .dv-view-container > .dv-view:not(:first-child) {
+  border-inline-start: 1px solid var(--color-fd-border);
+}
+.dockview-theme-ek .dv-split-view-container.dv-vertical > .dv-view-container > .dv-view:not(:first-child) {
+  border-inline-start: none;
+  border-top: 1px solid var(--color-fd-border);
+}
+
+.dockview-theme-ek .dv-tab {
+  padding: 0;
+}
+.ek-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 100%;
+  padding-inline: 0.5rem;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+.dv-tab:not(.dv-active-tab) .ek-tab:hover {
+  color: var(--color-fd-accent-foreground);
+}
+/* The active tab's underline, as in fumadocs' code-block tabs. */
+.dv-tab.dv-active-tab .ek-tab::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0.5rem;
+  bottom: 0;
+  height: 1px;
+  background: currentColor;
+}
+.dv-tab:not(.dv-active-tab) .ek-tab-close {
+  opacity: 0;
+}
+.dv-tab:hover .ek-tab-close,
+.ek-tab-close:focus-visible {
+  opacity: 1;
+}
+
+.ek-pg-editor .cm-editor {
+  height: 100%;
+}
+.ek-pg-editor .cm-editor.cm-focused {
+  outline: none;
+}

@@ -56,12 +56,32 @@ export default defineConfig({
     elementsKit(),
     // React owns the docs shell and its components; every other .tsx (the
     // island demos) keeps the elements-kit jsx import source.
-    react({ include: ["**/src/docs/**", "**/src/components/**"] }),
+    // Alias forms too: with two JSX renderers, Astro matches `include`
+    // against the import specifier as written (`@/docs/DocsApp`).
+    react({
+      include: [
+        "**/src/docs/**",
+        "**/src/components/**",
+        "**/src/playground/*.tsx",
+        "@/docs/**",
+        "@/components/**",
+        "@/playground/*",
+      ],
+      // Sandpack demo sources: elements-kit JSX.
+      exclude: ["**/src/playground/files/**"],
+    }),
     sitemap({
       filter: (page) => !/\.(md|txt)$/.test(page),
     }),
   ],
   vite: {
+    // What the playground's workers (Babel, TypeScript + @typescript/vfs)
+    // expect in the browser, from solid-playground's Vite config.
+    define: {
+      "process.env.NODE_DEBUG": "false",
+      ...(process.argv.includes("build") ? {} : { global: "globalThis" }),
+    },
+    worker: { format: "es" },
     plugins: [
       pages,
       fumadocsMdx(undefined, { index: false }),

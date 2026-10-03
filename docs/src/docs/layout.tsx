@@ -15,6 +15,7 @@ export const baseOptions: BaseLayoutProps = {
   },
   githubUrl: "https://github.com/elements-kit/elements-kit",
   links: [
+    { text: "Playground", url: "/playground", active: "url" },
     {
       type: "icon",
       label: "X",
