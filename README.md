@@ -250,7 +250,7 @@ declare global {
 // Now `<x-counter count={5} />` is fully typed.
 ```
 
-See [Types](docs/src/content/docs/elements/types.mdx) for the full set of prop-inference helpers.
+See [Types](docs/content/docs/(library)/elements/types.mdx) for the full set of prop-inference helpers.
 
 ## React Integration
 
@@ -414,7 +414,7 @@ import { For } from "elements-kit/for";
 
 ## Prop types
 
-A small set of type helpers derives JSX prop shapes from your components — no parallel `declare global` block to maintain. Full guide at [docs/src/content/docs/elements/types.mdx](docs/src/content/docs/elements/types.mdx).
+A small set of type helpers derives JSX prop shapes from your components — no parallel `declare global` block to maintain. Full guide at [docs/content/docs/(library)/elements/types.mdx](docs/content/docs/(library)/elements/types.mdx).
 
 | Helper | For |
 | ------ | --- |
@@ -524,7 +524,7 @@ Directions under consideration for the SSR/islands layer (nothing here is commit
 ## Learn more
 
 - [Documentation site](docs/) — guides, playgrounds, reference
-- [Philosophy](docs/src/content/docs/getting-started/philosophy.mdx) — deeper reasoning behind the five principles
+- [Philosophy](docs/content/docs/(library)/getting-started/philosophy.mdx) — deeper reasoning behind the five principles
 - [ARCHITECTURE.md](ARCHITECTURE.md) — how the library works
 - [CONTRIBUTING.md](CONTRIBUTING.md) — build, test, PR checklist
 

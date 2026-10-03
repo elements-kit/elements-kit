@@ -1,0 +1,64 @@
+---
+import DocsShell from "@/docs/DocsShell.astro";
+import DocsApp from "@/docs/DocsApp";
+import { pageMeta, source } from "@/docs/source";
+import IslandDemo from "@/islands/IslandDemo.astro";
+import islandStyles from "@/islands/islands.css?url";
+import AstroCounter from "@/islands/AstroCounter";
+import AstroList from "@/islands/AstroList";
+import AstroAsync from "@/islands/AstroAsync";
+import AstroCard from "@/islands/AstroCard";
+import AstroLazy from "@/islands/AstroLazy";
+
+// Static: no per-request state, and Pagefind indexes the emitted HTML.
+export const prerender = true;
+
+export function getStaticPaths() {
+  return source.getPages().map((page) => ({
+    params: { slug: page.slugs.length > 0 ? page.slugs.join("/") : undefined },
+  }));
+}
+
+const slugs = Astro.params.slug ? Astro.params.slug.split("/") : [];
+const page = source.getPage(slugs);
+if (!page) return Astro.rewrite("/404");
+const { title, description } = pageMeta(page);
+
+// The Astro integration page demos real elements-kit islands. They ride in
+// as named slots and render where the MDX says `<Island name="…" />`.
+const astroIslands = slugs.join("/") === "integrations/astro";
+const props = { slugs, pathname: Astro.url.pathname };
+---
+
+<DocsShell title={title} description={description}>
+  {astroIslands && <link slot="head" rel="stylesheet" href={islandStyles} />}
+  {
+    astroIslands ? (
+      <DocsApp client:load {...props}>
+        <IslandDemo slot="counter">
+          <AstroCounter start={5} client:load />
+        </IslandDemo>
+        <IslandDemo slot="list">
+          <AstroList client:load />
+        </IslandDemo>
+        <IslandDemo slot="async">
+          <AstroAsync client:load />
+        </IslandDemo>
+        <IslandDemo slot="card">
+          <AstroCard client:load>
+            <Fragment slot="header"><strong>Slotted header</strong></Fragment>
+            <p>
+              This paragraph is Astro slot content living inside an interactive
+              island — collapse it with the button.
+            </p>
+          </AstroCard>
+        </IslandDemo>
+        <IslandDemo slot="lazy">
+          <AstroLazy client:load />
+        </IslandDemo>
+      </DocsApp>
+    ) : (
+      <DocsApp client:load {...props} />
+    )
+  }
+</DocsShell>

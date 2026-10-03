@@ -1,0 +1,268 @@
+---
+title: Astro
+description: Render elements-kit components as Astro islands — server-rendered, hydrated on the client — or use custom elements directly.
+---
+
+
+elements-kit ships a first-class Astro integration: write `.tsx` components with elements-kit JSX and use them as [Astro islands](https://docs.astro.build/en/concepts/islands/). The server renders them to HTML with `elements-kit/server`; the client adopts that DOM with `elements-kit/hydrate` — handlers attach to the existing nodes, nothing is rebuilt.
+
+## Setup
+
+```js
+// astro.config.mjs
+import { defineConfig } from "astro/config";
+import elementsKit from "elements-kit/integrations/astro";
+
+export default defineConfig({
+  integrations: [elementsKit()],
+});
+```
+
+The integration registers the renderer pair and points Vite's JSX transform at `elements-kit`, so island components need no per-file pragma.
+
+## Islands
+
+This counter is a live island on this page — server-rendered by the elements-kit renderer, hydrated with `client:load`, receiving `start={5}` through Astro's island props (this very docs site runs the integration):
+
+<Island name="counter" />
+
+```tsx
+// src/components/Counter.tsx
+import { computed, signal } from "elements-kit/signals";
+
+export default function Counter(props: { start?: () => number }) {
+  const count = signal(props.start?.() ?? 0);
+  const double = computed(() => count() * 2);
+
+  return (
+    <div>
+      <button on:click={() => count(count() + 1)}>
+        count is {() => count()}
+      </button>
+      <span>doubled: {double}</span>
+    </div>
+  );
+}
+```
+
+```astro
+---
+import Counter from "../components/Counter.tsx";
+---
+
+<Counter start={5} client:load />
+```
+
+All Astro client directives work (`client:load`, `client:idle`, `client:visible`, `client:media`). For client-rendered-only islands, name the renderer:
+
+```astro
+<Widget client:only="elements-kit" />
+```
+
+### How hydration behaves
+
+- The server render is a snapshot — signals read once, [effects don't run](/server-rendering#snapshot-semantics). Effects and `on:` handlers come alive at hydration.
+- Server-rendered DOM is **adopted, not rebuilt** — node identity is preserved, no flicker.
+- `async`/`promise` values render on the server, serialize, and [seed the client instance](/server-rendering#async-data) — with `async` + `.run()`, the client fetch is skipped entirely.
+- Props must serialize (Astro's island contract) and the component must render the same tree on server and client.
+
+### Hot module replacement
+
+Editing a component swaps it in place — no page reload. The integration installs the [Vite plugin](/integrations/vite) for you, which covers how swapping works and what it costs. Two behaviours are specific to islands.
+
+**Island roots re-mount instead of swapping.** Astro mounts the root component itself rather than through JSX, so it has no swappable boundary — editing it rebuilds the island and resets everything under it. Components _inside_ the island swap normally.
+
+**Hydrated islands need one warm-up edit.** Hydration adopts server-rendered DOM instead of rendering it, so nothing inside a `client:load` island has a boundary yet and the first edit re-mounts the island. That re-mount renders normally, so every edit after it is component-level. `client:only` islands skip this — they render from the start.
+
+Edits that reach beyond the island — the parent `.astro` file, `astro.config.mjs` — still reload the page.
+
+## Lists
+
+`<For>` rows are adopted at hydration and reconciled in place afterwards — reordering moves the existing DOM nodes:
+
+<Island name="list" />
+
+## Async data — seeded, no refetch
+
+`async` + `.run()` values are fetched during the server render, serialized into the island's `ek-data`, and seeded on the client. The deferred `run()` is discarded — the fetcher never executes in the browser, which is why this timestamp is the **server's**:
+
+<Island name="async" />
+
+```tsx
+const fetchedAt = async(() => fetchSomething());
+
+export default function Demo() {
+  fetchedAt.run(); // server: awaited + serialized · client: skipped
+  return <p>{fetchedAt}</p>;
+}
+```
+
+## Slots
+
+Islands accept Astro slot content — the integration delivers it as pre-rendered HTML mapped to `children` (default slot) and named props:
+
+<Island name="card" />
+
+```astro
+<AstroCard client:load>
+  <Fragment slot="header"><strong>Slotted header</strong></Fragment>
+  <p>Default slot content.</p>
+</AstroCard>
+```
+
+```tsx
+export default function AstroCard(props: {
+  children?: unknown;          // default slot
+  header?: unknown;            // named slot
+}) {
+  return (
+    <section>
+      <header>{props.header}</header>
+      {props.children}
+    </section>
+  );
+}
+```
+
+Slot HTML is parsed script-inertly and placed as-is — it is Astro-rendered content, not part of the component's reactive tree.
+
+## Server islands (`server:defer`)
+
+Slots are also how [Astro Server Islands](https://docs.astro.build/en/guides/server-islands/) deliver their fallback — `server:defer` works with elements-kit components out of the box:
+
+```astro
+<AstroCard server:defer>
+  <div slot="fallback">Loading the personalized card…</div>
+</AstroCard>
+```
+
+## Lazy loading & Await
+
+Code splitting is not a new primitive — it's `async` + a dynamic import. `<Await>` — elements-kit's Suspense equivalent — shows a fallback while the import is pending. On the server the stream awaits the import — the fallback never server-renders; on hydration the server content stays visible until the chunk lands (no fallback flash):
+
+<Island name="lazy" />
+
+```tsx
+import { async } from "elements-kit/utilities/async";
+import { Await } from "elements-kit/await";
+
+const chart = async(() => import("./chart").then((m) => m.default));
+
+export default function Panel() {
+  chart.run(); // server: awaited · hydration: deferred · client: import
+  return (
+    <Await fallback={() => <em>loading…</em>}>{chart}</Await>
+  );
+}
+```
+
+Calling `chart.run()` early (e.g. on hover) doubles as preload. To pass props to the code-split component, resolve it into an element factory:
+
+```tsx
+<Await fallback={() => <em>loading…</em>}>
+  {promise(chart.then((C) => () => <C data={data} />))}
+</Await>
+```
+
+### Coexisting with other frameworks
+
+Multiple renderers can live in one project. Scope the other framework's JSX transform so it doesn't claim elements-kit files — e.g. with React:
+
+```js
+integrations: [
+  elementsKit(),
+  react({ include: ["**/src/react/**"] }),
+],
+```
+
+---
+
+## Custom elements without the integration
+
+A custom element built with elements-kit is just `class extends HTMLElement` registered via `customElements.define`. Astro renders HTML natively and custom elements work without any configuration — no integration required. The main integration point is registering your elements client-side and getting typed DOM references in TypeScript.
+
+```ts
+// shared element — built once, used anywhere
+import { defineElement } from "elements-kit/custom-elements";
+import { reactive } from "elements-kit/signals";
+
+export class XCounter extends HTMLElement {
+  @reactive() count = 0;
+}
+
+defineElement("x-counter", XCounter);
+```
+
+### Register elements client-side
+
+Because elements-kit touches the DOM, the module that calls `defineElement` must run in the browser. Import it from a `<script>` tag or a `client:*` island — not from the Astro component frontmatter:
+
+```astro
+---
+// x-counter.astro — server-only frontmatter, keep it clean
+---
+
+<x-counter></x-counter>
+
+<script>
+  // Runs in the browser — safe to import DOM code here
+  import "./x-counter";
+</script>
+```
+
+The [environment guard](/utilities/environment) (`isBrowser`) is only needed for module-level reads of `window` / `document` outside of event handlers or lifecycle callbacks.
+
+### Source the prop shape from the class
+
+Three type helpers exported from `elements-kit/custom-elements` read the raw platform surface off the class. All three take the constructor (`typeof XCounter`); `PropertiesOf` also accepts an instance type.
+
+| Helper | Shape | Use when |
+|---|---|---|
+| `PropertiesOf<typeof XCounter>` | Public instance fields, all optional — the `HTMLElement` surface is dropped; `Slot`-typed fields accept a `Node` | Typing property assignments — prop bindings, wrappers, helper functions |
+| `AttributesOf<typeof XCounter>` | Every key of `static [ATTRIBUTES]`, valued `string \| null` | Typing the raw HTML attribute surface — `setAttribute`, server-rendered markup |
+| `EventsOf<typeof XCounter>` | The `static events` map, verbatim — event name to event type | Typing `addEventListener`, framework event bindings, `HTMLElementEventMap` augmentations |
+
+### Typed `document.querySelector` and `createElement`
+
+Add `HTMLElementTagNameMap` augmentations to `src/env.d.ts` (Astro's ambient type file) so `document.querySelector` is typed across the whole project:
+
+```ts
+// src/env.d.ts
+/// <reference types="astro/client" />
+
+import type { XCounter } from "./x-counter";
+
+declare global {
+  interface HTMLElementTagNameMap {
+    "x-counter": XCounter;
+  }
+}
+```
+
+Then anywhere in client-side scripts:
+
+```ts
+const el = document.querySelector("x-counter"); // XCounter | null
+```
+
+### Islands (React, Solid, Vue)
+
+If you're using framework islands (`client:load`, `client:visible`, etc.) and want typed props when you render a custom element inside a React, Solid, or Vue component, add the JSX `IntrinsicElements` augmentation for that framework alongside the class definition and import it from the island component file:
+
+- [React island props](/integrations/react#custom-elements-in-jsx)
+- [Solid island props](/integrations/solid)
+- [Vue island props](/integrations/vue)
+
+---
+
+## See also
+
+- [Server Rendering](/server-rendering)
+- [Custom Elements overview](/custom-elements)
+- [React integration](/integrations/react)
+- [Solid integration](/integrations/solid)
+- [Vue integration](/integrations/vue)
+- [Angular integration](/integrations/angular)
+- [Svelte integration](/integrations/svelte)
+- [Lit integration](/integrations/lit)
+- [Qwik integration](/integrations/qwik)

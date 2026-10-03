@@ -1,0 +1,193 @@
+---
+title: Async
+description: Reactive, awaitable async controllers — start, stop, rerun, and read state as signals.
+---
+
+import ASYNC_FLOW from "@/playground/files/async-flow.tsx?raw";
+import ASYNC_TESTS from "@/playground/files/async.test.ts?raw";
+
+The `async` utility wraps an async function into a reactive, awaitable controller. You can start, stop, and rerun async operations, and read their state, value, and errors as reactive signals.
+
+<Playground
+  provider={{ files: { "/main.tsx": { code: ASYNC_FLOW, active: true } } }}
+  preview={{}}
+/>
+
+<Playground
+  provider={{ template: "test-ts", files: { "/main.test.ts": { code: ASYNC_TESTS, active: true } } }}
+  tests={{ verbose: true }}
+/>
+
+## Basic usage
+
+```ts twoslash
+// @noErrors
+import { async } from "elements-kit/utilities/async";
+
+const fetchItems = async(() => fetch("/api/items").then((res) => res.json()));
+
+fetchItems.start(); // begin reactive execution
+```
+
+## Control methods
+
+Start for reactive execution, run for one-shot, stop to tear down, reset to clear.
+
+```ts
+op.start(); // run and track reactive dependencies — reruns when signals change
+op.run();   // run once without tracking — does not rerun on signal changes
+op.stop();  // stop reactive reruns and run cleanup logic
+op.reset(); // stop, then clear state back to `idle`
+```
+
+### When to `start()` vs `run()`
+
+`start()` enables fetching automatically. The body is tracked, so the query re-runs whenever a signal it reads before the first `await` changes. Reach for it when the load is parameterised by reactive state — "fetch user X whenever `userId` changes". The [data-fetching recipe](/examples/data-fetching) uses `start()` with reactive params.
+
+`run()` is one-shot and untracked. Reach for it when an external event drives the load — intersection, click, form submit — especially when the body **writes** to the same signals it reads. The [infinite-scroll recipe](/examples/infinite-scroll) uses `run()` for sentinel-driven page loads.
+
+<Callout type="warn" title={<><code>start()</code> cascades when the body writes its own deps</>}>
+A tracked body that mutates a signal it depends on retriggers itself. Use `run()` for externally-driven loads instead.
+
+```ts
+// Wrong — body reads `cursor`, body writes `cursor`. Each write retriggers the
+// tracking effect; on first mount this fetches every page in a tight loop.
+const loadMore = async(async () => {
+  const page = await fetchPage(cursor());
+  cursor(page.next);
+}).start();
+
+// Right — `run()` is untracked, so the write doesn't re-fire the body.
+// Drive it from an event (intersection, click, etc.).
+const loadMore = async(async () => {
+  const page = await fetchPage(cursor());
+  cursor(page.next);
+});
+sentinelInView.subscribe(() => loadMore.run());
+```
+</Callout>
+
+`Async` implements `Symbol.dispose`, so `using` stops it automatically when it goes out of scope:
+
+```ts
+{
+  using op = async(() => fetch("/api/data").then((r) => r.json())).start();
+  await op;
+  console.log(op.value);
+} // op.stop() called automatically here
+```
+
+## Reactive state
+
+`Async` exposes the same reactive state interface as `ReactivePromise`, plus an
+`"idle"` state for the window before the first `run()` / `start()`:
+
+```ts
+op.state;   // "idle" | "pending" | "fulfilled" | "rejected"
+op.value;   // resolved value (T | undefined)
+op.reason;  // rejection reason (E | undefined)
+op.result;  // value if fulfilled, reason if rejected, undefined otherwise
+op.pending; // true only while a run is in flight
+```
+
+Unlike a bare `ReactivePromise` (which wraps an already in-flight promise and so
+starts `pending`), an `Async` is a lazy runner: with no request yet it starts
+`idle` and `op.pending` is `false` until you trigger a run. Drive loading UI off
+`op.pending` and it stays quiet until then.
+
+All properties are reactive — reading them inside an `effect` or `computed` subscribes to changes.
+
+## Callable signal
+
+An `Async` instance is also callable as a signal. `op()` returns `op.result` and tracks it as a reactive dependency:
+
+```ts
+import { effect } from "elements-kit/signals";
+
+effect(() => {
+  const result = op(); // undefined while pending, T when fulfilled, E when rejected
+  console.log(result);
+});
+```
+
+This makes `Async` composable with `computed` and templates.
+
+## Awaitable
+
+`Async` implements `.then`, `.catch`, and `.finally`, so you can `await` it directly:
+
+```ts
+const op = async(() => Promise.resolve(123)).start();
+const value = await op; // 123
+```
+
+## Reactive reruns
+
+Read signals inside the async function to make it re-execute when they change. Only signal reads **before the first `await`** are tracked.
+
+```ts twoslash
+// @noErrors
+import { signal } from "elements-kit/signals";
+import { async } from "elements-kit/utilities/async";
+
+const id = signal(1);
+
+const fetchTodo = async(() =>
+  fetch(`https://jsonplaceholder.typicode.com/todos/${id()}`) // tracked
+    .then((res) => res.json()),
+).start(); // re-fetches automatically when id changes
+
+id(2); // triggers a new fetch
+```
+
+<Callout type="warn" title={<>Signals aren't tracked after an <code>await</code></>}>
+```ts
+// ❌ Not reactive — id() is read after an await
+const op = async(async () => {
+  await someAsyncSetup();
+  const currentId = id(); // not tracked
+});
+
+// ✅ Reactive — id() is read before any await
+const op = async(async () => {
+  const currentId = id(); // tracked
+  await fetch(`/todos/${currentId}`);
+});
+```
+</Callout>
+
+`run()` is untracked — signals inside the fn do not trigger re-runs. To get reactive reruns with explicit parameters, wrap it in an external `effect`:
+
+```ts
+import { effect, signal } from "elements-kit/signals";
+
+const todoId = signal(1);
+
+effect(() => {
+  fetchTodo.run(todoId()); // re-fetches when todoId changes (tracked by outer effect)
+});
+```
+
+## Cleanups
+
+Register cleanup logic inside your async function using `onCleanup`. It runs when `stop()` is called or when `start()` re-runs due to a signal change:
+
+```ts
+import { onCleanup } from "elements-kit/signals";
+
+const query = async((id: number) => {
+  const controller = new AbortController();
+  onCleanup(() => controller.abort());
+  return fetch(`/api/todos/${id}`, { signal: controller.signal }).then((r) =>
+    r.json(),
+  );
+}).start();
+```
+
+`onCleanup` also works inside `run()` — the cleanup fires when `stop()` is called or when the next `run()` replaces it.
+
+## See also
+
+- [Promise](/promise) — the underlying `ComputedPromise` / `ReactivePromise` primitive.
+- [Data fetching](/examples/data-fetching) — full recipe composing retry, online, window-focus.
+- [Signals](/signals) — `onCleanup`, `untracked`.

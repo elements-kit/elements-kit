@@ -1,0 +1,145 @@
+@import "@fontsource/geist/400.css";
+@import "@fontsource/geist/500.css";
+@import "@fontsource/geist/600.css";
+@import "tailwindcss";
+@import "fumadocs-ui/css/neutral.css";
+@import "fumadocs-ui/css/preset.css";
+@import "fumadocs-twoslash/twoslash.css";
+
+@source "../../node_modules/fumadocs-ui/dist";
+@source "../../node_modules/fumadocs-twoslash/dist";
+
+@theme {
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+/* Brand green, carried over from the Starlight theme. */
+:root {
+  --color-fd-primary: #007652;
+  --color-fd-primary-foreground: #ffffff;
+  --color-fd-ring: #007652;
+}
+.dark {
+  --color-fd-primary: #90dbb9;
+  --color-fd-primary-foreground: #002c1d;
+  --color-fd-ring: #90dbb9;
+}
+
+.ek-wordmark {
+  color: var(--color-fd-primary);
+}
+
+/* Sidebar CSS / JS badges. */
+.ek-badge {
+  margin-inline-start: auto;
+  padding: 0 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+}
+.ek-badge[data-badge="CSS"] {
+  color: var(--color-fd-primary);
+  background: color-mix(in oklab, var(--color-fd-primary) 12%, transparent);
+}
+.ek-badge[data-badge="JS"] {
+  color: var(--color-fd-info, #2563eb);
+  background: color-mix(in oklab, currentColor 12%, transparent);
+}
+
+/* Magic-move: tokens carry --shiki-light / --shiki-dark (defaultColor: false). */
+.ek-magic-move .shiki-magic-move-item {
+  color: var(--shiki-light);
+}
+.dark .ek-magic-move .shiki-magic-move-item {
+  color: var(--shiki-dark);
+}
+.ek-magic-move-btn {
+  padding: 0.25rem 0.625rem;
+  border: 1px solid var(--color-fd-border);
+  border-radius: 0.375rem;
+  color: var(--color-fd-muted-foreground);
+  line-height: 1;
+  transition:
+    color 0.15s,
+    background-color 0.15s;
+}
+.ek-magic-move-btn:hover:not(:disabled) {
+  color: var(--color-fd-foreground);
+  background: var(--color-fd-accent);
+}
+.ek-magic-move-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Playground: container-responsive + user-resizable. */
+.ek-playground-frame {
+  container-type: inline-size;
+  container-name: playground;
+  width: 100%;
+  max-width: 100%;
+  min-height: 240px;
+  max-height: 90cqh;
+  height: clamp(320px, 60cqh, 720px);
+  margin-block: 1rem;
+  resize: vertical;
+  overflow: hidden;
+  border-radius: 0.5rem;
+}
+@container playground (max-width: 768px) {
+  .ek-playground-frame {
+    min-height: 56rem;
+    height: clamp(56rem, 100cqh, 72rem);
+  }
+}
+.ek-playground-frame > .sp-wrapper,
+.ek-playground-frame .sp-layout {
+  height: 100%;
+  max-width: 100%;
+}
+
+/* Sandpack internals: fill the stack container. */
+.ek-playground-frame .sp-preview,
+.ek-playground-frame .sp-preview-container,
+.ek-playground-frame .sp-preview-iframe {
+  height: 100% !important;
+  width: 100%;
+}
+
+/* Tests panel: match the preview's full-fill behavior. */
+.ek-playground-frame--tests .sp-tests {
+  height: 100% !important;
+  width: 100%;
+}
+
+/* Sandpack's stdout wrapper skips `colors.base`; log rows go black in dark mode. */
+.ek-playground-frame .sp-console-item {
+  color: var(--sp-colors-base, currentColor);
+}
+
+/* Panels: even split, no per-panel resize. */
+.ek-playground-frame > * {
+  min-width: 0;
+  max-width: 100cqw;
+  height: 100%;
+  flex: 1 1 0;
+}
+
+/* Stacked below ~768px container width (covers tablets). */
+@container playground (max-width: 768px) {
+  .ek-playground-frame .sp-layout {
+    flex-direction: column-reverse;
+  }
+  /* Tests: keep natural order (code on top, results below). */
+  .ek-playground-frame--tests .sp-layout {
+    flex-direction: column;
+  }
+  .ek-playground-frame .sp-stack {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 50%;
+    min-height: 0;
+    flex: 1 1 50%;
+  }
+}

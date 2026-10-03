@@ -1,0 +1,490 @@
+---
+title: Signals
+description: Fine-grained reactivity with signal, computed, effect, and more.
+---
+import COUNTER from "@/playground/files/signals-counter.tsx?raw";
+import BATCH from "@/playground/files/signals-batch.tsx?raw";
+import CLEANUP from "@/playground/files/signals-cleanup.tsx?raw";
+import EFFECT_SCOPE from "@/playground/files/signals-effect-scope.tsx?raw";
+import UNTRACKED from "@/playground/files/signals-untracked.tsx?raw";
+import TEST_SIGNAL from "@/playground/files/signals-signal.test.ts?raw";
+import TEST_COMPUTED from "@/playground/files/signals-computed.test.ts?raw";
+import TEST_EFFECT from "@/playground/files/signals-effect.test.ts?raw";
+import TEST_EFFECT_SCOPE from "@/playground/files/signals-effect-scope.test.ts?raw";
+import TEST_ON_CLEANUP from "@/playground/files/signals-on-cleanup.test.ts?raw";
+import TEST_BATCH from "@/playground/files/signals-batch.test.ts?raw";
+import TEST_UNTRACKED from "@/playground/files/signals-untracked.test.ts?raw";
+import TEST_REACTIVE from "@/playground/files/signals-reactive.test.ts?raw";
+
+Signals are the reactive core of ElementsKit. Every UI update, derived value, and side effect is driven by three primitives: `signal`, `computed`, and `effect`.
+
+<Tabs items={["Counter","Batch","onCleanup","effectScope","untracked"]}>
+  <Tab value="Counter">
+    <Playground
+      provider={{ files: { "/main.tsx": { code: COUNTER, active: true } } }}
+      preview={{}}
+    />
+  </Tab>
+  <Tab value="Batch">
+    <Playground
+      provider={{ files: { "/main.tsx": { code: BATCH, active: true } } }}
+      preview={{}}
+    />
+  </Tab>
+  <Tab value="onCleanup">
+    <Playground
+      provider={{ files: { "/main.tsx": { code: CLEANUP, active: true } } }}
+      preview={{}}
+    />
+  </Tab>
+  <Tab value="effectScope">
+    <Playground
+      provider={{ files: { "/main.tsx": { code: EFFECT_SCOPE, active: true } } }}
+      preview={{}}
+    />
+  </Tab>
+  <Tab value="untracked">
+    <Playground
+      provider={{ files: { "/main.tsx": { code: UNTRACKED, active: true } } }}
+      preview={{}}
+    />
+  </Tab>
+</Tabs>
+
+## signal
+
+A `signal` holds a single reactive value. Call it with no arguments to **read**, with an argument to **write**.
+
+```ts magic-move
+import { signal } from "elements-kit/signals";
+
+// Create a reactive value with an initial state
+const count = signal(0);
+---
+import { signal } from "elements-kit/signals";
+
+const count = signal(0);
+
+count();    // Read → 0
+---
+import { signal } from "elements-kit/signals";
+
+const count = signal(0);
+
+count();    // Read → 0
+count(5);   // Write — notify all dependents
+---
+import { signal } from "elements-kit/signals";
+
+const count = signal(0);
+
+count();    // Read → 0
+count(5);   // Write — notify all dependents
+count();    // Read → 5
+```
+
+```ts twoslash
+import { signal } from "elements-kit/signals";
+
+const name = signal("Alice");
+//    ^?
+name();          // "Alice"
+name("Bob");     // write
+name();          // "Bob"
+```
+
+Signals are synchronous — every write immediately notifies dependents.
+
+<Callout type="warn" title={<>Reactive children need <code>() ={">"}</code></>}>
+In JSX, signal/computed values must be wrapped in a function:
+
+```tsx
+// ❌ Wrong — reads once, never updates
+<p>{count()}</p>
+
+// ✅ Correct — reads on every change
+<p>{() => count()}</p>
+```
+</Callout>
+
+<Playground
+  provider={{ template: "test-ts", files: { "/main.test.ts": { code: TEST_SIGNAL, active: true } } }}
+  tests={{ verbose: true }}
+/>
+
+## computed
+
+A `computed` derives a value from one or more signals. It is **lazy** — only re-evaluates when a dependency has changed and the value is read again. Results are cached between reads.
+
+```ts magic-move
+import { signal, computed } from "elements-kit/signals";
+
+const price = signal(10);
+const qty   = signal(3);
+---
+import { signal, computed } from "elements-kit/signals";
+
+const price = signal(10);
+const qty   = signal(3);
+
+// Lazily evaluates — only runs when read after a dependency changes
+const total = computed(() => price() * qty());
+total(); // → 30
+---
+import { signal, computed } from "elements-kit/signals";
+
+const price = signal(10);
+const qty   = signal(3);
+
+const total = computed(() => price() * qty());
+total(); // → 30
+
+price(20);
+total(); // → 60  (recomputed — price changed)
+qty(1);
+total(); // → 20  (recomputed again)
+```
+
+```ts twoslash
+import { signal, computed } from "elements-kit/signals";
+
+const firstName = signal("Ada");
+const lastName  = signal("Lovelace");
+
+const fullName = computed(() => `${firstName()} ${lastName()}`);
+//    ^?
+fullName(); // "Ada Lovelace"
+
+firstName("Grace");
+fullName(); // "Grace Lovelace"
+```
+
+A `computed` is read-only — you can only call it with no arguments.
+
+<Playground
+  provider={{ template: "test-ts", files: { "/main.test.ts": { code: TEST_COMPUTED, active: true } } }}
+  tests={{ verbose: true }}
+/>
+
+---
+
+## effect
+
+An `effect` runs a side effect whenever its signal dependencies change. It runs **immediately** on creation to collect dependencies, then re-runs on every change. Returns a stop function.
+
+```ts magic-move
+import { signal, effect } from "elements-kit/signals";
+
+const count = signal(0);
+---
+import { signal, effect } from "elements-kit/signals";
+
+const count = signal(0);
+
+// Runs immediately, then again whenever count changes
+const stop = effect(() => {
+  console.log("count:", count()); // count: 0
+});
+---
+import { signal, effect } from "elements-kit/signals";
+
+const count = signal(0);
+
+const stop = effect(() => {
+  console.log("count:", count()); // count: 0
+});
+
+count(1); // → count: 1
+count(2); // → count: 2
+---
+import { signal, effect } from "elements-kit/signals";
+
+const count = signal(0);
+
+const stop = effect(() => {
+  console.log("count:", count()); // count: 0
+});
+
+count(1); // → count: 1
+count(2); // → count: 2
+
+stop();   // Dispose — no more logs
+```
+
+```ts twoslash
+// @noErrors
+import { signal, effect } from "elements-kit/signals";
+
+const theme = signal("light");
+
+const stop = effect(() => {
+//    ^?
+  // Reads theme — becomes a dependency automatically
+  document.body.dataset.theme = theme();
+});
+
+theme("dark"); // body.dataset.theme = "dark"
+
+stop();        // Unsubscribe — no more updates
+```
+
+Effects track dependencies **dynamically** — only the signals actually read during the last run are tracked.
+
+<Callout type="warn" title="Reading signals outside effects">
+Signals only trigger updates when read inside a reactive context (effect, computed, or reactive JSX). Reading outside gives you the current value but won't re-run:
+
+```ts
+const name = signal("Alice");
+
+// Logs once — not reactive
+console.log(name());
+
+// Re-runs whenever name changes
+effect(() => console.log(name()));
+```
+</Callout>
+
+<Playground
+  provider={{ template: "test-ts", files: { "/main.test.ts": { code: TEST_EFFECT, active: true } } }}
+  tests={{ verbose: true }}
+/>
+
+## effectScope
+
+Groups multiple effects under a single lifecycle. Calling the returned stop function disposes **all** effects at once.
+
+```ts twoslash
+import { signal, effect, effectScope } from "elements-kit/signals";
+
+const user  = signal("Alice");
+const page  = signal("/home");
+
+// All effects inside are grouped together
+const stop = effectScope(() => {
+//    ^?
+  effect(() => console.log("user:", user()));
+  effect(() => console.log("page:", page()));
+});
+
+user("Bob");   // → user: Bob
+page("/about"); // → page: /about
+
+stop(); // Both effects disposed — silence
+```
+
+Use `effectScope` when you want to start and stop a group of related effects together — e.g. tied to a component's lifetime.
+
+<Callout type="info" title="JSX already scopes for you">
+Function components, intrinsic elements, fragments, and `<For>` items each create their own `effectScope`. You only need to create one by hand in custom-element lifecycle hooks or other non-JSX entry points — see [Scopes & cleanup](/scopes/).
+</Callout>
+
+<Playground
+  provider={{ template: "test-ts", files: { "/main.test.ts": { code: TEST_EFFECT_SCOPE, active: true } } }}
+  tests={{ verbose: true }}
+/>
+
+---
+
+## onCleanup
+
+Registers a cleanup callback inside the currently running `effect` or `effectScope`. The callback runs **before the effect re-runs** and **when the effect is disposed**.
+
+```ts
+import { signal, effect, onCleanup } from "elements-kit/signals";
+
+const url = signal("/api/data");
+
+effect(() => {
+  const controller = new AbortController();
+
+  fetch(url(), { signal: controller.signal })
+    .then((r) => r.json())
+    .then(console.log);
+
+  // Runs before the next fetch (url changed) or on stop()
+  onCleanup(() => controller.abort());
+});
+
+url("/api/other"); // previous fetch aborted, new one starts
+```
+
+`onCleanup` works at **any call depth** inside the effect — you can call it anywhere without passing anything down.
+
+You can use `onCleanup` inside a `computed` getter to manage resources that need cleanup (like timers or subscriptions). The cleanup runs **before the computed re-evaluates** (when dependencies change), and also when the computed loses its last subscriber (to prevent resource leaks).
+
+```ts
+import { signal, computed, onCleanup } from "elements-kit/signals";
+
+const source = signal(0);
+
+const derived = computed(() => {
+  // Setup resource
+  const id = setInterval(() => {
+    // ...do something...
+  }, 1000);
+
+  // Register cleanup
+  onCleanup(() => clearInterval(id));
+
+  return source() * 2;
+});
+```
+
+This ensures that any resources created inside the computed are always cleaned up at the right time.
+
+<Playground
+  provider={{ template: "test-ts", files: { "/main.test.ts": { code: TEST_ON_CLEANUP, active: true } } }}
+  tests={{ verbose: true }}
+/>
+
+---
+
+## batch
+
+Defers all signal notifications until the batch completes. Use it to group multiple writes into a single update pass — avoids intermediate re-renders.
+
+```ts
+import { signal, effect, batch } from "elements-kit/signals";
+
+const x = signal(1);
+const y = signal(2);
+
+effect(() => console.log(x(), y()));
+// → 1 2  (initial run)
+
+// Without batch: effect would run twice (once per write)
+batch(() => {
+  x(10);
+  y(20);
+});
+// → 10 20  (single run)
+```
+
+<Playground
+  provider={{ template: "test-ts", files: { "/main.test.ts": { code: TEST_BATCH, active: true } } }}
+  tests={{ verbose: true }}
+/>
+
+---
+
+## untracked
+
+Reads a signal **without** creating a dependency. The current effect will not re-run when that signal changes.
+
+```ts
+import { signal, effect, untracked } from "elements-kit/signals";
+
+const count  = signal(0);
+const secret = signal("hidden");
+
+effect(() => {
+  // Tracked — effect reruns when count changes
+  console.log("count:", count());
+
+  // Untracked — effect does NOT rerun when secret changes
+  console.log("secret:", untracked(() => secret()));
+});
+
+count(1);    // triggers re-run
+secret("x"); // silent — not a dependency
+```
+
+<Callout type="warn" title="Mutating vs. reassigning">
+Arrays and objects are passed by reference. Mutating them (`push`, `pop`, `arr[0] = x`) doesn't notify subscribers — the signal value (reference) hasn't changed.
+
+```ts
+const items = signal<string[]>([]);
+
+// ❌ Won't trigger
+items().push("Hello");
+```
+
+**Option 1 — Mutation + trigger** (for expensive data):
+```ts
+const items = signal<string[]>([]);
+
+items().push("hello");
+trigger(items);  // ✅ Mutate in place, then notify
+```
+
+**Option 2 — Reassignment**:
+```ts
+const items = signal<string[]>([]);
+
+items([...items(), "hello"]);  // ✅ Creates new array
+```
+
+The same applies to objects:
+```ts
+const user = signal({ name: "Alice" });
+
+// ❌ Won't trigger
+user().name = "Bob";
+
+// ✅ Reassignment
+user({ ...user(), name: "Bob" });
+
+// ✅ Or mutation + trigger
+user().name = "Bob";
+trigger(user);
+```
+</Callout>
+
+<Playground
+  provider={{ template: "test-ts", files: { "/main.test.ts": { code: TEST_UNTRACKED, active: true } } }}
+  tests={{ verbose: true }}
+/>
+
+---
+
+## @reactive decorator
+
+Backs a class field with a signal transparently. The field reads and writes naturally — no `()` needed on the consumer side.
+
+```ts twoslash
+// @noErrors
+import { reactive, computed } from "elements-kit/signals";
+
+class Counter {
+  @reactive()
+  count = 0;
+
+  doubled = computed(() => this.count * 2);
+  //        ^?
+}
+
+const c = new Counter();
+c.count = 5;
+c.doubled(); // → 10
+```
+
+`@reactive` is equivalent to a private `signal` + `get`/`set` accessor — it just removes the boilerplate. Works with `computed` too: pass the signal source to make a field read-only.
+
+```ts
+class Store {
+  #items = signal<string[]>([]);
+
+  // Read-only reactive field backed by a computed
+  @reactive((s) => computed(() => s.#items().length))
+  count = 0;
+}
+```
+
+<Playground
+  provider={{ template: "test-ts", files: { "/main.test.ts": { code: TEST_REACTIVE, active: true } } }}
+  tests={{ verbose: true }}
+/>
+
+---
+
+## Store
+
+A **store** is a class with `@reactive` fields. It holds state — no `render()`, no DOM. See [Stores](/stores) for full documentation.
+
+## See also
+
+- [Stores](/stores) — shared reactive state.
+- [Elements](/elements) — use signals as JSX children/props.
+- [Promise](/promise) — reactive state over any `Promise`.
+- [Async](/async) — start/stop/run a reactive async controller.
+

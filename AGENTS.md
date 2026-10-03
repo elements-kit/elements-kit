@@ -20,8 +20,8 @@
 | [src/utilities/](src/utilities/) | Reactive browser-API helpers — [catalog](src/utilities/README.md) |
 | [src/utilities/environment.ts](src/utilities/environment.ts) | `isBrowser` guard |
 | [src/polyfill.ts](src/polyfill.ts) | `Symbol.dispose` shim only |
-| [docs/](docs/) | Astro + Starlight docs |
-| [docs/src/content/docs/](docs/src/content/docs/) | `.mdx` guides |
+| [docs/](docs/) | Astro + fumadocs docs |
+| [docs/content/docs/](docs/content/docs/) | `.mdx` guides |
 | [docs/src/playground/files/](docs/src/playground/files/) | Sandpack demos (`?raw` imports) |
 | [example/](example/) | Vite sandbox |
 | [tsdown.config.ts](tsdown.config.ts) | Build config |

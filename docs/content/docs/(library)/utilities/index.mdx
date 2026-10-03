@@ -1,0 +1,1081 @@
+---
+title: Utilities
+description: Pre-built signal factories for common reactive patterns.
+navTitle: Overview
+---
+
+import PLAYGROUND_FILE from "@/playground/files/media.tsx?raw";
+
+Utilities are pre-built factories that wrap common browser APIs in signals — similar in spirit to [react-use](https://github.com/streamich/react-use) hooks or [Svelte runes](https://svelte.dev/docs/svelte/what-are-runes), but **framework-agnostic**. They return a `Computed<T>` or `Signal<T>` you can read anywhere signals work.
+
+---
+
+## Quick Reference
+
+| Utility | Import | Returns |
+|---------|--------|---------|
+| `createMediaQuery` | `utilities/media-query` | `Computed<boolean>` |
+| `createTimeout` | `utilities/timeout` | `{ pending, start, stop, reset } & Disposable` |
+| `createInterval` | `utilities/interval` | `{ pending, start, stop, reset } & Disposable` |
+| `createDebounced` | `utilities/debounced` | `Computed<T>` |
+| `createThrottled` | `utilities/throttled` | `Computed<T>` |
+| `on` | `utilities/event-listener` | `() => void` |
+| `createHover` | `utilities/hover` | `Computed<boolean>` |
+| `createFocusWithin` | `utilities/focus-within` | `Computed<boolean>` |
+| `onClickOutside` | `utilities/on-click-outside` | `() => void` |
+| `createLongPress` | `utilities/long-press` | `() => void` |
+| `activeElement` | `utilities/active-element` | `Computed<Element \| null>` |
+| `createElementRect` | `utilities/element-rect` | `ElementRect` — `{ x, y, width, height }` computeds, `Disposable` |
+| `createElementScroll` | `utilities/element-scroll` | `{ x: Signal, y: Signal } & Disposable` |
+| `createResizeObserver` | `utilities/resize-observer` | `Disposable` |
+| `createIntersectionObserver` | `utilities/intersection-observer` | `Disposable` |
+| `createMutationObserver` | `utilities/mutation-observer` | `Disposable` |
+| `createMediaDevices` | `utilities/media-devices` | `Computed<MediaDeviceInfo[]>` |
+| `windowSize` | `utilities/window-size` | `{ width, height } & Disposable` |
+| `orientation` | `utilities/orientation` | `{ angle, type } & Disposable` |
+| `online` | `utilities/network` | `Computed<boolean>` |
+| `windowFocused` | `utilities/window-focus` | `Computed<boolean>` |
+| `retry` | `utilities/retry` | `() => Promise<T>` |
+| `createLocalStorage` | `utilities/storage` | `Signal<T>` |
+| `createSessionStorage` | `utilities/storage` | `Signal<T>` |
+| `createMediaPlayer` | `utilities/media-player` | `{ playing, muted, volume, … } & Disposable` |
+| `currentLocation` | `utilities/location` | `{ hash, href, pathname, search }` |
+| `createSearchParam` | `utilities/search-params` | `Computed<string \| null>` |
+| `navigate` | `utilities/routing` | `void` |
+| `isLocalNavigationEvent` | `utilities/routing` | `boolean` |
+| `matches` | `utilities/routing` | `Computed<boolean>` |
+| `match` | `utilities/routing` | `Computed<URLPatternResult \| null>` |
+| `createPrevious` | `utilities/previous` | `Computed<T \| undefined>` |
+| `fromEvent` | `utilities/event-driven` | `Subscribe` |
+| `sync` | `utilities/event-driven` | `[Computed<T> \| Signal<T>, () => void]` |
+| `setContext` | `utilities/context` | `void` |
+| `getContext` | `utilities/context` | `T \| undefined` |
+| `FormObject` | `utilities/form-object` | `{ toObject, fromObject, clear }` — see [Form object](/utilities/form-object) |
+
+---
+
+## Using utilities with React
+
+Utilities return plain signals and computeds — `useSignal` from `elements-kit/integrations/react` connects them to React components with no special glue.
+
+**Singleton utilities** are module-level values shared across the whole app. Pass them directly to `useSignal`:
+
+```tsx
+import { useSignal } from "elements-kit/integrations/react";
+import { windowSize } from "elements-kit/utilities/window-size";
+import { currentLocation } from "elements-kit/utilities/location";
+
+function Layout() {
+  const width = useSignal(windowSize.width);
+  const path = useSignal(currentLocation.pathname);
+  return <p>{path} — {width}px wide</p>;
+}
+```
+
+**Factory utilities** with per-component lifetime go inside `useScope` so they are created and cleaned up with the component:
+
+```tsx
+import { useSignal, useScope } from "elements-kit/integrations/react";
+import { createDebounced } from "elements-kit/utilities/debounced";
+import { signal } from "elements-kit/signals";
+
+const query = signal("");
+
+function Search() {
+  const debounced = useScope(() => createDebounced(query, 300));
+  return (
+    <>
+      <input onInput={(e) => query(e.currentTarget.value)} />
+      <p>Searching for: {debounced}</p>
+    </>
+  );
+}
+```
+
+**Writable signals** from storage or scroll work as both getter (via `useSignal`) and setter (call directly):
+
+```tsx
+import { useSignal } from "elements-kit/integrations/react";
+import { createLocalStorage } from "elements-kit/utilities/storage";
+
+const theme = createLocalStorage("theme", "light");
+
+function ThemeToggle() {
+  const current = useSignal(theme);
+  return (
+    <button onClick={() => theme(current === "light" ? "dark" : "light")}>
+      {current}
+    </button>
+  );
+}
+```
+
+---
+
+## createMediaQuery
+
+Creates a `Computed<boolean>` that tracks a [CSS media query](https://developer.mozilla.org/en-US/docs/Web/API/Window/matchMedia). Returns `true` when the query matches, `false` otherwise.
+
+```ts twoslash
+import { createMediaQuery } from "elements-kit/utilities/media-query";
+
+const isDark = createMediaQuery("(prefers-color-scheme: dark)");
+
+isDark(); // true or false — live, updates on OS change
+```
+
+### Signature
+
+```ts
+function createMediaQuery(
+  query: string,
+  defaultState?: boolean,
+): Computed<boolean>
+```
+
+| Parameter | Description |
+|-----------|-------------|
+| `query` | Any valid CSS media query string |
+| `defaultState` | Value returned during SSR (where `window` is unavailable). Defaults to `false`. |
+
+### Examples
+
+**Dark mode toggle**
+
+```ts
+import { effect } from "elements-kit/signals";
+import { createMediaQuery } from "elements-kit/utilities/media-query";
+
+const isDark = createMediaQuery("(prefers-color-scheme: dark)");
+
+effect(() => {
+  document.documentElement.classList.toggle("dark", isDark());
+});
+```
+
+**Responsive layout**
+
+```ts
+const isMobile  = createMediaQuery("(max-width: 640px)");
+const isTablet  = createMediaQuery("(max-width: 1024px)");
+const prefersReducedMotion = createMediaQuery("(prefers-reduced-motion: reduce)");
+
+effect(() => {
+  if (isMobile()) {
+    // render compact layout
+  } else if (isTablet()) {
+    // render medium layout
+  }
+});
+```
+
+**SSR / hydration**
+
+Pass `defaultState` to control the value returned on the server before the browser environment is available:
+
+```ts
+// Server renders as if dark mode is off
+const isDark = createMediaQuery("(prefers-color-scheme: dark)", false);
+```
+
+### Cleanup
+
+The underlying `MediaQueryList` event listener is automatically removed when the signal goes out of scope — via `onCleanup` if created inside an effect, or `Symbol.dispose` for explicit resource management:
+
+```ts
+// Inside an effect or effectScope — cleanup is automatic
+effectScope(() => {
+  const isDark = createMediaQuery("(prefers-color-scheme: dark)");
+  effect(() => document.body.classList.toggle("dark", isDark()));
+});
+// ↑ stop() cleans up the MediaQueryList listener too
+
+// Explicit disposal
+using isDark = createMediaQuery("(prefers-color-scheme: dark)");
+// ↑ listener removed when `isDark` goes out of scope (TC39 `using` keyword)
+```
+
+---
+
+## Timing
+
+### createTimeout
+
+Reactive `setTimeout` wrapper. Fires `callback` once after `delay` ms. Starts immediately unless `immediate` is `false`.
+
+```ts
+import { createTimeout } from "elements-kit/utilities/timeout";
+
+const { pending, stop, reset } = createTimeout(() => {
+  console.log("fired");
+}, 1000);
+```
+
+```ts
+function createTimeout(
+  callback: () => void,
+  delay: number | (() => number),
+  immediate?: boolean,
+): { pending: Computed<boolean>; start(): void; stop(): void; reset(): void } & Disposable
+```
+
+### createInterval
+
+Pausable `setInterval` wrapper. Starts running immediately on creation.
+
+```ts
+import { createInterval } from "elements-kit/utilities/interval";
+
+const { pending, stop } = createInterval(() => {
+  console.log("tick");
+}, 1000);
+
+stop(); // pause
+```
+
+```ts
+function createInterval(
+  callback: () => void,
+  delay: number | (() => number),
+): { pending: Computed<boolean>; start(): void; stop(): void; reset(): void } & Disposable
+```
+
+### createDebounced
+
+Returns a `Computed<T>` that mirrors `getter` but only updates after `delay` ms of silence.
+
+```ts twoslash
+// @noErrors
+import { createDebounced } from "elements-kit/utilities/debounced";
+import { signal } from "elements-kit/signals";
+
+const input = signal("");
+const debounced = createDebounced(input, 300);
+
+effect(() => console.log(debounced())); // fires 300ms after input stops changing
+```
+
+```ts
+function createDebounced<T>(getter: () => T, delay: number | (() => number)): Computed<T>
+```
+
+### createThrottled
+
+Returns a `Computed<T>` that mirrors `getter` but updates at most once per `interval` ms. A trailing-edge update ensures the final value is never dropped.
+
+```ts
+import { createThrottled } from "elements-kit/utilities/throttled";
+
+const throttledScroll = createThrottled(() => window.scrollY, 100);
+```
+
+```ts
+function createThrottled<T>(getter: () => T, interval: number): Computed<T>
+```
+
+---
+
+## DOM Events
+
+### on
+
+Attaches a type-safe event listener with automatic cleanup. When the target is a reactive getter, the listener re-registers whenever the target changes.
+
+```ts
+import { on } from "elements-kit/utilities/event-listener";
+
+const cleanup = on(document, "keydown", (e) => console.log(e.key));
+// cleanup() to remove manually, or call inside an effectScope for auto-cleanup
+```
+
+```ts
+function on(
+  target: EventTarget | Computed<EventTarget | null>,
+  type: string,
+  handler: EventListener,
+  options?: AddEventListenerOptions,
+): () => void
+```
+
+### createHover
+
+Returns `Computed<boolean>` — `true` while pointer is over `target`.
+
+```ts
+import { createHover } from "elements-kit/utilities/hover";
+
+const hovered = createHover(document.querySelector("#btn")!);
+
+effect(() => console.log("hovered:", hovered()));
+```
+
+```ts
+function createHover(target: Element): Computed<boolean>
+```
+
+### createFocusWithin
+
+Returns `Computed<boolean>` — `true` while focus is anywhere inside `target` (including `target` itself).
+
+```ts
+import { createFocusWithin } from "elements-kit/utilities/focus-within";
+
+const focused = createFocusWithin(document.querySelector("form")!);
+```
+
+```ts
+function createFocusWithin(target: Element): Computed<boolean>
+```
+
+### onClickOutside
+
+Fires `handler` whenever a pointer-down event occurs outside `target`. Returns a cleanup function.
+
+```ts
+import { onClickOutside } from "elements-kit/utilities/on-click-outside";
+
+const cleanup = onClickOutside(menuEl, () => closeMenu());
+```
+
+```ts
+function onClickOutside(target: Element, handler: (e: PointerEvent) => void): () => void
+```
+
+### createLongPress
+
+Fires `handler` when a pointer is held over `target` for at least `delay` ms (default 500 ms).
+
+```ts
+import { createLongPress } from "elements-kit/utilities/long-press";
+
+const cleanup = createLongPress(el, (e) => openContextMenu(e), { delay: 600 });
+```
+
+```ts
+function createLongPress(
+  target: Element,
+  handler: (e: PointerEvent) => void,
+  options?: { delay?: number },
+): () => void
+```
+
+### activeElement
+
+Module-level singleton. `Computed<Element | null>` bound to `document.activeElement`.
+
+```ts
+import { activeElement } from "elements-kit/utilities/active-element";
+
+effect(() => console.log("focused:", activeElement()));
+```
+
+---
+
+## Element Observation
+
+### createElementRect
+
+Observes `target`'s viewport box and returns it as four reactive fields — `x`, `y`, `width`, `height`. Size comes from a `ResizeObserver`'s border box (a transform doesn't shrink it); position from capture-phase `scroll` and window `resize`, since a `ResizeObserver` stays silent when an element merely moves.
+
+Each field notifies only when it changes: a scroll moves `y`, so an effect reading `width` alone doesn't re-run.
+
+It tracks only while an effect or computed reads a field. The observer and listeners start with the first reader and stop with the last, so a rect nobody reads — an anchor whose overlay is closed — costs nothing on scroll. A returning reader is measured on the spot. A read outside any effect measures right then.
+
+`target` may be a getter; the rect follows it.
+
+```ts
+import { createElementRect } from "elements-kit/utilities/element-rect";
+
+const rect = createElementRect(document.querySelector("#box")!);
+
+effect(() => console.log(rect.width(), rect.height()));
+```
+
+```ts
+function createElementRect(target: MaybeReactive<Element>): ElementRect
+
+interface ElementRect extends Disposable {
+  x: Computed<number>;
+  y: Computed<number>;
+  width: Computed<number>;
+  height: Computed<number>;
+}
+```
+
+### createElementScroll
+
+Returns writable `x` / `y` signals for an element's scroll position. Reading returns `scrollLeft` / `scrollTop`; writing scrolls the element.
+
+```ts
+import { createElementScroll } from "elements-kit/utilities/element-scroll";
+
+const { x, y } = createElementScroll(document.querySelector(".list")!);
+
+effect(() => console.log("scroll:", x(), y()));
+y(200); // scrolls to top 200px
+```
+
+```ts
+function createElementScroll(target: Element): { x: Signal<number>; y: Signal<number> } & Disposable
+```
+
+### createResizeObserver
+
+Raw `ResizeObserver` wrapper with automatic cleanup via `onCleanup`. Use `elementRect` for the common case.
+
+```ts
+import { createResizeObserver } from "elements-kit/utilities/resize-observer";
+
+createResizeObserver(el, (entries) => {
+  for (const entry of entries) console.log(entry.contentRect);
+});
+```
+
+```ts
+function createResizeObserver(target: Element, callback: ResizeObserverCallback): Disposable
+```
+
+### createIntersectionObserver
+
+Raw `IntersectionObserver` wrapper with automatic cleanup.
+
+```ts
+import { createIntersectionObserver } from "elements-kit/utilities/intersection-observer";
+
+createIntersectionObserver(el, ([entry]) => {
+  console.log("visible:", entry.isIntersecting);
+}, { threshold: 0.5 });
+```
+
+<Callout type="warn" title="Root defaults to the viewport">
+Without `root`, the platform observes intersections with the viewport — not with `target`'s nearest scrollable ancestor. For a sentinel inside an in-page scroll container, pass `root: containerEl` explicitly. Otherwise the sentinel reads as "intersecting" the viewport and fires immediately and repeatedly.
+
+```ts
+createIntersectionObserver(
+  sentinelEl,
+  ([entry]) => { if (entry.isIntersecting) loadMore.run(); },
+  { root: containerEl, rootMargin: "100px" },
+);
+```
+</Callout>
+
+```ts
+function createIntersectionObserver(
+  target: Element,
+  callback: IntersectionObserverCallback,
+  options?: IntersectionObserverInit,
+): Disposable
+```
+
+### createMutationObserver
+
+Watches `target` for DOM mutations with automatic cleanup.
+
+```ts
+import { createMutationObserver } from "elements-kit/utilities/mutation-observer";
+
+createMutationObserver(el, { childList: true }, (records) => {
+  console.log("mutations:", records.length);
+});
+```
+
+```ts
+function createMutationObserver(
+  target: Element,
+  options: MutationObserverInit,
+  callback: (records: MutationRecord[]) => void,
+): Disposable
+```
+
+---
+
+## Browser APIs
+
+### createMediaDevices
+
+Returns a reactive list of available media devices, refreshed when devices are added or removed.
+
+```ts
+import { createMediaDevices } from "elements-kit/utilities/media-devices";
+
+const devices = createMediaDevices();
+
+effect(() => console.log(devices().map((d) => d.label)));
+```
+
+```ts
+function createMediaDevices(): Computed<MediaDeviceInfo[]>
+```
+
+### windowSize
+
+Module-level singleton. Reactive `innerWidth` and `innerHeight` of the browser window.
+
+```ts
+import { windowSize } from "elements-kit/utilities/window-size";
+
+effect(() => console.log(windowSize.width(), windowSize.height()));
+```
+
+### orientation
+
+Module-level singleton. Reactive `screen.orientation` angle and type.
+
+```ts
+import { orientation } from "elements-kit/utilities/orientation";
+
+effect(() => console.log(orientation.type(), orientation.angle()));
+```
+
+### online
+
+Module-level singleton. `Computed<boolean>` — `true` when `navigator.onLine` is `true`. Reacts to `online` / `offline` window events.
+
+```ts
+import { online } from "elements-kit/utilities/network";
+
+effect(() => {
+  if (!online()) showOfflineBanner();
+});
+```
+
+### retry
+
+Wraps a `() => Promise<T>` with retry logic. Retries up to `attempts` times on failure. The optional `delay` is inserted **between** failures only — not after the final one. Each attempt runs in an effect scope, so `onCleanup` inside the function fires before each retry.
+
+```ts
+import { retry } from "elements-kit/utilities/retry";
+
+const fn = retry(
+  () => fetch("/api/data").then((r) => r.json()),
+  3,           // up to 3 attempts
+  (n) => n * 500, // 0ms, 500ms, 1000ms between failures
+);
+
+await fn(); // retries automatically on failure
+```
+
+```ts
+function retry<T>(
+  fn: () => Promise<T>,
+  attempts: number,
+  delay?: number | ((attempt: number) => number),
+): () => Promise<T>
+```
+
+Compose with `async()` for reactive retries:
+
+```ts
+import { async } from "elements-kit/utilities/async";
+import { retry } from "elements-kit/utilities/retry";
+import { onCleanup } from "elements-kit/signals";
+
+const fetchTodo = async((id: number) =>
+  retry(() => {
+    const controller = new AbortController();
+    onCleanup(() => controller.abort()); // aborts before each retry
+    return fetch(`/api/todos/${id}`, { signal: controller.signal }).then((r) => r.json());
+  }, 3, 500)(),
+).start();
+```
+
+### createLocalStorage
+
+Returns a `Signal<T>` persisted to `localStorage`. Writes in other tabs/windows are synchronised automatically via `StorageEvent`.
+
+```ts twoslash
+import { createLocalStorage } from "elements-kit/utilities/storage";
+
+const theme = createLocalStorage("theme", "light");
+
+theme();        // "light"
+theme("dark");  // persisted immediately
+```
+
+```ts
+function createLocalStorage<T>(
+  key: string,
+  initialValue: T,
+  options?: { serialise?: (v: T) => string; deserialise?: (raw: string) => T },
+): Signal<T>
+```
+
+### createSessionStorage
+
+Same as `createLocalStorage` but scoped to the current tab — no cross-tab sync.
+
+```ts
+import { createSessionStorage } from "elements-kit/utilities/storage";
+
+const draft = createSessionStorage("draft", "");
+```
+
+```ts
+function createSessionStorage<T>(key: string, initialValue: T, options?: StorageOptions<T>): Signal<T>
+```
+
+---
+
+## Media
+
+### createMediaPlayer
+
+Wraps an `HTMLMediaElement` (`<audio>` or `<video>`) with reactive state and playback controls. `muted`, `volume`, and `time` are writable — writing them updates the element. `playing`, `duration`, and `ended` are read-only.
+
+```ts
+import { createMediaPlayer } from "elements-kit/utilities/media-player";
+
+const player = createMediaPlayer(document.querySelector("video")!);
+
+effect(() => console.log("playing:", player.playing()));
+
+player.volume(0.5);   // set volume
+player.time(30);      // seek to 30s
+player.toggle();      // play/pause
+```
+
+```ts
+function createMediaPlayer<T extends HTMLMediaElement>(element: T): {
+  element: T;
+  playing: Computed<boolean>;
+  muted: Signal<boolean>;
+  volume: Signal<number>;
+  duration: Computed<number>;
+  time: Signal<number>;
+  ended: Computed<boolean>;
+  play(): void;
+  pause(): void;
+  toggle(): void;
+} & Disposable
+```
+
+---
+
+## URL & Routing
+
+All location signals react to `popstate` (back/forward) automatically. They also listen for `pushstate` and `replacestate` **custom events**, which must be dispatched by your router or by patching `history`:
+
+```ts
+// Patch history so pushState/replaceState fire custom events
+for (const method of ["pushState", "replaceState"] as const) {
+  const original = history[method].bind(history);
+  history[method] = (...args) => {
+    original(...args);
+    window.dispatchEvent(new Event(method.toLowerCase()));
+  };
+}
+```
+
+Without this patch, signals still update on back/forward — only programmatic navigation via `pushState`/`replaceState` won't be reflected.
+
+### currentLocation
+
+Returns reactive signals for `hash`, `href`, `pathname`, and `search` — all sharing a single event listener set.
+
+`currentLocation` is a module-level singleton suitable for most apps.
+
+```ts
+import { currentLocation } from "elements-kit/utilities/location";
+
+// Singleton — shared across the app
+effect(() => console.log(currentLocation.pathname()));
+```
+
+```ts
+type LocationResult = {
+  hash: Computed<string>;
+  href: Computed<string>;
+  pathname: Computed<string>;
+  search: Computed<string>;
+};
+
+const currentLocation: LocationResult
+```
+
+### createSearchParam
+
+Returns `Computed<string | null>` for a single URL search parameter.
+
+```ts
+import { createSearchParam } from "elements-kit/utilities/search-params";
+
+const tab = createSearchParam("tab");
+
+effect(() => console.log("tab:", tab())); // null when absent
+```
+
+```ts
+function createSearchParam(key: string): Computed<string | null>
+```
+
+### createURLPattern
+
+Reactively tests a URL source against a [`URLPattern`](https://developer.mozilla.org/en-US/docs/Web/API/URL_Pattern_API). The source can be a plain string/URL or a reactive getter.
+
+No polyfill needed for modern browsers (Chrome 95+, Safari 16.4+, Firefox 117+). Use `urlpattern-polyfill` on npm for legacy targets.
+
+```ts
+import { createURLPattern } from "elements-kit/utilities/url-pattern";
+import { currentLocation } from "elements-kit/utilities/location";
+
+const match = createURLPattern(currentLocation.href, { pathname: "/users/:id" });
+
+effect(() => console.log(match()?.pathname.groups.id));
+```
+
+```ts
+function createURLPattern(
+  source: string | URL | Computed<string | URL>,
+  input?: URLPatternInput,
+  options?: URLPatternOptions,
+): Computed<URLPatternResult | null>
+```
+
+### navigate
+
+Navigates to a URL via `history.pushState` (or `replaceState`). Patches `history` once on first call so all programmatic navigation — including third-party router calls — fires the `pushstate` / `replacestate` custom events that `currentLocation` signals react to.
+
+```ts
+import { navigate } from "elements-kit/utilities/routing";
+
+navigate("/users/42");
+navigate("/users/42", { replace: true }); // replaceState — no new history entry
+navigate("/users/42", { state: { id: 42 } }); // pass history state
+```
+
+```ts
+function navigate(url: string | URL, options?: { replace?: boolean; state?: unknown }): void
+```
+
+### isLocalNavigationEvent
+
+Returns `true` when a click event on an `<a>` element should be handled client-side — same origin, primary button, no modifier keys, no `download` attribute, no `target="_blank"`. Walks up to the nearest anchor via `closest("a")`, so it works on container elements too.
+
+Use alongside `navigate()` to intercept anchor clicks without hardwiring routing logic into this utility.
+
+```ts
+import { isLocalNavigationEvent, navigate } from "elements-kit/utilities/routing";
+
+document.querySelector("nav")!.addEventListener("click", (e) => {
+  if (isLocalNavigationEvent(e)) {
+    e.preventDefault();
+    navigate((e.target as HTMLAnchorElement).href);
+  }
+});
+```
+
+```ts
+function isLocalNavigationEvent(e: MouseEvent): boolean
+```
+
+### matches
+
+Returns `Computed<boolean>` — `true` when the current URL matches `input`. Uses `URLPattern.test()` — faster than `match` when you don't need captured groups.
+
+Always use the object form `{ pathname: "..." }` — relative string patterns require a base URL and will throw.
+
+Requires [`urlpattern-polyfill`](https://www.npmjs.com/package/urlpattern-polyfill) for Safari < 26 and Firefox < 142.
+
+```ts
+import { matches } from "elements-kit/utilities/routing";
+
+const isHome = matches({ pathname: "/" });
+effect(() => {
+  if (isHome()) showHomeNav();
+});
+```
+
+**Conditional rendering with React:**
+
+```tsx
+import { useSignal } from "elements-kit/integrations/react";
+import { matches } from "elements-kit/utilities/routing";
+
+const isSettings = matches({ pathname: "/settings" });
+
+function App() {
+  return useSignal(isSettings) ? <Settings /> : <NotFound />;
+}
+```
+
+```ts
+function matches(input: URLPatternInput, options?: URLPatternOptions): Computed<boolean>
+```
+
+### match
+
+Returns `Computed<URLPatternResult | null>` — the full match result when the current URL matches `input`, `null` when it does not. Use when you need captured groups. For a boolean gate, prefer `matches()`.
+
+Always use the object form `{ pathname: "..." }` — relative string patterns require a base URL and will throw.
+
+Requires [`urlpattern-polyfill`](https://www.npmjs.com/package/urlpattern-polyfill) for Safari < 26 and Firefox < 142.
+
+```ts
+import { match } from "elements-kit/utilities/routing";
+
+const postMatch = match({ pathname: "/posts/:slug" });
+effect(() => {
+  const slug = postMatch()?.pathname.groups.slug;
+  if (slug) loadPost(slug);
+});
+```
+
+**Extracting params in React:**
+
+```tsx
+import { useSignal } from "elements-kit/integrations/react";
+import { match } from "elements-kit/utilities/routing";
+
+const userMatch = match({ pathname: "/users/:id" });
+
+function App() {
+  const result = useSignal(userMatch);
+  const id = result?.pathname.groups.id;
+  return id ? <UserPage id={id} /> : <NotFound />;
+}
+```
+
+```ts
+function match(input: URLPatternInput, options?: URLPatternOptions): Computed<URLPatternResult | null>
+```
+
+---
+
+## State
+
+### createPrevious
+
+Returns a `Computed` that always holds the previous value of `source`. Starts as `undefined` until the source changes for the first time.
+
+```ts
+import { createPrevious } from "elements-kit/utilities/previous";
+import { signal } from "elements-kit/signals";
+
+const count = signal(0);
+const prev = createPrevious(count);
+
+count(1);
+effect(() => console.log(prev())); // 0
+```
+
+Pass `ignore` to skip updates when a condition is met:
+
+```ts
+// Only track previous when value actually changes
+const prev = createPrevious(count, (a, b) => a === b);
+```
+
+```ts
+function createPrevious<T>(
+  source: Computed<T>,
+  ignore?: (next: T, current: T) => boolean,
+): Computed<T | undefined>
+```
+
+---
+
+## Context
+
+DOM-tree dependency injection — pass values down a custom-element subtree without prop drilling or globals. Provider registers a value on a host element; descendants look it up by walking `parentNode` (crossing into shadow hosts via `getRootNode().host`). Innermost provider wins. Reactivity is opt-in: pass a `Signal` / `Computed` and read it inside an effect.
+
+### setContext
+
+Registers `value` under `key` on `host`. Auto-removed via `onCleanup` when the surrounding scope disposes — must run inside a reactive scope (an `effect`, `effectScope`, the `render` setup, or a JSX `ref` callback, which all run inside one).
+
+```tsx
+import { signal } from "elements-kit/signals";
+import { setContext } from "elements-kit/utilities/context";
+
+const THEME = Symbol("theme");
+
+function ThemeProvider({ children }: { children: JSX.Element }) {
+  const theme = signal<"light" | "dark">("dark");
+  return setContext(<div>{children}</div>, THEME, theme);
+}
+```
+
+`setContext` returns the host so it composes inline. The equivalent `ref` form does the same thing — pick whichever reads better at the call site:
+
+```tsx
+function ThemeProvider({ children }: { children: JSX.Element }) {
+  const theme = signal<"light" | "dark">("dark");
+  return (
+    <div ref={(el) => setContext(el, THEME, theme)}>
+      {children}
+    </div>
+  );
+}
+```
+
+```ts
+function setContext<T>(host: EventTarget, key: PropertyKey, value: T): void
+```
+
+### getContext
+
+Walks up from `consumer` (across open shadow boundaries) and returns the first registered value for `key`, or `undefined`. One-shot — does not subscribe. Caller decides how to read the result (call signals inside an effect for reactive reads).
+
+The consumer must be in the DOM tree at call time. Inside a JSX `ref` callback the element has not yet been inserted, so a synchronous `getContext(el, …)` returns `undefined`. Defer the lookup to mount time with [`<dom-lifecycle>`](/components/dom-lifecycle/):
+
+```tsx
+import { signal } from "elements-kit/signals";
+import { getContext } from "elements-kit/utilities/context";
+import "elements-kit/utilities/dom-lifecycle";
+
+function ThemedButton() {
+  const theme = signal<"light" | "dark" | undefined>(undefined);
+  return (
+    <button data-theme={() => theme() ?? "light"}>
+      <dom-lifecycle
+        onConnect={(el) => theme(getContext<"light" | "dark">(el, THEME))}
+      />
+      Click
+    </button>
+  );
+}
+```
+
+For one-off reads, call `getContext` directly from an event handler — the tree is always connected by the time the handler fires:
+
+```tsx
+function ThemedButton() {
+  return (
+    <button
+      on:click={(e) => {
+        const theme = getContext<() => "light" | "dark">(e.currentTarget, THEME);
+        console.log("theme:", theme?.());
+      }}
+    >
+      Click
+    </button>
+  );
+}
+```
+
+```ts
+function getContext<T>(consumer: Element, key: PropertyKey): T | undefined
+```
+
+### Consuming context from a component
+
+For a component body that needs `getContext` after connection, defer with [`<dom-lifecycle>`](/components/dom-lifecycle/) — it's render-inert (zero layout box, no a11y role) and its `onConnect` fires once the consumer is in the tree:
+
+```tsx
+import { signal } from "elements-kit/signals";
+import { getContext } from "elements-kit/utilities/context";
+import "elements-kit/utilities/dom-lifecycle";
+
+function ThemeBadge() {
+  const theme = signal<"light" | "dark" | undefined>(undefined);
+  return (
+    <dom-lifecycle
+      onConnect={(el) => theme(getContext<"light" | "dark">(el, THEME))}
+    >
+      <span>{() => theme() ?? "light"}</span>
+    </dom-lifecycle>
+  );
+}
+```
+
+For a `Signal`/`Computed`-valued context that should drive reactivity, read the resolved signal inside an `effect`.
+
+### Nesting
+
+Innermost provider wins because the walk returns on first hit:
+
+```tsx
+<ThemeProvider>
+  <ThemedButton />            {/* outer theme */}
+  <ThemeProvider>
+    <ThemedButton />          {/* inner theme */}
+  </ThemeProvider>
+</ThemeProvider>
+```
+
+### Static values
+
+Reactivity is opt-in — plain values work the same way:
+
+```tsx
+const CONFIG = Symbol("config");
+
+function ConfigProvider({ children }: { children: JSX.Element }) {
+  return setContext(<div>{children}</div>, CONFIG, { apiUrl: "/v1" });
+}
+```
+
+### Custom elements
+
+Inside a custom element, `setContext(this, ...)` registers on the host directly — no wrapper needed. Use the `render(this, template)` lifecycle pattern so the entry is auto-cleaned on disconnect:
+
+```ts
+import { render } from "elements-kit/render";
+
+class ThemeProvider extends HTMLElement {
+  #unmount?: () => void;
+  #template = () => {
+    const theme = signal<"light" | "dark">("dark");
+    setContext(this, THEME, theme);
+    return null;
+  };
+  connectedCallback() { this.#unmount = render(this, this.#template); }
+  disconnectedCallback() { this.#unmount?.(); this.#unmount = undefined; }
+}
+```
+
+---
+
+## Low-level Primitives
+
+### fromEvent
+
+Returns a `Subscribe` function for one or more DOM events on a target. Use with `sync` to build reactive wrappers around DOM APIs.
+
+```ts
+import { fromEvent } from "elements-kit/utilities/event-driven";
+
+const onResize = fromEvent(window, "resize");
+// pass to sync() as the subscribe argument
+```
+
+```ts
+function fromEvent(target: EventTarget, events: string | string[]): Subscribe
+```
+
+### sync
+
+Keeps a reactive value in sync with an external source. Pass a `Subscribe` + a `getter` to get a `Computed<T>`; add a `setter` to get a writable `Signal<T>`.
+
+```ts
+import { fromEvent, sync } from "elements-kit/utilities/event-driven";
+
+// Read-only: re-reads getter whenever events fire
+const [scrollY] = sync(
+  fromEvent(window, "scroll"),
+  () => window.scrollY,
+);
+
+// Writable: setter syncs writes back to the external source
+const [volume, cleanup] = sync(
+  fromEvent(audioEl, "volumechange"),
+  () => audioEl.volume,
+  (v) => { audioEl.volume = v; },
+);
+
+volume(0.5); // writes to audioEl.volume
+```
+
+```ts
+type Subscribe = (notify: () => void) => () => void;
+
+function sync<T>(subscribe: Subscribe, getter: () => T): [Computed<T>, () => void];
+function sync<T>(subscribe: Subscribe, getter: () => T, setter: (v: T) => void): [Signal<T>, () => void];
+```
+
+---
+
+## See also
+
+- [Signals](/signals)
+- [Data fetching](/examples/data-fetching)
+- Full catalog: [src/utilities/README.md](https://github.com/elements-kit/elements-kit/blob/main/src/utilities/README.md)

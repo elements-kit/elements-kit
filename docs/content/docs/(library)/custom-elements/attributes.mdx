@@ -1,0 +1,190 @@
+---
+title: Attributes
+description: Attributes vs properties — and how @attributes wires them to reactive state.
+---
+
+import PLAYGROUND_FILE from "@/playground/files/attributes.tsx?raw";
+
+HTML elements have two distinct ways to receive data: **attributes** and **properties**. Understanding the difference is essential before using `@attributes` — which bridges the two for custom elements.
+
+<Playground
+  provider={{
+    files: {
+      "/main.tsx": {
+        code: PLAYGROUND_FILE,
+        active: true,
+      },
+    },
+  }}
+  preview={{}}
+/>
+
+## Attributes vs properties
+
+**Attributes** live in the HTML markup. They are always strings (or absent). The browser parses them from the HTML source and exposes them via `setAttribute` / `getAttribute`.
+
+**Properties** are JavaScript object members. They can be any type — numbers, booleans, arrays, objects.
+
+```html
+<!-- Attribute — string in the HTML source -->
+<input type="text" value="hello" disabled />
+```
+
+```ts
+const input = document.querySelector("input")!;
+
+// Attribute API — always strings
+input.getAttribute("value");        // "hello"
+input.setAttribute("value", "bye"); // sets the HTML attribute
+
+// Property API — typed JavaScript values
+input.value;        // "hello" (synced from attribute initially)
+input.value = "bye"; // sets the JS property directly
+input.disabled;     // true (boolean, not "disabled")
+```
+
+For many built-in elements, attributes and properties start in sync, then diverge:
+
+```ts
+const input = document.createElement("input");
+input.setAttribute("value", "initial");
+
+input.value;               // "initial" — synced on creation
+input.value = "typed";     // user types or JS sets property
+input.getAttribute("value"); // still "initial" — attribute unchanged
+```
+
+The `value` attribute is the **initial/default value**. The `value` property is the **current live value**. Changing one does not automatically change the other (for most built-ins).
+Here's a quick comparison:
+
+| | Attribute | Property |
+|---|---|---|
+| Location | HTML markup / `data-*` | JavaScript object |
+| Type | Always `string \| null` | Any — `number`, `boolean`, `object`… |
+| API | `getAttribute` / `setAttribute` | Direct assignment |
+| Observed changes | `attributeChangedCallback` | Getter/setter |
+| Serialisable to HTML | Yes | Not automatically |
+| Available before JS runs | Yes | No |
+
+---
+
+## Custom element attributes
+
+For built-in elements the browser manages the attribute↔property relationship. For **custom elements** you manage it yourself via `observedAttributes` and `attributeChangedCallback`.
+
+```ts
+class CounterElement extends HTMLElement {
+  // Must declare which attributes to observe
+  static observedAttributes = ["count", "step"];
+
+  // Called whenever a listed attribute changes
+  attributeChangedCallback(name: string, _old: string | null, next: string | null) {
+    if (name === "count") this.#count = Number(next ?? 0);
+    if (name === "step")  this.#step  = Number(next ?? 1);
+    this.#render();
+  }
+
+  #count = 0;
+  #step  = 1;
+
+  #render() {
+    // ...
+  }
+}
+```
+
+This is repetitive. Every attribute needs a manual type conversion, a branch in `attributeChangedCallback`, and a `#render()` call. The `@attributes` decorator automates all of it.
+
+---
+
+## `@attributes` decorator
+
+`@attributes` reads a static `[ATTRIBUTES]` map on the class and wires up `observedAttributes` and `attributeChangedCallback` automatically. Each key in the map is an observed attribute name; the value is a handler called with `this` bound to the element instance.
+
+```ts twoslash
+// @noErrors
+import { attributes, ATTRIBUTES as attr } from "elements-kit/attributes";
+import { reactive } from "elements-kit/signals";
+
+@attributes
+class CounterElement extends HTMLElement {
+  static [attr] = {
+    // Called whenever the HTML "count" attribute changes
+    count(this: CounterElement, value: string | null) {
+      this.count = Number(value ?? 0);  // string → number, write to reactive property
+    },
+    step(this: CounterElement, value: string | null) {
+      this.step = Number(value ?? 1);
+    },
+  };
+
+  @reactive() count = 0;
+  @reactive() step  = 1;
+}
+
+customElements.define("x-counter", CounterElement);
+```
+
+The handler is your type conversion layer — `value` is always `string | null` (the raw HTML attribute), and you decide what to do with it.
+
+### What `@attributes` generates
+
+```ts
+// Before @attributes — manual boilerplate:
+class CounterElement extends HTMLElement {
+  static observedAttributes = ["count", "step"];
+
+  attributeChangedCallback(name, _old, next) {
+    if (name === "count") /* handler */;
+    if (name === "step")  /* handler */;
+  }
+}
+
+// After @attributes — generated automatically:
+// static observedAttributes = ["count", "step"]  ← from [ATTRIBUTES] keys
+// attributeChangedCallback(...)                   ← dispatches to handlers
+```
+
+---
+
+## Inheriting attributes
+
+`@attributes` walks the **prototype chain** — subclasses inherit parent attribute handlers automatically:
+
+```ts
+@attributes
+class BaseInput extends HTMLElement {
+  static [attr] = {
+    disabled(this: BaseInput, value: string | null) {
+      this.disabled = value !== null;
+    },
+    name(this: BaseInput, value: string | null) {
+      this.name = value ?? "";
+    },
+  };
+
+  @reactive() disabled = false;
+  @reactive() name = "";
+}
+
+@attributes
+class TextInput extends BaseInput {
+  static [attr] = {
+    // Adds "value" on top of inherited "disabled" + "name"
+    value(this: TextInput, value: string | null) {
+      this.value = value ?? "";
+    },
+  };
+
+  @reactive() value = "";
+}
+
+// TextInput.observedAttributes = ["disabled", "name", "value"]
+```
+
+---
+
+## See also
+
+- [Custom elements](/custom-elements)
+- [Signals](/signals)

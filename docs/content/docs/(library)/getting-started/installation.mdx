@@ -1,0 +1,83 @@
+---
+title: Installation
+description: Install ElementsKit and configure JSX in your TypeScript project.
+---
+
+
+Install the package and point TypeScript at the ElementsKit JSX runtime. No build-step config on the consumer side — everything runs through your existing bundler.
+
+## Install
+
+<Tabs items={["pnpm","npm","yarn","bun","deno","CDN"]}>
+  <Tab value="pnpm">
+    ```sh
+    pnpm add elements-kit
+    ```
+  </Tab>
+  <Tab value="npm">
+    ```sh
+    npm install elements-kit
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```sh
+    yarn add elements-kit
+    ```
+  </Tab>
+  <Tab value="bun">
+    ```sh
+    bun add elements-kit
+    ```
+  </Tab>
+  <Tab value="deno">
+    ```sh
+    deno add npm:elements-kit
+    ```
+  </Tab>
+  <Tab value="CDN">
+    ```html title="index.html"
+    <script type="module">
+      import { signal } from "https://esm.sh/elements-kit/signals";
+    </script>
+    ```
+  </Tab>
+</Tabs>
+
+## Configure JSX
+
+Point TypeScript at the ElementsKit JSX runtime. Required if you write JSX; skip otherwise.
+
+```json title="tsconfig.json"
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "elements-kit"
+  }
+}
+```
+
+Per-file pragma is also supported if you need JSX from a different source elsewhere in the project:
+
+```tsx
+/* @jsxImportSource elements-kit */
+```
+
+## Verify
+
+A minimal script confirms the install works:
+
+```ts
+import { signal, effect } from "elements-kit/signals";
+
+const count = signal(0);
+effect(() => console.log("count:", count()));
+
+count(1); // → count: 1
+count(2); // → count: 2
+```
+
+## See also
+
+- [Quick start](/getting-started/quick-start)
+- [Philosophy](/getting-started/philosophy)
+- [Signals](/signals)

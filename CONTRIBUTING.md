@@ -7,7 +7,7 @@ Rules for sending PRs to **elements-kit**. How-the-library-works: [ARCHITECTURE.
 ## Repository
 
 - [src/](src/) — library source ([signals](src/signals/), [jsx-runtime](src/jsx-runtime/), [utilities](src/utilities/), [integrations](src/integrations/))
-- [docs/](docs/) — Astro + Starlight documentation site
+- [docs/](docs/) — Astro + fumadocs documentation site
 - [example/](example/) — Vite sandbox
 - [ARCHITECTURE.md](ARCHITECTURE.md) — how the library works (reactive model, JSX, custom elements, cleanup)
 - [DOCS.md](DOCS.md) — doc-authoring rules
@@ -21,7 +21,7 @@ pnpm install
 pnpm build                              # tsdown → dist/
 pnpm test                               # vitest run (happy-dom)
 pnpm test:watch                         # vitest watch
-pnpm --filter elements-kit-docs dev     # docs (Astro/Starlight)
+pnpm --filter elements-kit-docs dev     # docs (Astro/fumadocs)
 pnpm --filter example dev               # example (Vite)
 pnpm build:docs                         # lib + docs
 ```
@@ -84,10 +84,10 @@ When a fundamental thing changes, update the surface docs in the same PR. Rule o
 
 | Change | Update |
 |--------|--------|
-| Public API (add/rename/remove export, new subpath) | [README.md](README.md) Packages + usage, [ARCHITECTURE.md §2](ARCHITECTURE.md), [src/utilities/README.md](src/utilities/README.md) if a utility, matching `.mdx` in [docs/src/content/docs/](docs/src/content/docs/) |
+| Public API (add/rename/remove export, new subpath) | [README.md](README.md) Packages + usage, [ARCHITECTURE.md §2](ARCHITECTURE.md), [src/utilities/README.md](src/utilities/README.md) if a utility, matching `.mdx` in [docs/content/docs/](docs/content/docs/) |
 | Reactive semantics | [ARCHITECTURE.md §3](ARCHITECTURE.md), matching `.mdx` |
-| JSX contract | [README.md](README.md) Prop namespaces, [ARCHITECTURE.md §4](ARCHITECTURE.md), [elements.mdx](docs/src/content/docs/elements.mdx) / [components.mdx](docs/src/content/docs/components.mdx) |
-| Custom-element contract | [ARCHITECTURE.md §5](ARCHITECTURE.md), [custom-elements.mdx](docs/src/content/docs/custom-elements.mdx) |
+| JSX contract | [README.md](README.md) Prop namespaces, [ARCHITECTURE.md §4](ARCHITECTURE.md), [elements.mdx](docs/content/docs/(library)/elements/index.mdx) / [components.mdx](docs/content/docs/(library)/components.mdx) |
+| Custom-element contract | [ARCHITECTURE.md §5](ARCHITECTURE.md), [custom-elements.mdx](docs/content/docs/(library)/custom-elements/index.mdx) |
 | New utility | file + test + [src/utilities/README.md](src/utilities/README.md) row + dep graph + playground / MDX when worth it |
 | Build / polyfill / deps | [README.md](README.md) Installation, [ARCHITECTURE.md §7](ARCHITECTURE.md), this file Quick start |
 | Cleanup convention | [ARCHITECTURE.md §6](ARCHITECTURE.md), [AGENTS.md](AGENTS.md), utilities README tail |

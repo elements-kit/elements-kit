@@ -1,0 +1,14 @@
+{
+  "title": "Examples",
+  "description": "Composed recipes",
+  "icon": "Pencil",
+  "root": true,
+  "pages": [
+    "data-fetching",
+    "routing",
+    "search",
+    "infinite-scroll",
+    "context",
+    "toasts"
+  ]
+}

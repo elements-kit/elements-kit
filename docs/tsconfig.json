@@ -1,8 +1,10 @@
 {
   "extends": "astro/tsconfigs/strict",
+  "include": [".astro/types.d.ts", "**/*"],
   "compilerOptions": {
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "#pages": ["./src/docs/pages.server.ts"]
     }
   },
   "exclude": ["src/playground/files/**/*", "node_modules", "dist"]

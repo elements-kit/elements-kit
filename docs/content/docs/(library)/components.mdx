@@ -1,0 +1,225 @@
+---
+title: Components
+description: Class components — reactive state and element rendering in one place.
+---
+
+import COMPONENTS_FILE from "@/playground/files/components.tsx?raw";
+
+A **component** is a class with a `render()` method that returns an `Element`. It combines a [store](/stores) (reactive state) with element construction (JSX). The simplest possible component:
+
+<Playground
+  provider={{
+    files: {
+      "/main.tsx": {
+        code: COMPONENTS_FILE,
+        active: true,
+      },
+    },
+  }}
+  preview={{}}
+/>
+
+## Write a component that owns its state
+
+A typical component owns its state and produces elements from it. `@reactive` turns class fields into signals; JSX reads them as live bindings.
+
+```tsx magic-move
+// State only — a plain signal
+import { signal } from "elements-kit/signals";
+
+const count = signal(0);
+---
+// Add a derived value
+import { signal, computed } from "elements-kit/signals";
+
+const count = signal(0);
+const doubled = computed(() => count() * 2);
+---
+// Use accessor for natural property access (no () on reads)
+import { signal, computed } from "elements-kit/signals";
+
+class CounterStore {
+  #count = signal(0);
+  get count() { return this.#count() }
+  set count(value: number) { this.#count(value) }
+
+  doubled = computed(() => this.count * 2);
+}
+---
+// Full component — state, derived values, and actions
+import { signal, computed } from "elements-kit/signals";
+
+class Counter {
+  #count = signal(0);
+  get count() { return this.#count() }
+  set count(value: number) { this.#count(value) }
+
+  doubled = computed(() => this.count * 2);
+
+  render() {
+    return (
+      <div>
+        <p>Count: {() => this.count} — Doubled: {this.doubled}</p>
+        <button on:click={() => this.count++}>+1</button>
+      </div>
+    );
+  }
+}
+---
+// Use @reactive for natural property access — same ergonomics, less boilerplate
+import { reactive, computed } from "elements-kit/signals";
+import { render } from "elements-kit/render";
+
+class Counter {
+  @reactive() count = 0;
+  doubled = computed(() => this.count * 2);
+
+  render() {
+    return (
+      <div>
+        <p>Count: {() => this.count} — Doubled: {this.doubled}</p>
+        <button on:click={() => this.count++}>+1</button>
+        <button on:click={() => this.count--}>−1</button>
+        <button on:click={() => (this.count = 0)}>Reset</button>
+      </div>
+    );
+  }
+}
+
+const unmount = render(document.getElementById("app")!, () => <Counter/>);
+```
+
+## Share state across components
+
+When state needs to be **shared** across components, move it into a standalone [store](/stores) — a class with `@reactive` fields and no `render()`. Components read from the store; the store holds no reference to components.
+
+```ts twoslash
+// @noErrors
+// counter-store.ts — state only
+import { reactive, computed } from "elements-kit/signals";
+
+export class CounterStore {
+  @reactive() count = 0;
+  doubled = computed(() => this.count * 2);
+
+  increment() { this.count++; }
+  reset()     { this.count = 0; }
+}
+
+export const counter = new CounterStore();
+```
+
+```tsx
+// Two components, one store
+class CounterDisplay {
+  render() {
+    return (
+      <p>{() => counter.count} × 2 = {counter.doubled}</p>
+    );
+  }
+}
+
+class CounterControls {
+  render() {
+    return (
+      <div>
+        <button on:click={() => counter.increment()}>+1</button>
+        <button on:click={() => counter.reset()}>Reset</button>
+      </div>
+    );
+  }
+}
+```
+
+The same `counter` instance can also drive a React component or a custom element — see [Stores](/stores) and [React integration](/integrations/react).
+
+## Rendering lists
+
+For keyed list rendering, use the `For` component — it reconciles a reactive array into the DOM without re-rendering stable rows. See [`For`](/elements/for) for the full API.
+
+## Function components
+
+A function component is a plain function that returns an `Element`. Props arrive **exactly as the caller wrote them** — the runtime transforms nothing. A prop passed as a signal arrives as that signal; a prop passed as a value arrives as that value.
+
+That makes the declared type the contract on both sides. Declare plain types when a component takes static props only — callers then cannot pass a signal:
+
+```tsx twoslash
+// @noErrors
+function Greeting(props: { name: string }) {
+  return <p>Hello, {props.name}</p>;
+}
+```
+
+Declare [`Props<P>`](/elements/types) to accept either form on every key. Hand a prop straight to JSX, which subscribes when it is reactive, or read it with `resolve`:
+
+```tsx twoslash
+// @noErrors
+import { resolve } from "elements-kit/signals";
+import type { Props } from "elements-kit/jsx-runtime";
+
+function Greeting(
+  props: Props<{ name: string; excited?: boolean }>,
+) {
+  return (
+    <p>
+      Hello, {props.name}
+      {() => (resolve(props.excited) ? "!" : ".")}
+    </p>
+  );
+}
+```
+
+`Props<P>` is an alias for [`MaybeReactiveProps<P>`](/elements/types) — each key is `T | Computed<T>`. Use `MaybeReactive<T>` on individual keys when only some props should accept a signal.
+
+Because nothing is wrapped, an omitted optional prop is plain `undefined`, so `??` defaults work as written:
+
+```tsx
+const placeholder = resolve(props.placeholder) ?? "Ask anything…";
+```
+
+## Opt into getter props
+
+When a body would rather read one uniform shape than branch on which form arrived, convert the props with `computedProps`. Every key becomes a getter — including keys the caller omitted — so reads never need `resolve`:
+
+```tsx twoslash
+// @noErrors
+import { computedProps } from "elements-kit/signals";
+import type { Props } from "elements-kit/jsx-runtime";
+
+function Chat(raw: Props<{ placeholder?: string; layout?: string }>) {
+  const props = computedProps(raw);
+
+  return (
+    <input
+      placeholder={props.placeholder() ?? "Ask anything…"}
+      data-layout={props.layout}
+    />
+  );
+}
+```
+
+Note where the default sits. A getter is always truthy, so `props.placeholder ?? "…"` would never fall back — inside a bag the default goes **on the call**: `props.placeholder() ?? "…"`.
+
+Every key is a reactive source, whether the caller passed a signal or a plain value. That means a getter keeps working when you forward it to a child component — the child can call it, `resolve` it, or convert its own props with `computedProps` without wrapping it twice.
+
+### Function props
+
+`computedProps` infers its shape from the argument, and a callable cannot be told apart from a getter — `Computed<T>` *is* `() => T`. So a prop that takes arguments (a render prop, a handler with parameters) is rejected rather than mistyped:
+
+```tsx
+// ✗ computedProps: a prop that takes arguments cannot be inferred here
+const props = computedProps({ render: (item: string) => item.length });
+```
+
+Read those off the raw props instead.
+
+A **zero-arg** function prop cannot be rejected — `Signal<T>` and `Computed<T>` are zero-arg callables themselves, so banning them would ban reactive props. It types as its return value while the runtime hands back the function, so read those raw too.
+
+Reach for `computedProps` when a component has several props it reads repeatedly. For one or two props, raw reads and `resolve` are less machinery.
+
+## See also
+
+- [Elements](/elements) — JSX → DOM, prop namespaces.
+- [For](/elements/for) — keyed list rendering.
+- [Stores](/stores) — shared reactive state.
+- [Custom elements](/custom-elements) — components as native HTML tags.

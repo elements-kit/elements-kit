@@ -1,0 +1,326 @@
+---
+title: Overlay
+description: One frame for every floating surface — windows, sheets, drawers, panels, and anchored popovers — geometry as a reactive box model projected into CSS channels.
+badge: JS
+---
+
+
+<Callout type="warn" title="Experimental">
+The overlay module is experimental and currently **reduced to its box model**. `OverlayBox`, the box types, the area types, `Motion` and `Gestures` are exported and stable enough to build on. The gesture engine, the constraint/dock layer and the `Overlay` façade are **not exported yet** — the `.x-handle` affordances below paint and pick the enter/exit slide, but nothing wires pointers to them for you. Wire your own with `Motion` + `Gestures` (see [Gestures](#gestures)).
+</Callout>
+
+An invisible frame around a card. The frame owns *where* and *how big*; the card owns *what it looks like*. Every archetype — centered window, bottom sheet, side drawer, corner panel, anchored popover — is the same class with different channel values, so one surface can morph into another with a plain CSS transition.
+
+Geometry is a **reactive box model in JS**, projected into CSS custom properties. `OverlayBox` writes `--x/--y` (position, via one `translate`), `--w/--h` (real size) and `--dx/--dy` (live drag displacement); CSS transitions those channels. Nothing is clamped or docked in CSS — placement is JS, and it is a *pure* computation you drive from an effect.
+
+<StorybookEmbed story="ui-overlay--nav-popover" />
+
+## Install
+
+```ts
+import "elements-kit/ui/styles.css";
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/neutral/gray.css";
+
+import "elements-kit/ui/styles/unset.css";
+import "elements-kit/ui/card/card.css";
+import "elements-kit/ui/overlay/index.css"; // geometry — import first
+import "elements-kit/ui/overlay/overlay.css"; // presentation (@imports handle.css)
+```
+
+JS is optional, from one entry:
+
+```ts
+import {
+  OverlayBox,
+  ElementBox,
+  MarginBox,
+  WINDOW_BOX,
+  VIEWPORT_BOX,
+  PositionArea,
+  PositionTry,
+  MutableArea,
+  Align,
+  place,
+  anchor_length,
+  Motion,
+  Gestures,
+} from "elements-kit/ui/overlay";
+```
+
+## Markup
+
+A `<dialog>` with `unset x-overlay`, wrapping a plain [card](/ui/card). How you open it decides the modality — there is no attribute for it.
+
+```html
+<dialog class="unset x-overlay">
+  <div class="x-card" data-variant="elevated">Hello.</div>
+  <div class="x-handle" data-placement="move"></div>
+  <div class="x-handle" data-placement="end-end"></div>
+</dialog>
+```
+
+The card is the frame's required direct child; the open frame is a flex column, so the card grows into a definite frame and scrolls below it. Gesture affordances are `.x-handle` children — *siblings* of the card, so the card's clip can't chop the grip — each carrying a `data-placement`.
+
+| Opened via | Modality |
+| --- | --- |
+| `dialog.showModal()` | Modal — focus trap, inert page, backdrop |
+| `popover` + `popovertarget` | Non-modal top layer, light dismiss |
+| `popover="manual"` | Persistent — the page stays interactive |
+
+<Callout type="info" title="Re-pointing an open popover">
+Use `el.showPopover({ source })` rather than `popovertarget` when moving an already-open popover between triggers — `popovertarget` toggles an open popover shut.
+</Callout>
+
+## Channels
+
+`OverlayBox` sets `top: 0; left: 0` and one inline `translate` on the element, then writes the channels below. The `translate` composes position, drag displacement and the enter/exit slide, so all three stack without fighting:
+
+```
+translate: calc(--x + --dx + --_ex − --_ox)  calc(--y + --dy + --_ey − --_oy)
+width:     var(--w, var(--overlay-w, auto))
+height:    var(--h, var(--overlay-h, auto))
+```
+
+| Channel | Written by | Meaning |
+| --- | --- | --- |
+| `--x` / `--y` | `box.x =` / `box.y =` | Committed position — the point `origin` lands on |
+| `--w` / `--h` | `box.w =` / `box.h =` | Explicit size; `NaN` removes the property, falling back to `--overlay-w/-h` then content sizing |
+| `--dx` / `--dy` | `box.displacement` | Live drag offset, folded into `--x/--y` by `displacement.apply()` |
+| `--_ex` / `--_ey` | overlay.css | Enter/exit slide, as a percentage of the box |
+| `--_ox` / `--_oy` | `box.origin =` | Origin shift, as a percentage of the box |
+
+Authored properties — set these in CSS or inline style:
+
+| Property | Default | Meaning |
+| --- | --- | --- |
+| `--overlay-w` / `--overlay-h` | `auto` | Size fallback when the JS channel is unset |
+| `--overlay-duration` | `300ms` | Morph + enter/exit duration |
+| `--overlay-easing` | `cubic-bezier(0.32, 0.72, 0, 1)` | a soft ease-out |
+| `--overlay-backdrop` | `--color-overlay` | Modal backdrop color |
+| `--overlay-grip-radius` | `--radius-5` | Corner-grip arc radius — match the card's `data-size` |
+
+| Attribute | On | Meaning |
+| --- | --- | --- |
+| `data-no-transition` | frame | Kills the transition — set it while directly manipulating, remove on release |
+| `data-placed` | frame | `top` / `bottom` / `left` / `right` — the settled side; sets the scale origin for anchored enters |
+| `data-placement` | `.x-handle` | The affordance to paint (see below) |
+| `data-material-background` | frame or ancestor | Cards default to solid inside an overlay; `translucent` opts into frosted glass |
+
+Changing any channel on an open overlay morphs it — every value is an interpolable length. Position and size interpolate together, and with `interpolate-size: allow-keywords` a content-sized height morphs against a pinned one.
+
+## Boxes
+
+Everything spatial is a **box**: `{ x, y, w, h }` in viewport coordinates, read through getters that track reactively. Placement is composition over boxes.
+
+| Class | Is |
+| --- | --- |
+| `ElementBox(el)` | An element's live rect (observed). Takes a signal, so the tracked element can be swapped |
+| `WINDOW_BOX` | The layout viewport, plus its `direction` |
+| `VIEWPORT_BOX` | The visual viewport — the window minus the software keyboard or pinch-zoom, where it sits in the layout viewport. iOS never resizes the layout viewport for the keyboard, so dock keyboard-adjacent surfaces to this rather than `WINDOW_BOX` |
+| `MarginBox(box, top?, right?, bottom?, left?)` | A box grown per side — the gap off an anchor, spelled as CSS spells it. Sides default like the `margin` shorthand, and every field is assignable and reactive |
+| `OverlayBox(el)` | The surface — reads its measured rect, writes the channels |
+
+Every box class is also a [region](#areas) — it has `xmin`, `xmax`, `ymin` and `ymax` — so you can pass it wherever a container or bound is expected.
+
+`ElementBox` and `OverlayBox` own an observer, so dispose them (`box[Symbol.dispose]()`, or `overlay.dispose()`). Inside an [`effectScope`](/scopes) the effects clean up with the scope.
+
+### `OverlayBox`
+
+Reads are the **measured rect** (what the element actually is, after transitions and content sizing); writes go to the channels. That asymmetry is deliberate — you place against reality, not against your last write.
+
+```ts
+const overlay = new OverlayBox(panel);
+
+overlay.x = 120; // → --x: 120px, morphs
+overlay.h = NaN; // → unset, back to content sizing
+overlay.w; // → the measured width, reactive
+```
+
+`origin` names which point of the box lands on `(x, y)`, per axis, as an [`Align`](#areas) — and the scale grows from the same point. Unset it is `{ x: 0, y: 0 }`, so the channels place the top-left corner.
+
+```ts
+overlay.origin = { x: Align.center, y: Align.end }; // pin the bottom-center
+```
+
+`displacement` is a second, additive column for live manipulation: write it during a drag (it lands in `--dx/--dy`, and in the size channels), then `apply()` folds it into the base in one batch, or `clear()` drops it.
+
+```ts
+overlay.displacement.x = 25; // → --dx: 25px, base untouched
+overlay.displacement.apply(); // → --x: 125px, --dx removed
+```
+
+## Areas
+
+An **area** is somewhere a box may go: a region's edges plus where the box sits between them. You place a box in one without measuring it — `place(overlay, area)` sets its `origin` to the area's alignment and moves that point onto the area's line.
+
+```ts
+// Region: edges as viewport coordinates, y down. undefined = open.
+interface Region { xmin?: number; xmax?: number; ymin?: number; ymax?: number }
+
+// Area: a region, and the box point that sits on each axis. undefined = free.
+interface Area extends Region { xalign?: Align; yalign?: Align }
+
+// Align: 0 start edge … 1 end edge — CSS's 0% … 100%.
+Align.start; // 0
+Align.center; // 0.5
+Align.end; // 1
+```
+
+Edges are coordinates, never insets: `ymax` is where the bottom edge is, not how far it is from anything.
+
+### `place(overlay, area)`
+
+Per axis, the aligned point lands on the area's line: `min` at 0, `max` at 1, `min + (max − min) · align` between. `OverlayBox` shifts itself back by `align × its own size` in CSS, so the box lands without being measured. A free axis — no align, or a centre without both edges — is left alone.
+
+```ts
+effect(() => place(overlay, area));
+```
+
+A box larger than its room overflows rather than shrinks, as in CSS.
+
+### `PositionArea(anchor, area, container?)`
+
+The CSS `position-area` property, reimplemented reactively: the anchor's four edges tile the plane into a 3×3 grid, and the area names the cell. Accepts any valid `position-area` value — physical, logical, `span-*`, `self-*` — order-independent, RTL-resolved through the anchor's `direction`. Invalid or contradictory values (`top bottom`) resolve to `block-end`, and the type rejects them at compile time.
+
+```ts
+const anchor = new ElementBox(trigger);
+const area = new PositionArea(anchor, "block-end span-inline-end");
+```
+
+The `container` is the containing block — the window unless you pass one. It only limits the room: the edge the box hugs is always the anchor's, so the box follows the anchor as it scrolls. A centred axis is a room symmetric around the anchor's middle, out to the container's nearer edge.
+
+`area`, `anchor` and `container` are assignable, so re-aiming a menu — or re-pointing it at another trigger — happens in place and the panel **glides** to the new side. There is no gap parameter, for the same reason CSS has none: the offset off the anchor is the overlay's own `margin`, or a `MarginBox` around the anchor.
+
+<StorybookEmbed story="ui-overlay--position-area" />
+
+### `area.intersect(...regions)`
+
+`intersect` cuts the area by other regions and keeps its alignment. Cut by its own container, the anchor side stops at the container's edge instead of following the anchor out — a menu that sticks to its scroller.
+
+```ts
+const scroller = new ElementBox(list);
+const below = new PositionArea(anchor, "block-end", scroller);
+
+below; // follows the anchor out of the scroller
+below.intersect(below.container); // stops at the scroller's edge
+```
+
+The result is live. With no shared room it keeps its own crossed edges, so `PositionTry` passes it over.
+
+### `box.toArea(xalign?, yalign?)`
+
+Any box becomes a live area: its edges, plus the box point that sits on each axis — the top-left corner by default, as `origin`. It has the same `intersect`.
+
+```ts
+// A bottom sheet, docked above the keyboard.
+place(sheet, VIEWPORT_BOX.toArea(Align.center, Align.end));
+
+// Centred in the page column, under a header.
+column.toArea(Align.center, Align.start).intersect({ ymin: 64 });
+```
+
+### `PositionTry(subject, candidates, order?)`
+
+The CSS `position-try-fallbacks` property: the first candidate with room for `subject` — usually the overlay itself. It is an area, so you place with it as with any other. When none fits it keeps the first, as CSS does, and `fits` turns false.
+
+```ts
+const below = new PositionArea(anchor, "block-end", scroller);
+const above = new PositionArea(anchor, "block-start", scroller);
+const tried = new PositionTry(overlay, [below, above]);
+```
+
+Each candidate carries its own container, so a menu can keep inside a scroller while it can and then spill into the window — a fallback CSS cannot express, since every `position-try` option shares one containing block. `order` ranks candidates first, as `position-try-order` does: `"normal"`, `"most-width"` or `"most-height"`.
+
+<StorybookEmbed story="ui-overlay--position-try-scroll" />
+
+### `MutableArea(area?)`
+
+An area you write, every field reactive — a sheet whose edge follows the keyboard, or a panel a gesture resizes.
+
+```ts
+const sheet = new MutableArea({ ymax: VIEWPORT_BOX.ymax, yalign: Align.end });
+effect(() => {
+  sheet.ymax = VIEWPORT_BOX.ymax; // rests on the visual viewport's bottom
+});
+```
+
+### `anchor_length(box, inset, side)`
+
+The CSS `anchor()` function, reimplemented reactively — the JS tier speaks the same words as the native one:
+
+```ts
+overlay.y = anchor_length(anchor, "top", "bottom"); // ≡ top: anchor(bottom)
+overlay.x = anchor_length(anchor, "left", "center") - overlay.w / 2;
+```
+
+`inset` is the inset property being computed (physical or logical); `side` is any of `top`/`bottom`/`left`/`right`, `inside`/`outside`, `start`/`end`, `self-start`/`self-end`, `center`, or a number as a fraction of the axis. Horizontal writing modes only: the block axis always starts at the top, and only the inline axis consults `direction`.
+
+## Handles
+
+Each `.x-handle` is a direct child sibling of the card that both **paints** an affordance and **is** its pointer hit-target — the painted pill stays thin while a transparent `::before` grows the target to a comfortable minimum. One `data-placement` is the whole vocabulary.
+
+| `data-placement` | Paints |
+| --- | --- |
+| `block-start` / `block-end` | Horizontal pill at that edge — height drag (sheets) |
+| `inline-start` / `inline-end` | Vertical pill at that edge — width drag (drawers) |
+| `start-start`, `start-end`, `end-start`, `end-end` | Corner L-grip, block side first, inline second (windows) |
+| `move` | Top-center grab pill (window move) |
+
+The handle also **picks the enter/exit motion**, since an edge handle implies the opposite edge is docked: a `block-start` handle slides the frame up from below, `inline-end` slides it in from the inline-start edge (mirrored in RTL). No edge handle — none, a corner grip, or `move` only — settles in from a scale instead.
+
+<Callout type="warn" title="No pointer wiring yet">
+Handles are currently affordances and motion hints. The engine that turned a press on them into a resize or move is not exported in this version; drive `displacement` yourself from `pointermove` and set `data-no-transition` for the duration of the drag.
+</Callout>
+
+## Motion and gestures
+
+Direct manipulation needs velocity, not just position. `Motion` is one animatable scalar that tracks its own delta and velocity from the timing of its writes:
+
+```ts
+const m = new Motion(startHeight);
+m.value = next; // or m.move(delta)
+m.displacement; // how far from the seed — reactive
+m.velocity; // px/ms, for a release projection
+m.abort(); // snap back to the seed
+```
+
+### Gestures
+
+`Gestures` is a namespace of **pure scalar shapers** — a `Modifier` is `number → number`, applied at display time while the true value stays in `Motion`, so a release settles cleanly.
+
+| Function | Does |
+| --- | --- |
+| `rubber(min, max, dimension, constant?)` | elastic resistance past the bounds — pull, but never escape |
+| `detent(points, strength?)` | Magnetic pull toward the nearest stop during the drag (`0` free, `1` snap) |
+| `nearest(value, points)` | The closest stop |
+| `snap(value, velocity, points, reach?)` | Release target — project by velocity, then take the nearest stop |
+
+```ts
+import { Motion, Gestures } from "elements-kit/ui/overlay";
+
+const stops = [0.25, 0.6, 0.9].map((f) => f * innerHeight);
+const h = new Motion(panel.getBoundingClientRect().height);
+const shape = Gestures.rubber(stops[0], stops.at(-1)!, innerHeight);
+
+panel.dataset.noTransition = "";
+onpointermove = (e) => {
+  h.value = innerHeight - e.clientY;
+  overlay.h = shape(h.value);
+};
+onpointerup = () => {
+  delete panel.dataset.noTransition; // morph to the rested height
+  overlay.h = Gestures.snap(h.value, h.velocity, stops);
+};
+```
+
+## Browser support
+
+Position and size morphs work everywhere the `translate` property exists (Chrome 104+). Enter/exit transitions layer on under `@supports (transition-behavior: allow-discrete)` via `@starting-style`, and `@supports (overlay: auto)` keeps the exit inside the top layer (Firefox clips it; entry is unaffected). Anchoring is JS in every browser — `PositionArea`, `PositionTry` and `anchor_length` reimplement the CSS semantics rather than gating on them. `prefers-reduced-motion` drops every transition.
+
+## See also
+
+- [Card](/ui/card) — the surface inside the frame
+- [Theming](/ui/styles) — palettes, materials, light & dark
+- [Scopes](/scopes) — `effectScope` and cleanup
+- [Signals](/signals) — the reactivity the boxes assume

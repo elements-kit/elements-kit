@@ -1,0 +1,84 @@
+---
+title: Select
+description: Headless select — a styled native <select>. We own the trigger chrome; the browser owns the option popup. No JavaScript.
+badge: CSS
+---
+
+
+A native `<select>` with CSS-only chrome. The trigger (closed state) is styled here — sizes, variants, colors, focus ring, disabled state, and a custom chevron. The option popup stays OS-native, which means full keyboard navigation, native mobile pickers, and screen-reader announcement all work without a line of JS.
+
+<StorybookEmbed story="ui-select--surface" />
+
+## Install
+
+```ts
+import "elements-kit/ui/styles.css";
+
+// neutral palette:
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/neutral/gray.css";
+// any accent scales you want:
+import "elements-kit/ui/styles/palette/mint.css";
+import "elements-kit/ui/styles/accent/mint.css";
+// and the select itself:
+import "elements-kit/ui/select/select.css";
+```
+
+## API
+
+```html
+<select class="x-select unset" data-variant="surface" data-size="2">
+  <option value="">Pick one</option>
+  <option value="apple">Apple</option>
+  <option value="orange">Orange</option>
+</select>
+```
+
+Pair `class="x-select"` with `class="unset"` to strip native chrome ([Styles → Unset native styles](/ui/styles#unset-native-styles)). Without `.unset`, browser-default styling will fight the variant rules.
+
+| Attribute | Values |
+| --- | --- |
+| `data-variant` | `surface` *(default)*, `soft`, `text` |
+| `data-size` | `1`, `2` *(default)*, `3` |
+| `data-accent` *(on element or any ancestor)* | any imported color scale — tints `soft` and `text` |
+| `disabled` *(native)* | greys out + stops clicks |
+
+## Sizing
+
+| `data-size` | height | padding-x | font-size |
+| --- | --- | --- | --- |
+| `1` | `--space-5` | `--space-2` | `--font-size-1` |
+| `2` *(default)* | `--space-6` | `--space-3` | `--font-size-2` |
+| `3` | `--space-7` | `--space-4` | `--font-size-3` |
+
+Padding is symmetric (`padding-inline`). The trigger uses `appearance: auto`, so the UA sizes it to fit the widest `<option>` automatically — switching selection doesn't reflow the layout.
+
+## Variants
+
+- **`surface`** *(default)* — `transparent` background, thin `--neutral-a7` inset ring, neutral `--neutral-12` text. Hover deepens the ring to `--neutral-a8`. Surface stays neutral even when an ancestor sets `data-accent`.
+- **`soft`** — `--accent-a3` accent-tinted track, `--accent-12` text. Hover bumps the track to `--accent-a4`. Without an accent, `--accent-*` falls back to `--neutral-*` and the select stays gray-tinted.
+- **`text`** — transparent, content-box height, negative-margin offset so it sits inline with surrounding body text (same recipe as `x-button[data-variant="text"]`). Hover gives a subtle `--accent-a3` wash.
+
+## States
+
+- **`:focus-visible`** — `2px` `--focus-8` outline at `-1px` offset (inset).
+- **`:hover`** — surface bumps the ring, soft + text deepen the background.
+- **`:disabled`** — `0.6` opacity + `pointer-events: none`, plus per-variant fallback colors so the disabled state still reads as a control rather than a blank rectangle.
+
+## Chevron
+
+The chevron is ours, not the browser's — the trigger sets `appearance: none` and paints an SVG as a `background-image`. Size and offset come from `--select-chevron-size` and `--select-chevron-inset`, both set per `data-size`.
+
+Its stroke is a literal colour, not `currentColor`. A `data:` URI SVG renders as its own document, so `currentColor` inside it resolves against the SVG's own colour — initial black — and never sees the select's. The stroke therefore tracks `--gray-12` as a hard-coded value, and the whole URL is swapped between light and dark via `--select-chevron-image`. Two colours is all this buys: the chevron does not follow the accent on `soft` / `text`, nor dim on `:disabled`.
+
+## Accessibility
+
+Native `<select>` semantics are intact — keyboard navigation, screen-reader announcement, form participation, mobile picker UI, and the option popup all come from the platform. We only style the closed trigger.
+
+<Callout type="warn" title="Don't">
+Replace this with `<button aria-haspopup="listbox">` + a custom popup to "get more control." You'll re-implement focus management, keyboard navigation, scroll containment, and mobile pickers — and lose them on the platforms where the native version already works.
+</Callout>
+
+<Callout type="info" title="Popup styling">
+The option list popup is rendered by the operating system and varies per browser. That's the contract of a CSS-only primitive — for a fully styled popup you need JS state + a Listbox primitive ([roadmap reference](/ui#initial-primitive-catalog)).
+</Callout>

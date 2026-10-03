@@ -1,0 +1,17 @@
+---
+// Frame for the live Astro-island demos. Pair with `islands.css?url` in the
+// page head: an import here would land in the shared route's CSS bundle.
+---
+
+{/* The theme data-* attributes scope the ui variables to the demo. */}
+<div
+  class="island-demo"
+  data-radius="medium"
+  data-scaling="md"
+  data-accent="mint"
+  data-neutral="gray"
+  data-material-background="translucent"
+  style="margin-block: 1.5rem"
+>
+  <slot />
+</div>

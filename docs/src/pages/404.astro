@@ -1,0 +1,15 @@
+---
+import DocsShell from "@/docs/DocsShell.astro";
+
+export const prerender = true;
+---
+
+<DocsShell title="Page not found">
+  <main class="m-auto flex flex-col items-center gap-4 p-8 text-center">
+    <h1 class="text-3xl font-semibold">Page not found</h1>
+    <p class="text-fd-muted-foreground">
+      The page you're looking for doesn't exist or moved.
+    </p>
+    <a class="font-medium text-fd-primary underline" href="/">Back to the docs</a>
+  </main>
+</DocsShell>

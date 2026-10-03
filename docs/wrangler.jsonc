@@ -1,9 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "elements-kit",
-  "compatibility_date": "2026-04-10",
-  "main": "./dist/_worker.js",
-  "assets": {
-    "directory": "./dist"
-  }
+  "compatibility_date": "2026-09-10",
+  "compatibility_flags": ["nodejs_compat"]
 }

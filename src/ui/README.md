@@ -142,7 +142,7 @@ v0 = the load-bearing set. Composite surfaces and inputs that depend on form sem
 
 ## 5. Build plan
 
-Each phase ships: source file + Vitest test + playground demo + doc page under [`docs/src/content/docs/ui/`](../../docs/src/content/docs/ui/).
+Each phase ships: source file + Vitest test + playground demo + doc page under [`docs/content/docs/(ui)/ui/`](../../docs/content/docs/(ui)/ui/).
 
 **Docs update is part of the merge, not a follow-up.** Adding or changing a component without landing the matching doc page in the same PR is a blocker. The doc page mirrors the source-file JSDoc — APG link, state contract, event contract, keyboard map, controlled / uncontrolled example, recipe links if any.
 
@@ -158,7 +158,7 @@ Each phase ships: source file + Vitest test + playground demo + doc page under [
 ## 6. Quality bars
 
 - Vitest test per element covering: every key in the APG keyboard map, ARIA attribute application, controlled / uncontrolled mode parity, no leaked listeners after `disconnectedCallback`.
-- Matching doc page under [`docs/src/content/docs/ui/`](../../docs/src/content/docs/ui/) lands in the same PR as the source. CI should reject a component change without a docs change.
+- Matching doc page under [`docs/content/docs/(ui)/ui/`](../../docs/content/docs/(ui)/ui/) lands in the same PR as the source. CI should reject a component change without a docs change.
 - No `console.*` under `src/` (per [AGENTS.md](../../AGENTS.md)).
 - Node-import-safe — module-level reads of `window` / `document` gate through [`isBrowser`](../utilities/environment.ts).
 - TypeScript: every element augments `CustomElementRegistry` (per [`src/custom-elements.ts`](../custom-elements.ts)) so JSX gets typed props and refs.
@@ -183,7 +183,7 @@ Resolve before Phase 1 lands:
 
 - **Shadow DOM vs light DOM default.** Proposal: light DOM with `Slot`-class regions for behavior primitives (invisible, no visual structure to encapsulate); shadow DOM for surfaces (`x-dialog`, `x-popover`, `x-tooltip`) that own visual structure and benefit from `::part` styling boundaries.
 - **`::part` naming convention.** Proposal: kebab-case, role-driven (`part="trigger"`, `part="content"`, `part="indicator"`).
-- **Where examples live.** Proposal: docs-only under `docs/src/content/docs/ui/examples/` plus runnable demos in `docs/src/playground/files/`. Nothing under `src/ui/examples/`.
+- **Where examples live.** Proposal: docs-only under `docs/content/docs/(ui)/ui/examples/` plus runnable demos in `docs/src/playground/files/`. Nothing under `src/ui/examples/`.
 - **Animation primitive.** Out of scope for v0. Authors handle transitions via `[data-state]` attribute selectors and CSS.
 
 ---

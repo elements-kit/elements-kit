@@ -1,6 +1,6 @@
 # Docs
 
-Rules for `.mdx` pages in [docs/src/content/docs/](docs/src/content/docs/) and playground files in [docs/src/playground/files/](docs/src/playground/files/). Library semantics: [ARCHITECTURE.md](ARCHITECTURE.md). Contributor rules: [CONTRIBUTING.md](CONTRIBUTING.md).
+Rules for `.mdx` pages in [docs/content/docs/](docs/content/docs/) and playground files in [docs/src/playground/files/](docs/src/playground/files/). Library semantics: [ARCHITECTURE.md](ARCHITECTURE.md). Contributor rules: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 > Changes to page structure or playground conventions land here before you rewrite existing pages.
 
@@ -18,7 +18,7 @@ Rules for `.mdx` pages in [docs/src/content/docs/](docs/src/content/docs/) and p
 
 Every page, top to bottom:
 
-1. **Frontmatter** — `title` and `description` both required.
+1. **Frontmatter** — `title` and `description` both required. Optional: `navTitle` (sidebar label when it differs from the title), `badge: CSS | JS` (UI component pages).
 2. **Hook** — one paragraph, 2–3 sentences, no code.
 3. **Playground** — position per "Playground" rules below.
 4. **Body** — H2s ordered by reader priority (most-asked-first). H3 allowed. No H4+.
@@ -29,14 +29,14 @@ Every page, top to bottom:
 - Sentence-case headings, no trailing punctuation. Inline code allowed in H2/H3, never H1.
 - First sentence of each section is the takeaway — readers skim H2s + openers.
 - Section body ≤ 150 words before a code block. Longer → split.
-- Caveats inline as `:::caution[Title]` next to what they apply to — never a bottom "gotchas" dump.
+- Caveats inline as `<Callout type="warn">` next to what they apply to — never a bottom "gotchas" dump.
 
 ## Playground — position, size, style
 
 - **Default: top**, directly after the hook.
 - **Landing page: no Sandpack.** Static hero snippet + link to `/signals` — respects the 5-second budget.
 - **Height**: default `height: 300`. Increase only for multi-panel demos; add an inline comment explaining why.
-- **One primary playground per page.** `<Tabs>` + multiple `<Playground>` only when a single demo would obscure per-facet learning (see [signals.mdx](docs/src/content/docs/signals.mdx)).
+- **One primary playground per page.** `<Tabs items={[…]}>` + `<Tab value>` + multiple `<Playground>` only when a single demo would obscure per-facet learning (see [signals.mdx](docs/content/docs/(library)/signals.mdx)).
 - **Tab labels** ≤ 12 chars. Lower case except proper nouns and identifiers (`Counter`, `Batch`, `onCleanup`).
 
 ### Playground file style
@@ -50,17 +50,30 @@ Every page, top to bottom:
 
 - Full imports in the first snippet on a page; subsequent snippets may elide.
 - Language tag required: ` ```ts `, ` ```tsx `, ` ```json `, ` ```sh `.
-- `magic-move` for progressive reveals (3–5 frames, one idea evolves) — not unrelated variants.
+- `magic-move` for progressive reveals (3–5 frames separated by `---` lines, one idea evolves) — not unrelated variants. Precompiled at build ([docs/src/mdx/magic-move.ts](docs/src/mdx/magic-move.ts)); the `.md` twin shows the last frame.
+- `twoslash` meta for type hovers. Add `// @noErrors` when the snippet is illustrative.
 - No pseudo-code. Every block compiles or is marked illustrative.
 - Output as inline comments: `console.log("x"); // x`.
 - Before / after = two labelled blocks (`// before`, `// after`), not `+` / `-` markers.
 
 ## Callouts
 
-- `:::caution[Title]` — footguns, silent bugs, cleanup gotchas.
-- `:::note[Title]` — optional clarifications.
-- `:::tip[Title]` — non-obvious shortcuts. Max one per page.
-- `:::danger[…]` — reserved for data-loss / irreversible scenarios.
+fumadocs `<Callout>`, available without importing. Titles with inline code take JSX: `title={<>Use <code>run()</code></>}`.
+
+- `<Callout type="warn" title="…">` — footguns, silent bugs, cleanup gotchas.
+- `<Callout type="info" title="…">` — optional clarifications.
+- `<Callout type="idea" title="…">` — non-obvious shortcuts. Max one per page.
+- `<Callout type="error" title="…">` — reserved for data-loss / irreversible scenarios.
+
+## MDX components
+
+Provided by [docs/src/docs/mdx-components.tsx](docs/src/docs/mdx-components.tsx) — no imports needed: `Callout`, `Cards` / `Card`, `Tabs` / `Tab`, `Steps` / `Step`, `Playground`, `StorybookEmbed`, `Diagram` (Mermaid), `Island`. Import only playground sources (`?raw`) and icons.
+
+`<Island name>` renders a live Astro island passed as a named slot from [docs/src/pages/[...slug].astro](docs/src/pages/[...slug].astro) — only for pages that demo the Astro integration.
+
+## Sidebar
+
+`meta.json` per folder sets order, separators (`"---Label---"`) and external links (`"external:[Label](url)"`). Root folders (`"root": true`) are the sidebar tabs: `(library)`, `(ui)`, `integrations`, `examples`. Parenthesised folders don't appear in URLs. A page that shares a name with a folder lives at `folder/index.mdx`. Unlisted pages build but stay out of the sidebar.
 
 ## Length targets
 
@@ -74,7 +87,7 @@ Every page, top to bottom:
 - MDX may link to [ARCHITECTURE.md](ARCHITECTURE.md) for rigor; ARCHITECTURE does **not** link back into MDX.
 - First mention of a primitive on a non-reference page links to its reference page.
 - "See also" footers: 2–5 links, no more.
-- Slug-relative paths (`/signals`), not full URLs. Starlight resolves them.
+- Slug-relative paths (`/signals`), not full URLs.
 - External links for MDN / TC39 / GitHub only.
 
 ## Terminology
@@ -83,26 +96,26 @@ Words in [ARCHITECTURE.md §10 Glossary](ARCHITECTURE.md) are canonical. Use the
 
 ## File ownership
 
-One concept per page. Current map:
+One concept per page. Paths under [docs/content/docs/](docs/content/docs/). Current map:
 
 | Page | Owns | Archetype | Playground |
 |------|------|-----------|------------|
-| `index.mdx` | Landing + pointers | landing | none (static snippet) |
-| `getting-started/installation.mdx` | `npm install`, tsconfig | how-to | top |
-| `getting-started/quick-start.mdx` | Counter five ways — signals → custom element | how-to | top |
-| `getting-started/philosophy.mdx` | Design philosophy — primitives, explicit contracts, batteries-included | concept | none |
-| `signals.mdx` | `signal` / `computed` / `effect` / `effectScope` / `batch` / `untracked` / `onCleanup` | reference | top (Tabs) |
-| `stores.mdx` | `@reactive` class pattern | how-to | top |
-| `elements.mdx` | JSX → DOM, prop namespaces, live bindings | concept | top |
-| `components.mdx` | `render()` classes | how-to | top |
-| `elements/for.mdx` | `For` — keyed list rendering | reference | top |
-| `custom-elements.mdx` | `HTMLElement` + overview | concept | bottom |
-| `custom-elements/attributes.mdx` | `@attributes`, `ATTRIBUTES` | reference | top |
-| `custom-elements/slots.mdx` | `Slot`, named slots | how-to | top |
-| `custom-elements/styling.mdx` | CSS strategies | how-to | top |
-| `promise.mdx` | `promise` / `ReactivePromise` / `ComputedPromise` | reference | top |
-| `async.mdx` | `async` / `Async` core reference | reference | top |
-| `utilities.mdx` | Utilities overview + catalog link | reference (index) | none |
+| `(library)/index.mdx` | Landing + pointers | landing | none (static snippet) |
+| `(library)/getting-started/installation.mdx` | `npm install`, tsconfig | how-to | top |
+| `(library)/getting-started/quick-start.mdx` | Counter five ways — signals → custom element | how-to | top |
+| `(library)/getting-started/philosophy.mdx` | Design philosophy — primitives, explicit contracts, batteries-included | concept | none |
+| `(library)/signals.mdx` | `signal` / `computed` / `effect` / `effectScope` / `batch` / `untracked` / `onCleanup` | reference | top (Tabs) |
+| `(library)/stores.mdx` | `@reactive` class pattern | how-to | top |
+| `(library)/elements/index.mdx` | JSX → DOM, prop namespaces, live bindings | concept | top |
+| `(library)/components.mdx` | `render()` classes | how-to | top |
+| `(library)/elements/for.mdx` | `For` — keyed list rendering | reference | top |
+| `(library)/custom-elements/index.mdx` | `HTMLElement` + overview | concept | bottom |
+| `(library)/custom-elements/attributes.mdx` | `@attributes`, `ATTRIBUTES` | reference | top |
+| `(library)/custom-elements/slots.mdx` | `Slot`, named slots | how-to | top |
+| `(library)/custom-elements/styling.mdx` | CSS strategies | how-to | top |
+| `(library)/promise.mdx` | `promise` / `ReactivePromise` / `ComputedPromise` | reference | top |
+| `(library)/async.mdx` | `async` / `Async` core reference | reference | top |
+| `(library)/utilities/index.mdx` | Utilities overview + catalog link | reference (index) | none |
 | `integrations/react.mdx` | `useSignal`, `useScope` | reference | top |
 | `examples/data-fetching.mdx` | `async` + retry + online + focus composition | how-to | top |
 | `examples/routing.mdx` | `patchHistory` + `matches` / `match` + `navigate` SPA router | how-to | top |

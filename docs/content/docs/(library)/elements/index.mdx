@@ -1,0 +1,283 @@
+---
+title: Elements
+description: JSX compiles to real DOM elements. Reactive props are effects under the hood.
+navTitle: "JSX & Elements"
+---
+
+import PLAYGROUND_FILE from "@/playground/files/elements.tsx?raw";
+
+An **element** is a real DOM node. JSX in ElementsKit compiles directly to `document.createElement` — there is no virtual DOM, no diffing, no reconciliation. Every expression produces an actual node you can hold in a variable, append to the DOM, or pass to a function.
+
+<Playground
+  provider={{
+    files: {
+      "/main.tsx": {
+        code: PLAYGROUND_FILE,
+        active: true,
+      },
+    },
+  }}
+  preview={{}}
+/>
+
+Configure JSX once in `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "elements-kit"
+  }
+}
+```
+
+Or use a per-file pragma instead:
+
+```tsx
+/* @jsxImportSource elements-kit */
+```
+
+---
+
+## JSX = createElement
+
+Every JSX tag is a `createElement` call. Props become attributes or event listeners, children become appended nodes.
+
+```tsx
+// This JSX:
+const el = (
+  <button class="primary" on:click={() => submit()}>
+    Save
+  </button>
+);
+
+// Compiles to exactly this:
+const el = document.createElement("button");
+el.setAttribute("class", "primary");
+el.addEventListener("click", () => submit());
+el.append("Save");
+```
+
+No framework runtime is involved. The element is a plain `HTMLButtonElement` the moment the expression evaluates.
+
+---
+
+## Reactive props = effects
+
+When you pass a **signal** or a **`() => T` function** as a prop, ElementsKit creates an `effect` behind the scenes that keeps the DOM in sync. Every time the signal changes, the effect re-runs and re-assigns the property — just like writing it manually with `effect`.
+
+```tsx twoslash
+// @noErrors
+import { signal, effect } from "elements-kit/signals";
+
+const label = signal("Save");
+const disabled = signal(false);
+
+// This reactive JSX:
+const el = <button disabled={disabled}>{label}</button>;
+
+// Is equivalent to:
+const el = document.createElement("button");
+effect(() => { el.disabled = disabled(); });
+effect(() => { /* text node updated in place */ });
+// label signal drives a live text node — same principle
+```
+
+Passing a **plain value** (not a signal or function) sets the prop once and never updates it — no effect is created.
+
+<Callout type="warn" title={<>Plain <code>() ={">"} T</code> works for children, not attributes</>}>
+Children accept `Signal<T>`, `Computed<T>`, or a plain `() => T` thunk. Attributes accept only `Signal` / `Computed` — a plain arrow falls through to the static path and never updates. Wrap the expression in `computed(...)` or pass a signal directly.
+
+```tsx
+// Wrong — hidden is set once, never re-evaluated
+<nav hidden={() => !isHome()} />
+
+// Right — pass a Signal or Computed
+<nav hidden={computed(() => !isHome())} />
+```
+</Callout>
+
+```tsx
+// Static — set once at render time
+<input placeholder="Enter text" maxLength={100} />
+
+// Reactive — updates on every change
+<input placeholder={hint} maxLength={computed(() => limit())} />
+```
+
+```tsx magic-move
+// Static prop — set once, no tracking
+const el = <input placeholder="Search…" />;
+
+// Equivalent:
+const el = document.createElement("input");
+el.setAttribute("placeholder", "Search…");
+---
+// Reactive prop — signal passed as value
+const query = signal("");
+const el = <input placeholder={query} />;
+
+// Equivalent:
+const el = document.createElement("input");
+effect(() => { el.setAttribute("placeholder", query()); });
+---
+// Multiple reactive props — each gets its own effect
+const value = signal("");
+const maxLen = computed(() => settings.maxLength);
+
+const el = <input value={value} maxLength={maxLen} />;
+
+// Equivalent:
+const el = document.createElement("input");
+effect(() => { el.value = value(); });
+effect(() => { el.maxLength = maxLen(); });
+---
+// Reactive children — live text node
+const count = signal(0);
+const el = <p>Count: {count}</p>;
+
+// Equivalent:
+const el = document.createElement("p");
+el.append("Count: ");
+const text = document.createTextNode(String(count()));
+effect(() => { text.data = String(count()); });
+el.append(text);
+```
+
+---
+
+## Children
+
+Any of the following are valid element children:
+
+| Type | Behaviour |
+|------|-----------|
+| `string` / `number` | Static text node, set once |
+| `Signal<T>` | Live text node — updates in place when signal changes |
+| `() => T` | Live thunk — re-evaluated on every dep change |
+| `Element` / `Node` | Appended directly |
+| `null` / `false` / `undefined` | Nothing rendered |
+| `Array` | Each item rendered in order |
+
+```tsx
+const show = signal(true);
+const count = signal(0);
+
+<div>
+  Static text
+  {count}                              // live — updates in place
+  {() => count() * 2}                 // thunk — also live
+  {() => show() && <strong>Hi</strong>} // conditional element
+  {[1, 2, 3].map((n) => <li>{n}</li>)} // array of elements
+</div>
+```
+
+---
+
+## Prop namespaces
+
+ElementsKit extends standard HTML props with namespaced prefixes for common reactive patterns:
+
+| Syntax | Effect | Equivalent |
+|--------|--------|------------|
+| `on:click={fn}` | Event listener (case-preserving) | `el.addEventListener("click", fn)` |
+| `class:active={bool}` | Reactive class toggle | `effect(() => el.classList.toggle("active", bool()))` |
+| `style:color={value}` | Reactive inline style | `effect(() => el.style.color = value())` |
+| `prop:foo={val}` | Force property assignment | `el.foo = val` (skips `setAttribute`) |
+| `ref={fn}` | Ref callback | `fn(el)` after element is created |
+
+```tsx
+
+
+const active = signal(false);
+const color = signal("blue");
+
+<button
+  class:active={active}
+  style:color={color}
+  on:click={() => active(!active())}
+  ref={(el) => console.log("Button element:", el)}
+>
+  Toggle
+</button>
+```
+
+### Reactive styles: prefer `style:foo`
+
+When a style property changes reactively, `style:foo={signal}` writes only that property. The bulk form `style={{ color: c(), background: b() }}` re-runs `Object.assign` on every effect tick, rewriting every key — even unchanged ones. For a single static object, `style={obj}` is fine; for any value driven by a signal, reach for `style:foo`.
+
+```tsx
+// Slow on tick — Object.assign rewrites both keys every time c() changes
+<div style={{ color: c(), background: "white" }} />
+
+// Fast — only the color property is written when c() changes
+<div style:color={c} style:background="white" />
+```
+
+### Large lists: consider event delegation
+
+`on:click={fn}` calls `addEventListener` on the element. For lists or tables with hundreds of rows where every row carries the same handler, that's N listeners — measurable mount cost. For those cases, attach a single listener to the parent and look up the row from a data source via `data-id`. See the [event delegation recipe](/examples/event-delegation/).
+
+---
+
+## Attributes from JSX
+
+When the JSX runtime encounters a prop on a custom element it resolves it in this order:
+
+```
+value is reactive (Signal / Computed / () => T)?
+  yes → effect(() => resolve(el, key, value()))   // live, re-runs on change
+  no  → resolve(el, key, value)                   // set once
+
+resolve(el, key, value):
+  key in el (property exists — e.g. @reactive getter/setter)?
+    yes → el[key] = value                         // property assignment
+    no  → el.setAttribute(key, String(value))     // HTML attribute
+```
+
+In practice, given `@reactive() count = 0` on the element:
+
+```tsx
+// 1. Reactive — effect(() => el.count = countSignal())
+//    @reactive setter fires on every change → DOM updates
+<x-counter count={countSignal} />
+
+// 2. Static + property exists (count is @reactive) — el.count = 5
+//    Property assignment, NOT setAttribute
+<x-counter count={5} />
+
+// 3. Static + no property on element — setAttribute("data-id", "abc")
+//    Falls back to setAttribute because "data-id" is not in el
+<x-counter data-id="abc" />
+```
+
+If the element has no `count` property at all (not `@reactive`, not defined), JSX would call `setAttribute("count", "5")` — which triggers `attributeChangedCallback` if `count` is listed in `observedAttributes`.
+
+This means you can expose an attribute-only API (no JS property) and still receive values from JSX:
+
+```ts
+@attributes
+class BadgeElement extends HTMLElement {
+  static [attr] = {
+    // No @reactive property — value arrives only via setAttribute / HTML
+    label(this: BadgeElement, value: string | null) {
+      this.querySelector("span")!.textContent = value ?? "";
+    },
+  };
+  // No "label" property defined → JSX always uses setAttribute
+}
+```
+
+```tsx
+<x-badge label="New" />       // setAttribute("label", "New")
+<x-badge label={title} />     // effect(() => el.setAttribute("label", title()))
+```
+
+---
+
+## See also
+
+- [Signals](/signals)
+- [Components](/components)
+- [For](/elements/for)
+- [Custom elements](/custom-elements)

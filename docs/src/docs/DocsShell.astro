@@ -1,0 +1,88 @@
+---
+import "@/styles/global.css";
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const SITE_NAME = "ElementsKit";
+const SITE_DESCRIPTION =
+  "Universal reactive primitives for the web — signals, JSX, custom elements, and browser-API helpers.";
+
+const { title, description = SITE_DESCRIPTION } = Astro.props;
+const documentTitle = title === SITE_NAME ? title : `${title} | ${SITE_NAME}`;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const ogImage = new URL("/og.svg", Astro.site);
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareSourceCode",
+  name: SITE_NAME,
+  description: SITE_DESCRIPTION,
+  codeRepository: "https://github.com/elements-kit/elements-kit",
+  programmingLanguage: "TypeScript",
+  license: "https://opensource.org/licenses/MIT",
+  author: {
+    "@type": "Person",
+    name: "Wael Bettayeb",
+    url: "https://github.com/waelbettayeb",
+  },
+  url: Astro.site?.href,
+};
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script is:inline>
+      // Before first paint: next-themes (inside the island) owns the `theme`
+      // key afterwards; this only avoids a light flash on dark pages.
+      (() => {
+        let dark = matchMedia("(prefers-color-scheme: dark)").matches;
+        try {
+          const saved = localStorage.getItem("theme");
+          if (saved === "dark" || saved === "light") dark = saved === "dark";
+        } catch {}
+        document.documentElement.classList.toggle("dark", dark);
+        document.documentElement.style.colorScheme = dark ? "dark" : "light";
+      })();
+    </script>
+    <title>{documentTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="sitemap" type="application/xml" href="/sitemap-index.xml" />
+    <link rel="alternate" type="text/markdown" href={`${Astro.url.pathname.replace(/\/$/, "") || "/index"}.md`} />
+    <meta name="theme-color" content="#007d58" />
+    <meta name="author" content="Wael Bettayeb" />
+    <meta
+      name="keywords"
+      content="signals, reactive, JSX, custom elements, web components, TypeScript, DOM, frontend, framework-agnostic, ElementsKit"
+    />
+
+    <meta property="og:site_name" content={SITE_NAME} />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:alt" content={SITE_NAME} />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@ElementsKit" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+    <meta name="twitter:image:alt" content={SITE_NAME} />
+
+    <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
+    <slot name="head" />
+  </head>
+  <body class="flex min-h-screen flex-col">
+    <slot />
+  </body>
+</html>
