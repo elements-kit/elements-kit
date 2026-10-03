@@ -1,5 +1,20 @@
 /** @jsxImportSource react */
-import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
+import { Play } from "lucide-react";
+import type { BaseLayoutProps, LinkItemType } from "fumadocs-ui/layouts/shared";
+
+/** A pill, not a text link: the playground is a destination of its own. */
+export const playgroundLink: LinkItemType = {
+  type: "custom",
+  children: (
+    <a
+      href="/playground"
+      className="inline-flex items-center gap-1.5 rounded-full border border-fd-primary/30 bg-fd-primary/10 px-3 py-1 text-sm font-medium text-fd-primary transition-colors hover:bg-fd-primary/20"
+    >
+      <Play className="size-3.5 fill-current" />
+      Playground
+    </a>
+  ),
+};
 
 export const baseOptions: BaseLayoutProps = {
   nav: {
@@ -15,7 +30,7 @@ export const baseOptions: BaseLayoutProps = {
   },
   githubUrl: "https://github.com/elements-kit/elements-kit",
   links: [
-    { text: "Playground", url: "/playground", active: "url" },
+    playgroundLink,
     {
       type: "icon",
       label: "X",

@@ -3,7 +3,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { AstroProvider } from "fumadocs-core/framework/astro";
 import { RootProvider } from "fumadocs-ui/provider/base";
 import { HomeLayout } from "fumadocs-ui/layouts/home";
-import { baseOptions } from "@/docs/layout";
+import { baseOptions, playgroundLink } from "@/docs/layout";
 import "./playground.css";
 
 const PagefindDialog = lazy(() => import("@/docs/search"));
@@ -15,7 +15,12 @@ export default function Playground() {
   return (
     <AstroProvider pathname="/playground" params={{}}>
       <RootProvider search={{ SearchDialog: PagefindDialog }}>
-        <HomeLayout {...baseOptions} links={[{ text: "Docs", url: "/", active: "none" }, ...(baseOptions.links ?? [])]}>
+        <HomeLayout {...baseOptions} links={[
+            { text: "Docs", url: "/", active: "none" },
+            { text: "Playground", url: "/playground", active: "url" },
+            // The docs' Playground button points here.
+            ...(baseOptions.links ?? []).filter((link) => link !== playgroundLink),
+          ]}>
           <main className="flex h-[calc(100dvh-3.5rem)] min-w-0 flex-col">
             <ClientOnly>
               <Suspense fallback={null}>
