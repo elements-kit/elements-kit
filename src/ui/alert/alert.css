@@ -4,7 +4,7 @@
   grid-template-columns: auto 1fr;
   align-items: flex-start;
   justify-content: flex-start;
-  text-align: left;
+  text-align: start;
   color: var(--accent-a11);
 
   &:where([data-high-contrast]) {
