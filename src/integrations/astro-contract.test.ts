@@ -10,7 +10,8 @@ import type {
   AstroIntegration,
   AstroRenderer,
   NamedSSRLoadedRendererValue,
-} from "../../docs/node_modules/astro";
+  // The "." export: a relative path ignores the exports map, and astro 7 has no `types` field.
+} from "../../docs/node_modules/astro/dist/index.js";
 import elementsKit from "./astro";
 import serverRenderer from "./astro-server";
 
