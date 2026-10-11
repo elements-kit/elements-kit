@@ -1,0 +1,17 @@
+{
+  "title": "Core",
+  "description": "Start here: signals and scopes",
+  "icon": "Atom",
+  "root": true,
+  "pages": [
+    "index",
+    "---Getting Started---",
+    "getting-started/installation",
+    "getting-started/quick-start",
+    "getting-started/philosophy",
+    "---Reactivity---",
+    "signals",
+    "stores",
+    "scopes"
+  ]
+}

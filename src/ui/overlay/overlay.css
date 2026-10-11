@@ -1,0 +1,378 @@
+@import "./handle.css";
+
+/*
+ * Overlay presentation — backdrop, surface, enter/exit.
+ *
+ * Companion to index.css (REQUIRED, imported BEFORE this file), which owns
+ * the geometry: the `--x/--y` position, `--dx/--dy` drag and `--w/--h` size
+ * channels, and the morph transition over them. This file paints everything
+ * around that geometry. Gesture affordances (the `.x-handle` grips) live in
+ * handle.css, @imported above.
+ *
+ * `.x-overlay` is an invisible frame around a card: the visible surface is
+ * its required direct child — a plain `.x-card` (any variant). The gesture
+ * affordances are further direct children — `.x-handle` elements carrying
+ * `data-placement` (see handle.css) that both paint the grip and ARE its
+ * pointer hit-target.
+ *
+ * Three orthogonal primitives:
+ *
+ *   LOCATION — the box channels, written by `OverlayBox` (overlay.ts) from
+ *   a reactive box model. Placement is JS and pure: an `Area`
+ *   (`PositionArea`, `PositionTry`, `MutableArea`) is landed with
+ *   `place(overlay, area)`. There is no CSS clamp, dock or flip.
+ *
+ *   RESIZE / MOVE — `.x-handle` children, one `data-placement` each:
+ *     block-start | block-end     horizontal grabber, height drag
+ *     inline-start | inline-end   vertical grabber, width drag
+ *     start-start | start-end |   corner grip, free x/y resize
+ *     end-start | end-end         (block side first, inline second)
+ *     move                        top-center grab pill, x/y window move
+ *   An edge handle also picks the enter/exit slide (it implies the opposite
+ *   edge is docked); no edge handle → fade + scale. NOTE: the handles
+ *   currently PAINT and select motion only — no pointer engine is exported
+ *   yet, so drive `OverlayBox`'s `displacement` yourself and set
+ *   `data-no-transition` for the duration of the drag.
+ *
+ *   MODALITY — how you open it, no attribute:
+ *     dialog.showModal()          modal: focus trap, inert page, backdrop
+ *     popover + popovertarget     non-modal top layer, light dismiss
+ *     popover="manual"            persistent, page stays interactive
+ *   (`showPopover({ source })` to re-point an already-open popover —
+ *   `popovertarget` would toggle it shut.)
+ *
+ * Markup contracts:
+ *
+ *   Bottom sheet (modal) — the authored size, JS optional:
+ *     <dialog class="unset x-overlay" style="--overlay-h: 60svh">
+ *       <div class="x-card" data-variant="elevated">…</div>
+ *       <div class="x-handle" data-placement="block-start"></div>
+ *     </dialog>
+ *
+ *   Centered window:
+ *     <dialog class="unset x-overlay">
+ *       <div class="x-card" data-variant="elevated">…</div>
+ *       <div class="x-handle" data-placement="move"></div>
+ *       <div class="x-handle" data-placement="end-end"></div>
+ *     </dialog>
+ *
+ *   Persistent corner panel, background interactive:
+ *     <dialog class="unset x-overlay" popover="manual" id="panel">
+ *       <div class="x-card" data-variant="elevated">…</div>
+ *       <div class="x-handle" data-placement="block-start"></div>
+ *     </dialog>
+ *     <button popovertarget="panel">Toggle panel</button>
+ *
+ *   Anchored popover — placement is JS in every engine:
+ *     <button popovertarget="menu">Open menu</button>
+ *     <dialog class="unset x-overlay" popover id="menu">
+ *       <div class="x-card" data-variant="elevated">…</div>
+ *     </dialog>
+ *
+ *     const overlay = new OverlayBox(menu);
+ *     const area = new PositionArea(new ElementBox(trigger), "block-end");
+ *     effect(() => place(overlay, area));
+ *
+ * Writing a channel on an open overlay morphs it with a plain CSS
+ * transition — everything is expressed in interpolable lengths.
+ *
+ * API:
+ *   .x-handle          gesture affordance + hit-target — a direct child of
+ *                      the frame, `data-placement` naming the gesture (see
+ *                      the RESIZE / MOVE vocabulary above and handle.css)
+ *   data-placed        the settled side (top/bottom/left/right) — sets the
+ *                      scale origin so an anchored panel grows from the
+ *                      anchor's edge. Stamp it alongside the placement
+ *   data-no-transition  (index.css) suppress the morph during a live drag
+ *   data-material-background  the card surface defaults to solid inside an
+ *                      overlay when no material context is declared; an
+ *                      explicit value on the frame or any ancestor wins
+ *                      (e.g. "translucent" for frosted glass)
+ *   --overlay-w/-h       authored size — the fallback when the JS channel
+ *                      is unset, so `box.w = NaN` reverts to it rather
+ *                      than to content sizing (index.css)
+ *   --overlay-duration   transitions duration (300ms)
+ *   --overlay-easing     transitions easing (a soft ease-out)
+ *   --overlay-backdrop   modal backdrop color (--color-overlay)
+ *   --overlay-grip-radius  corner-grip arc radius (--radius-5) — match the
+ *                      card's data-size (handle.css)
+ *
+ * Tiers:
+ *   Tier 1 (universal) — instant open/close; position / size morphs
+ *                        animate where the `translate` property exists
+ *                        (Chrome 104+, the rest at the floor).
+ *   Tier 2 (modern)    — `@supports (transition-behavior: allow-discrete)`
+ *                        adds enter/exit transitions via @starting-style.
+ *   Tier 3 (nested)    — `@supports (overlay: auto)` keeps the exit
+ *                        transition inside the top layer.
+ *   Anchoring is NOT gated: `PositionArea` / `anchor_length` reimplement
+ *   the CSS semantics reactively, so every engine takes the same path.
+ *
+ * JS is opt-in (see index.ts) and currently the box model only: everything
+ * spatial is a Box — `OverlayBox` (the surface: measured-rect getters,
+ * channel setters, an `origin`, and an additive `displacement` column),
+ * `ElementBox` / `WindowBox` / `MarginBox` (the boxes it places against),
+ * and the `Region` types that compute where it goes. `Motion` tracks a
+ * scalar's delta and velocity for direct manipulation; `Gestures` shapes it
+ * (rubber, detent, snap).
+ */
+
+.x-overlay {
+  color: var(--neutral-12);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * BACKDROP — modal only ([open] via showModal). Popover backdrop stays transparent.               *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-overlay:where([open])::backdrop {
+  background: var(--overlay-backdrop, var(--color-overlay));
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * CARD SURFACE                                                                                    *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* The frame's flex column (index.css) stretches and shrinks the card —
+ * no percentage heights, so the card tracks morphs. */
+.x-overlay > .x-card {
+  overflow-y: auto;
+  /* The card paints its surface/ring on absolutely-positioned
+   * ::before/::after. Making the card a scroll container would scroll
+   * them away with the content (exposing the backdrop below), so drop the
+   * two things that make the card their containing block — position and
+   * paint containment. The pseudos then resolve against the fixed frame
+   * and stay put; overflow:auto still clips the content to the rounded
+   * card. (Both are required: each establishes an abspos containing
+   * block on its own.) */
+  position: static;
+  contain: none;
+  /* The card is now a touch scroll container, so a touch-drag on it would
+   * be claimed for native panning before a gesture can engage. Restrict to
+   * vertical pan: horizontal gestures (drawer resize, window move-x) are
+   * never stolen, and vertical handle drags are cancelled by the gesture's
+   * non-passive touchmove preventDefault while the body still scrolls.
+   * (Touch only — desktop pointer drags are unaffected.) */
+  touch-action: pan-y;
+}
+
+/* Overlay cards default to a solid surface: a translucent material over
+ * the dimmed backdrop reads as the backdrop sitting on top of the card.
+ * Any explicit data-material-background context — on the frame or an
+ * ancestor — still wins (the :not guard skips the default entirely, and
+ * zero specificity keeps material.css in charge). */
+:where(
+  .x-overlay:not(
+    [data-material-background],
+    [data-material-background] .x-overlay
+  )
+) {
+  --color-material: var(--color-material-solid);
+  --backdrop-filter-material: none;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * ENTER / EXIT — Tier 2 (@starting-style + allow-discrete)                                        *
+ *                                                                                                 *
+ * The handle side implies the docked edge (a block-start handle means                             *
+ * the sheet rests at the bottom), so the closed state slides one box                              *
+ * length toward that edge via the --_ex/--_ey channels index.css                                  *
+ * composes into its translate. Windows (no handle, or a corner grip)                              *
+ * settle in from a scale instead. Gestures (which only add                                        *
+ * --overlay-dx/-dy) compose cleanly.                                                              *
+ *                                                                                                 *
+ * A window also fades — its layers, never the frame: an ancestor below                            *
+ * opacity 1 is a BACKDROP ROOT, and would cut the card's blur until the fade                      *
+ * ends. The frame animates --overlay-fade; the glass (::before), the ring                         *
+ * (::after) and the content take it as their own opacity.                                         *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+@property --overlay-fade {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+
+@supports (transition-behavior: allow-discrete) {
+  .x-overlay {
+    transition-property: translate, width, height, --overlay-fade, scale, display;
+    transition-duration: var(--overlay-duration);
+    transition-timing-function: var(--overlay-easing);
+    transition-behavior: allow-discrete;
+  }
+
+  /* windows (no edge handle — none, a corner grip, or move-only) —
+   * fade + settle in from a scale */
+  .x-overlay:where(
+    :not(
+      :has(
+        > .x-handle[data-placement^="block-"],
+        > .x-handle[data-placement^="inline-"]
+      )
+    )
+  ) {
+    --overlay-fade: 0;
+    scale: 0.94;
+
+    &:where([open], :popover-open) {
+      --overlay-fade: 1;
+      scale: 1;
+
+      @starting-style {
+        --overlay-fade: 0;
+        scale: 0.94;
+      }
+    }
+  }
+
+  :where(.x-overlay) > :where(:not(.x-card)),
+  :where(.x-overlay > .x-card) > *,
+  :where(.x-overlay) > .x-card::before,
+  :where(.x-overlay) > .x-card::after {
+    opacity: var(--overlay-fade);
+  }
+
+  /* anchored — the settle scales FROM the anchor's side (data-placed is
+   * the settled side, stamped by anchor() in both engines: below the
+   * trigger → grow from the top edge). */
+  .x-overlay:where([data-placed="bottom"]) {
+    transform-origin: top center;
+  }
+  .x-overlay:where([data-placed="top"]) {
+    transform-origin: bottom center;
+  }
+  .x-overlay:where([data-placed="right"]) {
+    transform-origin: center left;
+  }
+  .x-overlay:where([data-placed="left"]) {
+    transform-origin: center right;
+  }
+
+  /* block-start handle (bottom-docked sheet) — slide from below */
+  .x-overlay:where(:has(> .x-handle[data-placement="block-start"])) {
+    --_ey: 100%;
+
+    &:where([open], :popover-open) {
+      --_ey: 0%;
+
+      @starting-style {
+        --_ey: 100%;
+      }
+    }
+  }
+
+  /* block-end handle (top-docked sheet) — slide from above */
+  .x-overlay:where(:has(> .x-handle[data-placement="block-end"])) {
+    --_ey: -100%;
+
+    &:where([open], :popover-open) {
+      --_ey: 0%;
+
+      @starting-style {
+        --_ey: -100%;
+      }
+    }
+  }
+
+  /* inline-start handle (end-docked drawer) — slide past the inline-end
+   * edge (mirrored in RTL) */
+  .x-overlay:where(:has(> .x-handle[data-placement="inline-start"])) {
+    --_ex: 100%;
+
+    &:where([open], :popover-open) {
+      --_ex: 0%;
+
+      @starting-style {
+        --_ex: 100%;
+      }
+    }
+
+    &:where(:dir(rtl)) {
+      --_ex: -100%;
+
+      &:where([open], :popover-open) {
+        --_ex: 0%;
+
+        @starting-style {
+          --_ex: -100%;
+        }
+      }
+    }
+  }
+
+  /* inline-end handle (start-docked drawer) — slide past the
+   * inline-start edge (mirrored in RTL) */
+  .x-overlay:where(:has(> .x-handle[data-placement="inline-end"])) {
+    --_ex: -100%;
+
+    &:where([open], :popover-open) {
+      --_ex: 0%;
+
+      @starting-style {
+        --_ex: -100%;
+      }
+    }
+
+    &:where(:dir(rtl)) {
+      --_ex: 100%;
+
+      &:where([open], :popover-open) {
+        --_ex: 0%;
+
+        @starting-style {
+          --_ex: 100%;
+        }
+      }
+    }
+  }
+
+  /* backdrop fade — modal only */
+  .x-overlay::backdrop {
+    opacity: 0;
+    transition-property: opacity, display;
+    transition-duration: var(--overlay-duration);
+    transition-timing-function: var(--overlay-easing);
+    transition-behavior: allow-discrete;
+  }
+
+  .x-overlay:where([open])::backdrop {
+    opacity: 1;
+
+    @starting-style {
+      opacity: 0;
+    }
+  }
+
+  /* Tier 3 — keep the exit transition inside the top layer. Browsers
+   * without `overlay` (Firefox) clip the exit; entry is unaffected. */
+  @supports (overlay: auto) {
+    .x-overlay {
+      transition-property:
+        translate, width, height, --overlay-fade, scale, display, overlay;
+    }
+    .x-overlay::backdrop {
+      transition-property: opacity, display, overlay;
+    }
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * MOTION                                                                                          *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+@media (prefers-reduced-motion: reduce) {
+  .x-overlay,
+  .x-overlay::backdrop {
+    transition: none;
+  }
+}
+
+/* Forced-colors affordances (pills / corner grip) live in handle.css. */

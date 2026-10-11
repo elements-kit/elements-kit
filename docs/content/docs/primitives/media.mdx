@@ -1,0 +1,43 @@
+---
+title: Media
+description: "Reactive audio and video player state: playing, muted, volume, time."
+---
+
+Drive and observe an `<audio>` or `<video>` element through signals.
+
+## createMediaPlayer
+
+Wraps an `HTMLMediaElement` (`<audio>` or `<video>`) with reactive state and playback controls. `muted`, `volume`, and `time` are writable — writing them updates the element. `playing`, `duration`, and `ended` are read-only.
+
+```ts
+import { createMediaPlayer } from "elements-kit/utilities/media-player";
+
+const player = createMediaPlayer(document.querySelector("video")!);
+
+effect(() => console.log("playing:", player.playing()));
+
+player.volume(0.5);   // set volume
+player.time(30);      // seek to 30s
+player.toggle();      // play/pause
+```
+
+```ts
+function createMediaPlayer<T extends HTMLMediaElement>(element: T): {
+  element: T;
+  playing: Computed<boolean>;
+  muted: Signal<boolean>;
+  volume: Signal<number>;
+  duration: Computed<number>;
+  time: Signal<number>;
+  ended: Computed<boolean>;
+  play(): void;
+  pause(): void;
+  toggle(): void;
+} & Disposable
+```
+
+---
+
+## See also
+
+- [Building primitives](/primitives/building-primitives)

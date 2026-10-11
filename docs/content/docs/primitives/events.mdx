@@ -1,0 +1,105 @@
+---
+title: DOM events
+description: "Event listeners and interaction signals: on, hover, focus-within, click-outside, long-press, active element."
+---
+
+Listeners that remove themselves when their scope ends, and signals for common interaction state.
+
+## on
+
+Attaches a type-safe event listener with automatic cleanup. When the target is a reactive getter, the listener re-registers whenever the target changes.
+
+```ts
+import { on } from "elements-kit/utilities/event-listener";
+
+const cleanup = on(document, "keydown", (e) => console.log(e.key));
+// cleanup() to remove manually, or call inside an effectScope for auto-cleanup
+```
+
+```ts
+function on(
+  target: EventTarget | Computed<EventTarget | null>,
+  type: string,
+  handler: EventListener,
+  options?: AddEventListenerOptions,
+): () => void
+```
+
+## createHover
+
+Returns `Computed<boolean>` — `true` while pointer is over `target`.
+
+```ts
+import { createHover } from "elements-kit/utilities/hover";
+
+const hovered = createHover(document.querySelector("#btn")!);
+
+effect(() => console.log("hovered:", hovered()));
+```
+
+```ts
+function createHover(target: Element): Computed<boolean>
+```
+
+## createFocusWithin
+
+Returns `Computed<boolean>` — `true` while focus is anywhere inside `target` (including `target` itself).
+
+```ts
+import { createFocusWithin } from "elements-kit/utilities/focus-within";
+
+const focused = createFocusWithin(document.querySelector("form")!);
+```
+
+```ts
+function createFocusWithin(target: Element): Computed<boolean>
+```
+
+## onClickOutside
+
+Fires `handler` whenever a pointer-down event occurs outside `target`. Returns a cleanup function.
+
+```ts
+import { onClickOutside } from "elements-kit/utilities/on-click-outside";
+
+const cleanup = onClickOutside(menuEl, () => closeMenu());
+```
+
+```ts
+function onClickOutside(target: Element, handler: (e: PointerEvent) => void): () => void
+```
+
+## createLongPress
+
+Fires `handler` when a pointer is held over `target` for at least `delay` ms (default 500 ms).
+
+```ts
+import { createLongPress } from "elements-kit/utilities/long-press";
+
+const cleanup = createLongPress(el, (e) => openContextMenu(e), { delay: 600 });
+```
+
+```ts
+function createLongPress(
+  target: Element,
+  handler: (e: PointerEvent) => void,
+  options?: { delay?: number },
+): () => void
+```
+
+## activeElement
+
+Module-level singleton. `Computed<Element | null>` bound to `document.activeElement`.
+
+```ts
+import { activeElement } from "elements-kit/utilities/active-element";
+
+effect(() => console.log("focused:", activeElement()));
+```
+
+---
+
+## See also
+
+- [Observers](/primitives/observers)
+- [Building primitives](/primitives/building-primitives)

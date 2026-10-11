@@ -1,0 +1,20 @@
+{
+  "title": "Rendering",
+  "description": "Optional: JSX, custom elements, SSR",
+  "icon": "Code",
+  "root": true,
+  "pages": [
+    "---JSX---",
+    "elements/index",
+    "components",
+    "elements/for",
+    "elements/types",
+    "---Custom Elements---",
+    "custom-elements/index",
+    "custom-elements/attributes",
+    "custom-elements/styling",
+    "custom-elements/slots",
+    "---Server---",
+    "server-rendering"
+  ]
+}

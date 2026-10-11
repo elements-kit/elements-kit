@@ -1,0 +1,127 @@
+---
+title: Observers
+description: "Reactive element size, scroll, resize, intersection and mutation observers."
+---
+
+Signals and scoped wrappers over `ResizeObserver`, `IntersectionObserver` and `MutationObserver`.
+
+## createElementRect
+
+Observes `target`'s viewport box and returns it as four reactive fields — `x`, `y`, `width`, `height`. Size comes from a `ResizeObserver`'s border box (a transform doesn't shrink it); position from capture-phase `scroll` and window `resize`, since a `ResizeObserver` stays silent when an element merely moves.
+
+Each field notifies only when it changes: a scroll moves `y`, so an effect reading `width` alone doesn't re-run.
+
+It tracks only while an effect or computed reads a field. The observer and listeners start with the first reader and stop with the last, so a rect nobody reads — an anchor whose overlay is closed — costs nothing on scroll. A returning reader is measured on the spot. A read outside any effect measures right then.
+
+`target` may be a getter; the rect follows it.
+
+```ts
+import { createElementRect } from "elements-kit/utilities/element-rect";
+
+const rect = createElementRect(document.querySelector("#box")!);
+
+effect(() => console.log(rect.width(), rect.height()));
+```
+
+```ts
+function createElementRect(target: MaybeReactive<Element>): ElementRect
+
+interface ElementRect extends Disposable {
+  x: Computed<number>;
+  y: Computed<number>;
+  width: Computed<number>;
+  height: Computed<number>;
+}
+```
+
+## createElementScroll
+
+Returns writable `x` / `y` signals for an element's scroll position. Reading returns `scrollLeft` / `scrollTop`; writing scrolls the element.
+
+```ts
+import { createElementScroll } from "elements-kit/utilities/element-scroll";
+
+const { x, y } = createElementScroll(document.querySelector(".list")!);
+
+effect(() => console.log("scroll:", x(), y()));
+y(200); // scrolls to top 200px
+```
+
+```ts
+function createElementScroll(target: Element): { x: Signal<number>; y: Signal<number> } & Disposable
+```
+
+## createResizeObserver
+
+Raw `ResizeObserver` wrapper with automatic cleanup via `onCleanup`. Use `elementRect` for the common case.
+
+```ts
+import { createResizeObserver } from "elements-kit/utilities/resize-observer";
+
+createResizeObserver(el, (entries) => {
+  for (const entry of entries) console.log(entry.contentRect);
+});
+```
+
+```ts
+function createResizeObserver(target: Element, callback: ResizeObserverCallback): Disposable
+```
+
+## createIntersectionObserver
+
+Raw `IntersectionObserver` wrapper with automatic cleanup.
+
+```ts
+import { createIntersectionObserver } from "elements-kit/utilities/intersection-observer";
+
+createIntersectionObserver(el, ([entry]) => {
+  console.log("visible:", entry.isIntersecting);
+}, { threshold: 0.5 });
+```
+
+<Callout type="warn" title="Root defaults to the viewport">
+Without `root`, the platform observes intersections with the viewport — not with `target`'s nearest scrollable ancestor. For a sentinel inside an in-page scroll container, pass `root: containerEl` explicitly. Otherwise the sentinel reads as "intersecting" the viewport and fires immediately and repeatedly.
+
+```ts
+createIntersectionObserver(
+  sentinelEl,
+  ([entry]) => { if (entry.isIntersecting) loadMore.run(); },
+  { root: containerEl, rootMargin: "100px" },
+);
+```
+</Callout>
+
+```ts
+function createIntersectionObserver(
+  target: Element,
+  callback: IntersectionObserverCallback,
+  options?: IntersectionObserverInit,
+): Disposable
+```
+
+## createMutationObserver
+
+Watches `target` for DOM mutations with automatic cleanup.
+
+```ts
+import { createMutationObserver } from "elements-kit/utilities/mutation-observer";
+
+createMutationObserver(el, { childList: true }, (records) => {
+  console.log("mutations:", records.length);
+});
+```
+
+```ts
+function createMutationObserver(
+  target: Element,
+  options: MutationObserverInit,
+  callback: (records: MutationRecord[]) => void,
+): Disposable
+```
+
+---
+
+## See also
+
+- [Infinite scroll example](/examples/infinite-scroll)
+- [DOM events](/primitives/events)

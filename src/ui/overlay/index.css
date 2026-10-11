@@ -1,0 +1,103 @@
+/*
+ * Overlay core — the geometry of `.x-overlay`.
+ *
+ * Position and size are driven by the JS box model (`OverlayBox`, which sets
+ * `top:0; left:0; translate` INLINE and writes the channels): position rides
+ * `translate` (base `--x/--y` + drag `--dx/--dy` + enter/exit slide
+ * `--_ex/--_ey`), size the real `--w/--h`. This file owns the frame, the
+ * display/modality guard, and the morph transition; presentation (backdrop,
+ * enter/exit, affordances) lives in the companion overlay.css. Placement —
+ * clamping, docking, flip/shift, gesture bounds — is JS and pure: an `Area`
+ * (`PositionArea`, `PositionTry`, `MutableArea`) is landed with
+ * `place(overlay, area)`. There is no CSS constraint clamp.
+ */
+
+.x-overlay {
+  --overlay-duration: 300ms;
+  --overlay-easing: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* The frame is invisible — the card paints. Reset the UA `<dialog>` /
+   * popover box so `--w/--h` are the true border-box size (no surprise UA
+   * padding/border inflating the width). */
+  box-sizing: border-box;
+  padding: 0;
+  border: 0;
+
+  /* OverlayBox positions by top-left + `translate` (set inline). Override the
+   * UA modal/popover placement so translate is the SOLE positioner: kill the
+   * `margin: auto` centering (else the box double-positions and flies
+   * off-center), and keep the far insets auto so the definite `width`/`height`
+   * size the box rather than stretching it to the UA `inset: 0`. */
+  margin: 0;
+  right: auto;
+  bottom: auto;
+
+  /* Size from the box channels. Unset (AUTO) falls back to the authored
+   * `--overlay-w/-h`, then to content sizing. */
+  width: var(--w, var(--overlay-w, auto));
+  height: var(--h, var(--overlay-h, auto));
+
+  /* The open frame is a flex column: the card grows into a definite frame and
+   * shrinks below it (scrolling), tracking morphs frame-by-frame. */
+  flex-direction: column;
+
+  /* Morph — committed base/size writes glide. `translate` is set inline by
+   * OverlayBox and `width`/`height` resolve from its channels; `transition` is
+   * a separate property, so it composes with both. Live gestures suppress
+   * this with `data-no-transition`. overlay.css's Tier 2 extends the list for
+   * enter/exit (opacity, scale, display). */
+  transition:
+    translate var(--overlay-duration) var(--overlay-easing),
+    width var(--overlay-duration) var(--overlay-easing),
+    height var(--overlay-duration) var(--overlay-easing);
+}
+
+/* Direct manipulation must track the pointer instead of interpolating toward
+ * each update. Remove the attribute on release to restore normal morphs. */
+.x-overlay[data-no-transition] {
+  transition: none;
+}
+
+.x-overlay:not([open], :popover-open) {
+  pointer-events: none;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * DISPLAY GUARD                                                                                    *
+ *                                                                                                 *
+ * Pre-Popover-API browsers ignore the `popover` attribute and would render                         *
+ * the element inline — keep it hidden. Open overlays (either modality) become                      *
+ * a flex column so the card grows into a definite frame and scrolls below it.                      *
+ * Scoped to the open states so the UA `dialog:not([open]) { display:none }`                        *
+ * and the Tier-2 discrete-display exit keep working.                                              *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-overlay:where([popover]) {
+  display: none;
+}
+
+.x-overlay:where([open], :popover-open) {
+  display: flex;
+}
+
+.x-overlay > .x-card {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SIZE MORPHS                                                                                      *
+ *                                                                                                 *
+ * Lets `fit-content` (auto) heights interpolate against pinned detent heights                      *
+ * when morphing. Without support, size snaps while position slides.                               *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+@supports (interpolate-size: allow-keywords) {
+  .x-overlay {
+    interpolate-size: allow-keywords;
+  }
+}

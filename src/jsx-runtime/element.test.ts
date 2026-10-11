@@ -1,0 +1,619 @@
+import { describe, it, expect, vi } from "vitest";
+import {
+  signal,
+  computed,
+  effect,
+  effectScope,
+  onCleanup,
+  resolve,
+} from "../signals";
+import { createElement, disposeElement } from "./element";
+import { For } from "@/for";
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Minimal JSX-less way to call a function component through createElement. */
+function mount(
+  fn: (props: any) => Element | null,
+  props: Record<string, unknown> = {},
+) {
+  return createElement(fn, props) as Element | null;
+}
+
+// ---------------------------------------------------------------------------
+// Function component — scope lifecycle
+// ---------------------------------------------------------------------------
+
+describe("createElement (function component) — effectScope lifecycle", () => {
+  it("effects inside component body run immediately", () => {
+    const spy = vi.fn();
+    const s = signal(0);
+
+    mount(() => {
+      effect(() => {
+        s();
+        spy();
+      });
+      return document.createElement("div");
+    });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it("effects inside component body re-run when deps change", () => {
+    const spy = vi.fn();
+    const s = signal(0);
+
+    mount(() => {
+      effect(() => {
+        s();
+        spy();
+      });
+      return document.createElement("div");
+    });
+
+    spy.mockClear();
+    s(1);
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it("disposeElement stops effects created in component body", () => {
+    const spy = vi.fn();
+    const s = signal(0);
+
+    const el = mount(() => {
+      effect(() => {
+        s();
+        spy();
+      });
+      return document.createElement("div");
+    })!;
+
+    spy.mockClear();
+    disposeElement(el);
+    s(1);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("effectScope inside component body is stopped on disposeElement", () => {
+    const spy = vi.fn();
+    const s = signal(0);
+
+    const el = mount(() => {
+      effectScope(() => {
+        effect(() => {
+          s();
+          spy();
+        });
+        effect(() => {
+          s();
+          spy();
+        });
+      });
+      return document.createElement("div");
+    })!;
+
+    spy.mockClear();
+    disposeElement(el);
+    s(1);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("onCleanup registered in component effect fires on disposeElement", () => {
+    const cleanup = vi.fn();
+    const el = mount(() => {
+      effect(() => {
+        onCleanup(cleanup);
+      });
+      return document.createElement("div");
+    })!;
+
+    expect(cleanup).not.toHaveBeenCalled();
+    disposeElement(el);
+    expect(cleanup).toHaveBeenCalledTimes(1);
+  });
+
+  it("disposeElement can be called twice safely", () => {
+    const spy = vi.fn();
+    const s = signal(0);
+
+    const el = mount(() => {
+      effect(() => {
+        s();
+        spy();
+      });
+      return document.createElement("div");
+    })!;
+
+    spy.mockClear();
+    disposeElement(el);
+    expect(() => disposeElement(el)).not.toThrow();
+    s(1);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("null-returning component does not throw and does not leak (scope disposed immediately)", () => {
+    const spy = vi.fn();
+    const s = signal(0);
+
+    // null return — scope must be disposed inline
+    const el = mount(() => {
+      effect(() => {
+        s();
+        spy();
+      });
+      return null;
+    });
+
+    expect(el).toBeNull();
+    spy.mockClear();
+    s(1);
+    // scope was disposed immediately, effect must not re-run
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  // ── children disposal ──────────────────────────────────────────────────────
+
+  it("all static children are disposed when parent is disposed", () => {
+    // Previously only the last child's onCleanup fired because each call
+    // overwrote the previous one in the same scope. Each child now gets its
+    // own effectScope so all cleanups are independent.
+    const spy1 = vi.fn();
+    const spy2 = vi.fn();
+    const s = signal(0);
+
+    const child1 = createElement(() => {
+      effect(() => {
+        s();
+        spy1();
+      });
+      return document.createElement("span");
+    }, {}) as Element;
+
+    const child2 = createElement(() => {
+      effect(() => {
+        s();
+        spy2();
+      });
+      return document.createElement("span");
+    }, {}) as Element;
+
+    const parent = createElement("div", {
+      children: [child1, child2],
+    }) as Element;
+
+    spy1.mockClear();
+    spy2.mockClear();
+    disposeElement(parent);
+    s(1);
+
+    expect(spy1).not.toHaveBeenCalled();
+    expect(spy2).not.toHaveBeenCalled();
+  });
+
+  it("conditional child is disposed when parent is disposed", () => {
+    // The function child path creates a slot + reactive effect. The slot's
+    // onCleanup must fire on parent teardown to dispose the current content.
+    const spy = vi.fn();
+    const s = signal(0);
+
+    const parent = createElement("div", {
+      children: () =>
+        createElement(() => {
+          effect(() => {
+            s();
+            spy();
+          });
+          return document.createElement("span");
+        }, {}),
+    }) as Element;
+
+    spy.mockClear();
+    disposeElement(parent);
+    s(1);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("For entries are cleaned up when parent is disposed", () => {
+    // For returns a DocumentFragment. appendChild consumes the fragment's
+    // children, but the JS object retains Symbol.dispose. The parent's
+    // mountChildren must capture that dispose before appendChild and wire it
+    // into a child effectScope so it fires on parent teardown.
+    //
+    // Each item must be rendered via createElement so it gets a Symbol.dispose
+    // — For's cleanEntry calls disposeElement which requires it.
+    const spy = vi.fn();
+    const s = signal(0);
+
+    const forEl = createElement(For, {
+      each: [{ id: "1" }, { id: "2" }],
+      by: (item: any) => item.id,
+      children: () =>
+        createElement(() => {
+          effect(() => {
+            s();
+            spy();
+          });
+          return document.createElement("li");
+        }, {}),
+    }) as DocumentFragment;
+
+    const container = document.createElement("div");
+    // Capture Symbol.dispose before appendChild consumes the fragment's children.
+    const disposeFor = (forEl as unknown as Partial<Disposable>)[
+      Symbol.dispose
+    ];
+    container.appendChild(forEl);
+
+    expect(disposeFor).toBeDefined();
+    spy.mockClear();
+    disposeFor?.();
+    s(1);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("For as static child is cleaned up when parent element is disposed", () => {
+    // This exercises the mountChildren fragment path: For returns a
+    // DocumentFragment which appendChild consumes. mountChildren must extract
+    // Symbol.dispose before the transfer and wire it into a child effectScope
+    // linked to the parent so the full chain fires on parent teardown.
+    const spy = vi.fn();
+    const s = signal(0);
+
+    const forFragment = createElement(For, {
+      each: [{ id: "1" }],
+      by: (item: any) => item.id,
+      children: () =>
+        createElement(() => {
+          effect(() => {
+            s();
+            spy();
+          });
+          return document.createElement("li");
+        }, {}),
+    });
+
+    const parent = createElement("div", { children: forFragment }) as Element;
+
+    spy.mockClear();
+    disposeElement(parent);
+    s(1);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("onCleanup in body effect fires once on disposeElement and not on signal write after", () => {
+    const bodyCleanup = vi.fn();
+    const s = signal(0);
+
+    const el = mount(() => {
+      effect(() => {
+        s();
+        onCleanup(bodyCleanup);
+      });
+      return document.createElement("div");
+    })!;
+
+    bodyCleanup.mockClear();
+    disposeElement(el);
+    expect(bodyCleanup).toHaveBeenCalledTimes(1);
+    // clear again so we can check no extra calls after signal write
+    bodyCleanup.mockClear();
+    s(99);
+    expect(bodyCleanup).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Function component — props arrive exactly as the caller wrote them
+// ---------------------------------------------------------------------------
+
+describe("createElement (function component) — props pass through raw", () => {
+  it("a signal prop arrives as the signal and subscribes effects", () => {
+    const count = signal(0);
+    const seen: number[] = [];
+
+    mount(
+      (props: { count: () => number }) => {
+        effect(() => seen.push(props.count()));
+        return document.createElement("div");
+      },
+      { count },
+    );
+
+    count(1);
+    count(2);
+    expect(seen).toEqual([0, 1, 2]);
+  });
+
+  it("a static prop arrives as the plain value, not a getter", () => {
+    let captured: unknown;
+    mount(
+      (props: { name: string }) => {
+        captured = props.name;
+        return document.createElement("div");
+      },
+      { name: "hi" },
+    );
+    expect(captured).toBe("hi");
+  });
+
+  it("resolve() reads either form", () => {
+    const count = signal(7);
+    let captured: unknown;
+
+    mount(
+      (props: any) => {
+        captured = { name: resolve(props.name), count: resolve(props.count) };
+        return document.createElement("div");
+      },
+      { name: "wael", count },
+    );
+
+    expect(captured).toEqual({ name: "wael", count: 7 });
+  });
+
+  it("a function-valued prop arrives uncalled", () => {
+    const render = (item: string) => item;
+    let captured: unknown;
+
+    mount(
+      (props: any) => {
+        captured = props.render;
+        return document.createElement("div");
+      },
+      { render },
+    );
+
+    expect(captured).toBe(render);
+  });
+
+  it("forwarding a getter through a child function component stays reactive", () => {
+    const count = signal(10);
+    const seen: number[] = [];
+
+    const Child = (props: any) => {
+      effect(() => seen.push(props.value()));
+      return document.createElement("span");
+    };
+
+    mount(
+      (props: any) =>
+        createElement(Child, { value: props.count }) as Element,
+      { count },
+    );
+
+    count(11);
+    expect(seen).toEqual([10, 11]);
+  });
+
+  it("computed prop tracks upstream signal changes", () => {
+    const count = signal(2);
+    const double = computed(() => count() * 2);
+    const seen: number[] = [];
+
+    mount(
+      (props: any) => {
+        effect(() => seen.push(props.double()));
+        return document.createElement("div");
+      },
+      { double },
+    );
+
+    count(5);
+    expect(seen).toEqual([4, 10]);
+  });
+
+  it("signal/computed identity is preserved", () => {
+    const count = signal(0);
+    const double = computed(() => count() * 2);
+    let captured: any;
+
+    mount(
+      (props: any) => {
+        captured = props;
+        return document.createElement("div");
+      },
+      { count, double },
+    );
+
+    expect(captured.count).toBe(count);
+    expect(captured.double).toBe(double);
+  });
+
+  it("mixed static + signal props keep their own forms", () => {
+    const count = signal(0);
+    let captured: any;
+
+    mount(
+      (props: any) => {
+        captured = { name: props.name, count: props.count() };
+        return document.createElement("div");
+      },
+      { name: "wael", count },
+    );
+
+    expect(captured).toEqual({ name: "wael", count: 0 });
+  });
+
+  it("omitted optional prop is undefined, so `??` defaults apply", () => {
+    let captured: unknown = "untouched";
+
+    mount(
+      (props: any) => {
+        captured = props.excited ?? "fallback";
+        return document.createElement("div");
+      },
+      {},
+    );
+
+    expect(captured).toBe("fallback");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Event handlers: only `on:event` syntax is supported
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Bare `class`/`style` must not clobber their namespaces
+// ---------------------------------------------------------------------------
+
+describe("class and style vs their namespaces", () => {
+  const classOf = (p: Record<string, unknown>) =>
+    (createElement("div", p as never) as HTMLElement).className;
+
+  it("keeps class:* when a bare class is applied, either source order", () => {
+    expect(classOf({ "class:active": true, class: "w-full" })).toBe(
+      "w-full active",
+    );
+    expect(classOf({ class: "w-full", "class:active": true })).toBe(
+      "w-full active",
+    );
+  });
+
+  it("keeps class:* across reactive class updates", () => {
+    const cls = signal("w-full");
+    const el = createElement("div", {
+      "class:active": true,
+      class: cls,
+    } as never) as HTMLElement;
+    expect(el.className).toBe("w-full active");
+
+    cls("w-1/2");
+    // Order is not meaningful; both must be present and the old token gone.
+    expect([...el.classList].sort()).toEqual(["active", "w-1/2"]);
+  });
+
+  it("drops only the tokens the bare class owns", () => {
+    const cls = signal("a b");
+    const el = createElement("div", {
+      class: cls,
+      "class:active": true,
+    } as never) as HTMLElement;
+
+    cls("a");
+    expect(el.className).toBe("a active");
+  });
+
+  it("keeps style:* when a bare style is applied, either source order", () => {
+    const a = createElement("div", {
+      "style:color": "red",
+      style: "width: 100%",
+    } as never) as HTMLElement;
+    const b = createElement("div", {
+      style: "width: 100%",
+      "style:color": "red",
+    } as never) as HTMLElement;
+
+    for (const el of [a, b]) {
+      expect(el.style.getPropertyValue("color")).toBe("red");
+      expect(el.style.getPropertyValue("width")).toBe("100%");
+    }
+  });
+
+  it("keeps style:* across reactive style updates, string and object", () => {
+    const css = signal("width: 100%");
+    const el = createElement("div", {
+      "style:color": "red",
+      style: css,
+    } as never) as HTMLElement;
+
+    css("width: 50%");
+    expect(el.style.getPropertyValue("color")).toBe("red");
+    expect(el.style.getPropertyValue("width")).toBe("50%");
+
+    const obj = signal<Record<string, string>>({ top: "1px", left: "2px" });
+    const el2 = createElement("div", {
+      "style:color": "red",
+      style: obj,
+    } as never) as HTMLElement;
+
+    obj({ top: "3px" });
+    expect(el2.style.getPropertyValue("color")).toBe("red");
+    expect(el2.style.getPropertyValue("top")).toBe("3px");
+    // Object form merges, so a key that leaves the object is not cleared.
+    expect(el2.style.getPropertyValue("left")).toBe("2px");
+  });
+});
+
+describe("event handlers", () => {
+  it("attaches a listener for `on:click={fn}`", () => {
+    const spy = vi.fn();
+    const btn = createElement("button", { "on:click": spy }) as HTMLButtonElement;
+    btn.click();
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it("does NOT attach a listener for `onClick={fn}` (legacy syntax removed)", () => {
+    const spy = vi.fn();
+    const btn = createElement("button", { onClick: spy }) as HTMLButtonElement;
+    btn.click();
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("preserves event-name case under `on:`", () => {
+    const spy = vi.fn();
+    const el = createElement("div", { "on:MyEvent": spy }) as HTMLDivElement;
+    el.dispatchEvent(new CustomEvent("MyEvent"));
+    expect(spy).toHaveBeenCalledTimes(1);
+    // Case-sensitive: lowercase does not match.
+    spy.mockClear();
+    el.dispatchEvent(new CustomEvent("myevent"));
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("accepts a signal-of-handler for `on:click` and re-subscribes on change", () => {
+    const first = vi.fn();
+    const second = vi.fn();
+    const handler = signal<(e: Event) => void>(first);
+    const btn = createElement("button", {
+      "on:click": handler,
+    }) as HTMLButtonElement;
+
+    btn.click();
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(second).not.toHaveBeenCalled();
+
+    handler(second);
+    btn.click();
+    expect(second).toHaveBeenCalledTimes(1);
+    // Old handler detached — not called again.
+    expect(first).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// React-compat input defaults: `defaultValue` / `defaultChecked` map to IDL
+// properties (not the literal attribute name).
+// ---------------------------------------------------------------------------
+
+describe("input defaults", () => {
+  it("`defaultValue` sets the IDL property and mirrors to live value", () => {
+    const input = createElement("input", {
+      defaultValue: "hello",
+    }) as HTMLInputElement;
+    expect(input.defaultValue).toBe("hello");
+    expect(input.value).toBe("hello");
+    // Should NOT have a literal `defaultvalue` attribute.
+    expect(input.hasAttribute("defaultvalue")).toBe(false);
+  });
+
+  it("`defaultChecked` sets the IDL property and mirrors to live checked", () => {
+    const input = createElement("input", {
+      type: "checkbox",
+      defaultChecked: true,
+    }) as HTMLInputElement;
+    expect(input.defaultChecked).toBe(true);
+    expect(input.checked).toBe(true);
+  });
+
+  it("reactive `defaultValue` updates the IDL property when the source changes", () => {
+    const v = signal("first");
+    const input = createElement("input", { defaultValue: v }) as HTMLInputElement;
+    expect(input.defaultValue).toBe("first");
+    v("second");
+    expect(input.defaultValue).toBe("second");
+  });
+});

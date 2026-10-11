@@ -1,0 +1,21 @@
+{
+  "title": "Integrations",
+  "description": "Bundlers and frameworks",
+  "icon": "Puzzle",
+  "root": true,
+  "pages": [
+    "index",
+    "vite",
+    "svg",
+    "---Frameworks---",
+    "react",
+    "astro",
+    "angular",
+    "lit",
+    "marko",
+    "qwik",
+    "solid",
+    "svelte",
+    "vue"
+  ]
+}

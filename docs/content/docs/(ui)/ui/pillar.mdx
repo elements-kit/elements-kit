@@ -1,0 +1,79 @@
+---
+title: Pillar
+description: Vertical mini-card for a feature, benefit, or stat.
+badge: CSS
+---
+
+
+A `.pillar` is a vertical mini-card: icon → heading → paragraph → link. Use in 2/3/4-up grids inside a section. Compose with [`.x-card`](/ui/card) for surface treatment.
+
+<StorybookEmbed story="marketing-pillar--default" />
+
+## Install
+
+```ts
+import "elements-kit/ui/styles.css";
+
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/neutral/gray.css";
+import "elements-kit/ui/styles/palette/mint.css";
+import "elements-kit/ui/styles/accent/mint.css";
+import "elements-kit/ui/card/card.css";       /* required for card-composed pillars */
+
+import "elements-kit/ui/marketing/marketing.css";
+```
+
+## API
+
+```html
+<div class="pillar">
+  <svg><!-- icon --></svg>
+  <h3 data-heading>Heading</h3>
+  <p data-paragraph>Description.</p>
+  <a href="/learn">Learn more</a>
+</div>
+```
+
+| Attribute | Values |
+| --- | --- |
+| `data-align` | `start` (default), `center` |
+
+## Composed with .x-card
+
+For a card-style pillar (border + padding + background), add `.x-card`:
+
+```html
+<div class="x-card pillar">…</div>
+```
+
+Pair with any `.x-card` variant (`data-variant="elevated"` for shadow, `data-variant="borderless"` for hover-only) and any `data-size` to control padding.
+
+## Theming
+
+The icon uses `--accent-9` — set `data-accent="X"` on an ancestor (e.g. `data-accent="mint"`) to re-theme every pillar at once.
+
+## Tips
+
+<Callout type="idea" title="Do">
+When using icons, add them to every pillar in the group.
+</Callout>
+
+<Callout type="warn" title="Don't">
+Mix icons-with-pillars and no-icons-with-pillars in the same row.
+</Callout>
+
+<Callout type="idea" title="Do">
+Keep heading character counts comparable across a pillar group for a visually balanced layout.
+</Callout>
+
+<Callout type="warn" title="Don't">
+Let one description run 4× the length of its siblings.
+</Callout>
+
+<Callout type="idea" title="Do">
+Add `.x-card` for elevated card-style pillars when the group sits on a colored surface.
+</Callout>
+
+<Callout type="warn" title="Don't">
+Combine `.x-card` with `data-align="center"`. The card treatment expects start-aligned content.
+</Callout>

@@ -1,0 +1,14 @@
+---
+import DocsShell from "@/docs/DocsShell.astro";
+import Playground from "@/playground/Playground";
+
+export const prerender = true;
+---
+
+<DocsShell
+  title="Playground"
+  markdown={false}
+  description="Write and run ElementsKit code in the browser — signals, JSX and custom elements, shareable by URL."
+>
+  <Playground client:load />
+</DocsShell>

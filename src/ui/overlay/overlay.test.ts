@@ -1,0 +1,171 @@
+import { describe, expect, it } from "vitest";
+import { effectScope } from "@/signals/index.ts";
+import { AUTO, OverlayBox } from "./overlay.ts";
+
+/** A rect-mocked `.x-overlay` dialog (happy-dom has no layout). */
+function overlayEl(w = 200, h = 120, x = 100, y = 80): HTMLDialogElement {
+  const el = document.createElement("dialog");
+  el.className = "unset x-overlay";
+  el.getBoundingClientRect = () =>
+    ({
+      x,
+      y,
+      left: x,
+      top: y,
+      right: x + w,
+      bottom: y + h,
+      width: w,
+      height: h,
+      toJSON: () => ({}),
+    }) as DOMRect;
+  document.body.appendChild(el);
+  return el;
+}
+
+const channel = (el: HTMLElement, name: string) =>
+  el.style.getPropertyValue(name);
+
+describe("OverlayBox", () => {
+  it("anchors the element at the origin and translates by its channels", () => {
+    const el = overlayEl();
+    const o = new OverlayBox(el);
+    expect(el.style.top).toBe("0px");
+    expect(el.style.left).toBe("0px");
+    expect(channel(el, "translate")).toContain("var(--x, 0px)");
+    o.dispose();
+    el.remove();
+  });
+
+  it("reads geometry from the measured rect", () => {
+    const el = overlayEl(200, 120, 100, 80);
+    const o = new OverlayBox(el);
+    expect({ x: o.x, y: o.y, w: o.w, h: o.h }).toEqual({
+      x: 100,
+      y: 80,
+      w: 200,
+      h: 120,
+    });
+    o.dispose();
+    el.remove();
+  });
+
+  it("shifts by the origin, as a fraction of its own box", () => {
+    const el = overlayEl();
+    const o = new OverlayBox(el);
+    o.origin = { x: 0, y: 1 };
+    // Subtracted from the position channels: they place the top-left corner,
+    // and the origin names the point that should land there instead.
+    expect(channel(el, "--_ox")).toBe("0%");
+    expect(channel(el, "--_oy")).toBe("100%");
+    expect(channel(el, "translate")).toContain("- var(--_oy, 0%)");
+    // The scale grows from the same point.
+    expect(el.style.transformOrigin).toBe("0% 100%");
+    o.dispose();
+    el.remove();
+  });
+
+  it("starts at the neutral point and reads back what was set", () => {
+    const el = overlayEl();
+    const o = new OverlayBox(el);
+    // Unset, the channels place the top-left corner — so no shift.
+    expect(o.origin).toEqual({});
+    o.origin = { x: 1, y: 0.25 };
+    expect(o.origin).toEqual({ x: 1, y: 0.25 });
+    expect(channel(el, "--_oy")).toBe("25%");
+    o.dispose();
+    el.remove();
+  });
+
+  it("centres on both axes", () => {
+    const el = overlayEl();
+    const o = new OverlayBox(el);
+    o.origin = { x: 0.5, y: 0.5 };
+    expect(channel(el, "--_ox")).toBe("50%");
+    expect(channel(el, "--_oy")).toBe("50%");
+    expect(el.style.transformOrigin).toBe("50% 50%");
+    o.dispose();
+    el.remove();
+  });
+
+  it("projects writes into the --x/--y/--w/--h channels", () => {
+    const el = overlayEl();
+    const o = new OverlayBox(el);
+    o.x = 120;
+    o.y = 140;
+    o.w = 300;
+    o.h = 200;
+    expect(channel(el, "--x")).toBe("120px");
+    expect(channel(el, "--y")).toBe("140px");
+    expect(channel(el, "--w")).toBe("300px");
+    expect(channel(el, "--h")).toBe("200px");
+    o.dispose();
+    el.remove();
+  });
+
+  it("unsets a size channel on AUTO so the element sizes to content", () => {
+    const el = overlayEl();
+    const o = new OverlayBox(el);
+    o.w = 300;
+    o.w = AUTO;
+    expect(channel(el, "--w")).toBe("");
+    o.dispose();
+    el.remove();
+  });
+
+  it("projects displacement into --dx/--dy and folds it in on apply()", () => {
+    const el = overlayEl();
+    const o = new OverlayBox(el);
+    o.x = 100;
+    o.displacement.x = 25;
+    expect(channel(el, "--dx")).toBe("25px");
+    o.displacement.apply();
+    expect(channel(el, "--x")).toBe("125px");
+    expect(channel(el, "--dx")).toBe("");
+    o.dispose();
+    el.remove();
+  });
+
+  it("stops projecting after dispose", () => {
+    const el = overlayEl();
+    const o = new OverlayBox(el);
+    o.x = 10;
+    o.dispose();
+    o.x = 20;
+    expect(channel(el, "--x")).toBe("10px");
+    el.remove();
+  });
+});
+
+describe("OverlayBox lifetime", () => {
+  it("is disposed with the scope that created it", () => {
+    const el = overlayEl();
+    let o!: OverlayBox;
+    const stop = effectScope(() => {
+      o = new OverlayBox(el);
+    });
+    o.x = 10;
+    expect(channel(el, "--x")).toBe("10px");
+    stop();
+    // Its projection effects are gone: writes no longer reach the element.
+    o.x = 30;
+    expect(channel(el, "--x")).toBe("10px");
+  });
+
+  it("lives on when created outside any scope", () => {
+    const el = overlayEl();
+    const o = new OverlayBox(el);
+    o.x = 5;
+    expect(channel(el, "--x")).toBe("5px");
+    o.dispose();
+    o.x = 6;
+    expect(channel(el, "--x")).toBe("5px");
+  });
+
+  it("takes a manual dispose before its scope ends", () => {
+    const el = overlayEl();
+    const stop = effectScope(() => {
+      new OverlayBox(el).dispose();
+    });
+    expect(() => stop()).not.toThrow();
+  });
+});

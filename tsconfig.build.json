@@ -1,0 +1,8 @@
+{
+  // Build-only config for the dts plugin. Drops the `references` field from
+  // tsconfig.json — that entry is IDE-only Storybook wiring, but
+  // rolldown-plugin-dts refuses to load sources when references are present
+  // (it would need tsc project-build mode). Empty array overrides the base.
+  "extends": "./tsconfig.json",
+  "references": []
+}

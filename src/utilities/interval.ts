@@ -1,0 +1,80 @@
+import { computed, type Computed, onCleanup, signal } from "@/signals/index.ts";
+
+type IntervalResult = {
+  timestamp: Computed<number>;
+  pending: Computed<boolean>;
+  start(): void;
+  stop(): void;
+  reset(): void;
+} & Disposable;
+
+type Fn = () => void;
+type Delay = number | (() => number);
+
+/**
+ * Pausable `setInterval` wrapper.  Starts running immediately on creation.
+ *
+ * @example
+ * ```ts
+ * import { createInterval } from "elements-kit/utilities/interval";
+ *
+ * // Reactive clock — updates a signal every second
+ * const { timestamp, stop } = createInterval(1000);
+ * effect(() => console.log(new Date(timestamp())));
+ *
+ * // With a callback
+ * const beat = createInterval(() => beatCount(beatCount() + 1), 500);
+ * beat.stop();
+ * ```
+ */
+export function createInterval(delay: Delay): IntervalResult;
+export function createInterval(callback: Fn, delay: Delay): IntervalResult;
+export function createInterval(arg1: Fn | Delay, arg2?: Delay): IntervalResult {
+  const [callback, delay] = resolveArgs(arg1, arg2);
+  const pending = signal(true);
+  let id: ReturnType<typeof setInterval> | undefined;
+  const timestamp = signal(Date.now());
+
+  const getDelay = typeof delay === "function" ? delay : () => delay;
+
+  const start = () => {
+    if (id !== undefined) return;
+    pending(true);
+    id = setInterval(() => {
+      callback?.();
+      timestamp(Date.now());
+    }, getDelay());
+  };
+
+  const stop = () => {
+    clearInterval(id);
+    id = undefined;
+    pending(false);
+  };
+
+  const reset = () => {
+    stop();
+    start();
+  };
+
+  start();
+
+  const cleanup = () => stop();
+  onCleanup(cleanup);
+
+  return {
+    timestamp,
+    pending,
+    start,
+    stop,
+    reset,
+    [Symbol.dispose]: cleanup,
+  };
+}
+
+function resolveArgs(arg1: Fn | Delay, arg2?: Delay): [Fn | undefined, Delay] {
+  if (arg2 === undefined) {
+    return [undefined, arg1 as Delay];
+  }
+  return [arg1 as Fn, arg2];
+}

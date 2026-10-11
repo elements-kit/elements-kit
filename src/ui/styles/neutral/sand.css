@@ -1,0 +1,32 @@
+[data-neutral="sand"] {
+  --neutral-1: var(--sand-1);
+  --neutral-2: var(--sand-2);
+  --neutral-3: var(--sand-3);
+  --neutral-4: var(--sand-4);
+  --neutral-5: var(--sand-5);
+  --neutral-6: var(--sand-6);
+  --neutral-7: var(--sand-7);
+  --neutral-8: var(--sand-8);
+  --neutral-9: var(--sand-9);
+  --neutral-10: var(--sand-10);
+  --neutral-11: var(--sand-11);
+  --neutral-12: var(--sand-12);
+
+  --neutral-a1: var(--sand-a1);
+  --neutral-a2: var(--sand-a2);
+  --neutral-a3: var(--sand-a3);
+  --neutral-a4: var(--sand-a4);
+  --neutral-a5: var(--sand-a5);
+  --neutral-a6: var(--sand-a6);
+  --neutral-a7: var(--sand-a7);
+  --neutral-a8: var(--sand-a8);
+  --neutral-a9: var(--sand-a9);
+  --neutral-a10: var(--sand-a10);
+  --neutral-a11: var(--sand-a11);
+  --neutral-a12: var(--sand-a12);
+
+  --neutral-contrast: var(--sand-contrast);
+  --neutral-surface: var(--sand-surface);
+  --neutral-indicator: var(--sand-indicator);
+  --neutral-track: var(--sand-track);
+}

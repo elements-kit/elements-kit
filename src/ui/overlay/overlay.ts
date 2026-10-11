@@ -1,0 +1,258 @@
+import { batch, effect, onCleanup, reactive, signal } from "@/signals/index.ts";
+import { scope } from "@/signals/scope";
+import { on } from "@/utilities/event-listener.ts";
+import { createMutationObserver } from "@/utilities/mutation-observer.ts";
+import { IDirection, ReadonlyBox, RegionBox } from "./box.ts";
+import {
+  createElementRect,
+  type ElementRect,
+} from "@/utilities/element-rect.ts";
+import type { Align } from "./area.ts";
+
+/** A popover or dialog is shown while open; any other element always is. */
+function isOpen(el: HTMLElement): boolean {
+  if (el.hasAttribute("open")) return true;
+  try {
+    if (el.matches(":popover-open")) return true;
+  } catch {
+    // no Popover API: nothing is a popover
+  }
+  return !el.hasAttribute("popover") && !(el instanceof HTMLDialogElement);
+}
+
+export const AUTO = NaN;
+class PartialBox implements Partial<ReadonlyBox> {
+  @reactive() x: number | undefined;
+  @reactive() y: number | undefined;
+  @reactive() w: number | undefined;
+  @reactive() h: number | undefined;
+
+  constructor(
+    x: number | undefined = undefined,
+    y: number | undefined = undefined,
+    w: number | undefined = undefined,
+    h: number | undefined = undefined,
+  ) {
+    this.x = x;
+    this.y = y;
+    this.w = w;
+    this.h = h;
+  }
+}
+
+class TransformableBox extends RegionBox {
+  readonly transform: PartialBox;
+  readonly displacement: Displacement;
+
+  constructor(transform = new PartialBox()) {
+    super();
+    this.transform = transform;
+    this.displacement = new Displacement(this);
+  }
+
+  get x() {
+    return (this.transform.x ?? 0) + (this.displacement.x ?? 0);
+  }
+  set x(value: number) {
+    this.transform.x = value;
+  }
+  get y() {
+    return (this.transform.y ?? 0) + (this.displacement.y ?? 0);
+  }
+  set y(value: number) {
+    this.transform.y = value;
+  }
+
+  get w() {
+    return (this.transform.w ?? 0) + (this.displacement.w ?? 0);
+  }
+  set w(value: number) {
+    this.transform.w = value;
+  }
+
+  get h() {
+    return (this.transform.h ?? 0) + (this.displacement.h ?? 0);
+  }
+  set h(value: number) {
+    this.transform.h = value;
+  }
+}
+
+class Displacement extends PartialBox {
+  readonly box: TransformableBox;
+
+  constructor(box: TransformableBox) {
+    super();
+    this.box = box;
+  }
+
+  apply() {
+    batch(() => {
+      this.box.transform.x = (this.box.transform.x ?? 0) + (this.x ?? 0);
+      this.box.transform.y = (this.box.transform.y ?? 0) + (this.y ?? 0);
+      this.box.transform.w = (this.box.transform.w ?? 0) + (this.w ?? 0);
+      this.box.transform.h = (this.box.transform.h ?? 0) + (this.h ?? 0);
+      this.clear();
+    });
+  }
+
+  clear() {
+    batch(() => {
+      this.x = undefined;
+      this.y = undefined;
+      this.w = undefined;
+      this.h = undefined;
+    });
+  }
+}
+
+/** Which point of the box lands on (x, y), per axis — an {@link Align}.
+ * Unset is start. Pass an area's own `{ x: area.xalign, y: area.yalign }`. */
+export interface Origin {
+  readonly x?: Align;
+  readonly y?: Align;
+}
+
+/** An align as a percentage of the box. */
+const percent = (a: Align | undefined) => `${(a ?? 0) * 100}%`;
+
+export class OverlayBox extends TransformableBox implements IDirection {
+  readonly element: HTMLElement;
+  readonly #rect: ElementRect;
+  readonly #open: ReturnType<typeof signal<boolean>>;
+  // Neutral: the channels place the top-left corner, so no shift.
+  #origin: Origin = {};
+
+  constructor(element: HTMLElement) {
+    super();
+    this.element = element;
+    this.#rect = createElementRect(element);
+    this.#open = signal(isOpen(element));
+
+    element.style.setProperty("top", "0");
+    element.style.setProperty("left", "0");
+    // `--_ox/--_oy` are percentages of this box, so the shift needs no
+    // measurement. Subtracted: the channels place the top-left corner.
+    element.style.setProperty(
+      "translate",
+      "calc(var(--x, 0px) + var(--dx, 0px) + var(--_ex, 0px) - var(--_ox, 0%)) " +
+        "calc(var(--y, 0px) + var(--dy, 0px) + var(--_ey, 0px) - var(--_oy, 0%))",
+    );
+
+    // Project the reactive base into its CSS channels — needs `effect`, or
+    // the scope body runs once and never re-projects on a baseX change.
+    const [, stop] = scope(() => {
+      effect(() => {
+        this.#project("--x", this.transform.x);
+      });
+      effect(() => {
+        this.#project("--y", this.transform.y);
+      });
+      effect(() => {
+        this.#project("--w", this.transform.w, this.displacement.w);
+      });
+      effect(() => {
+        this.#project("--h", this.transform.h, this.displacement.h);
+      });
+      effect(() => {
+        this.#project("--dx", this.displacement.x);
+      });
+      effect(() => {
+        this.#project("--dy", this.displacement.y);
+      });
+
+      // Set before the first style of an opening box, so it's placed there
+      // rather than gliding in from where it was. `beforetoggle` for popovers;
+      // a dialog's `open` attribute (a microtask, still before render) for
+      // browsers that fire no toggle events on dialogs.
+      on(element, "beforetoggle", (event) =>
+        this.#open((event as ToggleEvent).newState === "open"),
+      );
+      if (element instanceof HTMLDialogElement)
+        createMutationObserver(
+          element,
+          { attributes: true, attributeFilter: ["open"] },
+          () => this.#open(isOpen(element)),
+        );
+    });
+    let disposed = false;
+    this.dispose = () => {
+      if (disposed) return;
+      disposed = true;
+      stop();
+      this.#rect[Symbol.dispose]();
+    };
+    // Its effects and resize observer live in a scope of their own, which the
+    // creator's teardown can't reach: tie them to it here. Outside any scope
+    // (a page-lifetime overlay) this does nothing, and `dispose` stays manual.
+    onCleanup(this.dispose);
+  }
+
+  /** Whether the element is shown — reactive. A closed popover or dialog is
+   * not placed (see `place`), so nothing it anchors to is measured. Create
+   * the box before it opens: its `beforetoggle` is what it listens to. */
+  get open(): boolean {
+    return this.#open();
+  }
+
+  /** The box point that lands on (x, y), and the scale's origin. */
+  get origin(): Origin {
+    return this.#origin;
+  }
+  set origin({ x, y }: Origin) {
+    this.#origin = { x, y };
+    // Percentages of this box: the shift needs no measurement.
+    this.element.style.setProperty("--_ox", percent(x));
+    this.element.style.setProperty("--_oy", percent(y));
+    this.element.style.transformOrigin = `${percent(x)} ${percent(y)}`;
+  }
+
+  /** Write a size channel, or unset it when the axis is AUTO (NaN) so the
+   * element falls back to content sizing (`var(--w, auto)`). */
+  #project(name: string, ...value: (number | undefined)[]): void {
+    if (value.every((v) => v === undefined || Number.isNaN(v))) {
+      this.element.style.removeProperty(name);
+      return;
+    }
+    const sum = value.reduce<number>((a, b) => a + (b ?? 0), 0);
+    this.element.style.setProperty(name, `${sum}px`);
+  }
+
+  get w(): number {
+    return this.#rect.width();
+  }
+  set w(value: number) {
+    this.transform.w = value;
+  }
+
+  get h(): number {
+    return this.#rect.height();
+  }
+  set h(value: number) {
+    this.transform.h = value;
+  }
+
+  get x(): number {
+    return this.#rect.x();
+  }
+  set x(value: number) {
+    this.transform.x = value;
+  }
+
+  get y(): number {
+    return this.#rect.y();
+  }
+  set y(value: number) {
+    this.transform.y = value;
+  }
+
+  /** The element's computed direction, read at call time. */
+  get direction(): "ltr" | "rtl" {
+    return getComputedStyle(this.element).direction === "rtl" ? "rtl" : "ltr";
+  }
+
+  dispose: () => void;
+  [Symbol.dispose]() {
+    this.dispose();
+  }
+}

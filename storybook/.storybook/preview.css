@@ -1,0 +1,6 @@
+/* Canvas follows the active theme class set by the themes addon. */
+body {
+  background-color: var(--color-background);
+  color: var(--neutral-12);
+  font-family: var(--default-font-family);
+}

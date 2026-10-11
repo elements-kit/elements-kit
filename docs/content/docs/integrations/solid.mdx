@@ -1,0 +1,104 @@
+---
+title: Solid
+description: Use elements-kit custom elements in Solid with typed JSX.
+---
+
+A custom element built with elements-kit is just `class extends HTMLElement` registered via `customElements.define`. Solid renders it fine at runtime, but Solid's `JSX.IntrinsicElements` is independent of elements-kit's, so you need a small augmentation to get typed props, narrowed `ref`, and editor autocomplete on the Solid side.
+
+```ts
+// shared element — built once, used anywhere
+import { defineElement } from "elements-kit/custom-elements";
+import { reactive } from "elements-kit/signals";
+
+export class XCounter extends HTMLElement {
+  @reactive() count = 0;
+}
+
+defineElement("x-counter", XCounter);
+```
+
+## Source the prop shape from the class
+
+Three type helpers exported from `elements-kit/custom-elements` read the raw platform surface off the class. All three take the constructor (`typeof XCounter`); `PropertiesOf` also accepts an instance type.
+
+| Helper | Shape | Use when |
+|---|---|---|
+| `PropertiesOf<typeof XCounter>` | Public instance fields, all optional — the `HTMLElement` surface is dropped; `Slot`-typed fields accept a `Node` | Typing property assignments — prop bindings, wrappers, helper functions |
+| `AttributesOf<typeof XCounter>` | Every key of `static [ATTRIBUTES]`, valued `string \| null` | Typing the raw HTML attribute surface — `setAttribute`, server-rendered markup |
+| `EventsOf<typeof XCounter>` | The `static events` map, verbatim — event name to event type | Typing `addEventListener`, framework event bindings, `HTMLElementEventMap` augmentations |
+
+For most Solid wiring `PropertiesOf<typeof XCounter>` is enough.
+
+## Augment Solid's `JSX.IntrinsicElements`
+
+```ts
+import type { JSX } from "solid-js";
+import type { PropertiesOf } from "elements-kit/custom-elements";
+import type { XCounter } from "./x-counter";
+
+declare module "solid-js" {
+  namespace JSX {
+    interface IntrinsicElements {
+      "x-counter": JSX.HTMLAttributes<XCounter> & PropertiesOf<typeof XCounter>;
+    }
+  }
+}
+
+// <x-counter count={5} ref={(el) => …} />  — el: XCounter
+```
+
+`JSX.HTMLAttributes<XCounter>` provides the standard HTML attribute surface (`class`, `id`, `onClick`, …) and a `ref` narrowed to `XCounter`.
+
+## Co-locate the augmentation with the class
+
+Put the `declare module "solid-js"` block in the same file as the element class. Importing the class then brings the augmentation along — consumers don't have to remember to write it themselves.
+
+```ts
+// x-counter.ts
+import { defineElement, type PropertiesOf } from "elements-kit/custom-elements";
+import { reactive } from "elements-kit/signals";
+
+export class XCounter extends HTMLElement {
+  @reactive() count = 0;
+}
+
+defineElement("x-counter", XCounter);
+
+declare module "solid-js" {
+  namespace JSX {
+    interface IntrinsicElements {
+      "x-counter": JSX.HTMLAttributes<XCounter> & PropertiesOf<typeof XCounter>;
+    }
+  }
+}
+```
+
+## Typed `document.querySelector` and `createElement`
+
+Independent of any JSX framework, augmenting the global `HTMLElementTagNameMap` gives you typed lookups in plain DOM code:
+
+```ts
+declare global {
+  interface HTMLElementTagNameMap {
+    "x-counter": XCounter;
+  }
+}
+
+const el = document.querySelector("x-counter"); // XCounter | null
+```
+
+Worth doing alongside the Solid augmentation.
+
+---
+
+## See also
+
+- [Custom Elements overview](/custom-elements)
+- [React integration](/integrations/react)
+- [Vue integration](/integrations/vue)
+- [Angular integration](/integrations/angular)
+- [Svelte integration](/integrations/svelte)
+- [Lit integration](/integrations/lit)
+- [Astro integration](/integrations/astro)
+- [Marko integration](/integrations/marko)
+- [Qwik integration](/integrations/qwik)

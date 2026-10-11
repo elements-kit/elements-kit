@@ -1,0 +1,103 @@
+---
+title: Badge
+description: Inline status pill — four variants, three sizes, color theming.
+badge: CSS
+---
+
+
+A small inline pill for tags, counts, and status. Class + data-attribute API mirrors the [Button](/ui/button): one `.x-badge` class plus `data-variant`, `data-size`, `data-accent`. No focus styles or pointer cursor — badges aren't interactive.
+
+<StorybookEmbed story="ui-badge--solid" />
+
+## Install
+
+```ts
+import "elements-kit/ui/styles.css";
+
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/neutral/gray.css";
+import "elements-kit/ui/styles/palette/green.css";
+import "elements-kit/ui/styles/accent/green.css";
+
+import "elements-kit/ui/badge/badge.css";
+```
+
+`unset.css` is **not required** for `<span>`s — they have no native styling that bleeds through. Badges on a `<button>` or `<a>` should add `unset` to neutralise the native rendering first.
+
+## API
+
+```html
+<span
+  class="x-badge"
+  data-variant="soft"
+  data-size="2"
+  data-accent="green"
+>
+  New
+</span>
+```
+
+| Attribute | Values |
+| --- | --- |
+| `data-variant` | `solid`, `soft`, `surface`, `outline` |
+| `data-size` | `1`, `2`, `3` |
+| `data-accent` | any imported color scale (`green`, `blue`, `iris`, …) |
+| `data-high-contrast` | modifier — boosts contrast against the page background |
+
+## Sizing
+
+| `data-size` | font-size | padding |
+| --- | --- | --- |
+| `1` | `--font-size-1` | `space-1/2` × `space-1.5` |
+| `2` | `--font-size-1` | `space-1` × `space-2` |
+| `3` | `--font-size-2` | `space-1` × `space-2.5` |
+
+Border radius scales with `data-radius` on a parent — see [Radius](#radius) below.
+
+## Variants
+
+- **`solid`** — accent fill, high-contrast text. Counts and primary statuses.
+- **`soft`** — tinted background. Default for tags.
+- **`surface`** — outlined panel with subtle fill.
+- **`outline`** — bordered, transparent fill.
+
+## Radius
+
+Set `data-radius="<value>"` on a parent to control corner radius for everything beneath. The badge follows the same `radius-1`..`radius-6` scale as Button:
+
+```html
+<div data-radius="pill">
+  <span class="x-badge" data-variant="soft">Pill</span>
+</div>
+<div data-radius="none">
+  <span class="x-badge" data-variant="soft">Square</span>
+</div>
+```
+
+Available values: `none`, `small`, `medium`, `large`, `pill`. Each maps to a `--radius-factor` multiplier; `pill` additionally sets `--radius-pill: 9999px` for fully rounded pills.
+
+## Theming
+
+Switch the color on a single badge with `data-accent="<color>"`, or set it on any ancestor (e.g. `<body>`) to theme the whole subtree.
+
+```html
+<span class="x-badge" data-variant="soft" data-accent="amber">
+  Beta
+</span>
+```
+
+Light/dark flips automatically via the `.dark` class on a parent — see [Light & dark](/ui/styles#light--dark).
+
+## Accessibility
+
+`.x-badge` ships with no ARIA role — it's a pure visual class. Add a role yourself based on what the badge means:
+
+| Pattern | Markup |
+| --- | --- |
+| **Decorative** — text repeats surrounding context | `<span class="x-badge">New</span>` |
+| **Status** — info not present elsewhere | `<span class="x-badge" role="status">3 unread</span>` |
+| **Live status** — value can change at runtime | `<span class="x-badge" role="status" aria-live="polite">{count}</span>` |
+| **Icon-only** — no text inside the badge | `<span class="x-badge" role="img" aria-label="Online"></span>` |
+| **Purely decorative dot** — duplicates labeled text nearby | `<span class="x-badge" aria-hidden="true"></span>` |
+
+Default to no role when the badge text already lives in the surrounding label — extra roles add noise to assistive tech. Reach for `role="status"` only when the badge contributes information a sighted reader would otherwise miss.

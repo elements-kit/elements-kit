@@ -1,0 +1,275 @@
+/***************************************************************************************************
+ *                                                                                                 *
+ * x-toggle — CSS-only toggle button. Wraps a <label> around a native checkbox or radio input.     *
+ *                                                                                                 *
+ * The label paints the button chrome; the input keeps form semantics + keyboard + native single-  *
+ * open via the shared `name` attribute. The "pressed" state is driven entirely by                 *
+ * :has(input:checked) — no JS.                                                                    *
+ *                                                                                                 *
+ *   <label class="x-toggle"><input type="checkbox" class="unset" /> Bold</label>                  *
+ *   <label class="x-toggle"><input type="radio" name="align" class="unset" /> Left</label>        *
+ *                                                                                                 *
+ * Multi-select group = multiple checkboxes. Exclusive group = radios with shared `name`.          *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  vertical-align: top;
+
+  height: var(--toggle-height);
+  padding: 0 var(--toggle-padding-inline);
+  border-radius: max(var(--toggle-radius), var(--radius-pill));
+
+  font-family: var(--default-font-family);
+  font-size: var(--toggle-font-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--toggle-line-height);
+  letter-spacing: var(--toggle-letter-spacing);
+  text-align: center;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  cursor: var(--cursor-button);
+
+  /* the variant sets these; stacked-icon moves them onto the icon's pill */
+  background-color: var(--x-toggle-fill, transparent);
+  box-shadow: var(--x-toggle-ring, none);
+
+  transition:
+    background-color 120ms ease-out,
+    box-shadow 120ms ease-out,
+    color 120ms ease-out;
+}
+
+/* Visually hide the wrapped input — keep it in the tab order + form-participating. */
+.x-toggle > input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* taps pass through to the label: WebKit skips touch-action on SVG, so a tap on the icon zooms */
+/* stylelint-disable-next-line selector-max-type */
+.x-toggle :where(svg) {
+  pointer-events: none;
+}
+
+/* Focus indication on the label when its input gets keyboard focus (not on click). */
+.x-toggle:where(:has(input:focus-visible)) {
+  outline: 2px solid var(--focus-8);
+  outline-offset: 1px;
+}
+
+/* Disabled — driven by the native input. */
+.x-toggle:where(:has(input:disabled)) {
+  opacity: 0.6;
+  pointer-events: none;
+  cursor: var(--cursor-disabled);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SIZES                                                                                           *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-toggle:where([data-size="1"]) {
+  --toggle-height: var(--space-5);
+  --toggle-padding-inline: var(--space-2);
+  --toggle-radius: var(--radius-1);
+  --toggle-font-size: var(--font-size-1);
+  --toggle-line-height: var(--line-height-1);
+  --toggle-letter-spacing: var(--letter-spacing-1);
+}
+
+.x-toggle:where(:not([data-size]), [data-size="2"]) {
+  --toggle-height: var(--space-6);
+  --toggle-padding-inline: var(--space-3);
+  --toggle-radius: var(--radius-2);
+  --toggle-font-size: var(--font-size-2);
+  --toggle-line-height: var(--line-height-2);
+  --toggle-letter-spacing: var(--letter-spacing-2);
+}
+
+.x-toggle:where([data-size="3"]) {
+  --toggle-height: var(--space-7);
+  --toggle-padding-inline: var(--space-4);
+  --toggle-radius: var(--radius-3);
+  --toggle-font-size: var(--font-size-3);
+  --toggle-line-height: var(--line-height-3);
+  --toggle-letter-spacing: var(--letter-spacing-3);
+}
+
+/* `data-icon` makes the toggle a square (icon-only). Drops horizontal padding
+   and locks width = height via aspect-ratio. Min-width: 0 lets aspect-ratio
+   win over the intrinsic min-content width that inline padding would impose. */
+.x-toggle:where([data-icon]) {
+  aspect-ratio: 1;
+  padding-inline: 0;
+  min-width: 0;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * STACKED — data-layout="stacked": icon above the label, the stacked button's geometry            *
+ * data-layout="stacked-icon": no padding, the state on a highlight around the icon only           *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-toggle:where([data-layout="stacked"], [data-layout="stacked-icon"]) {
+  --x-stacked-unit: calc(var(--toggle-height) / 32);
+
+  flex-direction: column;
+  gap: calc(2 * var(--x-stacked-unit));
+  box-sizing: border-box;
+  /* at least square; constrained, the label wraps and the toggle grows taller */
+  height: auto;
+  min-width: calc(56 * var(--x-stacked-unit));
+  min-height: calc(56 * var(--x-stacked-unit));
+  /* 10 units: a long caption clears the pill's curved ends */
+  padding: calc(4 * var(--x-stacked-unit)) calc(10 * var(--x-stacked-unit));
+
+  /* stylelint-disable-next-line selector-max-type */
+  & > :where(svg) {
+    flex: none;
+    width: calc(24 * var(--x-stacked-unit));
+    height: calc(24 * var(--x-stacked-unit));
+  }
+
+  /* stylelint-disable-next-line selector-max-type */
+  & > :where(:not(svg, input)) {
+    max-width: 100%;
+    text-wrap: balance;
+    overflow-wrap: break-word;
+    /* a caption under the icon: --font-size-0 for sizes 1–2, --font-size-1 for size 3 */
+    font-size: var(--font-size-0);
+    /* the line scales with the item like the icon, so the caption keeps its place at every size */
+    line-height: calc(16 * var(--x-stacked-unit));
+    letter-spacing: var(--letter-spacing-1);
+  }
+
+  /* stylelint-disable-next-line selector-max-type */
+  &:where([data-size="3"]) > :where(:not(svg, input)) {
+    font-size: var(--font-size-1);
+    letter-spacing: var(--letter-spacing-2);
+  }
+}
+
+/* the state on a 36-unit square around the icon, the toggle's radius; 36 + 4 + 16 = 56 */
+.x-toggle:where([data-layout="stacked-icon"]) {
+  gap: calc(4 * var(--x-stacked-unit));
+  min-height: 0;
+  padding: 0;
+  background-color: transparent;
+  box-shadow: none;
+
+  /* stylelint-disable-next-line selector-max-type */
+  & > :where(svg) {
+    box-sizing: content-box;
+    padding: calc(6 * var(--x-stacked-unit));
+    border-radius: max(var(--toggle-radius), var(--radius-pill));
+    background-color: var(--x-toggle-fill, transparent);
+    box-shadow: var(--x-toggle-ring, none);
+    transition:
+      background-color 120ms ease-out,
+      box-shadow 120ms ease-out;
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * VARIANTS                                                                                        *
+ *                                                                                                 *
+ * Rest: neutral tokens. Pressed: accent (--accent-*) tokens that auto-fall-back to neutral        *
+ * via accent/neutral.css when no data-accent is set. The weight never changes, so pressing never   *
+ * resizes a toggle: the fill, ring and text color carry the state, even in the all-gray case.     *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* surface (default) — thin neutral ring at rest, soft accent fill on press. */
+
+.x-toggle:where(:not([data-variant]), [data-variant="surface"]) {
+  --x-toggle-ring: inset 0 0 0 1px var(--neutral-a5);
+  color: var(--neutral-a11);
+}
+
+@media (hover: hover) {
+  .x-toggle:where(:not([data-variant]), [data-variant="surface"]):where(
+      :hover
+    ) {
+    --x-toggle-fill: var(--neutral-a2);
+  }
+}
+
+.x-toggle:where(:not([data-variant]), [data-variant="surface"]):where(
+    :has(input:checked)
+  ) {
+  --x-toggle-fill: var(--accent-a4);
+  --x-toggle-ring: inset 0 0 0 1px var(--accent-a8);
+  color: var(--accent-a12, var(--accent-12));
+}
+
+@media (hover: hover) {
+  .x-toggle:where(:not([data-variant]), [data-variant="surface"]):where(
+      :has(input:checked):hover
+    ) {
+    --x-toggle-fill: var(--accent-a5);
+  }
+}
+
+/* soft — neutral tinted track at rest, accent tinted track on press. */
+
+.x-toggle:where([data-variant="soft"]) {
+  --x-toggle-fill: var(--neutral-a3);
+  color: var(--neutral-a11);
+}
+
+@media (hover: hover) {
+  .x-toggle:where([data-variant="soft"]):where(:hover) {
+    --x-toggle-fill: var(--neutral-a4);
+  }
+}
+
+/* three steps above rest, so pressed reads even with a neutral accent */
+.x-toggle:where([data-variant="soft"]):where(:has(input:checked)) {
+  --x-toggle-fill: var(--accent-a6);
+  color: var(--accent-a12, var(--accent-12));
+}
+
+@media (hover: hover) {
+  .x-toggle:where([data-variant="soft"]):where(:has(input:checked):hover) {
+    --x-toggle-fill: var(--accent-a7);
+  }
+}
+
+/* borderless — no track at rest, the button's accent text (toolbars, material groups); fill on press. */
+
+.x-toggle:where([data-variant="borderless"]) {
+  color: var(--accent-a11);
+}
+
+@media (hover: hover) {
+  .x-toggle:where([data-variant="borderless"]):where(:hover) {
+    --x-toggle-fill: var(--accent-a3);
+  }
+}
+
+.x-toggle:where([data-variant="borderless"]):where(:has(input:checked)) {
+  --x-toggle-fill: var(--accent-a4);
+  color: var(--accent-a12, var(--accent-12));
+}
+
+@media (hover: hover) {
+  .x-toggle:where([data-variant="borderless"]):where(
+      :has(input:checked):hover
+    ) {
+    --x-toggle-fill: var(--accent-a5);
+  }
+}

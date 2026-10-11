@@ -1,0 +1,174 @@
+---
+title: Primitives
+description: "Reactive building blocks for data, forms, routing, context, DOM events, observers, browser state and timing. One import each, any framework."
+navTitle: Catalog
+---
+
+import { Cable, Clock, Database, Eye, FileInput, Layers, MonitorSmartphone, Music, Route, Wrench } from "lucide-react";
+
+Primitives are small factories that return signals. Each one is its own import, needs no framework, and cleans up with the scope it was created in. Read them in plain scripts, custom elements, JSX, or React.
+
+```ts
+import { effect } from "elements-kit/signals";
+import { online } from "elements-kit/utilities/network";
+import { createMediaQuery } from "elements-kit/utilities/media-query";
+
+const dark = createMediaQuery("(prefers-color-scheme: dark)");
+
+effect(() => {
+  document.title = `${online() ? "Online" : "Offline"} · ${dark() ? "dark" : "light"}`;
+});
+```
+
+<Cards>
+  <Card icon={<Database />} title="Data" href="/primitives/promise">
+    `promise`, `async`, `retry`, storage. Queries, mutations and persistence without a query library.
+  </Card>
+  <Card icon={<FileInput />} title="Forms" href="/primitives/form-object">
+    `FormObject` reads and writes a form as a nested object.
+  </Card>
+  <Card icon={<Route />} title="Routing" href="/primitives/routing">
+    Location, search params, URL patterns and `navigate`: a router from signals.
+  </Card>
+  <Card icon={<Layers />} title="Context" href="/primitives/context">
+    `setContext` / `getContext` across JSX, custom elements and scopes.
+  </Card>
+  <Card icon={<Cable />} title="DOM events" href="/primitives/events">
+    `on`, hover, focus-within, click-outside, long-press.
+  </Card>
+  <Card icon={<Eye />} title="Observers" href="/primitives/observers">
+    Element size and scroll, resize, intersection and mutation observers.
+  </Card>
+  <Card icon={<MonitorSmartphone />} title="Browser state" href="/primitives/browser-state">
+    Media queries, window size, orientation, online status, devices.
+  </Card>
+  <Card icon={<Clock />} title="Timing" href="/primitives/timing">
+    Timeouts, intervals, debounced, throttled and previous values.
+  </Card>
+  <Card icon={<Music />} title="Media" href="/primitives/media">
+    Audio and video player state as signals.
+  </Card>
+  <Card icon={<Wrench />} title="Building primitives" href="/primitives/building-primitives">
+    `fromEvent` and `sync`: turn any event API into a signal.
+  </Card>
+</Cards>
+
+## Catalog
+
+Every primitive imports from `elements-kit/utilities/<module>`. **Universal** primitives run anywhere; **browser** ones need a DOM and return neutral defaults on the server.
+
+| Primitive | Module | Returns | Runs in |
+|-----------|--------|---------|---------|
+| **Data** | | | |
+| [`promise`](/primitives/promise) | `promise` | `ComputedPromise<T>` | Universal |
+| [`async`](/primitives/async) | `async` | `Async<T>` | Universal |
+| [`retry`](/primitives/retry) | `retry` | `() => Promise<T>` | Universal |
+| [`createLocalStorage`](/primitives/storage#createlocalstorage) | `storage` | `Signal<T>` | Browser |
+| [`createSessionStorage`](/primitives/storage#createsessionstorage) | `storage` | `Signal<T>` | Browser |
+| **Forms** | | | |
+| [`FormObject`](/primitives/form-object) | `form-object` | `{ toObject, fromObject, clear }` | Browser |
+| **Routing** | | | |
+| [`currentLocation`](/primitives/routing#currentlocation) | `location` | `{ hash, href, pathname, search }` | Browser |
+| [`createSearchParam`](/primitives/routing#createsearchparam) | `search-params` | `Computed<string \| null>` | Browser |
+| [`navigate`](/primitives/routing#navigate) | `routing` | `void` | Browser |
+| [`matches`](/primitives/routing#matches) / [`match`](/primitives/routing#match) | `routing` | `Computed<boolean>` / `Computed<URLPatternResult \| null>` | Browser |
+| [`isLocalNavigationEvent`](/primitives/routing#islocalnavigationevent) | `routing` | `boolean` | Browser |
+| **Context** | | | |
+| [`setContext` / `getContext`](/primitives/context) | `context` | `void` / `T \| undefined` | Universal |
+| **DOM events** | | | |
+| [`on`](/primitives/events#on) | `event-listener` | `() => void` | Browser |
+| [`createHover`](/primitives/events#createhover) | `hover` | `Computed<boolean>` | Browser |
+| [`createFocusWithin`](/primitives/events#createfocuswithin) | `focus-within` | `Computed<boolean>` | Browser |
+| [`onClickOutside`](/primitives/events#onclickoutside) | `on-click-outside` | `() => void` | Browser |
+| [`createLongPress`](/primitives/events#createlongpress) | `long-press` | `() => void` | Browser |
+| [`activeElement`](/primitives/events#activeelement) | `active-element` | `Computed<Element \| null>` | Browser |
+| **Observers** | | | |
+| [`createElementRect`](/primitives/observers#createelementrect) | `element-rect` | `ElementRect` | Browser |
+| [`createElementScroll`](/primitives/observers#createelementscroll) | `element-scroll` | `{ x, y } & Disposable` | Browser |
+| [`createResizeObserver`](/primitives/observers#createresizeobserver) | `resize-observer` | `Disposable` | Browser |
+| [`createIntersectionObserver`](/primitives/observers#createintersectionobserver) | `intersection-observer` | `Disposable` | Browser |
+| [`createMutationObserver`](/primitives/observers#createmutationobserver) | `mutation-observer` | `Disposable` | Browser |
+| **Browser state** | | | |
+| [`createMediaQuery`](/primitives/browser-state#createmediaquery) | `media-query` | `Computed<boolean>` | Browser |
+| [`windowSize`](/primitives/browser-state#windowsize) | `window-size` | `{ width, height }` | Browser |
+| [`orientation`](/primitives/browser-state#orientation) | `orientation` | `Computed<…>` | Browser |
+| [`online`](/primitives/browser-state#online) | `network` | `Computed<boolean>` | Browser |
+| `windowFocused` | `window-focus` | `Computed<boolean>` | Browser |
+| [`createMediaDevices`](/primitives/browser-state#createmediadevices) | `media-devices` | `Computed<MediaDeviceInfo[]>` | Browser |
+| **Timing** | | | |
+| [`createTimeout`](/primitives/timing#createtimeout) | `timeout` | `{ pending, start, stop, reset }` | Universal |
+| [`createInterval`](/primitives/timing#createinterval) | `interval` | `{ pending, start, stop, reset }` | Universal |
+| [`createDebounced`](/primitives/timing#createdebounced) | `debounced` | `Computed<T>` | Universal |
+| [`createThrottled`](/primitives/timing#createthrottled) | `throttled` | `Computed<T>` | Universal |
+| [`createPrevious`](/primitives/timing#createprevious) | `previous` | `Computed<T \| undefined>` | Universal |
+| **Media** | | | |
+| [`createMediaPlayer`](/primitives/media#createmediaplayer) | `media-player` | `{ playing, muted, volume, … }` | Browser |
+| **Building primitives** | | | |
+| [`fromEvent`](/primitives/building-primitives#fromevent) | `event-driven` | `Subscribe` | Universal |
+| [`sync`](/primitives/building-primitives#sync) | `event-driven` | `[Computed<T> \| Signal<T>, () => void]` | Universal |
+
+---
+
+## Use them anywhere
+
+Utilities return plain signals and computeds. `useSignal` from `elements-kit/integrations/react` connects them to React components with no special glue.
+
+**Singleton utilities** are module-level values shared across the whole app. Pass them directly to `useSignal`:
+
+```tsx
+import { useSignal } from "elements-kit/integrations/react";
+import { windowSize } from "elements-kit/utilities/window-size";
+import { currentLocation } from "elements-kit/utilities/location";
+
+function Layout() {
+  const width = useSignal(windowSize.width);
+  const path = useSignal(currentLocation.pathname);
+  return <p>{path}: {width}px wide</p>;
+}
+```
+
+**Factory utilities** with per-component lifetime go inside `useScope` so they are created and cleaned up with the component:
+
+```tsx
+import { useSignal, useScope } from "elements-kit/integrations/react";
+import { createDebounced } from "elements-kit/utilities/debounced";
+import { signal } from "elements-kit/signals";
+
+const query = signal("");
+
+function Search() {
+  const debounced = useScope(() => createDebounced(query, 300));
+  return (
+    <>
+      <input onInput={(e) => query(e.currentTarget.value)} />
+      <p>Searching for: {debounced}</p>
+    </>
+  );
+}
+```
+
+**Writable signals** from storage or scroll work as both getter (via `useSignal`) and setter (call directly):
+
+```tsx
+import { useSignal } from "elements-kit/integrations/react";
+import { createLocalStorage } from "elements-kit/utilities/storage";
+
+const theme = createLocalStorage("theme", "light");
+
+function ThemeToggle() {
+  const current = useSignal(theme);
+  return (
+    <button onClick={() => theme(current === "light" ? "dark" : "light")}>
+      {current}
+    </button>
+  );
+}
+```
+
+---
+
+## See also
+
+- [Signals](/signals): the core every primitive returns
+- [Scopes & cleanup](/scopes): how primitives release listeners and timers
+- [Integrations](/integrations): React, Vue, Svelte and more

@@ -1,0 +1,106 @@
+---
+title: Svelte
+description: Use elements-kit custom elements in Svelte with typed props via SvelteHTMLElements.
+---
+
+A custom element built with elements-kit is just `class extends HTMLElement` registered via `customElements.define`. Svelte renders it fine at runtime in both Svelte 4 and Svelte 5 (runes mode), but you need a small augmentation to get typed props, narrowed `bind:this` refs, and editor autocomplete.
+
+```ts
+// shared element — built once, used anywhere
+import { defineElement } from "elements-kit/custom-elements";
+import { reactive } from "elements-kit/signals";
+
+export class XCounter extends HTMLElement {
+  @reactive() count = 0;
+}
+
+defineElement("x-counter", XCounter);
+```
+
+## Source the prop shape from the class
+
+Three type helpers exported from `elements-kit/custom-elements` read the raw platform surface off the class. All three take the constructor (`typeof XCounter`); `PropertiesOf` also accepts an instance type.
+
+| Helper | Shape | Use when |
+|---|---|---|
+| `PropertiesOf<typeof XCounter>` | Public instance fields, all optional — the `HTMLElement` surface is dropped; `Slot`-typed fields accept a `Node` | Typing property assignments — prop bindings, wrappers, helper functions |
+| `AttributesOf<typeof XCounter>` | Every key of `static [ATTRIBUTES]`, valued `string \| null` | Typing the raw HTML attribute surface — `setAttribute`, server-rendered markup |
+| `EventsOf<typeof XCounter>` | The `static events` map, verbatim — event name to event type | Typing `addEventListener`, framework event bindings, `HTMLElementEventMap` augmentations |
+
+Namespaced JSX props (`on:*`, `class:*`) don't exist in other
+frameworks. Slot content is set at property level (they're regular
+properties — assign to fill, read to inspect; `PropertiesOf` types those
+keys as content), and events attach with `addEventListener`, typed via
+`EventsOf`.
+
+## Augment Svelte's `SvelteHTMLElements`
+
+```ts
+import type { HTMLAttributes } from "svelte/elements";
+import type { PropertiesOf } from "elements-kit/custom-elements";
+import type { XCounter } from "./x-counter";
+
+declare module "svelte/elements" {
+  export interface SvelteHTMLElements {
+    "x-counter": HTMLAttributes<XCounter> & PropertiesOf<typeof XCounter>;
+  }
+}
+
+// <x-counter count={5} bind:this={el} />  — el: XCounter
+```
+
+`HTMLAttributes<XCounter>` provides the standard HTML attribute surface (`class`, `id`, event handlers, …) and ensures `bind:this` resolves to `XCounter`.
+
+## Co-locate the augmentation with the class
+
+Put the `declare module "svelte/elements"` block in the same file as the element class. Importing the class then brings the augmentation along — consumers don't have to remember to write it themselves.
+
+```ts
+// x-counter.ts
+import { defineElement, type PropertiesOf } from "elements-kit/custom-elements";
+import { reactive } from "elements-kit/signals";
+import type { HTMLAttributes } from "svelte/elements";
+
+export class XCounter extends HTMLElement {
+  @reactive() count = 0;
+}
+
+defineElement("x-counter", XCounter);
+
+declare module "svelte/elements" {
+  export interface SvelteHTMLElements {
+    "x-counter": HTMLAttributes<XCounter> & PropertiesOf<typeof XCounter>;
+  }
+}
+```
+
+Make sure the file is referenced in your `tsconfig.json`'s `include` array so TypeScript picks up the augmentation.
+
+## Typed `document.querySelector` and `createElement`
+
+Independent of any framework, augmenting the global `HTMLElementTagNameMap` gives you typed lookups in plain DOM code:
+
+```ts
+declare global {
+  interface HTMLElementTagNameMap {
+    "x-counter": XCounter;
+  }
+}
+
+const el = document.querySelector("x-counter"); // XCounter | null
+```
+
+Worth doing alongside the Svelte augmentation.
+
+---
+
+## See also
+
+- [Custom Elements overview](/custom-elements)
+- [React integration](/integrations/react)
+- [Solid integration](/integrations/solid)
+- [Vue integration](/integrations/vue)
+- [Angular integration](/integrations/angular)
+- [Lit integration](/integrations/lit)
+- [Astro integration](/integrations/astro)
+- [Qwik integration](/integrations/qwik)

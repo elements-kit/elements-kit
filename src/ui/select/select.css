@@ -1,0 +1,256 @@
+/***************************************************************************************************
+ *                                                                                                 *
+ * x-select — native <select>. The popup is OS-native;                                             *
+ * we only own the closed trigger.                                                                 *
+ *                                                                                                 *
+ *   <select class="x-select unset" data-variant="surface" data-size="2">                          *
+ *     <option>One</option>                                                                        *
+ *     <option>Two</option>                                                                        *
+ *   </select>                                                                                     *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-select {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  user-select: none;
+  vertical-align: top;
+
+  appearance: none;
+  -webkit-appearance: none;
+
+  font-family: var(--default-font-family);
+  font-weight: 500;
+  font-style: normal;
+  text-align: start;
+
+  /* Truncate long selected-option text with an ellipsis. Without this, the option
+     text overflows into / under the chevron region (chevron is at `right N center`
+     inside the content area). The user controls visible width via min-width / width
+     in `ch` (or any unit); ellipsis kicks in when an option exceeds it. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  cursor: var(--cursor-button);
+
+  /* `currentColor` does not work here: a `data:` URI SVG is its own document, so
+     the stroke resolved against the SVG's initial colour (black) and the chevron
+     stayed black in dark mode. `url()` can't take a `var()` either, so the colour
+     is a literal tracking --gray-12, and the whole URL swaps per theme below. */
+  --select-chevron-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path fill='none' stroke='%23202020' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' d='M3 5l3 3 3-3'/></svg>");
+
+  background-image: var(--select-chevron-image);
+  background-repeat: no-repeat;
+  background-position: right var(--select-chevron-inset) center;
+  background-size: var(--select-chevron-size) var(--select-chevron-size);
+
+  /* chevron at the inline end */
+  &:dir(rtl) {
+    background-position: left var(--select-chevron-inset) center;
+  }
+}
+
+/* Ancestor form covers the usual `<html class="dark">`; self form covers a
+   select carrying the theme class itself. */
+:where(.dark, .dark-theme) .x-select,
+.x-select:where(.dark, .dark-theme) {
+  --select-chevron-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path fill='none' stroke='%23eeeeee' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' d='M3 5l3 3 3-3'/></svg>");
+}
+
+/* Disabled dims to --gray-11. Order matters: these sit after the dark rule
+   above, and every selector here is specificity 0,1,0, so the later one wins. */
+.x-select:where(:disabled) {
+  --select-chevron-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path fill='none' stroke='%23646464' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' d='M3 5l3 3 3-3'/></svg>");
+}
+:where(.dark, .dark-theme) .x-select:where(:disabled),
+.x-select:where(.dark, .dark-theme):where(:disabled) {
+  --select-chevron-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path fill='none' stroke='%23b4b4b4' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' d='M3 5l3 3 3-3'/></svg>");
+}
+
+.x-select:where(:focus-visible) {
+  outline: 2px solid var(--focus-8);
+  outline-offset: -1px;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SIZES                                                                                           *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-select:where([data-size="1"]) {
+  --select-chevron-size: 12px;
+  --select-chevron-inset: var(--space-2);
+  gap: var(--space-1);
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
+  letter-spacing: var(--letter-spacing-1);
+  border-radius: max(var(--radius-1), var(--radius-pill));
+}
+.x-select:where([data-size="1"]):where(:not([data-variant="text"])) {
+  /* Symmetric padding-block (instead of explicit `height`) is what makes the
+     option text actually center vertically on a native <select>. Replaced
+     elements ignore line-height-fills-box tricks — they pull the rendered
+     glyph down to the box baseline, leaving the centered background chevron
+     hovering above the text. Calc'd padding makes the visual height still
+     equal --space-5 but with the text guaranteed in the middle. */
+  padding-block: calc((var(--space-5) - var(--line-height-1)) / 2);
+  padding-inline-start: var(--space-2);
+  /* Reserve chevron space at the end (inset + glyph + small gap) so option text
+     never overlaps the background-image chevron. */
+  padding-inline-end: calc(
+    var(--select-chevron-inset) + var(--select-chevron-size) + var(--space-1)
+  );
+}
+.x-select:where([data-size="1"]):where([data-variant="text"]) {
+  --select-text-padding-x: var(--space-2);
+  --select-text-padding-y: var(--space-1);
+}
+
+.x-select:where(:not([data-size]), [data-size="2"]) {
+  --select-chevron-size: 14px;
+  --select-chevron-inset: var(--space-3);
+  gap: calc(var(--space-1) * 1.5);
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-2);
+  letter-spacing: var(--letter-spacing-2);
+  border-radius: max(var(--radius-2), var(--radius-pill));
+}
+.x-select:where(:not([data-size]), [data-size="2"]):where(
+    :not([data-variant="text"])
+  ) {
+  padding-block: calc((var(--space-6) - var(--line-height-2)) / 2);
+  padding-inline-start: var(--space-3);
+  padding-inline-end: calc(
+    var(--select-chevron-inset) + var(--select-chevron-size) + var(--space-1)
+  );
+}
+.x-select:where(:not([data-size]), [data-size="2"]):where(
+    [data-variant="text"]
+  ) {
+  --select-text-padding-x: var(--space-2);
+  --select-text-padding-y: var(--space-1);
+}
+
+.x-select:where([data-size="3"]) {
+  --select-chevron-size: 16px;
+  --select-chevron-inset: var(--space-4);
+  gap: var(--space-2);
+  font-size: var(--font-size-3);
+  line-height: var(--line-height-3);
+  letter-spacing: var(--letter-spacing-3);
+  border-radius: max(var(--radius-3), var(--radius-pill));
+}
+.x-select:where([data-size="3"]):where(:not([data-variant="text"])) {
+  padding-block: calc((var(--space-7) - var(--line-height-3)) / 2);
+  padding-inline-start: var(--space-4);
+  padding-inline-end: calc(
+    var(--select-chevron-inset) + var(--select-chevron-size) + var(--space-2)
+  );
+}
+.x-select:where([data-size="3"]):where([data-variant="text"]) {
+  --select-text-padding-x: var(--space-3);
+  --select-text-padding-y: calc(var(--space-1) * 1.5);
+}
+
+.x-select:where([data-variant="text"]) {
+  box-sizing: content-box;
+  height: fit-content;
+  padding: var(--select-text-padding-y) var(--select-text-padding-x);
+
+  /* Reserve chevron space at the end so option text doesn't overlap it. */
+  padding-inline-end: calc(
+    var(--select-chevron-inset) + var(--select-chevron-size) + var(--space-1)
+  );
+
+  --margin-top: 0px;
+  --margin-right: 0px;
+  --margin-bottom: 0px;
+  --margin-left: 0px;
+
+  --margin-top-override: calc(var(--margin-top) - var(--select-text-padding-y));
+  --margin-right-override: calc(
+    var(--margin-right) - var(--select-text-padding-x)
+  );
+  --margin-bottom-override: calc(
+    var(--margin-bottom) - var(--select-text-padding-y)
+  );
+  --margin-left-override: calc(
+    var(--margin-left) - var(--select-text-padding-x)
+  );
+
+  margin: var(--margin-top-override) var(--margin-right-override)
+    var(--margin-bottom-override) var(--margin-left-override);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * VARIANTS                                                                                        *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* surface (default) */
+
+.x-select:where(:not([data-variant]), [data-variant="surface"]) {
+  color: var(--neutral-12);
+  background-color: transparent;
+  box-shadow: inset 0 0 0 1px var(--neutral-a7);
+}
+
+@media (hover: hover) {
+  .x-select:where(:not([data-variant]), [data-variant="surface"]):where(
+      :hover
+    ) {
+    box-shadow: inset 0 0 0 1px var(--neutral-a8);
+  }
+}
+
+.x-select:where(:not([data-variant]), [data-variant="surface"]):where(
+    :disabled
+  ) {
+  color: var(--neutral-a11);
+  background-color: var(--neutral-a2);
+  box-shadow: inset 0 0 0 1px var(--neutral-a6);
+}
+
+/* soft */
+
+.x-select:where([data-variant="soft"]) {
+  color: var(--accent-12);
+  background-color: var(--accent-a3);
+}
+
+@media (hover: hover) {
+  .x-select:where([data-variant="soft"]):where(:hover) {
+    background-color: var(--accent-a4);
+  }
+}
+
+.x-select:where([data-variant="soft"]):where(:focus-visible) {
+  outline-color: var(--accent-8);
+}
+
+.x-select:where([data-variant="soft"]):where(:disabled) {
+  color: var(--neutral-a11);
+  background-color: var(--neutral-a3);
+}
+
+/* text */
+
+.x-select:where([data-variant="text"]) {
+  color: var(--accent-12);
+}
+
+@media (hover: hover) {
+  .x-select:where([data-variant="text"]):where(:hover) {
+    background-color: var(--accent-a3);
+  }
+}
+
+.x-select:where([data-variant="text"]):where(:disabled) {
+  color: var(--neutral-a11);
+  background-color: transparent;
+}

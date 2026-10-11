@@ -1,0 +1,790 @@
+/*
+ * Toolbar primitive — a large title that collapses into the bar.
+ *
+ * Where view timelines are supported (Chrome 115+, Safari 26), the large title's own timeline drives
+ * the collapse (COLLAPSE below), no JS. Elsewhere JS writes the scroll position (px) as --scroll-y on
+ * the bars and the large title, and the distance left to scroll as --scroll-y-end on a bottom bar;
+ * they compute their own progress from it.
+ *
+ *   <header class="x-toolbar">…regions…</header>   bar (optional)
+ *   <h1 class="x-large-title">Settings</h1>        large title (optional), one line;
+ *                                                  data-size="1 | 2 | 3" 24 / 28 / 35px (default 3)
+ *   <div>…content…</div>                           everything after the title, in one element
+ *
+ * The bar may come after the title instead (search): the title scrolls away, the bar pins.
+ * Regions follow child order: start, center, end. A bare [data-title] is the center, a lone
+ * child centers, a region holding an input fills its column.
+ *
+ *   data-position="bottom"                 last child of the scroll container; background while
+ *                                          content is below it, clear at the end
+ *   data-reveal="always"                   background (and a bar title under a large title) shown
+ *                                          from the start, no fade
+ *   data-reveal="none"                     never revealed: no background or hairline, and no bar
+ *                                          title under a large title (top and bottom bars)
+ *   data-inset="top | bottom" in .x-card   the card drops its padding on that edge (a dialog's bars)
+ *   [data-title] data-align="start"        title at the start, filling the free space (first: at the
+ *                                          bar's start; after a back button: next to it)
+ *   data-variant="surface | clean | soft"  surface: material background + hairline (default)
+ *                                          clean: no bar; float controls in
+ *                                          <div class="x-group" data-variant="material">
+ *                                          soft: clean + a gradient blur at the screen edge
+ *   --toolbar-button-gap, --toolbar-region-gap, --toolbar-edge-blur (soft, default 8px)
+ *
+ * Neither: --scroll-y defaults to 0, the top of the screen — no bar background, and no bar title
+ * under a large title — so server-rendered HTML paints right before any script runs.
+ */
+
+/* progress: the timeline animates these, or --scroll-y computes them; styles only read them */
+@property --x-toolbar-reveal {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+
+@property --x-large-title-fade {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+@property --toolbar-edge-blur {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 8px;
+}
+
+/* the safe areas (a notch, a home indicator), read once */
+:where(:root) {
+  --x-safe-top: env(safe-area-inset-top, 0px);
+  --x-safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SIZE — one formula for every bar                                                                *
+ *                                                                                                 *
+ *   h   = control height of the bar's data-size (1–4, default 2): --space-5 | 6 | 7 | 8            *
+ *   cap = capsule padding: --space-1 in clean/soft (controls float in material groups), else 0     *
+ *   row = h + 2·cap                                                                               *
+ *   bar = safe area + start + n·row + (n − 1)·gap + end        (n rows: 1, or a group's 2–3)      *
+ *                                                                                                 *
+ *   surface               start = gap = end = --space-3                                           *
+ *   clean / soft, top     start --space-4, gap --space-4, end --space-2                           *
+ *   clean / soft, bottom  start --space-1, gap --space-4, end --space-4                           *
+ *                                                                                                 *
+ * A stacked control is taller, in units of h / 32: a button or toggle 56, a segmented track 58.   *
+ * A bar states the parameters from its own attributes; its rows inherit them (a group is a bar,  *
+ * not a frame). An .x-frame with a bar as a child gets them too, for its scroll padding and for  *
+ * the large title. The :has() is anchored on .x-frame: one whose subject can be any element is   *
+ * re-checked for every element the page restyles. A bar's height is a minimum: taller content   *
+ * grows it.                                                                                       *                                                               *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-toolbar:not([data-position="bottom"]):not(.x-toolbar .x-toolbar),
+.x-frame:has(> .x-toolbar:not([data-position="bottom"])) {
+  --x-top-h: var(--space-6);
+  --x-top-control: var(--x-top-h);
+  --x-top-cap: 0px;
+  --x-top-start: var(--space-3);
+  --x-top-gap: var(--space-3);
+  --x-top-end: var(--space-3);
+  --x-top-rows: 1;
+  --x-top-row: calc(var(--x-top-control) + 2 * var(--x-top-cap));
+  --toolbar-height: calc(
+    var(--x-safe-top) + var(--x-top-start) + var(--x-top-rows) *
+      var(--x-top-row) + (var(--x-top-rows) - 1) * var(--x-top-gap) +
+      var(--x-top-end)
+  );
+  scroll-padding-block-start: var(--toolbar-height);
+}
+
+.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar),
+.x-frame:has(> .x-toolbar[data-position="bottom"]) {
+  --x-bottom-h: var(--space-6);
+  --x-bottom-control: var(--x-bottom-h);
+  --x-bottom-cap: 0px;
+  --x-bottom-start: var(--space-3);
+  --x-bottom-gap: var(--space-3);
+  --x-bottom-end: var(--space-3);
+  --x-bottom-rows: 1;
+  --x-bottom-row: calc(var(--x-bottom-control) + 2 * var(--x-bottom-cap));
+  --toolbar-bottom-height: calc(
+    var(--x-bottom-start) + var(--x-bottom-rows) * var(--x-bottom-row) +
+      (var(--x-bottom-rows) - 1) * var(--x-bottom-gap) + var(--x-bottom-end) +
+      var(--x-safe-bottom)
+  );
+  scroll-padding-block-end: var(--toolbar-bottom-height);
+}
+
+/* h */
+.x-toolbar:not([data-position="bottom"]):not(.x-toolbar .x-toolbar)[data-size="1"],
+.x-frame:has(> .x-toolbar:not([data-position="bottom"])[data-size="1"]) {
+  --x-top-h: var(--space-5);
+}
+.x-toolbar:not([data-position="bottom"]):not(.x-toolbar .x-toolbar)[data-size="3"],
+.x-frame:has(> .x-toolbar:not([data-position="bottom"])[data-size="3"]) {
+  --x-top-h: var(--space-7);
+}
+.x-toolbar:not([data-position="bottom"]):not(.x-toolbar .x-toolbar)[data-size="4"],
+.x-frame:has(> .x-toolbar:not([data-position="bottom"])[data-size="4"]) {
+  --x-top-h: var(--space-8);
+}
+.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar)[data-size="1"],
+.x-frame:has(> .x-toolbar[data-position="bottom"][data-size="1"]) {
+  --x-bottom-h: var(--space-5);
+}
+.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar)[data-size="3"],
+.x-frame:has(> .x-toolbar[data-position="bottom"][data-size="3"]) {
+  --x-bottom-h: var(--space-7);
+}
+.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar)[data-size="4"],
+.x-frame:has(> .x-toolbar[data-position="bottom"][data-size="4"]) {
+  --x-bottom-h: var(--space-8);
+}
+
+/* clean / soft */
+.x-toolbar:not([data-position="bottom"]):not(.x-toolbar .x-toolbar):is([data-variant="soft"], [data-variant="clean"]),
+.x-frame:has(> .x-toolbar:not([data-position="bottom"]):is([data-variant="soft"], [data-variant="clean"])) {
+  --x-top-cap: var(--space-1);
+  --x-top-start: var(--space-4);
+  --x-top-gap: var(--space-4);
+  --x-top-end: var(--space-2);
+}
+.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar):is([data-variant="soft"], [data-variant="clean"]),
+.x-frame:has(> .x-toolbar[data-position="bottom"]:is([data-variant="soft"], [data-variant="clean"])) {
+  --x-bottom-cap: var(--space-1);
+  --x-bottom-start: var(--space-1);
+  --x-bottom-gap: var(--space-4);
+  --x-bottom-end: var(--space-4);
+}
+
+/* rows of a group */
+.x-toolbar:not([data-position="bottom"]):not(.x-toolbar .x-toolbar):has(> .x-toolbar + .x-toolbar),
+.x-frame:has(> .x-toolbar:not([data-position="bottom"]) > .x-toolbar + .x-toolbar) {
+  --x-top-rows: 2;
+}
+.x-toolbar:not([data-position="bottom"]):not(.x-toolbar .x-toolbar):has(> .x-toolbar + .x-toolbar + .x-toolbar),
+.x-frame:has(> .x-toolbar:not([data-position="bottom"]) > .x-toolbar + .x-toolbar + .x-toolbar) {
+  --x-top-rows: 3;
+}
+.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar):has(> .x-toolbar + .x-toolbar),
+.x-frame:has(> .x-toolbar[data-position="bottom"] > .x-toolbar + .x-toolbar) {
+  --x-bottom-rows: 2;
+}
+.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar):has(> .x-toolbar + .x-toolbar + .x-toolbar),
+.x-frame:has(> .x-toolbar[data-position="bottom"] > .x-toolbar + .x-toolbar + .x-toolbar) {
+  --x-bottom-rows: 3;
+}
+
+/* a stacked control (stacked, stacked-icon): a button or toggle 56 units, a segmented track 58 */
+.x-toolbar:not([data-position="bottom"]):not(.x-toolbar .x-toolbar):has(:is(.x-button, .x-toggle)[data-layout^="stacked"]),
+.x-frame:has(> .x-toolbar:not([data-position="bottom"]) :is(.x-button, .x-toggle)[data-layout^="stacked"]) {
+  --x-top-control: calc(var(--x-top-h) * 56 / 32);
+}
+.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar):has(:is(.x-button, .x-toggle)[data-layout^="stacked"]),
+.x-frame:has(> .x-toolbar[data-position="bottom"] :is(.x-button, .x-toggle)[data-layout^="stacked"]) {
+  --x-bottom-control: calc(var(--x-bottom-h) * 56 / 32);
+}
+.x-toolbar:not([data-position="bottom"]):not(.x-toolbar .x-toolbar):has(.x-segmented-control[data-layout="stacked"]),
+.x-frame:has(> .x-toolbar:not([data-position="bottom"]) .x-segmented-control[data-layout="stacked"]) {
+  --x-top-control: calc(var(--x-top-h) * 58 / 32);
+}
+.x-toolbar[data-position="bottom"]:not(.x-toolbar .x-toolbar):has(.x-segmented-control[data-layout="stacked"]),
+.x-frame:has(> .x-toolbar[data-position="bottom"] .x-segmented-control[data-layout="stacked"]) {
+  --x-bottom-control: calc(var(--x-bottom-h) * 58 / 32);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * FRAME — .x-frame: the box the bars sit on the edges of; focus stops below them                 *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* the large title's view timeline, visible to the bars (see COLLAPSE) */
+.x-frame:has(> .x-large-title) {
+  timeline-scope: --x-large-title;
+}
+
+/* short content: a column, so the bottom bar's margin-block-start: auto keeps it at the bottom */
+.x-frame:has(> .x-toolbar[data-position="bottom"]) {
+  display: flex;
+  flex-direction: column;
+}
+
+/* its children are the bar and the bar's siblings — named as such, not `:has(…) > *`, whose
+   `:has()` above the child is re-checked on every DOM change in the page; the parent is named
+   first, so the `:has()` runs only on a frame's children */
+:is(.x-frame > *):has(~ .x-toolbar[data-position="bottom"]),
+.x-toolbar[data-position="bottom"],
+.x-toolbar[data-position="bottom"] ~ * {
+  flex-shrink: 0;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * BAR                                                                                             *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-toolbar,
+.x-large-title {
+  /* the title's line (data-size, below); one line + padding: known without measuring */
+  --x-large-title-line: var(--heading-line-height-8);
+  --x-large-title-height: calc(
+    var(--x-large-title-line) + var(--space-4) + var(--space-2)
+  );
+}
+
+/* large title data-size: 1 · 2 · 3 (default); the bar beside it reads the same line for its
+   collapse distance */
+.x-large-title[data-size="1"],
+.x-toolbar:has(+ .x-large-title[data-size="1"]),
+.x-large-title[data-size="1"] + .x-toolbar {
+  --x-large-title-line: var(--heading-line-height-6);
+}
+
+.x-large-title[data-size="2"],
+.x-toolbar:has(+ .x-large-title[data-size="2"]),
+.x-large-title[data-size="2"] + .x-toolbar {
+  --x-large-title-line: var(--heading-line-height-7);
+}
+
+.x-toolbar {
+  --toolbar-button-gap: var(--space-2);
+  --toolbar-region-gap: var(--space-2);
+  /* the end region's column; layouts with two columns set 2 (REGIONS) */
+  --x-toolbar-end-column: 3;
+  /* scroll distance to reveal the background: content under the bar (no large title) */
+  --x-toolbar-distance: var(--space-2);
+  /* fades in over the last 40% of the distance (atan2 trick = length ÷ length) */
+  --x-toolbar-reveal: clamp(
+    0,
+    (tan(atan2(var(--scroll-y), var(--x-toolbar-distance))) - 0.6) / 0.4,
+    1
+  );
+
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+  touch-action: manipulation;
+  display: grid;
+  /* start | center | end — equal sides keep the center centered */
+  grid-template-columns: 1fr minmax(0, auto) 1fr;
+  align-items: center;
+  gap: var(--toolbar-region-gap);
+  box-sizing: border-box;
+  /* SIZE: the insets pad the controls; the formula is the minimum */
+  min-block-size: var(--toolbar-height);
+  padding-block: calc(var(--x-safe-top) + var(--x-top-start)) var(--x-top-end);
+  padding-inline: var(--space-4);
+
+  font-family: var(--default-font-family);
+  font-size: var(--font-size-3);
+  font-weight: var(--font-weight-medium);
+
+  /* material + hairline; same as card: material from data-material-background, else surface */
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-color: var(--color-material, var(--color-surface));
+    backdrop-filter: var(--backdrop-filter-material, none);
+    box-shadow: inset 0 -1px 0 var(--neutral-a5);
+    opacity: var(--x-toolbar-reveal);
+  }
+
+  & [data-title] {
+    min-inline-size: 0;
+    max-inline-size: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* data-reveal="always" | "none": held revealed or hidden (the timelines skip both, below) */
+.x-toolbar[data-reveal="always"] {
+  --x-toolbar-reveal: 1;
+}
+
+.x-toolbar[data-reveal="none"] {
+  --x-toolbar-reveal: 0;
+}
+
+/* inset in a card (a dialog): the card is a scroller (overflow: hidden) and a sticky bar stops at
+   a scroller's padding, so the card drops its padding on the bar's edge; the bar pads itself */
+.x-card:has(> .x-toolbar[data-inset="top"]) {
+  --card-padding-block-start: 0px;
+}
+
+.x-card:has(> .x-toolbar[data-inset="bottom"]) {
+  --card-padding-block-end: 0px;
+}
+
+/* with a large title (before or after the bar): background and bar title follow the collapse */
+.x-toolbar:has(+ .x-large-title),
+.x-large-title + .x-toolbar {
+  --x-toolbar-distance: var(--x-large-title-height);
+
+  & [data-title] {
+    opacity: var(--x-toolbar-reveal);
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * REGIONS — zero specificity: components keep their own display; later rules win by order        *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* regions, and any wrapper of buttons inside them (so buttons center on the title). Region
+   `:has()`s name their parent first, so they run only inside a bar. */
+:where(
+  .x-toolbar > :not([data-title]),
+  :is(.x-toolbar *):not(.x-button):has(> .x-button)
+) {
+  display: flex;
+  align-items: center;
+  gap: var(--toolbar-button-gap);
+}
+
+/* between text buttons: twice their bleed, so neighbours' tap areas touch */
+:where(:is(.x-toolbar > *):has(> .x-button[data-variant="text"])) {
+  gap: var(--space-4);
+}
+
+:where(.x-toolbar > :first-child) {
+  grid-column: 1;
+  justify-self: start;
+}
+
+:where(.x-toolbar > :nth-child(2):not(:last-child)) {
+  grid-column: 2;
+  justify-self: center;
+}
+
+/* The column comes from the bar: a `:has()` on the bar itself is cheap, while one above the child
+   (`.x-toolbar:has(…) > :last-child`) is re-checked on every DOM change in the page. */
+:where(.x-toolbar > :last-child:not(:first-child)) {
+  grid-column: var(--x-toolbar-end-column);
+  justify-self: end;
+}
+
+/* start and end only: start takes the free space (title next to back) */
+.x-toolbar:not(:has(> :nth-child(3), > [data-title])) {
+  grid-template-columns: minmax(0, 1fr) auto;
+  --x-toolbar-end-column: 2;
+}
+
+:where(.x-toolbar > [data-title]) {
+  grid-column: 2;
+  justify-self: center;
+}
+
+:where(.x-toolbar > :only-child) {
+  grid-column: 1 / -1;
+  justify-self: center;
+}
+
+/* data-align="start": the title at the start, its column takes the free space */
+:where(.x-toolbar > [data-title][data-align="start"]) {
+  justify-self: start;
+}
+
+/* first: title | middle | end */
+.x-toolbar:has(> [data-title][data-align="start"]:first-child:not(:only-child)) {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+:where(.x-toolbar > [data-title][data-align="start"]:first-child) {
+  grid-column: 1;
+}
+
+/* first of two: title | end */
+.x-toolbar:has(> [data-title][data-align="start"]:first-child:nth-last-child(2)) {
+  grid-template-columns: minmax(0, 1fr) auto;
+  --x-toolbar-end-column: 2;
+}
+
+/* after a start item (back): start | title | end */
+.x-toolbar:has(> [data-title][data-align="start"]:not(:first-child)) {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+/* a region holding the title may shrink (the title truncates); button regions keep their size */
+:where(:is(.x-toolbar > *):has([data-title])) {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+
+/* a region holding an input (search) fills its column; a toggle's input is a button, not a field */
+:where(:is(.x-toolbar > *):has(input:not(.x-toggle > input), textarea)) {
+  justify-self: stretch;
+  min-inline-size: 0;
+}
+
+.x-toolbar .x-text-input {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * POSITION — data-position="bottom"                                                               *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-toolbar[data-position="bottom"] {
+  inset-block: auto 0;
+  margin-block-start: auto;
+  min-block-size: var(--toolbar-bottom-height);
+  /* home indicator below */
+  padding-block: var(--x-bottom-start)
+    calc(var(--x-bottom-end) + var(--x-safe-bottom));
+
+  /* hairline on the top edge */
+  &::before {
+    opacity: var(--x-toolbar-reveal);
+    box-shadow: inset 0 1px 0 var(--neutral-a5);
+  }
+}
+
+/* shown while content is below it: --scroll-y-end is the distance left to scroll (a timeline, or a
+   script without one); unset, always shown */
+.x-toolbar[data-position="bottom"]:not([data-reveal="always"], [data-reveal="none"]) {
+  --x-toolbar-reveal: clamp(
+    0,
+    (tan(atan2(var(--scroll-y-end, 100vh), var(--x-toolbar-distance))) - 0.6) / 0.4,
+    1
+  );
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * VARIANTS — clean and soft: no bar; controls float                                               *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-toolbar[data-variant="clean"]::before {
+  content: none;
+}
+
+/* soft: content blurs and tints at the screen edge, fading back to sharp past the bar */
+.x-toolbar[data-variant="soft"] {
+  --x-toolbar-edge: to bottom;
+
+  &::before {
+    inset-block-end: calc(-1 * var(--space-4));
+    background: linear-gradient(
+      var(--x-toolbar-edge),
+      color-mix(in srgb, var(--color-background) 80%, transparent),
+      transparent
+    );
+    backdrop-filter: blur(var(--toolbar-edge-blur));
+    mask-image: linear-gradient(var(--x-toolbar-edge), black 50%, transparent);
+    box-shadow: none;
+    pointer-events: none;
+  }
+
+  &[data-position="bottom"] {
+    --x-toolbar-edge: to top;
+
+    &::before {
+      inset-block: calc(-1 * var(--space-4)) 0;
+    }
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * GROUPED — a bar of bars: rows that stick as one (a FAB over a tab bar, a search row under a      *
+ * title row). The group paints, unless a row declares its own variant and paints instead.          *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* the group sticks, paints and owns the insets and the safe area; rows gap */
+.x-toolbar:has(> .x-toolbar) {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--x-top-gap);
+  padding-inline: 0;
+
+  &[data-position="bottom"] {
+    gap: var(--x-bottom-gap);
+  }
+}
+
+/* rows: layout only, one row tall; they show their group's reveal */
+.x-toolbar > .x-toolbar {
+  --x-toolbar-reveal: inherit;
+  position: static;
+  min-block-size: var(--x-top-row);
+  padding-block: 0;
+
+  &::before {
+    content: none;
+  }
+}
+
+.x-toolbar[data-position="bottom"] > .x-toolbar {
+  min-block-size: var(--x-bottom-row);
+}
+
+/* a row with its own variant paints it (clean paints nothing) */
+.x-toolbar > .x-toolbar[data-variant]:not([data-variant="clean"]) {
+  position: relative;
+
+  &::before {
+    content: "";
+  }
+}
+
+/* …and the group stays out of the way, so one material and one hairline paint, not two */
+.x-toolbar:has(> .x-toolbar[data-variant]:not([data-variant="clean"]))::before {
+  content: none;
+}
+
+/* a row in a bottom group always shows its background, hairline on the content side */
+.x-toolbar[data-position="bottom"] > .x-toolbar[data-variant]::before {
+  opacity: 1;
+  box-shadow: inset 0 1px 0 var(--neutral-a5);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * LARGE TITLE                                                                                     *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-large-title {
+  margin: 0;
+  /* first on the screen, it sits below the notch; after a bar, the bar has it (below) */
+  padding: calc(var(--x-safe-top) + var(--space-4)) var(--space-4)
+    var(--space-2);
+
+  font-family: var(--default-font-family);
+  font-size: var(--font-size-8);
+  line-height: var(--x-large-title-line);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-8);
+
+  /* one line, so its height is known without measuring */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  /* slides under the bar and fades, no shrink */
+  --x-large-title-fade: clamp(
+    0,
+    tan(atan2(var(--scroll-y), var(--x-large-title-height))),
+    1
+  );
+  opacity: calc(1 - var(--x-large-title-fade));
+}
+
+/* a bar right after the title brings its own space above (12px around a surface field,
+ * 16px to a floating capsule), so the title drops its bottom padding; the collapse runs
+ * over the shorter title */
+.x-large-title:has(+ .x-toolbar) {
+  padding-block-end: 0;
+}
+
+.x-large-title:has(+ .x-toolbar),
+.x-large-title + .x-toolbar {
+  --x-large-title-height: calc(var(--x-large-title-line) + var(--space-4));
+}
+
+/* a bar right before the title is its space above (the title sits right under the bar) */
+.x-toolbar + .x-large-title {
+  padding-block-start: 0;
+}
+
+.x-toolbar:has(+ .x-large-title),
+.x-toolbar + .x-large-title {
+  --x-large-title-height: calc(var(--x-large-title-line) + var(--space-2));
+}
+
+/* a bar after the title isn't at the screen edge until it pins: no inset in its height; it pins
+ * below the notch and its background reaches over it */
+.x-large-title + .x-toolbar {
+  inset-block-start: var(--x-safe-top);
+  min-block-size: calc(var(--toolbar-height) - var(--x-safe-top));
+  padding-block-start: var(--x-top-start);
+
+  &::before {
+    inset-block-start: calc(-1 * var(--x-safe-top));
+  }
+}
+
+.x-large-title[data-size="1"] {
+  font-size: var(--font-size-6);
+  letter-spacing: var(--letter-spacing-6);
+}
+
+.x-large-title[data-size="2"] {
+  font-size: var(--font-size-7);
+  letter-spacing: var(--letter-spacing-7);
+}
+
+.x-large-title[data-align="center"] {
+  text-align: center;
+}
+
+/* with an accessory (at most one line tall): [data-title] truncates, the accessory keeps its size */
+.x-large-title:has(> [data-title]) {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+
+  & > [data-title] {
+    flex: 1;
+    min-inline-size: 0;
+    margin: 0;
+    font: inherit;
+    letter-spacing: inherit;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* centered: mirror the accessory's room, so the title centers on the row */
+  &[data-align="center"] > [data-title] {
+    padding-inline-start: calc(var(--x-large-title-line) + var(--space-3));
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * COLLAPSE — driven by the large title's view timeline where supported (Chrome, Safari 26): the    *
+ * title fades as it exits under the bar, the bar's title and background fade in over the last 40%. *
+ * No JS, and no scroll distance: it follows wherever the title is. Elsewhere, --scroll-y drives   *
+ * the same ranges.                                                                                *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+@keyframes x-toolbar-reveal {
+  from {
+    --x-toolbar-reveal: 0;
+  }
+  to {
+    --x-toolbar-reveal: 1;
+  }
+}
+
+@keyframes x-large-title-fade {
+  from {
+    --x-large-title-fade: 0;
+  }
+  to {
+    --x-large-title-fade: 1;
+  }
+}
+
+/* until a timeline or a script says otherwise, the screen is at the top: a server-rendered page
+ * paints in its top state before JS loads, and an inactive timeline (nothing scrolls under the bar)
+ * reads the same. A script's inline --scroll-y wins; rows follow their group */
+.x-toolbar:not(.x-toolbar .x-toolbar),
+.x-large-title {
+  --scroll-y: 0px;
+}
+
+@supports (animation-timeline: view()) {
+  .x-large-title {
+    view-timeline: --x-large-title block;
+    /* not the default (the scroll padding): the title exits at the top edge… */
+    view-timeline-inset: 0px;
+    animation: x-large-title-fade linear both;
+    animation-timeline: --x-large-title;
+    animation-range: exit 0% exit var(--x-large-title-height);
+  }
+
+  /* under a bar, the title exits at the bar's bottom edge */
+  .x-toolbar + .x-large-title {
+    view-timeline-inset: var(--toolbar-height) 0px;
+  }
+
+  /* the bar animates its reveal; its background and title read it */
+  :is(.x-toolbar:has(+ .x-large-title), .x-large-title + .x-toolbar):not(
+      [data-reveal="always"],
+      [data-reveal="none"]
+    ) {
+    animation: x-toolbar-reveal linear both;
+    animation-timeline: --x-large-title;
+    animation-range: exit calc(0.6 * var(--x-toolbar-distance)) exit
+      var(--x-toolbar-distance);
+  }
+
+  /* no large title: the background fades in as content scrolls under the bar */
+  .x-toolbar:not(
+    [data-position="bottom"],
+    [data-position="bottom"] > .x-toolbar,
+    :has(+ .x-large-title),
+    .x-large-title + .x-toolbar,
+    :is(.x-toolbar:has(+ .x-large-title), .x-large-title + .x-toolbar)
+      > .x-toolbar,
+    [data-reveal="always"],
+    [data-reveal="always"] > .x-toolbar,
+    [data-reveal="none"],
+    [data-reveal="none"] > .x-toolbar
+  ) {
+    animation: x-toolbar-reveal linear both;
+    animation-timeline: scroll(nearest block);
+    animation-range: calc(0.6 * var(--x-toolbar-distance))
+      var(--x-toolbar-distance);
+  }
+
+  /* bottom bar: clear at the end of the scroll; nothing scrolls, the timeline is inactive and the
+     resting --scroll-y-end: 0 keeps it clear */
+  .x-toolbar[data-position="bottom"]:not(
+      .x-toolbar .x-toolbar,
+      [data-reveal="always"],
+      [data-reveal="none"]
+    ) {
+    --scroll-y-end: 0px;
+    animation: x-toolbar-reveal linear both reverse;
+    animation-timeline: scroll(nearest block);
+    animation-range: calc(100% - var(--x-toolbar-distance))
+      calc(100% - 0.4 * var(--x-toolbar-distance));
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * PHONE BROWSER TAB — the browser owns the edges                                                  *
+ *                                                                                                 *
+ * In a browser tab (not a Home Screen app) iOS Safari reports no safe areas and paints the status *
+ * bar and toolbar strips itself, extending a background color at the edge as a solid tint. So a   *
+ * surface bar is made solid: the tint matches it instead of cutting its translucency off. A soft  *
+ * edge keeps its gradient: an image, not a color, it is not extended.                             *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+@media (display-mode: browser) and (pointer: coarse) {
+  .x-toolbar:not([data-variant="soft"], [data-variant="clean"])::before {
+    background-color: var(--color-material-solid, var(--color-surface));
+    backdrop-filter: none;
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * REDUCED TRANSPARENCY / FORCED COLORS                                                            *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+@media (prefers-reduced-transparency: reduce) {
+  .x-toolbar::before {
+    background-color: var(--color-material-solid, var(--color-surface));
+    backdrop-filter: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .x-toolbar::before {
+    background-color: Canvas;
+    backdrop-filter: none;
+    border-block-end: 1px solid CanvasText;
+  }
+}

@@ -1,0 +1,105 @@
+---
+title: Qwik
+description: Use elements-kit custom elements in Qwik with typed JSX via IntrinsicElements.
+---
+
+A custom element built with elements-kit is just `class extends HTMLElement` registered via `customElements.define`. Qwik renders it fine at runtime, but Qwik's `JSX.IntrinsicElements` is independent of elements-kit's, so you need a small augmentation to get typed props, narrowed `ref`, and editor autocomplete on the Qwik side.
+
+```ts
+// shared element — built once, used anywhere
+import { defineElement } from "elements-kit/custom-elements";
+import { reactive } from "elements-kit/signals";
+
+export class XCounter extends HTMLElement {
+  @reactive() count = 0;
+}
+
+defineElement("x-counter", XCounter);
+```
+
+## Source the prop shape from the class
+
+Three type helpers exported from `elements-kit/custom-elements` read the raw platform surface off the class. All three take the constructor (`typeof XCounter`); `PropertiesOf` also accepts an instance type.
+
+| Helper | Shape | Use when |
+|---|---|---|
+| `PropertiesOf<typeof XCounter>` | Public instance fields, all optional — the `HTMLElement` surface is dropped; `Slot`-typed fields accept a `Node` | Typing property assignments — prop bindings, wrappers, helper functions |
+| `AttributesOf<typeof XCounter>` | Every key of `static [ATTRIBUTES]`, valued `string \| null` | Typing the raw HTML attribute surface — `setAttribute`, server-rendered markup |
+| `EventsOf<typeof XCounter>` | The `static events` map, verbatim — event name to event type | Typing `addEventListener`, framework event bindings, `HTMLElementEventMap` augmentations |
+
+For most Qwik wiring `PropertiesOf<typeof XCounter>` is enough.
+
+## Augment Qwik's `JSX.IntrinsicElements`
+
+```ts
+import type { HTMLAttributes } from "@builder.io/qwik";
+import type { PropertiesOf } from "elements-kit/custom-elements";
+import type { XCounter } from "./x-counter";
+
+declare module "@builder.io/qwik" {
+  namespace JSX {
+    interface IntrinsicElements {
+      "x-counter": HTMLAttributes<XCounter> & PropertiesOf<typeof XCounter>;
+    }
+  }
+}
+
+// <x-counter count={5} ref={counterRef} />  — typed
+```
+
+`HTMLAttributes<XCounter>` provides the standard HTML attribute surface (`class`, `id`, event handlers with `$` suffix, …) and a `ref` signal narrowed to `XCounter`.
+
+## Co-locate the augmentation with the class
+
+Put the `declare module "@builder.io/qwik"` block in the same file as the element class. Importing the class then brings the augmentation along — consumers don't have to remember to write it themselves.
+
+```ts
+// x-counter.ts
+import { defineElement, type PropertiesOf } from "elements-kit/custom-elements";
+import { reactive } from "elements-kit/signals";
+import type { HTMLAttributes } from "@builder.io/qwik";
+
+export class XCounter extends HTMLElement {
+  @reactive() count = 0;
+}
+
+defineElement("x-counter", XCounter);
+
+declare module "@builder.io/qwik" {
+  namespace JSX {
+    interface IntrinsicElements {
+      "x-counter": HTMLAttributes<XCounter> & PropertiesOf<typeof XCounter>;
+    }
+  }
+}
+```
+
+## Typed `document.querySelector` and `createElement`
+
+Independent of any framework, augmenting the global `HTMLElementTagNameMap` gives you typed lookups in plain DOM code:
+
+```ts
+declare global {
+  interface HTMLElementTagNameMap {
+    "x-counter": XCounter;
+  }
+}
+
+const el = document.querySelector("x-counter"); // XCounter | null
+```
+
+Worth doing alongside the Qwik augmentation.
+
+---
+
+## See also
+
+- [Custom Elements overview](/custom-elements)
+- [React integration](/integrations/react)
+- [Solid integration](/integrations/solid)
+- [Vue integration](/integrations/vue)
+- [Angular integration](/integrations/angular)
+- [Svelte integration](/integrations/svelte)
+- [Lit integration](/integrations/lit)
+- [Astro integration](/integrations/astro)
+- [Marko integration](/integrations/marko)

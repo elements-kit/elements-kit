@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://elements-kit.com/sitemap-index.xml

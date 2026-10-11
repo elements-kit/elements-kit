@@ -1,0 +1,3 @@
+{
+  "pages": ["(core)", "primitives", "(rendering)", "(ui)", "integrations", "examples"]
+}

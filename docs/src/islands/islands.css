@@ -1,0 +1,17 @@
+/* The optional elements-kit/ui layer, as the Storybook preview stacks it:
+   tokens + one neutral + one accent. Linked only where demos render. */
+@import "elements-kit/ui/styles/theme.css";
+@import "elements-kit/ui/styles/scaling.css";
+@import "elements-kit/ui/styles/radius.css";
+@import "elements-kit/ui/styles/space.css";
+@import "elements-kit/ui/styles/typography.css";
+@import "elements-kit/ui/styles/cursor.css";
+@import "elements-kit/ui/styles/unset.css";
+@import "elements-kit/ui/styles/shadow.css";
+@import "elements-kit/ui/styles/material.css";
+@import "elements-kit/ui/styles/palette/gray.css";
+@import "elements-kit/ui/styles/neutral/gray.css";
+@import "elements-kit/ui/styles/palette/mint.css";
+@import "elements-kit/ui/styles/accent/mint.css";
+@import "elements-kit/ui/button/button.css";
+@import "elements-kit/ui/card/card.css";

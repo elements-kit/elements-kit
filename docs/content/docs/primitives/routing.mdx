@@ -1,0 +1,198 @@
+---
+title: Routing
+description: "Reactive location, search params and URL patterns, plus navigate: a router built from signals."
+---
+
+All location signals react to `popstate` (back/forward) automatically. They also listen for `pushstate` and `replacestate` **custom events**, which must be dispatched by your router or by patching `history`:
+
+```ts
+// Patch history so pushState/replaceState fire custom events
+for (const method of ["pushState", "replaceState"] as const) {
+  const original = history[method].bind(history);
+  history[method] = (...args) => {
+    original(...args);
+    window.dispatchEvent(new Event(method.toLowerCase()));
+  };
+}
+```
+
+Without this patch, signals still update on back/forward — only programmatic navigation via `pushState`/`replaceState` won't be reflected.
+
+
+## currentLocation
+
+Returns reactive signals for `hash`, `href`, `pathname`, and `search` — all sharing a single event listener set.
+
+`currentLocation` is a module-level singleton suitable for most apps.
+
+```ts
+import { currentLocation } from "elements-kit/utilities/location";
+
+// Singleton — shared across the app
+effect(() => console.log(currentLocation.pathname()));
+```
+
+```ts
+type LocationResult = {
+  hash: Computed<string>;
+  href: Computed<string>;
+  pathname: Computed<string>;
+  search: Computed<string>;
+};
+
+const currentLocation: LocationResult
+```
+
+## createSearchParam
+
+Returns `Computed<string | null>` for a single URL search parameter.
+
+```ts
+import { createSearchParam } from "elements-kit/utilities/search-params";
+
+const tab = createSearchParam("tab");
+
+effect(() => console.log("tab:", tab())); // null when absent
+```
+
+```ts
+function createSearchParam(key: string): Computed<string | null>
+```
+
+## createURLPattern
+
+Reactively tests a URL source against a [`URLPattern`](https://developer.mozilla.org/en-US/docs/Web/API/URL_Pattern_API). The source can be a plain string/URL or a reactive getter.
+
+No polyfill needed for modern browsers (Chrome 95+, Safari 16.4+, Firefox 117+). Use `urlpattern-polyfill` on npm for legacy targets.
+
+```ts
+import { createURLPattern } from "elements-kit/utilities/url-pattern";
+import { currentLocation } from "elements-kit/utilities/location";
+
+const match = createURLPattern(currentLocation.href, { pathname: "/users/:id" });
+
+effect(() => console.log(match()?.pathname.groups.id));
+```
+
+```ts
+function createURLPattern(
+  source: string | URL | Computed<string | URL>,
+  input?: URLPatternInput,
+  options?: URLPatternOptions,
+): Computed<URLPatternResult | null>
+```
+
+## navigate
+
+Navigates to a URL via `history.pushState` (or `replaceState`). Patches `history` once on first call so all programmatic navigation — including third-party router calls — fires the `pushstate` / `replacestate` custom events that `currentLocation` signals react to.
+
+```ts
+import { navigate } from "elements-kit/utilities/routing";
+
+navigate("/users/42");
+navigate("/users/42", { replace: true }); // replaceState — no new history entry
+navigate("/users/42", { state: { id: 42 } }); // pass history state
+```
+
+```ts
+function navigate(url: string | URL, options?: { replace?: boolean; state?: unknown }): void
+```
+
+## isLocalNavigationEvent
+
+Returns `true` when a click event on an `<a>` element should be handled client-side — same origin, primary button, no modifier keys, no `download` attribute, no `target="_blank"`. Walks up to the nearest anchor via `closest("a")`, so it works on container elements too.
+
+Use alongside `navigate()` to intercept anchor clicks without hardwiring routing logic into this utility.
+
+```ts
+import { isLocalNavigationEvent, navigate } from "elements-kit/utilities/routing";
+
+document.querySelector("nav")!.addEventListener("click", (e) => {
+  if (isLocalNavigationEvent(e)) {
+    e.preventDefault();
+    navigate((e.target as HTMLAnchorElement).href);
+  }
+});
+```
+
+```ts
+function isLocalNavigationEvent(e: MouseEvent): boolean
+```
+
+## matches
+
+Returns `Computed<boolean>` — `true` when the current URL matches `input`. Uses `URLPattern.test()` — faster than `match` when you don't need captured groups.
+
+Always use the object form `{ pathname: "..." }` — relative string patterns require a base URL and will throw.
+
+Requires [`urlpattern-polyfill`](https://www.npmjs.com/package/urlpattern-polyfill) for Safari < 26 and Firefox < 142.
+
+```ts
+import { matches } from "elements-kit/utilities/routing";
+
+const isHome = matches({ pathname: "/" });
+effect(() => {
+  if (isHome()) showHomeNav();
+});
+```
+
+**Conditional rendering with React:**
+
+```tsx
+import { useSignal } from "elements-kit/integrations/react";
+import { matches } from "elements-kit/utilities/routing";
+
+const isSettings = matches({ pathname: "/settings" });
+
+function App() {
+  return useSignal(isSettings) ? <Settings /> : <NotFound />;
+}
+```
+
+```ts
+function matches(input: URLPatternInput, options?: URLPatternOptions): Computed<boolean>
+```
+
+## match
+
+Returns `Computed<URLPatternResult | null>` — the full match result when the current URL matches `input`, `null` when it does not. Use when you need captured groups. For a boolean gate, prefer `matches()`.
+
+Always use the object form `{ pathname: "..." }` — relative string patterns require a base URL and will throw.
+
+Requires [`urlpattern-polyfill`](https://www.npmjs.com/package/urlpattern-polyfill) for Safari < 26 and Firefox < 142.
+
+```ts
+import { match } from "elements-kit/utilities/routing";
+
+const postMatch = match({ pathname: "/posts/:slug" });
+effect(() => {
+  const slug = postMatch()?.pathname.groups.slug;
+  if (slug) loadPost(slug);
+});
+```
+
+**Extracting params in React:**
+
+```tsx
+import { useSignal } from "elements-kit/integrations/react";
+import { match } from "elements-kit/utilities/routing";
+
+const userMatch = match({ pathname: "/users/:id" });
+
+function App() {
+  const result = useSignal(userMatch);
+  const id = result?.pathname.groups.id;
+  return id ? <UserPage id={id} /> : <NotFound />;
+}
+```
+
+```ts
+function match(input: URLPatternInput, options?: URLPatternOptions): Computed<URLPatternResult | null>
+```
+
+---
+
+## See also
+
+- [Routing example](/examples/routing)
+- [Context](/primitives/context)

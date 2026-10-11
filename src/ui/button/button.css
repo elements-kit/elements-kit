@@ -1,0 +1,577 @@
+.x-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  user-select: none;
+  touch-action: manipulation;
+  vertical-align: top;
+
+  font-family: var(--default-font-family);
+  font-style: normal;
+  text-align: center;
+
+  /* the variant sets these; stacked-icon moves them onto the icon's highlight */
+  background-color: var(--x-button-fill, transparent);
+  box-shadow: var(--x-button-ring, none);
+  filter: var(--x-button-filter, none);
+
+  &:where([data-disabled], :disabled) {
+    --spinner-opacity: 1;
+  }
+
+  &:where([data-loading]) {
+    position: relative;
+  }
+
+  /* taps pass through to the button: WebKit skips touch-action on SVG, so a tap on the icon zooms */
+  /* stylelint-disable-next-line selector-max-type */
+  & :where(svg) {
+    pointer-events: none;
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SIZES                                                                                           *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-button {
+  &:where(:not([data-variant="text"])) {
+    height: var(--base-button-height);
+  }
+  &:where([data-variant="text"]) {
+    box-sizing: content-box;
+
+    /* Make sure that the height is not stretched in a Flex/Grid layout */
+    height: fit-content;
+  }
+}
+
+.x-button {
+  &:where([data-size="1"]) {
+    --base-button-height: var(--space-5);
+    --x-button-radius: max(var(--radius-1), var(--radius-pill));
+    border-radius: var(--x-button-radius);
+  }
+  /* size 2 is also the default when data-size is absent */
+  &:where([data-size="2"], :not([data-size])) {
+    --base-button-height: var(--space-6);
+    --x-button-radius: max(var(--radius-2), var(--radius-pill));
+    border-radius: var(--x-button-radius);
+  }
+  &:where([data-size="3"]) {
+    --base-button-height: var(--space-7);
+    --x-button-radius: max(var(--radius-3), var(--radius-pill));
+    border-radius: var(--x-button-radius);
+  }
+  &:where([data-size="4"]) {
+    --base-button-height: var(--space-8);
+    --x-button-radius: max(var(--radius-4), var(--radius-pill));
+    border-radius: var(--x-button-radius);
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * VARIANTS                                                                                        *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* solid (default) */
+
+:where(:root) {
+  --base-button-solid-active-filter: brightness(0.92) saturate(1.1);
+  --base-button-solid-high-contrast-hover-filter: contrast(0.88) saturate(1.1)
+    brightness(1.1);
+  --base-button-solid-high-contrast-active-filter: contrast(0.82) saturate(1.2)
+    brightness(1.16);
+}
+:is(.dark, .dark-theme),
+:is(.dark, .dark-theme) :where(:root:not(.light, .light-theme)) {
+  --base-button-solid-active-filter: brightness(1.08);
+  --base-button-solid-high-contrast-hover-filter: contrast(0.88) saturate(1.3)
+    brightness(1.18);
+  --base-button-solid-high-contrast-active-filter: brightness(0.95)
+    saturate(1.2);
+}
+
+.x-button:where(:not([data-variant]), [data-variant="solid"]) {
+  --x-button-fill: var(--accent-9);
+  color: var(--accent-contrast);
+
+  @media (hover: hover) {
+    &:where(:hover) {
+      --x-button-fill: var(--accent-10);
+    }
+  }
+  &:where([data-state="open"]) {
+    --x-button-fill: var(--accent-10);
+  }
+  &:where(:active:not([data-state="open"])) {
+    --x-button-fill: var(--accent-10);
+    --x-button-filter: var(--base-button-solid-active-filter);
+  }
+  /* Better -webkit-tap-highlight-color */
+  @media (pointer: coarse) {
+    &:where(:active:not([data-state="open"])) {
+      outline: 0.5em solid var(--accent-a4);
+      outline-offset: 0;
+    }
+  }
+  &:where(:focus-visible) {
+    outline: 2px solid var(--focus-8);
+    outline-offset: 2px;
+  }
+  &:where([data-high-contrast]) {
+    --x-button-fill: var(--accent-12);
+    color: var(--neutral-1);
+
+    @media (hover: hover) {
+      &:where(:hover) {
+        --x-button-fill: var(--accent-12);
+        --x-button-filter: var(--base-button-solid-high-contrast-hover-filter);
+      }
+    }
+    &:where([data-state="open"]) {
+      --x-button-fill: var(--accent-12);
+      --x-button-filter: var(--base-button-solid-high-contrast-hover-filter);
+    }
+    &:where(:active:not([data-state="open"])) {
+      --x-button-fill: var(--accent-12);
+      --x-button-filter: var(--base-button-solid-high-contrast-active-filter);
+    }
+  }
+  &:where([data-disabled], :disabled) {
+    color: var(--neutral-a8);
+    --x-button-fill: var(--neutral-a3);
+    outline: none;
+    --x-button-filter: none;
+  }
+}
+
+/* soft / text / borderless */
+
+.x-button:where(
+  [data-variant="soft"],
+  [data-variant="text"],
+  [data-variant="borderless"]
+) {
+  color: var(--accent-a11);
+
+  &:where([data-high-contrast]) {
+    color: var(--accent-12);
+  }
+  &:where([data-disabled], :disabled) {
+    color: var(--neutral-a8);
+    --x-button-fill: var(--neutral-a3);
+  }
+}
+
+.x-button:where([data-variant="soft"]) {
+  --x-button-fill: var(--accent-a3);
+
+  &:where(:focus-visible) {
+    outline: 2px solid var(--accent-8);
+    outline-offset: -1px;
+  }
+  @media (hover: hover) {
+    &:where(:hover) {
+      --x-button-fill: var(--accent-a4);
+    }
+  }
+  &:where([data-state="open"]) {
+    --x-button-fill: var(--accent-a4);
+  }
+  &:where(:active:not([data-state="open"])) {
+    --x-button-fill: var(--accent-a5);
+  }
+  &:where([data-disabled], :disabled) {
+    color: var(--neutral-a8);
+    --x-button-fill: var(--neutral-a3);
+  }
+}
+
+.x-button:where([data-variant="text"], [data-variant="borderless"]) {
+  @media (hover: hover) {
+    &:where(:hover) {
+      --x-button-fill: var(--accent-a3);
+    }
+  }
+  &:where(:focus-visible) {
+    outline: 2px solid var(--focus-8);
+    outline-offset: -1px;
+  }
+  &:where([data-state="open"]) {
+    --x-button-fill: var(--accent-a3);
+  }
+  &:where(:active:not([data-state="open"])) {
+    --x-button-fill: var(--accent-a4);
+  }
+  &:where([data-disabled], :disabled) {
+    color: var(--neutral-a8);
+    --x-button-fill: transparent;
+  }
+}
+
+/* outline */
+
+.x-button:where([data-variant="outline"]) {
+  --x-button-ring: inset 0 0 0 1px var(--accent-a8);
+  color: var(--accent-a11);
+
+  @media (hover: hover) {
+    &:where(:hover) {
+      --x-button-fill: var(--accent-a2);
+    }
+  }
+  &:where([data-state="open"]) {
+    --x-button-fill: var(--accent-a2);
+  }
+  &:where(:active:not([data-state="open"])) {
+    --x-button-fill: var(--accent-a3);
+  }
+  &:where(:focus-visible) {
+    outline: 2px solid var(--focus-8);
+    outline-offset: -1px;
+  }
+  &:where([data-high-contrast]) {
+    --x-button-ring:
+      inset 0 0 0 1px var(--accent-a7),
+      inset 0 0 0 1px var(--neutral-a11);
+    color: var(--accent-12);
+  }
+  &:where([data-disabled], :disabled) {
+    color: var(--neutral-a8);
+    --x-button-ring: inset 0 0 0 1px var(--neutral-a7);
+    --x-button-fill: transparent;
+  }
+}
+
+/* surface */
+
+.x-button:where([data-variant="surface"]) {
+  --x-button-fill: var(--accent-surface);
+  --x-button-ring: inset 0 0 0 1px var(--accent-a7);
+  color: var(--accent-a11);
+
+  @media (hover: hover) {
+    &:where(:hover) {
+      --x-button-ring: inset 0 0 0 1px var(--accent-a8);
+    }
+  }
+  &:where([data-state="open"]) {
+    --x-button-ring: inset 0 0 0 1px var(--accent-a8);
+  }
+  &:where(:active:not([data-state="open"])) {
+    --x-button-fill: var(--accent-a3);
+    --x-button-ring: inset 0 0 0 1px var(--accent-a8);
+  }
+  &:where(:focus-visible) {
+    outline: 2px solid var(--focus-8);
+    outline-offset: -1px;
+  }
+  &:where([data-high-contrast]) {
+    color: var(--accent-12);
+  }
+  &:where([data-disabled], :disabled) {
+    color: var(--neutral-a8);
+    --x-button-ring: inset 0 0 0 1px var(--neutral-a6);
+    --x-button-fill: var(--neutral-a2);
+  }
+}
+
+.x-button {
+  &:where(:not([data-variant="text"])) {
+    /* stylelint-disable-next-line selector-max-type */
+    & :where(svg) {
+      opacity: 0.9;
+    }
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SIZES                                                                                           *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-button {
+  &:where([data-variant="text"]) {
+    padding: var(--button-text-padding-y) var(--button-text-padding-x);
+
+    /* We reset the defined margin variables to avoid inheriting them from a higher component */
+    /* If a margin IS defined on the component itself, the utility class will win and reset it */
+    --margin-top: 0px;
+    --margin-right: 0px;
+    --margin-bottom: 0px;
+    --margin-left: 0px;
+
+    /* Define the overrides to incorporate the negative margins */
+    --margin-top-override: calc(
+      var(--margin-top) - var(--button-text-padding-y)
+    );
+    --margin-right-override: calc(
+      var(--margin-right) - var(--button-text-padding-x)
+    );
+    --margin-bottom-override: calc(
+      var(--margin-bottom) - var(--button-text-padding-y)
+    );
+    --margin-left-override: calc(
+      var(--margin-left) - var(--button-text-padding-x)
+    );
+
+    /* Reset the overrides on direct children */
+    :where(&) > * {
+      --margin-top-override: initial;
+      --margin-right-override: initial;
+      --margin-bottom-override: initial;
+      --margin-left-override: initial;
+    }
+
+    margin: var(--margin-top-override) var(--margin-right-override)
+      var(--margin-bottom-override) var(--margin-left-override);
+  }
+}
+
+.x-button {
+  &:where([data-size="1"]) {
+    gap: var(--space-1);
+    font-size: var(--font-size-1);
+    line-height: var(--line-height-1);
+    letter-spacing: var(--letter-spacing-1);
+
+    &:where(:not([data-variant="text"])) {
+      padding-left: var(--space-2);
+      padding-right: var(--space-2);
+    }
+    &:where([data-variant="text"]) {
+      gap: var(--space-1);
+      --button-text-padding-x: var(--space-2);
+      --button-text-padding-y: var(--space-1);
+    }
+  }
+  &:where([data-size="2"], :not([data-size])) {
+    gap: var(--space-2);
+    font-size: var(--font-size-2);
+    line-height: var(--line-height-2);
+    letter-spacing: var(--letter-spacing-2);
+
+    &:where(:not([data-variant="text"])) {
+      padding-left: var(--space-3);
+      padding-right: var(--space-3);
+    }
+    &:where([data-variant="text"]) {
+      gap: var(--space-1);
+      --button-text-padding-x: var(--space-2);
+      --button-text-padding-y: var(--space-1);
+    }
+  }
+  &:where([data-size="3"]) {
+    gap: var(--space-3);
+    font-size: var(--font-size-3);
+    line-height: var(--line-height-3);
+    letter-spacing: var(--letter-spacing-3);
+
+    &:where(:not([data-variant="text"])) {
+      padding-left: var(--space-4);
+      padding-right: var(--space-4);
+    }
+    &:where([data-variant="text"]) {
+      gap: var(--space-2);
+      --button-text-padding-x: var(--space-3);
+      --button-text-padding-y: calc(var(--space-1) * 1.5);
+    }
+  }
+  &:where([data-size="4"]) {
+    gap: var(--space-3);
+    font-size: var(--font-size-4);
+    line-height: var(--line-height-4);
+    letter-spacing: var(--letter-spacing-4);
+
+    &:where(:not([data-variant="text"])) {
+      padding-left: var(--space-5);
+      padding-right: var(--space-5);
+    }
+    &:where([data-variant="text"]) {
+      gap: var(--space-2);
+      --button-text-padding-x: var(--space-4);
+      --button-text-padding-y: var(--space-2);
+    }
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * VARIANTS                                                                                        *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-button:where(:not([data-variant="text"])) {
+  font-weight: var(--font-weight-medium);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * ICON BUTTON                                                                                     *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/*
+ * `data-icon` makes the button a square (icon-only). For solid/soft/surface/outline/borderless,
+ * the button gets aspect-ratio: 1 sized by --base-button-height. For text (the inline-with-body
+ * variant), padding becomes uniform so the icon sits centered without horizontal bleed.
+ */
+
+.x-button:where([data-icon]):where(:not([data-variant="text"])) {
+  aspect-ratio: 1;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.x-button:where([data-icon][data-variant="text"]) {
+  &:where([data-size="1"]) {
+    --button-text-padding-x: var(--space-1);
+    --button-text-padding-y: var(--space-1);
+  }
+  &:where([data-size="2"], :not([data-size])) {
+    --button-text-padding-x: calc(var(--space-1) * 1.5);
+    --button-text-padding-y: calc(var(--space-1) * 1.5);
+  }
+  &:where([data-size="3"]) {
+    --button-text-padding-x: var(--space-2);
+    --button-text-padding-y: var(--space-2);
+  }
+  &:where([data-size="4"]) {
+    --button-text-padding-x: var(--space-3);
+    --button-text-padding-y: var(--space-3);
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * STACKED — data-layout="stacked": icon above the label (an action item)                         *
+ * data-layout="stacked-icon": no padding, the state on a highlight around the icon only           *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/*
+ * Action item, at size 2: a 24px icon (the Material Symbols grid) over a --font-size-0 medium
+ * caption, a 2px gap, 4 × 8px padding. One unit (1px at size 2) scales the box and the icon; the
+ * caption steps up the type scale at size 3.
+ *
+ * Minimum height — 56 for filled variants, 51 for text (the kit's 8 × 4 text padding) — and
+ * the same minimum width, so a button is at least square and a
+ * longer label widens it. Constrained, the label wraps and the button grows taller.
+ */
+.x-button:where([data-layout="stacked"], [data-layout="stacked-icon"]) {
+  --x-stacked-unit: calc(var(--base-button-height) / 32);
+
+  flex-direction: column;
+  gap: calc(2 * var(--x-stacked-unit));
+  box-sizing: border-box;
+  height: auto;
+
+  &:where(:not([data-variant="text"])) {
+    min-width: calc(56 * var(--x-stacked-unit));
+    min-height: calc(56 * var(--x-stacked-unit));
+    /* 10 units: a long caption clears the pill's curved ends */
+    padding: calc(4 * var(--x-stacked-unit)) calc(10 * var(--x-stacked-unit));
+  }
+  &:where([data-variant="text"]) {
+    /* the kit's text padding; an 8px bleed matches the toolbar's gap between text buttons */
+    --button-text-padding-x: calc(8 * var(--x-stacked-unit));
+    --button-text-padding-y: calc(4 * var(--x-stacked-unit));
+    min-width: calc(51 * var(--x-stacked-unit));
+    min-height: calc(51 * var(--x-stacked-unit));
+  }
+
+  /* stylelint-disable-next-line selector-max-type */
+  & > :where(svg) {
+    flex: none;
+    width: calc(24 * var(--x-stacked-unit));
+    height: calc(24 * var(--x-stacked-unit));
+  }
+
+  /* stylelint-disable-next-line selector-max-type */
+  & > :where(:not(svg)) {
+    max-width: 100%;
+    /* constrained, the label wraps into balanced lines; a lone long word breaks */
+    text-wrap: balance;
+    overflow-wrap: break-word;
+    /* a caption under the icon: --font-size-0 for sizes 1–2, --font-size-1 for sizes 3–4 */
+    font-size: var(--font-size-0);
+    /* the line scales with the item like the icon, so the caption keeps its place at every size */
+    line-height: calc(16 * var(--x-stacked-unit));
+    letter-spacing: var(--letter-spacing-1);
+    font-weight: var(--font-weight-medium);
+  }
+
+  /* stylelint-disable-next-line selector-max-type */
+  &:where([data-size="3"], [data-size="4"]) > :where(:not(svg)) {
+    font-size: var(--font-size-1);
+    letter-spacing: var(--letter-spacing-2);
+  }
+}
+
+/* the state on a 36-unit square around the icon, the button's radius; 36 + 4 + 16 = 56 */
+.x-button:where([data-layout="stacked-icon"]) {
+  --button-text-padding-x: 0px;
+  --button-text-padding-y: 0px;
+  gap: calc(4 * var(--x-stacked-unit));
+  min-height: 0;
+  padding: 0;
+  background-color: transparent;
+  box-shadow: none;
+  filter: none;
+
+  /* stylelint-disable-next-line selector-max-type */
+  & > :where(svg) {
+    box-sizing: content-box;
+    padding: calc(6 * var(--x-stacked-unit));
+    border-radius: var(--x-button-radius);
+    opacity: 1;
+    background-color: var(--x-button-fill, transparent);
+    box-shadow: var(--x-button-ring, none);
+    filter: var(--x-button-filter, none);
+  }
+
+  /* solid's contrast text would sit on no fill: the label takes the accent text */
+  &:where(:not([data-variant]), [data-variant="solid"]):where(:not([data-disabled], :disabled))
+    > :where(:not(svg)) {
+    color: var(--accent-a11);
+  }
+  &:where(:not([data-variant]), [data-variant="solid"]):where([data-high-contrast]):where(
+      :not([data-disabled], :disabled)
+    )
+    > :where(:not(svg)) {
+    color: var(--accent-12);
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * BACK — data-back: a leading back chevron (a navigation back button)                            *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/*
+ * The chevron is one text line tall (20px at size 2), so it reads at the label's weight, not an
+ * icon's; right against the label. Its box starts on the content edge — pick a glyph drawn flush
+ * with its box (e.g. arrow_back_ios) for a chevron that lines up with a title; with data-icon it
+ * centers. RTL mirrors it: back points to the inline start.
+ */
+.x-button:where([data-back]) {
+  gap: 0;
+
+  & > :where(svg) {
+    flex: none;
+    width: 1lh;
+    height: 1lh;
+  }
+
+  &:where(:dir(rtl)) > :where(svg) {
+    scale: -1 1;
+  }
+}

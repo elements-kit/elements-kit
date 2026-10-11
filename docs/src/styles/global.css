@@ -1,0 +1,89 @@
+@import "@fontsource/geist/400.css";
+@import "@fontsource/geist/500.css";
+@import "@fontsource/geist/600.css";
+@import "tailwindcss";
+@import "fumadocs-ui/css/neutral.css";
+@import "fumadocs-ui/css/preset.css";
+@import "fumadocs-twoslash/twoslash.css";
+
+@source "../../node_modules/fumadocs-ui/dist";
+@source "../../node_modules/fumadocs-twoslash/dist";
+
+@theme {
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+/* Brand green, carried over from the Starlight theme. */
+:root {
+  --color-fd-primary: #007652;
+  --color-fd-primary-foreground: #ffffff;
+  --color-fd-ring: #007652;
+}
+.dark {
+  --color-fd-primary: #90dbb9;
+  --color-fd-primary-foreground: #002c1d;
+  --color-fd-ring: #90dbb9;
+}
+
+/* Sidebar CSS / JS badges. */
+.ek-badge {
+  margin-inline-start: auto;
+  padding: 0 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+}
+.ek-badge[data-badge="CSS"] {
+  color: var(--color-fd-primary);
+  background: color-mix(in oklab, var(--color-fd-primary) 12%, transparent);
+}
+.ek-badge[data-badge="JS"] {
+  color: var(--color-fd-info, #2563eb);
+  background: color-mix(in oklab, currentColor 12%, transparent);
+}
+
+/* Magic-move: tokens carry --shiki-light / --shiki-dark (defaultColor: false). */
+.ek-magic-move .shiki-magic-move-item {
+  color: var(--shiki-light);
+}
+.dark .ek-magic-move .shiki-magic-move-item {
+  color: var(--shiki-dark);
+}
+.ek-magic-move-btn {
+  padding: 0.25rem 0.625rem;
+  border: 1px solid var(--color-fd-border);
+  border-radius: 0.375rem;
+  color: var(--color-fd-muted-foreground);
+  line-height: 1;
+  transition:
+    color 0.15s,
+    background-color 0.15s;
+}
+.ek-magic-move-btn:hover:not(:disabled) {
+  color: var(--color-fd-foreground);
+  background: var(--color-fd-accent);
+}
+.ek-magic-move-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Playground embeds: a bordered figure, like fumadocs' code blocks. */
+.ek-playground-frame {
+  margin-block: 1rem;
+  overflow: hidden;
+  border: 1px solid var(--color-fd-border);
+  border-radius: 0.75rem;
+  background: var(--color-fd-card);
+}
+/* Alone in a tab: fill the panel edge to edge, like fumadocs' code figures. */
+[role="tabpanel"]:has(> .ek-playground-frame:only-child) {
+  padding: 0;
+  overflow: hidden;
+}
+[role="tabpanel"] > .ek-playground-frame:only-child {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+}

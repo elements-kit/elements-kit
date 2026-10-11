@@ -1,0 +1,460 @@
+.x-text-input {
+  font-family: var(--default-font-family);
+  font-weight: var(--font-weight-regular);
+  font-style: normal;
+  text-align: start;
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * BARE INPUT                                                                                      *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-text-input:where(input) {
+  width: 100%;
+  height: var(--text-input-height);
+  border-radius: var(--text-input-border-radius);
+  text-indent: var(--text-input-padding);
+  cursor: text;
+
+  &:where([type="number"]) {
+    -moz-appearance: textfield;
+  }
+  &::-webkit-inner-spin-button {
+    appearance: none;
+  }
+  &::-webkit-search-cancel-button {
+    appearance: none;
+  }
+  &::selection {
+    background-color: var(--text-input-selection-color);
+  }
+
+  &:where(
+    [type="date"],
+    [type="datetime-local"],
+    [type="time"],
+    [type="week"],
+    [type="month"]
+  ) {
+    text-indent: 0;
+    padding-left: var(--text-input-padding);
+    padding-right: var(--text-input-padding);
+  }
+
+  &::-webkit-calendar-picker-indicator {
+    box-sizing: content-box;
+    width: var(--text-input-native-icon-size);
+    height: var(--text-input-native-icon-size);
+    padding: var(--space-1);
+    margin-left: var(--space-1);
+    margin-right: calc(var(--space-1) * -1);
+    border-radius: calc(var(--text-input-border-radius) - 2px);
+  }
+  &::-webkit-calendar-picker-indicator:where(:hover) {
+    background-color: var(--neutral-a3);
+  }
+  &::-webkit-calendar-picker-indicator:where(:focus-visible) {
+    outline: 2px solid var(--text-input-focus-color);
+  }
+
+  &:where(:focus-visible) {
+    outline: 2px solid var(--text-input-focus-color);
+    outline-offset: -1px;
+  }
+
+  @supports selector(:has(*)) {
+    &:where(:autofill, [data-com-onepassword-filled]) {
+      background-clip: text;
+      -webkit-text-fill-color: var(--neutral-12);
+    }
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * BARE TEXTAREA                                                                                   *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-text-input:where(textarea) {
+  width: 100%;
+  min-height: var(--text-input-min-height);
+  padding: var(--text-input-padding);
+  border-radius: var(--text-input-border-radius);
+  resize: vertical;
+  cursor: text;
+  overflow: auto;
+
+  &::selection {
+    background-color: var(--text-input-selection-color);
+  }
+
+  &::-webkit-scrollbar {
+    width: var(--space-3);
+    height: var(--space-3);
+  }
+  &::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--neutral-a5);
+    background-clip: padding-box;
+    border: 3px solid transparent;
+    border-radius: var(--space-3);
+  }
+  &::-webkit-scrollbar-thumb:where(:hover) {
+    background-color: var(--neutral-a7);
+  }
+
+  &:where(:focus-visible) {
+    outline: 2px solid var(--text-input-focus-color);
+    outline-offset: -1px;
+  }
+
+  @supports selector(:has(*)) {
+    &:where(:autofill, [data-com-onepassword-filled]) {
+      background-clip: text;
+      -webkit-text-fill-color: var(--neutral-12);
+    }
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * INPUT WRAPPER (horizontal)                                                                      *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-text-input:where(:has(> input)) {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  height: var(--text-input-height);
+  padding: 0;
+  border-radius: var(--text-input-border-radius);
+  cursor: text;
+
+  &:where(:has(> input:focus)) {
+    outline: 2px solid var(--text-input-focus-color);
+    outline-offset: -1px;
+  }
+}
+
+/* The field's own rules: a child input already implies the wrapper above, so no `:has()` on the
+   parent — one there is re-checked on every DOM change in the page. */
+.x-text-input {
+  > :where(input) {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    border: 0;
+    outline: 0;
+    padding: 0;
+    text-indent: var(--text-input-padding);
+    color: inherit;
+    font: inherit;
+    border-radius: calc(
+      var(--text-input-border-radius) - var(--text-input-border-width)
+    );
+
+    &::selection {
+      background-color: var(--text-input-selection-color);
+    }
+    &::-webkit-search-cancel-button {
+      appearance: none;
+    }
+    &::-webkit-inner-spin-button {
+      appearance: none;
+    }
+  }
+
+  /* If input has a sibling that is NOT input/textarea preceding it (leading affix),
+     drop left text-indent + left radius on the input. */
+  > :where(:not(input, textarea)) ~ input {
+    text-indent: 0;
+    padding-left: 0;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+
+  /* If input has a sibling that is NOT input/textarea following it (trailing affix),
+     drop right text-indent + right radius on the input. */
+  > input:where(:has(~ :not(input, textarea))) {
+    padding-right: 0;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * TEXTAREA WRAPPER (vertical)                                                                     *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-text-input:where(:has(> textarea)) {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-height: var(--text-input-min-height);
+  padding: 0;
+  border-radius: var(--text-input-border-radius);
+  cursor: text;
+
+  &:where(:has(> textarea:focus)) {
+    outline: 2px solid var(--text-input-focus-color);
+    outline-offset: -1px;
+  }
+}
+
+/* As for input: a child textarea implies the wrapper. */
+.x-text-input {
+  > :where(textarea) {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    background: transparent;
+    border: 0;
+    outline: 0;
+    padding: var(--text-input-padding);
+    color: inherit;
+    font: inherit;
+    resize: vertical;
+    border-radius: calc(
+      var(--text-input-border-radius) - var(--text-input-border-width)
+    );
+
+    &::selection {
+      background-color: var(--text-input-selection-color);
+    }
+  }
+
+  /* Affix above: square the textarea's top corners. Padding stays; affixes own theirs. */
+  > :where(:not(input, textarea)) ~ textarea {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
+
+  /* Affix below: square the textarea's bottom corners. */
+  > textarea:where(:has(~ :not(input, textarea))) {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * AFFIXES                                                                                         *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-text-input {
+  /* set by DISABLED / READ-ONLY; declared here so a nested field doesn't inherit it */
+  --x-text-input-affix-cursor: text;
+}
+
+.x-text-input > :where(:not(input, textarea)) {
+  box-sizing: border-box;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  cursor: var(--x-text-input-affix-cursor);
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * SIZES                                                                                           *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-text-input {
+  &:where([data-size="1"]) {
+    --text-input-height: var(--space-5);
+    --text-input-min-height: var(--space-8);
+    --text-input-padding: calc(
+      var(--space-1) * 1.5 - var(--text-input-border-width)
+    );
+    --text-input-radius: var(--radius-2);
+    --text-input-border-radius: var(--text-input-radius);
+    --text-input-native-icon-size: var(--space-3);
+    font-size: var(--font-size-1);
+    line-height: var(--line-height-1);
+    letter-spacing: var(--letter-spacing-1);
+
+    & > :where(:not(input, textarea)) {
+      gap: var(--space-2);
+      padding-left: var(--space-1);
+      padding-right: var(--space-1);
+    }
+  }
+  &:where([data-size="2"]) {
+    --text-input-height: var(--space-6);
+    --text-input-min-height: var(--space-9);
+    --text-input-padding: calc(var(--space-2) - var(--text-input-border-width));
+    --text-input-radius: var(--radius-2);
+    --text-input-border-radius: var(--text-input-radius);
+    --text-input-native-icon-size: var(--space-4);
+    font-size: var(--font-size-2);
+    line-height: var(--line-height-2);
+    letter-spacing: var(--letter-spacing-2);
+
+    & > :where(:not(input, textarea)) {
+      gap: var(--space-2);
+      padding-left: var(--space-2);
+      padding-right: var(--space-2);
+    }
+  }
+  &:where([data-size="3"]) {
+    --text-input-height: var(--space-7);
+    --text-input-min-height: 80px;
+    --text-input-padding: calc(var(--space-3) - var(--text-input-border-width));
+    --text-input-radius: var(--radius-3);
+    --text-input-border-radius: var(--text-input-radius);
+    --text-input-native-icon-size: var(--space-4);
+    font-size: var(--font-size-3);
+    line-height: var(--line-height-3);
+    letter-spacing: var(--letter-spacing-3);
+
+    & > :where(:not(input, textarea)) {
+      gap: var(--space-3);
+      padding-left: var(--space-3);
+      padding-right: var(--space-3);
+    }
+  }
+}
+
+/* Default size (2) when no data-size set */
+.x-text-input:where(:not([data-size])) {
+  --text-input-height: var(--space-6);
+  --text-input-min-height: var(--space-9);
+  --text-input-padding: calc(var(--space-2) - var(--text-input-border-width));
+  --text-input-radius: var(--radius-2);
+  --text-input-border-radius: var(--text-input-radius);
+  --text-input-native-icon-size: var(--space-4);
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-2);
+  letter-spacing: var(--letter-spacing-2);
+
+  & > :where(:not(input, textarea)) {
+    gap: var(--space-2);
+    padding-left: var(--space-2);
+    padding-right: var(--space-2);
+  }
+}
+
+/* Pill radius applies to single-line inputs only; textarea keeps the base per-size
+ * radius (a full-pill multi-line box looks wrong). Placed after the size blocks so it
+ * wins the cascade. */
+.x-text-input:where(input),
+.x-text-input:where(:has(> input)) {
+  --text-input-border-radius: max(var(--text-input-radius), var(--radius-pill));
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * VARIANTS                                                                                        *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+/* surface (default) */
+
+.x-text-input:where(:not([data-variant="soft"])) {
+  --text-input-border-width: 1px;
+  --text-input-selection-color: var(--focus-a5);
+  --text-input-focus-color: var(--focus-8);
+
+  background-color: var(--color-surface);
+  border: var(--text-input-border-width) solid var(--neutral-a7);
+  color: var(--neutral-12);
+
+  &:where(input)::placeholder,
+  &:where(textarea)::placeholder,
+  & > :where(:is(input, textarea))::placeholder {
+    color: var(--neutral-a10);
+  }
+
+  & > :where(:not(input, textarea)) {
+    color: var(--neutral-a11);
+  }
+  & > :where(:not(input, textarea))[data-accent] {
+    color: var(--accent-a11);
+  }
+}
+
+/* soft */
+
+.x-text-input:where([data-variant="soft"]) {
+  --text-input-border-width: 0px;
+  --text-input-selection-color: var(--accent-a5);
+  --text-input-focus-color: var(--accent-8);
+
+  background-color: var(--accent-a3);
+  color: var(--accent-12);
+
+  &:where(input)::placeholder,
+  &:where(textarea)::placeholder,
+  & > :where(:is(input, textarea))::placeholder {
+    color: var(--accent-12);
+    opacity: 0.6;
+  }
+
+  & > :where(:not(input, textarea)) {
+    color: var(--accent-12);
+  }
+  & > :where(:not(input, textarea))[data-accent] {
+    color: var(--accent-a11);
+  }
+}
+
+/***************************************************************************************************
+ *                                                                                                 *
+ * DISABLED / READ-ONLY                                                                            *
+ *                                                                                                 *
+ ***************************************************************************************************/
+
+.x-text-input:where(:is(input, textarea)):where(:disabled, :read-only) {
+  cursor: text;
+  color: var(--neutral-a11);
+  -webkit-text-fill-color: var(--neutral-a11);
+
+  &::placeholder {
+    opacity: 0.5;
+  }
+  &:where(:placeholder-shown) {
+    cursor: var(--cursor-disabled);
+  }
+}
+
+/* The wrapper's own state is a `:has()` on itself (cheap). What its children need is keyed on the
+   field itself, or handed down as a property — never a `:has()` above the child. */
+.x-text-input:where(:has(> :is(input, textarea):is(:disabled, :read-only))) {
+  background-color: var(--neutral-a2);
+
+  &:where(:has(> :is(input, textarea):placeholder-shown)) {
+    cursor: var(--cursor-disabled);
+    --x-text-input-affix-cursor: var(--cursor-disabled);
+  }
+}
+
+.x-text-input > :where(:is(input, textarea)):where(:disabled, :read-only) {
+  cursor: text;
+  color: var(--neutral-a11);
+  -webkit-text-fill-color: var(--neutral-a11);
+
+  &::placeholder {
+    opacity: 0.5;
+  }
+}
+
+/* Surface variant: disabled changes border tint */
+.x-text-input:where(:not([data-variant="soft"])):where(
+    :has(> :is(input, textarea):is(:disabled, :read-only))
+  ) {
+  border-color: var(--neutral-a6);
+}

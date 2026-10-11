@@ -1,0 +1,50 @@
+---
+title: Storage
+description: "localStorage and sessionStorage as writable signals, synced across tabs."
+---
+
+Persist state with a signal: read it, write it, and it stays in storage.
+
+## createLocalStorage
+
+Returns a `Signal<T>` persisted to `localStorage`. Writes in other tabs/windows are synchronised automatically via `StorageEvent`.
+
+```ts twoslash
+import { createLocalStorage } from "elements-kit/utilities/storage";
+
+const theme = createLocalStorage("theme", "light");
+
+theme();        // "light"
+theme("dark");  // persisted immediately
+```
+
+```ts
+function createLocalStorage<T>(
+  key: string,
+  initialValue: T,
+  options?: { serialise?: (v: T) => string; deserialise?: (raw: string) => T },
+): Signal<T>
+```
+
+---
+
+## createSessionStorage
+
+Same as `createLocalStorage` but scoped to the current tab — no cross-tab sync.
+
+```ts
+import { createSessionStorage } from "elements-kit/utilities/storage";
+
+const draft = createSessionStorage("draft", "");
+```
+
+```ts
+function createSessionStorage<T>(key: string, initialValue: T, options?: StorageOptions<T>): Signal<T>
+```
+
+---
+
+## See also
+
+- [Promise](/primitives/promise)
+- [Async](/primitives/async)

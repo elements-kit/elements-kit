@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "target": "es2022",
+    "lib": ["ES2022", "DOM"],
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
+    "emitDeclarationOnly": true,
+    "declaration": true,
+    "emitDecoratorMetadata": false,
+    "jsx": "react-jsx",
+    "jsxImportSource": "elements-kit",
+    "paths": {
+      "@/*": ["./src/*"],
+      // Type-check .test.tsx JSX against source, not the built dist types —
+      // dist is a separate declaration instance whose `ATTRIBUTES`/`SLOTS`
+      // unique symbols don't match source classes. Mirrors vitest.config.ts.
+      "elements-kit/jsx-runtime": ["./src/jsx-runtime/index.ts"],
+      "elements-kit/jsx-dev-runtime": ["./src/jsx-runtime/index.ts"]
+    }
+  },
+  "exclude": [
+    "dist",
+    "docs",
+    "example",
+    "storybook",
+    "node_modules",
+    "tsdown.config.ts",
+    "**/*.stories.ts",
+    "**/*.stories.tsx"
+  ],
+  // IDE wiring only: routes *.stories.tsx (excluded above) to the Storybook
+  // project so editors type-check them with storybook/tsconfig.json.
+  "references": [{ "path": "./storybook" }]
+}

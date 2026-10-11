@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4 # version from package.json packageManager
+
+      # Node 24+: the test suite uses the native URLPattern global
+      # (src/utilities/routing.ts) — unflagged since Node 24.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build library
+        run: pnpm build
+
+      - name: Typecheck (includes the Astro renderer contract pin)
+        # Root tsconfig references ./storybook (composite); build it first so
+        # its .tscache outputs exist — this also typechecks all *.stories.tsx.
+        run: |
+          pnpm exec tsc --build storybook
+          pnpm exec tsc --noEmit
+
+      # Browser projects (*.browser.test.ts) run in Playwright's headless Chromium, WebKit and Firefox.
+      # Browsers are cached per Playwright version; their system libraries aren't cacheable.
+      - name: Playwright version
+        id: playwright
+        run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache browsers
+        id: browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium-webkit-firefox
+
+      - name: Install browsers
+        if: steps.browsers.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --only-shell chromium webkit firefox
+
+      - name: Install browser dependencies
+        run: pnpm exec playwright install-deps chromium webkit firefox
+
+      - name: Unit, property & fuzz tests
+        run: pnpm test
+
+      - name: Docs site build (real Astro integration consumer)
+        run: pnpm --filter elements-kit-docs build

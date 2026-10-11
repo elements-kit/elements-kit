@@ -1,0 +1,158 @@
+---
+title: Toggle
+description: Headless toggle button — a <label> styled like a button, wrapping a native checkbox or radio. Binary on/off or exclusive single-select groups, all driven by :has(input:checked). No JavaScript.
+badge: CSS
+---
+
+
+A `<label>` styled like a button, wrapping a native `<input type="checkbox">` (binary toggle) or `<input type="radio">` (exclusive group). The label paints the chrome; the input keeps form semantics + keyboard handling + native single-open via the `name` attribute. Pressed state is driven by `:has(input:checked)` — no JavaScript.
+
+<StorybookEmbed story="ui-toggle--surface" />
+
+## Install
+
+```ts
+import "elements-kit/ui/styles.css";
+
+// neutral palette:
+import "elements-kit/ui/styles/palette/gray.css";
+import "elements-kit/ui/styles/neutral/gray.css";
+// any accent scales you want:
+import "elements-kit/ui/styles/palette/mint.css";
+import "elements-kit/ui/styles/accent/mint.css";
+// and the toggle itself:
+import "elements-kit/ui/toggle/toggle.css";
+```
+
+## API
+
+```html
+<!-- Binary toggle (checkbox) -->
+<label class="x-toggle" data-variant="surface" data-size="2">
+  <input type="checkbox" class="unset" />
+  Bold
+</label>
+
+<!-- Exclusive group (radio, native name attribute) -->
+<label class="x-toggle">
+  <input type="radio" name="align" class="unset" />
+  Left
+</label>
+<label class="x-toggle">
+  <input type="radio" name="align" class="unset" checked />
+  Center
+</label>
+<label class="x-toggle">
+  <input type="radio" name="align" class="unset" />
+  Right
+</label>
+```
+
+The `unset` class on the input strips native chrome ([Styles → Unset native styles](/ui/styles#unset-native-styles)). Visually only the label shows.
+
+| Attribute | Values |
+| --- | --- |
+| `data-variant` | `surface` *(default)*, `soft`, `borderless` |
+| `data-size` | `1`, `2` *(default)*, `3` |
+| `data-icon` | makes the toggle a square (icon-only) — drops horizontal padding, locks `aspect-ratio: 1` |
+| `data-layout` | `stacked` — icon above the label, same geometry as a [stacked button](/ui/button#icon-and-label); `stacked-icon` — no padding, the state on a highlight around the icon (see [Stacked](#stacked)) |
+| `data-accent` *(on element or any ancestor)* | any imported color scale |
+| `disabled` *(on the wrapped input)* | greys out + stops clicks |
+
+## Sizing
+
+| `data-size` | height | padding-x | font-size |
+| --- | --- | --- | --- |
+| `1` | `--space-5` | `--space-2` | `--font-size-1` |
+| `2` *(default)* | `--space-6` | `--space-3` | `--font-size-2` |
+| `3` | `--space-7` | `--space-4` | `--font-size-3` |
+
+## Variants
+
+The pressed state uses accent (`--accent-*`) tokens, which fall back to neutral when no `data-accent` is set. Pressing changes the fill and the text color, never the weight, so a toggle keeps its width. The fill steps are large enough to stay distinct from rest even when everything is gray.
+
+| Variant | Rest | Pressed | Pressed + hover |
+| --- | --- | --- | --- |
+| `surface` *(default)* | `--neutral-a5` ring, `--neutral-a11` text | `--accent-a4` fill, `--accent-a8` ring, `--accent-a12` text | `--accent-a5` |
+| `soft` | `--neutral-a3` track, `--neutral-a11` text | `--accent-a6` track, `--accent-a12` text | `--accent-a7` |
+| `borderless` | no fill, `--accent-a11` text | `--accent-a4` fill, `--accent-a12` text | `--accent-a5` |
+
+- **`soft`** — the pressed track sits three alpha steps above rest, so it reads clearly even with a neutral accent.
+- **`borderless`** — at rest it matches a [borderless button](/ui/button), so a toggle can sit among buttons in a [toolbar](/ui/toolbar) or a [material group](/ui/group#material). Only the pressed toggle shows a fill.
+
+Set `data-accent="iris"` on the toggle or any ancestor to tint the pressed state.
+
+## Stacked
+
+Add `data-layout="stacked"` to put the icon above the label. The geometry matches a [stacked button](/ui/button#icon-and-label): at size `2`, a 24px icon, a 2px gap, and a medium-weight caption in `--font-size-0` (10px) on a 16px line, in an item at least 56px square. The line scales with the size, and size `3` captions use `--font-size-1`.
+
+```html
+<nav aria-label="Sections" style="display: flex; flex-direction: column; gap: 4px; width: 80px">
+  <label class="x-toggle" data-variant="borderless" data-layout="stacked">
+    <input type="radio" name="section" class="unset" checked />
+    <svg viewBox="0 0 24 24" aria-hidden="true">…</svg>
+    <span>Home</span>
+  </label>
+  <label class="x-toggle" data-variant="borderless" data-layout="stacked">
+    <input type="radio" name="section" class="unset" />
+    <svg viewBox="0 0 24 24" aria-hidden="true">…</svg>
+    <span>Photo Library</span>
+  </label>
+</nav>
+```
+
+A stacked toggle widens for its label. When its container constrains the width, as in a navigation rail, the label wraps into balanced lines and the toggle grows taller.
+
+### Icon indicator
+
+`data-layout="stacked-icon"` drops the item's padding and paints the state on a highlight around the icon, not the whole item. At size `2` the highlight is a 36px square (the 24px icon with 6px around it) with the toggle's radius, and the label sits 4px below, so the item stays 56px square. Both scale with the size.
+
+Every variant works: the highlight takes its fill, ring and hover. Use `borderless` so only the selected item shows one.
+
+```html
+<label class="x-toggle" data-variant="borderless" data-layout="stacked-icon">
+  <input type="radio" name="section" class="unset" checked />
+  <svg viewBox="0 0 24 24" aria-hidden="true">…</svg>
+  <span>Home</span>
+</label>
+```
+
+<StorybookEmbed story="ui-toggle--navigation-rail" />
+
+## Grouping
+
+For an exclusive single-select group, give all the radio inputs the same `name`:
+
+```html
+<div style="display: inline-flex; gap: 4px">
+  <label class="x-toggle"><input type="radio" name="align" class="unset" /> Left</label>
+  <label class="x-toggle"><input type="radio" name="align" class="unset" /> Center</label>
+  <label class="x-toggle"><input type="radio" name="align" class="unset" /> Right</label>
+</div>
+```
+
+The kit deliberately doesn't ship a `.x-toggle-group` class — flex + gap is one line.
+
+For a joined-pill segmented control (no gaps between items, one continuous bar), use [`x-segmented-control`](/ui/segmented-control) instead.
+
+## States
+
+- **`:has(input:checked)`** — pressed. Drives the bg + color flip.
+- **`:hover`** — subtle wash on the bg.
+- **`:has(input:focus-visible)`** — `2px` `--focus-8` outline at `+1px` offset, on the label since the input is visually hidden. Keyboard focus only: a click doesn't show it.
+- **`:has(input:disabled)`** — `0.6` opacity, `pointer-events: none`.
+
+## Accessibility
+
+Native checkbox / radio semantics are intact — the input is visually hidden via off-screen positioning but remains in the tab order and announced by screen readers. Click events bubble through the label to the input, so `space` / `enter` toggles state via the browser default behavior. The visible focus outline lives on the label because the input itself has no visual.
+
+<Callout type="warn" title="Don't">
+Remove the wrapped `<input>` and use `<button aria-pressed>` instead — that would require JavaScript to toggle the attribute and lose native form participation.
+</Callout>
+
+## See also
+
+- [Segmented Control](/ui/segmented-control) — joined single-select bar
+- [Button](/ui/button) — actions, and the stacked geometry toggles share
+- [Toolbar](/ui/toolbar) — toggles in top and bottom bars
+- [Group](/ui/group) — material capsules for borderless toggles

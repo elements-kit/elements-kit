@@ -1,0 +1,61 @@
+---
+title: Event delegation
+description: Replace N per-row listeners with one parent listener for large lists. Look up the row from a data source via the element's data-id.
+---
+
+ElementsKit binds `on:click={fn}` directly via `addEventListener` on the element. For most UIs this is fine. For lists or tables with hundreds or thousands of rows where every row carries the same handler, that's N listeners — measurable mount cost and N entries in the browser's listener table.
+
+The fix is **delegation**: attach one listener to the parent, identify the row from `event.target`, and look up the row's data via its `data-id`.
+
+## When to use it
+
+- Lists or tables rendering hundreds+ of rows with identical handlers.
+- Virtualised lists where rows are mounted/unmounted constantly.
+- Anything where mount-time profiling shows `addEventListener` adding up.
+
+For small lists, plain `on:click={() => select(row)}` is simpler and the perf difference is invisible. Don't pre-optimise.
+
+## The pattern
+
+The list children carry only `data-id` — no closures, no per-element handler properties. Mount cost is just the DOM node + one attribute. The parent `<ul>` owns the single listener.
+
+```tsx
+import { signal } from "elements-kit/signals";
+
+type Row = { id: string; name: string };
+
+function List({ rows }: { rows: Row[] }) {
+  const rowsById = new Map(rows.map((r) => [r.id, r]));
+  const selected = signal<Row | null>(null);
+
+  return (
+    <ul
+      on:click={(e) => {
+        const li = (e.target as Element).closest("li[data-id]");
+        if (!li) return;
+        const row = rowsById.get((li as HTMLElement).dataset.id!);
+        if (row) selected(row);
+      }}
+    >
+      {rows.map((row) => (
+        <li data-id={row.id}>{row.name}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+`O(1)` lookup via the id-keyed Map. For small lists, `rows.find((r) => r.id === id)` works too — both are bounded by the row count, not the listener count.
+
+## Tradeoffs
+
+- **Shadow DOM**: events retarget at shadow boundaries. If the parent listener is outside a shadow root and rows are inside, `event.target` retargets to the shadow host — `closest("li[data-id]")` won't find the row. Attach the delegated listener inside the same shadow root.
+- **`stopPropagation`**: a child listener calling `stopPropagation` doesn't stop the parent listener — it's the same bubble path. If you need to suppress delegation, check `e.defaultPrevented` or a custom flag.
+- **Non-bubbling events** (`focus`, `blur`, `mouseenter`, `mouseleave`, `load`, `scroll`): don't bubble up, so a parent listener won't see them. Either use the capture phase (`addEventListener("focus", fn, true)`) or attach per-element. The library's `on:` namespace defaults to bubble-phase.
+- **Third-party listeners on children fire first**: if anything else attached a listener directly to the row, it runs before the parent listener.
+
+## When not to use it
+
+- Few children. The constant overhead of the closure-and-lookup outweighs the listener save.
+- Per-row handler logic differs (each row needs a different function). Direct `on:click` is clearer.
+- You need `stopPropagation` to prevent parent handlers — delegation is the parent.

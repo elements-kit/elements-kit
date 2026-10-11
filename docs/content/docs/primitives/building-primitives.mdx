@@ -1,0 +1,58 @@
+---
+title: Building primitives
+description: "Turn any event-driven API into a signal with fromEvent and sync."
+---
+
+The low-level pieces every primitive here is built on. Use them to wrap any API that emits events.
+
+## fromEvent
+
+Returns a `Subscribe` function for one or more DOM events on a target. Use with `sync` to build reactive wrappers around DOM APIs.
+
+```ts
+import { fromEvent } from "elements-kit/utilities/event-driven";
+
+const onResize = fromEvent(window, "resize");
+// pass to sync() as the subscribe argument
+```
+
+```ts
+function fromEvent(target: EventTarget, events: string | string[]): Subscribe
+```
+
+## sync
+
+Keeps a reactive value in sync with an external source. Pass a `Subscribe` + a `getter` to get a `Computed<T>`; add a `setter` to get a writable `Signal<T>`.
+
+```ts
+import { fromEvent, sync } from "elements-kit/utilities/event-driven";
+
+// Read-only: re-reads getter whenever events fire
+const [scrollY] = sync(
+  fromEvent(window, "scroll"),
+  () => window.scrollY,
+);
+
+// Writable: setter syncs writes back to the external source
+const [volume, cleanup] = sync(
+  fromEvent(audioEl, "volumechange"),
+  () => audioEl.volume,
+  (v) => { audioEl.volume = v; },
+);
+
+volume(0.5); // writes to audioEl.volume
+```
+
+```ts
+type Subscribe = (notify: () => void) => () => void;
+
+function sync<T>(subscribe: Subscribe, getter: () => T): [Computed<T>, () => void];
+function sync<T>(subscribe: Subscribe, getter: () => T, setter: (v: T) => void): [Signal<T>, () => void];
+```
+
+---
+
+## See also
+
+- [Signals](/signals)
+- [Utilities source](https://github.com/elements-kit/elements-kit/blob/main/src/utilities/README.md)
