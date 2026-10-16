@@ -411,3 +411,85 @@ describe("Async", () => {
     expect(snapshots.at(-1)).toEqual({ state: "fulfilled", value: 7 });
   });
 });
+
+// Collects unhandled rejections over one macrotask, with Vitest's own
+// listeners detached so an expected one doesn't fail the run.
+async function unhandledRejections(act: () => void): Promise<unknown[]> {
+  const reasons: unknown[] = [];
+  const saved = process.listeners("unhandledRejection");
+  process.removeAllListeners("unhandledRejection");
+  const listener = (reason: unknown) => reasons.push(reason);
+  process.on("unhandledRejection", listener);
+  try {
+    act();
+    await new Promise((r) => setTimeout(r, 0));
+  } finally {
+    process.off("unhandledRejection", listener);
+    for (const l of saved) process.on("unhandledRejection", l);
+  }
+  return reasons;
+}
+
+describe("Async dropped runs", () => {
+  it("reset() — the dropped run's rejection is not unhandled", async () => {
+    const d = deferred<number>();
+    const op = asyncOp(() => d.promise);
+    const reasons = await unhandledRejections(() => {
+      op.run();
+      op.reset();
+      d.reject(new Error("aborted"));
+    });
+    expect(reasons).toEqual([]);
+  });
+
+  it("run() — the replaced run's rejection is not unhandled", async () => {
+    const first = deferred<number>();
+    const second = deferred<number>();
+    const runs = [first, second];
+    const op = asyncOp(() => runs.shift()!.promise);
+    const reasons = await unhandledRejections(() => {
+      op.run();
+      op.run();
+      first.reject(new Error("aborted"));
+    });
+    expect(reasons).toEqual([]);
+    expect(op.pending).toBe(true);
+  });
+
+  it("start() — a reactive re-run's replaced run is not unhandled", async () => {
+    const id = signal(1);
+    const runs = new Map<number, ReturnType<typeof deferred<number>>>();
+    const op = asyncOp(() => {
+      const d = deferred<number>();
+      runs.set(id(), d);
+      return d.promise;
+    });
+    const reasons = await unhandledRejections(() => {
+      op.start();
+      id(2);
+      runs.get(1)!.reject(new Error("aborted"));
+    });
+    op.stop();
+    expect(reasons).toEqual([]);
+  });
+
+  it("the current run's rejection is still unhandled", async () => {
+    const err = new Error("real failure");
+    const op = asyncOp(() => Promise.reject(err));
+    const reasons = await unhandledRejections(() => {
+      op.run();
+    });
+    expect(reasons).toEqual([err]);
+  });
+
+  it("existing listeners on a dropped run still receive its rejection", async () => {
+    const d = deferred<number>();
+    const err = new Error("aborted");
+    const op = asyncOp(() => d.promise);
+    op.run();
+    const caught = op.catch((e) => e);
+    op.reset();
+    d.reject(err);
+    expect(await caught).toBe(err);
+  });
+});

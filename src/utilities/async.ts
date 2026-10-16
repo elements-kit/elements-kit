@@ -170,8 +170,17 @@ export class Async<TInput = undefined, TOutput = unknown> {
   ): Promise<TOutput> {
     const input = args[0] as TInput;
     const p = promise(this.fn(input));
-    this.#current(p);
+    this.#replace(p);
     return p;
+  }
+
+  // Mark the dropped run handled — it's unreachable, so its rejection would
+  // surface as unhandled. Skip `IDLE`: it never settles, so handlers on it
+  // pile up forever. Untracked: callers may sit inside an effect.
+  #replace(next: ComputedPromise<TOutput | undefined>): void {
+    const prev = untracked(this.#current);
+    if (prev !== IDLE) prev.catch(() => {});
+    this.#current(next);
   }
 
   /**
@@ -217,7 +226,7 @@ export class Async<TInput = undefined, TOutput = unknown> {
   reset(): this {
     this.stop();
     deferredRuns.delete(this);
-    this.#current(IDLE as ComputedPromise<TOutput | undefined>);
+    this.#replace(IDLE as ComputedPromise<TOutput | undefined>);
     return this;
   }
 
