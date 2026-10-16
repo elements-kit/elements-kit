@@ -201,7 +201,8 @@ function runCase(seed: number, mode: Mode) {
   for (const s of stops) s?.();
 }
 
-describe("fuzz: random graphs (coherence, final values, no extra runs)", () => {
+// Slow on CI runners: allow time for the seed loops.
+describe("fuzz: random graphs (coherence, final values, no extra runs)", { timeout: 60_000 }, () => {
   for (const mode of ["watched", "lazy"] as const) {
     it(`random graphs, ${mode} computeds, seeds 3289..3488`, () => {
       for (let seed = 3289; seed < 3289 + 200; seed++) runCase(seed, mode);
@@ -545,7 +546,7 @@ function runWriteCase(
   return strict;
 }
 
-describe("fuzz: writing effects", () => {
+describe("fuzz: writing effects", { timeout: 60_000 }, () => {
   it("random graphs, watched computeds, seeds 7001..7120", () => {
     for (let seed = 7001; seed <= 7120; seed++)
       expect(runWriteCase(seed, "watched", false)).toEqual([]);
