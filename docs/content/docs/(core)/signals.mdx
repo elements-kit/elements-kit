@@ -136,7 +136,7 @@ A `computed` is read-only — you can only call it with no arguments.
 
 ## effect
 
-An `effect` runs a side effect whenever its signal dependencies change. It runs **immediately** on creation to collect dependencies, then re-runs on every change. Returns a stop function.
+An `effect` runs a side effect whenever its signal dependencies change. It runs **immediately** on creation to collect dependencies, then re-runs on every change. Returns a stop function. If it writes a signal it read, it runs again once it finishes if that value changed, until its deps settle.
 
 ```ts magic-move
 import { signal, effect } from "elements-kit/signals";

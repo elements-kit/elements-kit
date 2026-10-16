@@ -179,7 +179,13 @@ const { link, unlink, propagate, checkDirty, shallowPropagate } =
         queued[insertIndex++] = effect;
         effect.flags &= ~ReactiveFlags.Watching;
         effect = effect.subs?.sub as EffectNode;
-        if (effect === undefined || !(effect.flags & ReactiveFlags.Watching)) {
+        // Stop at a parent that isn't watching, or is running right now.
+        if (
+          effect === undefined ||
+          (effect.flags &
+            (ReactiveFlags.Watching | ReactiveFlags.RecursedCheck)) !==
+            ReactiveFlags.Watching
+        ) {
           break;
         }
       } while (true);
@@ -530,14 +536,17 @@ export function effect(fn: () => void): () => void {
     link(e, prevSub, 0);
     prevSub.flags |= HasChildEffect;
   }
+  let threw = true;
   try {
     ++runDepth;
     e.fn();
+    threw = false;
   } finally {
     --runDepth;
     activeSub = prevSub;
     activeOwner = prevOwner;
     e.flags &= ~ReactiveFlags.RecursedCheck;
+    rerunIfRecursed(e, threw);
   }
   const handle = effectOper.bind(e);
   Object.defineProperty(handle, EFFECT, { value: true });
@@ -852,21 +861,56 @@ function run(e: EffectNode): void {
     const prevSub = setActiveSub(e);
     const prevOwner = activeOwner;
     activeOwner = e;
+    let threw = true;
     try {
       ++runDepth;
       e.fn();
+      threw = false;
     } finally {
       --runDepth;
       activeSub = prevSub;
       activeOwner = prevOwner;
       e.flags &= ~ReactiveFlags.RecursedCheck;
       purgeDeps(e);
+      rerunIfRecursed(e, threw);
     }
   } else if (e.deps !== undefined) {
     // Restore Watching when the effect was touched by the notify chain but
     // no dep is actually dirty. Preserve the HasChildEffect bit so a real
     // re-run later still enters the slow path.
     e.flags = ReactiveFlags.Watching | (flags & HasChildEffect);
+  }
+}
+
+/**
+ * A write during `e`'s run (its own, or a child's) marked it `Recursed`: if a
+ * dep really changed, run it again so it sees the new value. After a throw it
+ * doesn't re-run; the check still records the new values as what it saw.
+ */
+function rerunIfRecursed(e: EffectNode, threw: boolean): void {
+  const flags = e.flags;
+  // No Watching: disposed during the run (or queued again; that run follows).
+  if (
+    (flags & (ReactiveFlags.Recursed | ReactiveFlags.Watching)) !==
+    (ReactiveFlags.Recursed | ReactiveFlags.Watching)
+  )
+    return;
+  // RecursedCheck: the check below mustn't queue `e`; it runs here.
+  e.flags = (flags & ~ReactiveFlags.Recursed) | ReactiveFlags.RecursedCheck;
+  let dirty = !!(flags & ReactiveFlags.Dirty);
+  try {
+    if (!dirty && e.deps !== undefined) dirty = checkDirty(e.deps, e);
+  } catch (err) {
+    e.flags &= ~(ReactiveFlags.RecursedCheck | ReactiveFlags.Pending);
+    if (threw) return; // keep the body's error: it came first
+    throw err;
+  }
+  e.flags &= ~ReactiveFlags.RecursedCheck;
+  if (dirty && !threw) {
+    e.flags |= ReactiveFlags.Dirty;
+    run(e);
+  } else {
+    e.flags &= ~(ReactiveFlags.Pending | ReactiveFlags.Dirty);
   }
 }
 

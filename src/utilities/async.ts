@@ -127,7 +127,7 @@ export class Async<TInput = undefined, TOutput = unknown> {
     // When idle there is no operation to seed — materialize a fresh, settled
     // one and adopt it. Never seed the shared `IDLE` placeholder (it backs
     // every idle instance's awaitable contract).
-    let current = this.#current();
+    let current = untracked(this.#current);
     if (current === IDLE) {
       current = promise<TOutput | undefined>(() => {});
       this.#current(current);

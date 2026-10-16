@@ -1,4 +1,4 @@
-import { effectScope } from "@/signals/index.ts";
+import { effectScope, untracked } from "@/signals/index.ts";
 import { HTMLElementBase, isBrowser } from "./environment.ts";
 
 type LifecycleCallback = (self: DomLifecycleElement) => void;
@@ -101,7 +101,10 @@ export class DomLifecycleElement extends HTMLElementBase {
     this.style.display = "contents";
     if (!this.hasAttribute("role")) this.setAttribute("role", "none");
     this.#disposeScope?.();
-    this.#disposeScope = effectScope(() => this.#onConnect?.(this));
+    // Not owned by whatever effect inserted the element.
+    this.#disposeScope = untracked(() =>
+      effectScope(() => this.#onConnect?.(this)),
+    );
   }
 
   disconnectedCallback(): void {

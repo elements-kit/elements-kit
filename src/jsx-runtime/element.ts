@@ -128,7 +128,8 @@ function createNodeElement(
   props: Record<string, unknown>,
   ref: ((el: Element) => void) | undefined,
 ): JSX.Element | null {
-  const node = resolveNode(type);
+  // Constructors run untracked, like function components.
+  const node = untracked(() => resolveNode(type));
   if (!node) return null;
 
   let el: Element | DocumentFragment | null | undefined;

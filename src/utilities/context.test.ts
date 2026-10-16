@@ -212,3 +212,46 @@ describe("context", () => {
     });
   });
 });
+
+describe("setContext inside an effect", () => {
+  it("a depth counter (read and provide the same key) runs once", () => {
+    const KEY = Symbol("depth");
+    const outer = document.createElement("div");
+    const inner = document.createElement("div");
+    outer.append(inner);
+    document.body.append(outer);
+    setContext(outer, KEY, 1);
+    let runs = 0;
+    effect(() => {
+      if (++runs > 50) throw new Error("runaway");
+      setContext(inner, KEY, (getContext<number>(inner, KEY) ?? 0) + 1);
+    });
+    expect(runs).toBe(1);
+    expect(getContext(inner, KEY)).toBe(2);
+  });
+
+  it("a reader re-runs when an ancestor's provider changes", () => {
+    const KEY = Symbol("k");
+    const outer = document.createElement("div");
+    const inner = document.createElement("div");
+    outer.append(inner);
+    document.body.append(outer);
+    const v = signal("a");
+    effectScope(() => effect(() => void setContext(outer, KEY, v())));
+    const seen: unknown[] = [];
+    effect(() => seen.push(getContext(inner, KEY)));
+    v("b");
+    // The provider's re-run removes the old entry before setting the new one.
+    expect(seen).toEqual(["a", undefined, "b"]);
+  });
+
+  it("runs the effect once", () => {
+    const host = document.createElement("div");
+    let runs = 0;
+    effect(() => {
+      runs++;
+      setContext(host, "k", 1);
+    });
+    expect(runs).toBe(1);
+  });
+});

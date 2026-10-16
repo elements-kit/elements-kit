@@ -12,7 +12,7 @@
  *  - untracked: no subscription inside untracked
  *  - trigger: manual notification without value change
  *  - type guards: isSignal, isComputed, isEffect, isEffectScope
- *  - edge cases: double stop, cleanup re-registration, self-referential guard
+ *  - edge cases: double stop, cleanup re-registration, self-write re-runs
  */
 
 import { describe, it, expect, vi } from "vitest";
@@ -679,20 +679,18 @@ describe("edge cases", () => {
     // No signals tracked – nothing can trigger a re-run.
   });
 
-  it("writing to a signal inside its own effect does not cause infinite loop", () => {
+  it("re-runs after each self-write until the value settles", () => {
     const s = signal(0);
     const spy = vi.fn();
     effect(() => {
       const val = s();
       spy(val);
       if (val < 3) {
-        s(val + 1); // self-write while RecursedCheck is active
+        s(val + 1);
       }
     });
-    // RecursedCheck prevents re-queuing during the effect's own run.
-    // The write is staged but the effect is not re-scheduled in the same flush.
-    expect(spy).toHaveBeenCalledTimes(1);
-    expect(spy).toHaveBeenCalledWith(0);
+    // It re-runs after each own write until the value settles.
+    expect(spy.mock.calls).toEqual([[0], [1], [2], [3]]);
   });
 
   it("computed used by two effects updates both", () => {
@@ -1184,7 +1182,7 @@ describe("enterprise: error propagation", () => {
 // ---------------------------------------------------------------------------
 
 describe("enterprise: circular / feedback loops", () => {
-  it("effect writing to signal it reads does not infinite-loop (RecursedCheck guard)", () => {
+  it("effect writing to a signal it reads settles when the value stops changing", () => {
     const s = signal(0);
     let runs = 0;
 
@@ -1193,8 +1191,8 @@ describe("enterprise: circular / feedback loops", () => {
       if (s() < 3) s(s() + 1);
     });
 
-    expect(runs).toBeGreaterThan(0);
-    expect(runs).toBeLessThan(10); // guard limits recursion
+    expect(runs).toBe(4);
+    expect(s()).toBe(3);
     stop();
   });
 
@@ -1607,16 +1605,17 @@ describe("alien-signals regressions", () => {
       }
     });
 
+    // Each reset to 0 is an own write, so it runs once more to see it.
     expect(runs).toBe(1);
     s(1);
     expect(s()).toBe(0);
-    expect(runs).toBe(2);
+    expect(runs).toBe(3);
     s(2);
     expect(s()).toBe(0);
-    expect(runs).toBe(3);
+    expect(runs).toBe(5);
     s(3);
     expect(s()).toBe(0);
-    expect(runs).toBe(4);
+    expect(runs).toBe(7);
   });
 
   // https://github.com/stackblitz/alien-signals/issues/115

@@ -28,7 +28,7 @@ export function createTimeout(
   };
 
   const start = () => {
-    if (pending()) return;
+    if (id !== undefined) return;
     pending(true);
     id = setTimeout(() => {
       pending(false);
@@ -37,8 +37,10 @@ export function createTimeout(
     }, getDelay());
   };
 
+  // Restart without passing through `false`, so readers see no change.
   const reset = () => {
-    stop();
+    clearTimeout(id);
+    id = undefined;
     start();
   };
 

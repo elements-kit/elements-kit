@@ -52,7 +52,7 @@ Each subpath is a stable import entry declared in [package.json](package.json) `
 
 - Writes notify synchronously in write order. Computeds re-evaluate lazily on the next read; effects re-run eagerly.
 - Within a `batch`, all writes complete before any subscriber is notified. Nested batches flush at the outermost boundary.
-- Writing a tracked signal inside its own effect re-schedules the effect; the engine prevents re-entry by flushing after the current run completes.
+- An effect that writes a dep it read (directly, or via a child effect or computed) runs again right after it finishes if that dep changed, so it sees the new value. It repeats until its deps settle; there is no loop guard, so an effect that writes a new value every run overflows the stack. A body that throws isn't re-run; its error propagates.
 - Nested effects flush outer-first. Disposing an outer `effectScope` disposes all nested effects in registration order.
 
 **Performance guarantees**:

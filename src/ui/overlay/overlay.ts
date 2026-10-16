@@ -1,4 +1,11 @@
-import { batch, effect, onCleanup, reactive, signal } from "@/signals/index.ts";
+import {
+  batch,
+  effect,
+  onCleanup,
+  reactive,
+  signal,
+  untracked,
+} from "@/signals/index.ts";
 import { scope } from "@/signals/scope";
 import { on } from "@/utilities/event-listener.ts";
 import { createMutationObserver } from "@/utilities/mutation-observer.ts";
@@ -87,11 +94,16 @@ class Displacement extends PartialBox {
   }
 
   apply() {
+    const t = this.box.transform;
+    // Read-then-write: untracked, so an effect calling it doesn't re-run.
+    const [x, y, w, h, dx, dy, dw, dh] = untracked(() => [
+      t.x, t.y, t.w, t.h, this.x, this.y, this.w, this.h,
+    ]);
     batch(() => {
-      this.box.transform.x = (this.box.transform.x ?? 0) + (this.x ?? 0);
-      this.box.transform.y = (this.box.transform.y ?? 0) + (this.y ?? 0);
-      this.box.transform.w = (this.box.transform.w ?? 0) + (this.w ?? 0);
-      this.box.transform.h = (this.box.transform.h ?? 0) + (this.h ?? 0);
+      t.x = (x ?? 0) + (dx ?? 0);
+      t.y = (y ?? 0) + (dy ?? 0);
+      t.w = (w ?? 0) + (dw ?? 0);
+      t.h = (h ?? 0) + (dh ?? 0);
       this.clear();
     });
   }

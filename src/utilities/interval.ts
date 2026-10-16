@@ -52,8 +52,10 @@ export function createInterval(arg1: Fn | Delay, arg2?: Delay): IntervalResult {
     pending(false);
   };
 
+  // Restart without passing through `false`, so readers see no change.
   const reset = () => {
-    stop();
+    clearInterval(id);
+    id = undefined;
     start();
   };
 

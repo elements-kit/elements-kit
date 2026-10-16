@@ -31,6 +31,14 @@ op.stop();  // stop reactive reruns and run cleanup logic
 op.reset(); // stop, then clear state back to `idle`
 ```
 
+An effect that starts the query whenever it's idle restarts it after each `reset()`. Call `start()` inside `untracked`: the effect re-runs after `start()` changes `state`, and a tracked `start()` would belong to that run, so the re-run would stop it.
+
+```ts
+effect(() => {
+  if (op.state === "idle") untracked(() => op.start());
+});
+```
+
 ### When to `start()` vs `run()`
 
 `start()` enables fetching automatically. The body is tracked, so the query re-runs whenever a signal it reads before the first `await` changes. Reach for it when the load is parameterised by reactive state — "fetch user X whenever `userId` changes". The [data-fetching recipe](/examples/data-fetching) uses `start()` with reactive params.

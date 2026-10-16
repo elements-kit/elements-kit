@@ -1,12 +1,15 @@
-import { onCleanup, signal, type Signal } from "@/signals/index.ts";
+import { onCleanup, signal, type Signal, untracked } from "@/signals/index.ts";
 
-const registry = new WeakMap<EventTarget, Map<PropertyKey, unknown>>();
-const versions = new Map<PropertyKey, Signal<number>>();
+// One signal per (host, key): a lookup tracks only the hosts on its path.
+const NONE = Symbol("none");
+const registry = new WeakMap<EventTarget, Map<PropertyKey, Signal<unknown>>>();
 
-function version(key: PropertyKey): Signal<number> {
-  let v = versions.get(key);
-  if (!v) versions.set(key, (v = signal(0)));
-  return v;
+function slot(host: EventTarget, key: PropertyKey): Signal<unknown> {
+  let map = registry.get(host);
+  if (!map) registry.set(host, (map = new Map()));
+  let s = map.get(key);
+  if (!s) map.set(key, (s = signal<unknown>(NONE)));
+  return s;
 }
 
 /**
@@ -52,16 +55,10 @@ export function setContext<H extends EventTarget | null, T>(
   value: T,
 ): H {
   if (host == null) return host;
-  let map = registry.get(host);
-  if (!map) registry.set(host, (map = new Map()));
-  map.set(key, value);
-  const owned = map;
-  const v = version(key);
-  v(v() + 1);
+  const s = slot(host, key);
+  s(value);
   onCleanup(() => {
-    owned.delete(key);
-    if (owned.size === 0) registry.delete(host);
-    v(v() + 1);
+    if (untracked(s) === value) s(NONE);
   });
   return host;
 }
@@ -106,11 +103,13 @@ export function getContext<T>(
   consumer: Element,
   key: PropertyKey,
 ): T | undefined {
-  version(key)();
   let node: Node | null = consumer;
   while (node) {
-    const map = registry.get(node);
-    if (map?.has(key)) return map.get(key) as T;
+    // The consumer's own entry is read untracked: a node that reads and
+    // provides the same key (e.g. a depth counter) must not re-run itself.
+    const s = slot(node, key);
+    const value = node === consumer ? untracked(s) : s();
+    if (value !== NONE) return value as T;
     const parent: Node | null = node.parentNode;
     if (parent) {
       node = parent;

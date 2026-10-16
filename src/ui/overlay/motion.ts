@@ -1,4 +1,4 @@
-import { signal, Signal } from "@/signals";
+import { signal, Signal, untracked } from "@/signals";
 
 export interface IMotion {
   value: number;
@@ -29,7 +29,7 @@ export class Motion implements IMotion {
 
   set value(value: number) {
     const now = performance.now();
-    const prev = this.#value();
+    const prev = untracked(this.#value);
     const dt = now - this.#time;
     const delta = value - prev;
     this.#delta(delta);
@@ -54,7 +54,7 @@ export class Motion implements IMotion {
 
   /** Nudge the value by a displacement — delta/velocity fall out of the setter. */
   move(delta: number): void {
-    this.value = this.#value() + delta;
+    this.value = untracked(this.#value) + delta;
   }
 
   abort(initial?: number): void {

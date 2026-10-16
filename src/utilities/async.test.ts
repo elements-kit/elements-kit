@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { effect, onCleanup, signal } from "@/signals/index.ts";
+import { batch, effect, onCleanup, signal, untracked } from "@/signals/index.ts";
 import { Async, async as asyncOp } from "./async.ts";
 import { createInterval } from "./interval.ts";
 
@@ -491,5 +491,212 @@ describe("Async dropped runs", () => {
     op.reset();
     d.reject(err);
     expect(await caught).toBe(err);
+  });
+});
+
+// An effect that starts the op whenever it's idle writes its own dep during
+// its run. `reset()` notifies readers of state, so the effect re-runs.
+describe("Async: restart-when-idle effect + reset()", () => {
+  const tick = () => new Promise((r) => setTimeout(r, 0));
+
+  function keepAlive<T>(q: Async<undefined, T>, how: "start" | "run" = "start") {
+    const log = { starts: 0, states: [] as string[] };
+    const stop = effect(() => {
+      const state = q.state;
+      log.states.push(state);
+      if (state !== "idle") return;
+      untracked(() => {
+        log.starts++;
+        if (how === "start") q.start();
+        else q.run();
+      });
+    });
+    return { log, stop };
+  }
+
+  it("restarts after reset()", async () => {
+    const q = asyncOp(async () => undefined);
+    const { log, stop } = keepAlive(q);
+    expect(log.starts).toBe(1);
+    q.reset();
+    await tick();
+    expect(log.starts).toBe(2);
+    stop();
+    q.stop();
+  });
+
+  it("restarts after reset() repeatedly (5 cycles, after settle)", async () => {
+    let calls = 0;
+    const q = asyncOp(async () => ++calls);
+    const { log, stop } = keepAlive(q);
+    for (let i = 1; i <= 5; i++) {
+      await q;
+      expect(q.state).toBe("fulfilled");
+      expect(q.value).toBe(i);
+      q.reset();
+      expect(log.starts).toBe(i + 1);
+      expect(q.state).toBe("pending");
+    }
+    await q;
+    expect(calls).toBe(6);
+    stop();
+    q.stop();
+  });
+
+  it("reset() while pending restarts synchronously, repeatedly", async () => {
+    const pending: ReturnType<typeof deferred<number>>[] = [];
+    const q = asyncOp(() => {
+      const d = deferred<number>();
+      pending.push(d);
+      return d.promise;
+    });
+    const { log, stop } = keepAlive(q);
+    expect(q.state).toBe("pending");
+    for (let i = 2; i <= 4; i++) {
+      q.reset();
+      expect(log.starts).toBe(i);
+      expect(q.state).toBe("pending");
+    }
+    // Abandoned runs settling late do not disturb the live one.
+    pending[0]!.resolve(1);
+    pending[1]!.resolve(2);
+    await tick();
+    expect(q.state).toBe("pending");
+    pending.at(-1)!.resolve(99);
+    await q;
+    expect(q.value).toBe(99);
+    expect(log.starts).toBe(4);
+    stop();
+    q.stop();
+  });
+
+  it("re-runs on each reset() and follows the run it started", async () => {
+    const q = asyncOp(async () => "ok");
+    const { log, stop } = keepAlive(q);
+    await q;
+    await tick();
+    q.reset();
+    await q;
+    await tick();
+    q.reset();
+    await q;
+    // start() writes from its own effect, so the keep-alive effect re-runs,
+    // sees "pending", and then the settle.
+    const cycle = ["idle", "pending", "fulfilled"];
+    expect(log.states).toEqual([...cycle, ...cycle, ...cycle]);
+    expect(log.starts).toBe(3);
+    stop();
+    q.stop();
+  });
+
+  it("restarts after reset() of a rejected run", async () => {
+    const q = asyncOp(() => Promise.reject(new Error("x")));
+    const { log, stop } = keepAlive(q);
+    await q.catch(() => {});
+    expect(q.state).toBe("rejected");
+    q.reset();
+    expect(log.starts).toBe(2);
+    await q.catch(() => {});
+    q.reset();
+    expect(log.starts).toBe(3);
+    await q.catch(() => {});
+    stop();
+    q.stop();
+  });
+
+  it("run() from the effect restarts after reset() too", async () => {
+    let calls = 0;
+    const q = asyncOp(async () => ++calls);
+    const { log, stop } = keepAlive(q, "run");
+    for (let i = 1; i <= 3; i++) {
+      await q;
+      q.reset();
+      expect(log.starts).toBe(i + 1);
+    }
+    await q;
+    expect(calls).toBe(4);
+    stop();
+    q.stop();
+  });
+
+  it("start() called tracked (no untracked) from the effect restarts after reset()", async () => {
+    let starts = 0;
+    const q = asyncOp(async () => undefined);
+    const stop = effect(() => {
+      if (q.state !== "idle") return;
+      starts++;
+      q.start();
+    });
+    expect(starts).toBe(1);
+    await q;
+    q.reset();
+    expect(starts).toBe(2);
+    q.reset();
+    expect(starts).toBe(3);
+    stop();
+    q.stop();
+  });
+
+  it("reset() inside batch() restarts once at batch end", async () => {
+    const q = asyncOp(async () => undefined);
+    const { log, stop } = keepAlive(q);
+    await q;
+    batch(() => {
+      q.reset();
+      expect(log.starts).toBe(1);
+    });
+    expect(log.starts).toBe(2);
+    batch(() => batch(() => q.reset()));
+    expect(log.starts).toBe(3);
+    stop();
+    q.stop();
+  });
+
+  it("start() inside batch() within the effect, then reset()", async () => {
+    let starts = 0;
+    const q = asyncOp(async () => undefined);
+    const stop = effect(() => {
+      if (q.state !== "idle") return;
+      untracked(() => {
+        starts++;
+        batch(() => q.start());
+      });
+    });
+    expect(starts).toBe(1);
+    q.reset();
+    expect(starts).toBe(2);
+    q.reset();
+    expect(starts).toBe(3);
+    stop();
+    q.stop();
+  });
+
+  it("an unrelated observer of state sees the reset and the restart once each", async () => {
+    const q = asyncOp(async () => undefined);
+    const seen: string[] = [];
+    const watch = effect(() => {
+      seen.push(q.state);
+    });
+    const { log, stop } = keepAlive(q);
+    await q;
+    seen.length = 0;
+    q.reset();
+    // One run per transition: the reset, then the restart.
+    expect(seen).toEqual(["idle", "pending"]);
+    expect(log.starts).toBe(2);
+    watch();
+    stop();
+    q.stop();
+  });
+
+  it("stopped keep-alive effect does not restart on reset()", async () => {
+    const q = asyncOp(async () => undefined);
+    const { log, stop } = keepAlive(q);
+    await q;
+    stop();
+    q.reset();
+    await tick();
+    expect(log.starts).toBe(1);
+    expect(q.state).toBe("idle");
   });
 });

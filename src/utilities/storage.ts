@@ -72,18 +72,33 @@ function createStorageSignal<T>(
     };
   };
 
-  const [s] = sync(
-    subscribe,
-    () => readOrDefault(storage, key, initialValue, deserialise),
-    (v) => {
-      try {
-        storage.setItem(key, serialise(v));
-      } catch {
-        /* quota exceeded */
-      }
-      notify?.();
-    },
-  );
+  // Same raw string → same value, so reads don't produce fresh objects.
+  let lastRaw: string | null | undefined;
+  let lastValue = initialValue;
+  const read = () => {
+    let raw: string | null = null;
+    try {
+      raw = storage.getItem(key);
+    } catch {
+      /* storage unavailable */
+    }
+    if (raw !== lastRaw) {
+      lastRaw = raw;
+      lastValue = readOrDefault(storage, key, initialValue, deserialise);
+    }
+    return lastValue;
+  };
+
+  const [s] = sync(subscribe, read, (v) => {
+    const raw = serialise(v);
+    if (raw === lastRaw) return;
+    try {
+      storage.setItem(key, raw);
+    } catch {
+      /* quota exceeded */
+    }
+    notify?.();
+  });
 
   return s;
 }
