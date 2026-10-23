@@ -14,8 +14,12 @@
  * `<a>`, `<button>`, or `<label>`.
  */
 
-.x-card {
+/* zero specificity: a component on the same element (x-menu, …) sets its own display */
+:where(.x-card) {
   display: block;
+}
+
+.x-card {
   position: relative;
   overflow: hidden;
   border-radius: var(--card-border-radius);
