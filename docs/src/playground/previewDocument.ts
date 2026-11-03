@@ -255,6 +255,13 @@ export const devtoolsHtml = `
     }
   </style>
   <meta name="referrer" content="no-referrer">
+  <script>
+    // Safari has no requestIdleCallback; chii needs it.
+    if (!window.requestIdleCallback) {
+      window.requestIdleCallback = (cb) => setTimeout(() => cb({ didTimeout: false, timeRemaining: () => 50 }), 1);
+      window.cancelIdleCallback = clearTimeout;
+    }
+  </script>
   <script src="https://unpkg.com/@ungap/custom-elements/es.js"></script>
   <script type="module" src="https://cdn.jsdelivr.net/npm/chii@1.15.5/public/front_end/entrypoints/chii_app/chii_app.js"></script>
   <body class="undocked" id="-blink-dev-tools">`;
