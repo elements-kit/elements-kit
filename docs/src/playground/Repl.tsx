@@ -112,11 +112,13 @@ function arrange(api: DockviewApi, names: string[]) {
   for (const panel of [...api.panels]) {
     if (isFilePanel(panel.id) && !names.includes(panel.id)) api.removePanel(panel);
   }
-  const home = api.panels.find((p) => isFilePanel(p.id))?.group;
+  let home = api.panels.find((p) => isFilePanel(p.id))?.group;
   names.forEach((name, index) => {
     const panel = api.getPanel(name);
-    if (panel && home) panel.api.moveTo({ group: home, index });
-    else if (!panel) {
+    if (panel && home) {
+      // moving a group's only panel can dispose the group: skip no-ops
+      if (panel.group !== home || home.panels.indexOf(panel) !== index) panel.api.moveTo({ group: home, index });
+    } else if (!panel) {
       api.addPanel({
         id: name,
         component: "file",
@@ -125,6 +127,8 @@ function arrange(api: DockviewApi, names: string[]) {
         inactive: true,
       });
     }
+    // re-read: a move may have replaced the group
+    home = api.getPanel(name)?.group ?? home;
   });
   api.getPanel(names[0])?.api.setActive();
 }
