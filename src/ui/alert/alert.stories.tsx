@@ -7,7 +7,6 @@ import "../button/button.css";
 interface Args {
   variant: "soft" | "surface" | "outline";
   size: "1" | "2" | "3";
-  title: string;
   description: string;
 }
 
@@ -23,13 +22,11 @@ const meta = {
       options: ["soft", "surface", "outline"],
     },
     size: { control: "select", options: ["1", "2", "3"] },
-    title: { control: "text" },
     description: { control: "text" },
   },
   args: {
     variant: "soft",
     size: "2",
-    title: "Heads up",
     description: "Your trial ends in 7 days.",
   },
   render: (args) =>
@@ -42,7 +39,7 @@ const meta = {
       >
         {InfoIcon()}
         <div>
-          <strong>{args.title}</strong> — {args.description}
+          {args.description}
         </div>
       </div>
     ),
@@ -58,7 +55,6 @@ export const Outline: Story = { args: { variant: "outline" } };
 // Color semantics come from `data-accent`, not the variant.
 export const Info: Story = {
   args: {
-    title: "Info",
     description: "A new version is available.",
   },
   render: (args) =>
@@ -72,7 +68,7 @@ export const Info: Story = {
       >
         {InfoIcon()}
         <div>
-          <strong>{args.title}</strong> — {args.description}
+          {args.description}
         </div>
       </div>
     ),
@@ -80,7 +76,6 @@ export const Info: Story = {
 
 export const Success: Story = {
   args: {
-    title: "Success",
     description: "Your changes have been saved.",
   },
   render: (args) =>
@@ -94,7 +89,7 @@ export const Success: Story = {
       >
         {InfoIcon()}
         <div>
-          <strong>{args.title}</strong> — {args.description}
+          {args.description}
         </div>
       </div>
     ),
@@ -102,7 +97,6 @@ export const Success: Story = {
 
 export const Warning: Story = {
   args: {
-    title: "Warning",
     description: "Your trial ends in 7 days.",
   },
   render: (args) =>
@@ -116,7 +110,7 @@ export const Warning: Story = {
       >
         {InfoIcon()}
         <div>
-          <strong>{args.title}</strong> — {args.description}
+          {args.description}
         </div>
       </div>
     ),
@@ -124,7 +118,6 @@ export const Warning: Story = {
 
 export const Error: Story = {
   args: {
-    title: "Error",
     description: "We couldn't process your payment.",
   },
   render: (args) =>
@@ -138,7 +131,7 @@ export const Error: Story = {
       >
         {InfoIcon()}
         <div>
-          <strong>{args.title}</strong> — {args.description}
+          {args.description}
         </div>
       </div>
     ),
@@ -147,7 +140,6 @@ export const Error: Story = {
 // `--accent-12` text bump for higher contrast.
 export const HighContrast: Story = {
   args: {
-    title: "High contrast",
     description: "Soft variant with the text color bumped to --accent-12.",
   },
   render: (args) =>
@@ -162,7 +154,7 @@ export const HighContrast: Story = {
       >
         {InfoIcon()}
         <div>
-          <strong>{args.title}</strong> — {args.description}
+          {args.description}
         </div>
       </div>
     ),
@@ -171,7 +163,6 @@ export const HighContrast: Story = {
 // Composition: an action button laid out alongside the message body.
 export const WithAction: Story = {
   args: {
-    title: "Update available",
     description: "Restart to apply the latest version.",
   },
   render: (args) =>
@@ -188,7 +179,7 @@ export const WithAction: Story = {
           style="display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%"
         >
           <div>
-            <strong>{args.title}</strong> — {args.description}
+            {args.description}
           </div>
           <button
             class:unset
@@ -224,7 +215,7 @@ export const Gallery: Story = {
                 >
                   {InfoIcon()}
                   <div>
-                    <strong>{variant}</strong> · size {size} — {args.description}
+                    {args.description}
                   </div>
                 </div>
               )),
@@ -245,7 +236,7 @@ export const Gallery: Story = {
               >
                 {InfoIcon()}
                 <div>
-                  <strong>{accent}</strong> — {args.description}
+                  {args.description}
                 </div>
               </div>
             ))}
