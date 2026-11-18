@@ -196,7 +196,8 @@
 
 .x-select:where(:not([data-variant]), [data-variant="surface"]) {
   color: var(--neutral-12);
-  background-color: transparent;
+  /* As x-text-input's surface: a field reads as one on a tinted panel too. */
+  background-color: var(--color-surface);
   box-shadow: inset 0 0 0 1px var(--neutral-a7);
 }
 
