@@ -115,6 +115,11 @@
       "import": "./dist/ui/overlay/index.mjs",
       "types": "./dist/ui/overlay/index.d.mts"
     },
+    "./ui/toast": {
+      "source": "./src/ui/toast/toast.ts",
+      "import": "./dist/ui/toast/toast.mjs",
+      "types": "./dist/ui/toast/toast.d.mts"
+    },
     "./ui/otp-input": {
       "source": "./src/ui/otp-input/index.ts",
       "import": "./dist/ui/otp-input/index.mjs",

@@ -67,6 +67,7 @@ export default defineConfig([
       "!src/integrations/svg.ts",
       "src/ui/overlay/index.ts",
       "src/ui/otp-input/index.ts",
+      "src/ui/toast/toast.ts",
     ],
     deps: {
       neverBundle: ["react", "react-dom"],
