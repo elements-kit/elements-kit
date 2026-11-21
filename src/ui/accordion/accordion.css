@@ -110,21 +110,21 @@
     --accordion-summary-padding-inline: var(--space-3);
     --accordion-font-size: var(--font-size-2);
     --accordion-duration: 180ms;
-    --accordion-radius: var(--radius-1);
+    --accordion-radius: var(--radius-2);
   }
   &:where([data-size="2"]) {
     --accordion-summary-padding-block: var(--space-3);
     --accordion-summary-padding-inline: var(--space-4);
     --accordion-font-size: var(--font-size-3);
     --accordion-duration: 200ms;
-    --accordion-radius: var(--radius-2);
+    --accordion-radius: var(--radius-3);
   }
   &:where([data-size="3"]) {
     --accordion-summary-padding-block: var(--space-4);
     --accordion-summary-padding-inline: var(--space-5);
     --accordion-font-size: var(--font-size-4);
     --accordion-duration: 220ms;
-    --accordion-radius: var(--radius-3);
+    --accordion-radius: var(--radius-4);
   }
 }
 
@@ -134,7 +134,7 @@
   --accordion-summary-padding-inline: var(--space-4);
   --accordion-font-size: var(--font-size-3);
   --accordion-duration: 200ms;
-  --accordion-radius: var(--radius-2);
+  --accordion-radius: var(--radius-3);
 }
 
 /***************************************************************************************************
@@ -153,7 +153,7 @@
   [data-variant="surface"],
   [data-variant="soft"]
 ) {
-  /* Scales with size as a select does (1, 2, 3). */
+  /* Scales with the summary's height (2, 3, 4): a size-1 row is as tall as a size-2/3 control. */
   border-radius: var(--accordion-radius);
   overflow: hidden; /* clips the summary tint + hover wash to rounded corners */
 
