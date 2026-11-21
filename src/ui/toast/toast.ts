@@ -38,9 +38,9 @@ function hidden(): boolean {
   return tabHidden();
 }
 
-/** Where a new toast goes: the top modal dialog while one is open — outside
- * it the page is inert, toasts included — else the body. */
-function host(): HTMLElement {
+/** Where a new toast goes by default: the top modal dialog while one is open
+ * — outside it the page is inert, toasts included — else the body. */
+function topLayerHost(): ParentNode {
   const modals = document.querySelectorAll<HTMLDialogElement>("dialog:modal");
   return modals[modals.length - 1] ?? document.body;
 }
@@ -67,7 +67,7 @@ export class Toast implements Disposable {
       if (!(el instanceof HTMLElement)) throw new TypeError("toast content must be an HTMLElement");
       el.classList.add("x-overlay");
       el.popover = "manual";
-      const parent = host();
+      const parent = toaster.host();
       parent.append(el);
       // With the content: they outlive `release()` and end together.
       box = new OverlayBox(el);
@@ -75,7 +75,7 @@ export class Toast implements Disposable {
       if (parent instanceof HTMLDialogElement)
         on(parent, "close", () => {
           if (!untracked(toaster.toasts).includes(this)) return;
-          document.body.append(el);
+          toaster.host().append(el);
           if (!el.matches(":popover-open")) el.showPopover();
         });
     });
@@ -176,6 +176,9 @@ export interface ToasterOptions {
   max?: number;
   /** Start spread, not collapsed (see `Toaster.expanded`). */
   expand?: boolean;
+  /** Where a new toast's element is added — a shadow root, say, where its
+   * styles are. Default: the top open modal dialog, else the body. */
+  host?: () => ParentNode;
 }
 
 /**
@@ -191,6 +194,8 @@ export class Toaster implements Disposable {
   readonly area: Area;
   readonly gap: number;
   readonly max: number;
+  /** Where a new toast's element is added. */
+  readonly host: () => ParentNode;
   /** Newest first. Writable: reorder it and the toasts move. */
   readonly toasts = signal<Toast[]>([]);
   /** The pointer is over the stack (gaps included), or focus is in a toast:
@@ -211,8 +216,10 @@ export class Toaster implements Disposable {
     gap = 8,
     max = 3,
     expand = false,
+    host = topLayerHost,
   }: ToasterOptions = {}) {
     this.area = area;
+    this.host = host;
     this.gap = gap;
     this.max = max;
     this.expanded = signal(expand);
@@ -259,7 +266,7 @@ export class Toaster implements Disposable {
     // it before showPopover's style pass, so it enters from its spot.
     el.showPopover();
     // Next to the toast: outside an open modal, the region is inert and silent.
-    el.parentElement!.append(this.#live);
+    el.parentNode!.append(this.#live);
     this.#live.textContent = el.textContent ?? "";
     return t;
   }

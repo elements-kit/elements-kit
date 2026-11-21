@@ -281,6 +281,20 @@ describe("Toast", () => {
   });
 });
 
+describe("Toaster host", () => {
+  it("adds toasts where `host` says: a shadow root", async () => {
+    const shell = document.createElement("div");
+    document.body.append(shell);
+    const shadow = shell.attachShadow({ mode: "open" });
+    const t = setup({ host: () => shadow });
+    const { element } = t.show(alert("Saved")).box;
+    await frame();
+
+    expect(element.parentNode).toBe(shadow);
+    expect(element.matches(":popover-open")).toBe(true);
+  });
+});
+
 describe("Toaster over a modal", () => {
   it("is hit-testable above an open modal dialog", async () => {
     const t = setup();
