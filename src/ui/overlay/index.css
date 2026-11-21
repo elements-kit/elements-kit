@@ -16,12 +16,7 @@
   --overlay-duration: 300ms;
   --overlay-easing: cubic-bezier(0.32, 0.72, 0, 1);
 
-  /* The frame is invisible — the card paints. Reset the UA `<dialog>` /
-   * popover box so the box's width/height are the true border-box size (no surprise UA
-   * padding/border inflating the width). */
   box-sizing: border-box;
-  padding: 0;
-  border: 0;
 
   /* OverlayBox positions by top-left + `translate` (set inline). Override the
    * UA modal/popover placement so translate is the SOLE positioner: kill the
@@ -52,6 +47,15 @@
     height var(--overlay-duration) var(--overlay-easing);
 }
 
+/* The frame is invisible — the card paints. Reset the UA `<dialog>` / popover
+ * box so the box's width/height are the true border-box size (no surprise UA
+ * padding/border inflating the width). A `data-surface` frame is itself the
+ * surface (an alert, a toast): its own padding and border stay. */
+.x-overlay:where(:not([data-surface])) {
+  padding: 0;
+  border: 0;
+}
+
 /* Direct manipulation must track the pointer instead of interpolating toward
  * each update. Remove the attribute on release to restore normal morphs. */
 .x-overlay[data-no-transition] {
@@ -72,14 +76,21 @@
  * Scoped to the open states so the UA `dialog:not([open]) { display:none }`                        *
  * and the Tier-2 discrete-display exit keep working.                                              *
  *                                                                                                 *
+ * A `data-surface` frame keeps its own display open (an alert's grid); closed,                     *
+ * it's hidden with enough weight to beat that display.                                            *
+ *                                                                                                 *
  ***************************************************************************************************/
 
-.x-overlay:where([popover]) {
+.x-overlay:where([popover]):where(:not([data-surface])) {
   display: none;
 }
 
-.x-overlay:where([open], :popover-open) {
+.x-overlay:where([open], :popover-open):where(:not([data-surface])) {
   display: flex;
+}
+
+.x-overlay[data-surface]:not([open], :popover-open) {
+  display: none;
 }
 
 .x-overlay > .x-card {

@@ -534,17 +534,36 @@ export const BottomSheet: StoryObj = {
         sheet.h = heights()[stop()]!;
       });
 
+      // Slides through the box's offset: one sheet height down while closed.
+      // Open: set it there before showing (a closed dialog has no style to
+      // transition from), commit the first style, then glide to 0.
+      // Close: set it there just before closing; allow-discrete keeps the
+      // sheet painted while it slides out.
+      const below = () => {
+        sheet.displacement.y = el.offsetHeight;
+      };
       opener.addEventListener("click", () => {
         // Back at half, whatever the last close left behind.
         batch(() => {
           sheet.displacement.clear();
           stop(1);
+          sheet.displacement.y = heights()[1]!;
         });
         el.showModal();
+        // Commit the start below. Chrome and Firefox style it inside
+        // showModal(); WebKit doesn't, and without this it pops in unmoved.
+        getComputedStyle(el).translate;
+        sheet.displacement.y = 0;
       });
+      const dismiss = () => {
+        below();
+        el.close();
+      };
+      // Escape: slide out before the dialog closes itself.
+      el.addEventListener("cancel", below);
       // A click on the dialog itself is the backdrop.
       el.addEventListener("click", (e) => {
-        if (e.target === el) el.close();
+        if (e.target === el) dismiss();
       });
 
       const motion = new Motion();
@@ -582,8 +601,8 @@ export const BottomSheet: StoryObj = {
         // Thaw first, or the sheet jumps to the stop instead of gliding.
         el.toggleAttribute("data-no-transition", false);
         if (target === 0) {
-          // Keep the offset: it fades out where the drag left it.
-          el.close();
+          // Glides on down from where the drag left it.
+          dismiss();
           return;
         }
         batch(() => {

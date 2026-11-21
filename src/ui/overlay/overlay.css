@@ -116,7 +116,8 @@
  * (rubber, detent, snap).
  */
 
-.x-overlay {
+/* A surface frame (`data-surface`) keeps its own color. */
+.x-overlay:where(:not([data-surface])) {
   color: var(--neutral-12);
 }
 
@@ -218,7 +219,12 @@
     }
   }
 
-  :where(.x-overlay) > :where(:not(.x-card)),
+  /* A surface frame has no card to protect: it fades itself. */
+  .x-overlay:where([data-surface]) {
+    opacity: var(--overlay-fade);
+  }
+
+  :where(.x-overlay:not([data-surface])) > :where(:not(.x-card)),
   :where(.x-overlay > .x-card) > *,
   :where(.x-overlay) > .x-card::before,
   :where(.x-overlay) > .x-card::after {
