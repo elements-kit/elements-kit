@@ -6,12 +6,12 @@ badge: JS
 
 
 <Callout type="warn" title="Experimental">
-The overlay module is experimental and currently **reduced to its box model**. `OverlayBox`, the box types, the area types, `Motion` and `Gestures` are exported and stable enough to build on. The gesture engine, the constraint/dock layer and the `Overlay` façade are **not exported yet** — the `.x-handle` affordances below paint and pick the enter/exit slide, but nothing wires pointers to them for you. Wire your own with `Motion` + `Gestures` (see [Gestures](#gestures)).
+The overlay module is experimental and currently **reduced to its box model**. `OverlayBox`, the box types, the area types, `Motion` and `Gestures` are exported and stable enough to build on. The gesture engine, the constraint/dock layer and the `Overlay` façade are **not exported yet** — the `.x-handle` affordances below only paint; nothing wires pointers to them for you. Wire your own with `Motion` + `Gestures` (see [Gestures](#gestures)).
 </Callout>
 
 An invisible frame around a card. The frame owns *where* and *how big*; the card owns *what it looks like*. Every archetype — centered window, bottom sheet, side drawer, corner panel, anchored popover — is the same class with different channel values, so one surface can morph into another with a plain CSS transition.
 
-Geometry is a **reactive box model in JS**, projected into CSS custom properties. `OverlayBox` writes `--x/--y` (position, via one `translate`), `--w/--h` (real size) and `--dx/--dy` (live drag displacement); CSS transitions those channels. Nothing is clamped or docked in CSS — placement is JS, and it is a *pure* computation you drive from an effect.
+Geometry is a **reactive box model in JS**, projected into CSS custom properties. `OverlayBox` writes `--x/--y` (position, via one `translate`), an inline `width/height` (real size) and `--dx/--dy` (live drag displacement); CSS transitions those channels. Nothing is clamped or docked in CSS — placement is JS, and it is a *pure* computation you drive from an effect.
 
 <StorybookEmbed story="ui-overlay--nav-popover" />
 
@@ -74,20 +74,19 @@ Use `el.showPopover({ source })` rather than `popovertarget` when moving an alre
 
 ## Channels
 
-`OverlayBox` sets `top: 0; left: 0` and one inline `translate` on the element, then writes the channels below. The `translate` composes position, drag displacement and the enter/exit slide, so all three stack without fighting:
+`OverlayBox` sets `top: 0; left: 0` and one inline `translate` on the element, then writes the channels below. The `translate` composes position and the offset (a drag, or a CSS slide at rest), so they stack without fighting:
 
 ```
-translate: calc(--x + --dx + --_ex − --_ox)  calc(--y + --dy + --_ey − --_oy)
-width:     var(--w, var(--overlay-w, auto))
-height:    var(--h, var(--overlay-h, auto))
+translate: calc(--x + --dx − --_ox)  calc(--y + --dy − --_oy)
+width:     box.w inline, else var(--overlay-w, auto)
+height:    box.h inline, else var(--overlay-h, auto)
 ```
 
 | Channel | Written by | Meaning |
 | --- | --- | --- |
 | `--x` / `--y` | `box.x =` / `box.y =` | Committed position — the point `origin` lands on |
-| `--w` / `--h` | `box.w =` / `box.h =` | Explicit size; `NaN` removes the property, falling back to `--overlay-w/-h` then content sizing |
-| `--dx` / `--dy` | `box.displacement` | Live drag offset, folded into `--x/--y` by `displacement.apply()` |
-| `--_ex` / `--_ey` | overlay.css | Enter/exit slide, as a percentage of the box |
+| `width` / `height` (inline) | `box.w =` / `box.h =` | Explicit size; `NaN` removes it, falling back to `--overlay-w/-h` then content sizing |
+| `--dx` / `--dy` | `box.displacement`, or CSS at rest | Offset from the placed spot: the live drag (inline, folded into `--x/--y` by `displacement.apply()`); while no drag sets it, CSS may use it for an enter/exit slide (toast does) |
 | `--_ox` / `--_oy` | `box.origin =` | Origin shift, as a percentage of the box |
 
 Authored properties — set these in CSS or inline style:
@@ -267,7 +266,7 @@ Each `.x-handle` is a direct child sibling of the card that both **paints** an a
 | `start-start`, `start-end`, `end-start`, `end-end` | Corner L-grip, block side first, inline second (windows) |
 | `move` | Top-center grab pill (window move) |
 
-The handle also **picks the enter/exit motion**, since an edge handle implies the opposite edge is docked: a `block-start` handle slides the frame up from below, `inline-end` slides it in from the inline-start edge (mirrored in RTL). No edge handle — none, a corner grip, or `move` only — settles in from a scale instead.
+Every overlay enters and exits with a fade and a scale; handles don't pick the motion. (Edge slides for sheets and drawers are out for now.)
 
 <Callout type="warn" title="No pointer wiring yet">
 Handles are currently affordances and motion hints. The engine that turned a press on them into a resize or move is not exported in this version; drive `displacement` yourself from `pointermove` and set `data-no-transition` for the duration of the drag.

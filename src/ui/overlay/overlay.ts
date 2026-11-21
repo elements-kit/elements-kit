@@ -145,10 +145,12 @@ export class OverlayBox extends TransformableBox implements IDirection {
     element.style.setProperty("left", "0");
     // `--_ox/--_oy` are percentages of this box, so the shift needs no
     // measurement. Subtracted: the channels place the top-left corner.
+    // `--dx/--dy` is the offset from the placed spot: a drag writes it inline;
+    // at rest it's unset, so CSS uses it for the enter/exit slide.
     element.style.setProperty(
       "translate",
-      "calc(var(--x, 0px) + var(--dx, 0px) + var(--_ex, 0px) - var(--_ox, 0%)) " +
-        "calc(var(--y, 0px) + var(--dy, 0px) + var(--_ey, 0px) - var(--_oy, 0%))",
+      "calc(var(--x, 0px) + var(--dx, 0px) - var(--_ox, 0%)) " +
+        "calc(var(--y, 0px) + var(--dy, 0px) - var(--_oy, 0%))",
     );
 
     // Project the reactive base into its CSS channels — needs `effect`, or
@@ -161,10 +163,10 @@ export class OverlayBox extends TransformableBox implements IDirection {
         this.#project("--y", this.transform.y);
       });
       effect(() => {
-        this.#project("--w", this.transform.w, this.displacement.w);
+        this.#project("width", this.transform.w, this.displacement.w);
       });
       effect(() => {
-        this.#project("--h", this.transform.h, this.displacement.h);
+        this.#project("height", this.transform.h, this.displacement.h);
       });
       effect(() => {
         this.#project("--dx", this.displacement.x);
@@ -219,8 +221,8 @@ export class OverlayBox extends TransformableBox implements IDirection {
     this.element.style.transformOrigin = `${percent(x)} ${percent(y)}`;
   }
 
-  /** Write a size channel, or unset it when the axis is AUTO (NaN) so the
-   * element falls back to content sizing (`var(--w, auto)`). */
+  /** Write a channel or size property, or remove it when the axis is AUTO
+   * (NaN) so the element falls back to its own sizing. */
   #project(name: string, ...value: (number | undefined)[]): void {
     if (value.every((v) => v === undefined || Number.isNaN(v))) {
       this.element.style.removeProperty(name);

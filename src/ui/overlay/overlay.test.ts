@@ -87,7 +87,7 @@ describe("OverlayBox", () => {
     el.remove();
   });
 
-  it("projects writes into the --x/--y/--w/--h channels", () => {
+  it("projects position into --x/--y and size into width/height", () => {
     const el = overlayEl();
     const o = new OverlayBox(el);
     o.x = 120;
@@ -96,18 +96,18 @@ describe("OverlayBox", () => {
     o.h = 200;
     expect(channel(el, "--x")).toBe("120px");
     expect(channel(el, "--y")).toBe("140px");
-    expect(channel(el, "--w")).toBe("300px");
-    expect(channel(el, "--h")).toBe("200px");
+    expect(el.style.width).toBe("300px");
+    expect(el.style.height).toBe("200px");
     o.dispose();
     el.remove();
   });
 
-  it("unsets a size channel on AUTO so the element sizes to content", () => {
+  it("removes the inline width on AUTO so the element sizes itself", () => {
     const el = overlayEl();
     const o = new OverlayBox(el);
     o.w = 300;
     o.w = AUTO;
-    expect(channel(el, "--w")).toBe("");
+    expect(el.style.width).toBe("");
     o.dispose();
     el.remove();
   });

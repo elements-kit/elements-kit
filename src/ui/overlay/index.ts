@@ -3,7 +3,7 @@
  * model:
  *
  *   ElementBox           viewport-box geometry projected to CSS (`--x/--y`
- *                        translate, real `--w/--h` size), base + drag
+ *                        translate, inline width/height), base + drag
  *                        `displacement`
  *     └─ Overlay         the surface — constrain/dock, markup gestures, anchor
  *   Constraint           a region the overlay stays inside (`constrain`/`dock`)

@@ -3,8 +3,8 @@
  *
  * Position and size are driven by the JS box model (`OverlayBox`, which sets
  * `top:0; left:0; translate` INLINE and writes the channels): position rides
- * `translate` (base `--x/--y` + drag `--dx/--dy` + enter/exit slide
- * `--_ex/--_ey`), size the real `--w/--h`. This file owns the frame, the
+ * `translate` (base `--x/--y` + offset `--dx/--dy`: a drag, or the
+ * enter/exit slide at rest), size an inline `width/height`. This file owns the frame, the
  * display/modality guard, and the morph transition; presentation (backdrop,
  * enter/exit, affordances) lives in the companion overlay.css. Placement —
  * clamping, docking, flip/shift, gesture bounds — is JS and pure: an `Area`
@@ -17,7 +17,7 @@
   --overlay-easing: cubic-bezier(0.32, 0.72, 0, 1);
 
   /* The frame is invisible — the card paints. Reset the UA `<dialog>` /
-   * popover box so `--w/--h` are the true border-box size (no surprise UA
+   * popover box so the box's width/height are the true border-box size (no surprise UA
    * padding/border inflating the width). */
   box-sizing: border-box;
   padding: 0;
@@ -34,8 +34,8 @@
 
   /* Size from the box channels. Unset (AUTO) falls back to the authored
    * `--overlay-w/-h`, then to content sizing. */
-  width: var(--w, var(--overlay-w, auto));
-  height: var(--h, var(--overlay-h, auto));
+  width: var(--overlay-w, auto);
+  height: var(--overlay-h, auto);
 
   /* The open frame is a flex column: the card grows into a definite frame and
    * shrinks below it (scrolling), tracking morphs frame-by-frame. */

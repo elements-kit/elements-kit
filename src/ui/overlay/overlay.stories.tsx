@@ -582,7 +582,7 @@ export const BottomSheet: StoryObj = {
         // Thaw first, or the sheet jumps to the stop instead of gliding.
         el.toggleAttribute("data-no-transition", false);
         if (target === 0) {
-          // Keep the offset: the exit slide continues from where it is.
+          // Keep the offset: it fades out where the drag left it.
           el.close();
           return;
         }
