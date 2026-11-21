@@ -52,7 +52,7 @@ const focused = createFocusWithin(document.querySelector("form")!);
 ```
 
 ```ts
-function createFocusWithin(target: Element): Computed<boolean>
+function createFocusWithin(target: Element | ShadowRoot): Computed<boolean>
 ```
 
 ## onClickOutside

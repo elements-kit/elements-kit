@@ -3,9 +3,11 @@ import { on } from "./event-listener.ts";
 
 /**
  * Returns a `Computed<boolean>` that is `true` while focus is anywhere inside
- * `target` (including `target` itself).
+ * `target` (including `target` itself). `target` may be a shadow root.
  */
-export function createFocusWithin(target: Element): Computed<boolean> {
+export function createFocusWithin(
+  target: Element | ShadowRoot,
+): Computed<boolean> {
   const focused = signal(false);
 
   const el = target;

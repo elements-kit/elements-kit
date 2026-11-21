@@ -101,7 +101,7 @@ function createIntersectionObserver(
 
 ## createMutationObserver
 
-Watches `target` for DOM mutations with automatic cleanup.
+Watches `target` — any `Node`: element, `ShadowRoot`, `Document` — for DOM mutations with automatic cleanup.
 
 ```ts
 import { createMutationObserver } from "elements-kit/utilities/mutation-observer";
@@ -113,7 +113,7 @@ createMutationObserver(el, { childList: true }, (records) => {
 
 ```ts
 function createMutationObserver(
-  target: Element,
+  target: Node,
   options: MutationObserverInit,
   callback: (records: MutationRecord[]) => void,
 ): Disposable

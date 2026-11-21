@@ -35,6 +35,21 @@ describe("createMutationObserver", () => {
     expect(observeCount).toBe(1);
   });
 
+  it("observes mutations inside a shadow root", async () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = host.attachShadow({ mode: "open" });
+
+    const cb = vi.fn();
+    effectScope(() => {
+      createMutationObserver(root, { childList: true }, cb);
+    });
+
+    root.appendChild(document.createElement("span"));
+    await Promise.resolve();
+    expect(cb).toHaveBeenCalledOnce();
+  });
+
   it("disconnects on Symbol.dispose", () => {
     const target = document.createElement("div");
     document.body.appendChild(target);

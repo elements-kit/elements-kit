@@ -1,11 +1,11 @@
 import { observe } from "./_observe.ts";
 
 /**
- * Watches `target` for DOM mutations and calls `callback` with each batch of
- * `MutationRecord`s.
+ * Watches `target` (element, shadow root, document — any `Node`) for DOM
+ * mutations and calls `callback` with each batch of `MutationRecord`s.
  */
 export function createMutationObserver(
-  target: Element,
+  target: Node,
   options: MutationObserverInit,
   callback: (records: MutationRecord[]) => void,
 ): Disposable {

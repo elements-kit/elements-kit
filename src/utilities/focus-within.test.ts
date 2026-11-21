@@ -41,6 +41,27 @@ describe("createFocusWithin", () => {
     expect(typeof focused()).toBe("boolean");
   });
 
+  it("tracks focus inside a shadow root", () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = host.attachShadow({ mode: "open" });
+    const input = document.createElement("input");
+    root.appendChild(input);
+
+    let focused!: ReturnType<typeof createFocusWithin>;
+    effectScope(() => {
+      focused = createFocusWithin(root);
+    });
+
+    input.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    expect(focused()).toBe(true);
+
+    input.dispatchEvent(
+      new FocusEvent("focusout", { bubbles: true, relatedTarget: document.body }),
+    );
+    expect(focused()).toBe(false);
+  });
+
   it("stops reacting after scope disposal", () => {
     const el = document.createElement("div");
     document.body.appendChild(el);
