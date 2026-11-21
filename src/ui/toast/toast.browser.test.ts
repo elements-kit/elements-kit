@@ -282,15 +282,49 @@ describe("Toast", () => {
 });
 
 describe("Toaster host", () => {
-  it("adds toasts where `host` says: a shadow root", async () => {
+  it("adds toasts where `host` says, asked on each show: a shadow root", async () => {
     const shell = document.createElement("div");
     document.body.append(shell);
     const shadow = shell.attachShadow({ mode: "open" });
-    const t = setup({ host: () => shadow });
+    let reads = 0;
+    const t = setup({
+      host: () => {
+        reads++;
+        return shadow;
+      },
+    });
     const { element } = t.show(alert("Saved")).box;
+    t.show(alert("Again"));
     await frame();
 
     expect(element.parentNode).toBe(shadow);
+    expect(element.matches(":popover-open")).toBe(true);
+    expect(reads).toBe(2);
+  });
+
+  it("takes a new host by assignment", async () => {
+    const shelf = document.createElement("section");
+    document.body.append(shelf);
+    const t = setup();
+    t.host = () => shelf;
+    const { element } = t.show(alert("Saved")).box;
+    await frame();
+
+    expect(element.parentNode).toBe(shelf);
+  });
+
+  it("leaves an element that already has a parent where it is", async () => {
+    const mine = document.createElement("section");
+    document.body.append(mine);
+    const t = setup();
+    const { element } = t.show(() => {
+      const el = alert("Saved");
+      mine.append(el);
+      return el;
+    }).box;
+    await frame();
+
+    expect(element.parentNode).toBe(mine);
     expect(element.matches(":popover-open")).toBe(true);
   });
 });

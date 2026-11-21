@@ -38,9 +38,9 @@ function hidden(): boolean {
   return tabHidden();
 }
 
-/** Where a new toast goes by default: the top modal dialog while one is open
- * — outside it the page is inert, toasts included — else the body. */
-function topLayerHost(): ParentNode {
+/** Where a toast stays interactive: the top modal dialog while one is open —
+ * outside it the page is inert, toasts included — else the body. */
+function interactiveRoot(): ParentNode {
   const modals = document.querySelectorAll<HTMLDialogElement>("dialog:modal");
   return modals[modals.length - 1] ?? document.body;
 }
@@ -67,15 +67,15 @@ export class Toast implements Disposable {
       if (!(el instanceof HTMLElement)) throw new TypeError("toast content must be an HTMLElement");
       el.classList.add("x-overlay");
       el.popover = "manual";
-      const parent = toaster.host();
-      parent.append(el);
+      const parent = toaster.host(el);
+      if (el.parentNode !== parent) parent.append(el);
       // With the content: they outlive `release()` and end together.
       box = new OverlayBox(el);
       // Shown inside a modal, it would vanish with it: back to the page, still showing.
       if (parent instanceof HTMLDialogElement)
         on(parent, "close", () => {
           if (!untracked(toaster.toasts).includes(this)) return;
-          toaster.host().append(el);
+          interactiveRoot().append(el);
           if (!el.matches(":popover-open")) el.showPopover();
         });
     });
@@ -176,9 +176,10 @@ export interface ToasterOptions {
   max?: number;
   /** Start spread, not collapsed (see `Toaster.expanded`). */
   expand?: boolean;
-  /** Where a new toast's element is added — a shadow root, say, where its
-   * styles are. Default: the top open modal dialog, else the body. */
-  host?: () => ParentNode;
+  /** Where a toast's element goes, asked on each show — a shadow root, say,
+   * where its styles are. Default: its parent, if you placed it; else the top
+   * open modal dialog, else the body. */
+  host?: (element: HTMLElement) => ParentNode;
 }
 
 /**
@@ -194,8 +195,9 @@ export class Toaster implements Disposable {
   readonly area: Area;
   readonly gap: number;
   readonly max: number;
-  /** Where a new toast's element is added. */
-  readonly host: () => ParentNode;
+  /** Where a toast's element goes, asked on each show. Assignable. Default:
+   * its parent, if you placed it; else the top open modal, else the body. */
+  host: (element: HTMLElement) => ParentNode;
   /** Newest first. Writable: reorder it and the toasts move. */
   readonly toasts = signal<Toast[]>([]);
   /** The pointer is over the stack (gaps included), or focus is in a toast:
@@ -211,15 +213,16 @@ export class Toaster implements Disposable {
   readonly #live: HTMLElement;
   readonly #stop: () => void;
 
-  constructor({
-    area = new MarginBox(VIEWPORT_BOX, -16).toArea(Align.end, Align.start),
-    gap = 8,
-    max = 3,
-    expand = false,
-    host = topLayerHost,
-  }: ToasterOptions = {}) {
-    this.area = area;
+  constructor(options: ToasterOptions = {}) {
+    const {
+      area = new MarginBox(VIEWPORT_BOX, -16).toArea(Align.end, Align.start),
+      gap = 8,
+      max = 3,
+      expand = false,
+      host = (element) => element.parentNode ?? interactiveRoot(),
+    } = options;
     this.host = host;
+    this.area = area;
     this.gap = gap;
     this.max = max;
     this.expanded = signal(expand);
