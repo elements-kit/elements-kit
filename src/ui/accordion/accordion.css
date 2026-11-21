@@ -110,7 +110,7 @@
     --accordion-summary-padding-inline: var(--space-3);
     --accordion-font-size: var(--font-size-2);
     --accordion-duration: 180ms;
-    --accordion-radius: var(--radius-2);
+    --accordion-radius: var(--radius-1);
   }
   &:where([data-size="2"]) {
     --accordion-summary-padding-block: var(--space-3);
@@ -153,7 +153,7 @@
   [data-variant="surface"],
   [data-variant="soft"]
 ) {
-  /* Scales with size as a text field does (2, 2, 3): a box that holds content. */
+  /* Scales with size as a select does (1, 2, 3). */
   border-radius: var(--accordion-radius);
   overflow: hidden; /* clips the summary tint + hover wash to rounded corners */
 
