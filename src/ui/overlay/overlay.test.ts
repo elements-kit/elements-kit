@@ -112,6 +112,26 @@ describe("OverlayBox", () => {
     el.remove();
   });
 
+  it("keeps an authored inline width while no size is set", () => {
+    const el = overlayEl();
+    el.style.width = "300px";
+    const o = new OverlayBox(el);
+    expect(el.style.width).toBe("300px");
+    o.dispose();
+    el.remove();
+  });
+
+  it("leaves a width you wrote after it, on AUTO", () => {
+    const el = overlayEl();
+    const o = new OverlayBox(el);
+    o.w = 300;
+    el.style.width = "50%";
+    o.w = AUTO;
+    expect(el.style.width).toBe("50%");
+    o.dispose();
+    el.remove();
+  });
+
   it("projects displacement into --dx/--dy and folds it in on apply()", () => {
     const el = overlayEl();
     const o = new OverlayBox(el);

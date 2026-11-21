@@ -221,15 +221,23 @@ export class OverlayBox extends TransformableBox implements IDirection {
     this.element.style.transformOrigin = `${percent(x)} ${percent(y)}`;
   }
 
+  /** What this box last wrote, per property: AUTO removes a value only while
+   * it's still the box's, so an inline `width`/`height` you wrote survives. */
+  readonly #written = new Map<string, string>();
+
   /** Write a channel or size property, or remove it when the axis is AUTO
    * (NaN) so the element falls back to its own sizing. */
   #project(name: string, ...value: (number | undefined)[]): void {
+    const style = this.element.style;
     if (value.every((v) => v === undefined || Number.isNaN(v))) {
-      this.element.style.removeProperty(name);
+      const mine = this.#written.get(name);
+      this.#written.delete(name);
+      if (mine !== undefined && style.getPropertyValue(name) === mine) style.removeProperty(name);
       return;
     }
     const sum = value.reduce<number>((a, b) => a + (b ?? 0), 0);
-    this.element.style.setProperty(name, `${sum}px`);
+    style.setProperty(name, `${sum}px`);
+    this.#written.set(name, style.getPropertyValue(name));
   }
 
   get w(): number {
