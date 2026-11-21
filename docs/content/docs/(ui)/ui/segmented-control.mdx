@@ -181,7 +181,7 @@ Add `aria-checked` or `aria-selected` to the radios. Native radio semantics alre
 
 ## Browser support
 
-- **Tier 1 (crossfade)** — works in every browser meeting `elements-kit`'s build targets (Chrome / Firefox 100+, Safari 16+). Relies on `:has()`, shipped in Safari 15.4, Chrome 105, Firefox 121.
+- **Tier 1 (crossfade)** — works in every browser meeting `elements-kit`'s build targets (Chrome 120+, Firefox 100+, Safari 16.4+). Relies on `:has()`, shipped in Safari 15.4, Chrome 105, Firefox 121.
 - **Tier 2 (anchor slide)** — auto-enables on browsers that ship [CSS Anchor Positioning](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_anchor_positioning) (Chrome / Edge 125+, Safari 26+, Firefox once shipped unflagged). No polyfill needed.
 
 A browser that lacks both `:has()` and anchor positioning still gets functional, accessible radios — just without an indicator.

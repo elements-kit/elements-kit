@@ -105,7 +105,7 @@ The group is presentational — it paints, it carries no semantics. You own the 
 
 ## Browser support
 
-Works in every browser meeting `elements-kit`'s build targets (Chrome / Firefox 100+, Safari 16+). Corner flattening and the seam overlap use logical border-radius properties and `:is()`, both long-shipped. The solid-button divider uses [`color-mix()`](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/color-mix) (Chrome / Edge 111+, Safari 16.2+, Firefox 113+); where it is unsupported, adjacent solid buttons simply show no divider — every other join still renders.
+Works in every browser meeting `elements-kit`'s build targets (Chrome 120+, Firefox 100+, Safari 16.4+). Corner flattening and the seam overlap follow the group's own direction through `:dir()` (Chrome 120, Safari 16.4, Firefox 49), so children with their own `dir` and groups under a nested `dir` wrapper join on the correct side. The solid-button divider uses [`color-mix()`](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/color-mix) (Chrome / Edge 111+, Safari 16.2+, Firefox 113+); where it is unsupported, adjacent solid buttons simply show no divider — every other join still renders.
 
 ## See also
 

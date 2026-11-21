@@ -12,3 +12,6 @@ chrome/
 
 __screenshots__
 .vitest-attachments
+
+# agent scratch
+.agents/tmp/

@@ -283,3 +283,98 @@ export const Mixed: Story = {
     </div>
   ),
 };
+
+const LABELED: [string, string][] = [
+  ["Page RTL", ""],
+  ["Children dir=ltr / auto", "kids"],
+  ["Group dir=ltr in RTL page", "ltr"],
+];
+
+// Direction: seams and flattened corners follow the GROUP's direction, so
+// children carrying their own dir="ltr" / dir="auto" (e.g. Latin input inside
+// an Arabic UI) still join on the correct side.
+export const Direction: Story = {
+  render: (args) => (
+    <div dir="rtl" style="display: grid; gap: 16px; justify-items: start">
+      {LABELED.map(([label, mode]) => (
+        <div style="display: grid; gap: 6px; justify-items: start">
+          <small dir="ltr">{label}</small>
+          <div class:x-group dir={mode === "ltr" ? "ltr" : undefined}>
+            <input
+              class:unset
+              class:x-text-input
+              data-variant="surface"
+              data-size={args.size}
+              dir={mode === "kids" ? "ltr" : undefined}
+              placeholder="name@example.com"
+            />
+            <select
+              class:unset
+              class:x-select
+              data-variant="surface"
+              data-size={args.size}
+              dir={mode === "kids" ? "auto" : undefined}
+            >
+              <option>.com</option>
+              <option>.org</option>
+            </select>
+            <button
+              class:unset
+              class:x-button
+              data-variant="outline"
+              data-size={args.size}
+              dir={mode === "kids" ? "ltr" : undefined}
+            >
+              Send
+            </button>
+          </div>
+        </div>
+      ))}
+      <div style="display: grid; gap: 6px; justify-items: start">
+        <small dir="ltr">Material capsule in RTL (children stay apart)</small>
+        <div class:x-group data-variant="material">
+          <BorderlessButton label="Share" name="share" icon />
+          <BorderlessButton label="More" name="more_horiz" icon />
+        </div>
+      </div>
+    </div>
+  ),
+};
+
+const NestedRow = (props: { size: string }) => (
+  <>
+    {["One", "Two", "Three"].map((label) => (
+      <button
+        class:unset
+        class:x-button
+        data-variant="outline"
+        data-size={props.size}
+      >
+        {label}
+      </button>
+    ))}
+  </>
+);
+
+// A group follows its nearest dir ancestor (:dir()), not just the page: both
+// rows join left-to-right inside an RTL page.
+export const NestedDirection: Story = {
+  render: (args) => (
+    <div dir="rtl" style="display: grid; gap: 16px; justify-items: start">
+      <div style="display: grid; gap: 6px; justify-items: start">
+        <small dir="ltr">Group has dir="ltr"</small>
+        <div class:x-group dir="ltr">
+          <NestedRow size={args.size} />
+        </div>
+      </div>
+      <div style="display: grid; gap: 6px; justify-items: start">
+        <small dir="ltr">Wrapper has dir="ltr", group inherits it</small>
+        <div dir="ltr">
+          <div class:x-group>
+            <NestedRow size={args.size} />
+          </div>
+        </div>
+      </div>
+    </div>
+  ),
+};

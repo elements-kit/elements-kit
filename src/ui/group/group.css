@@ -62,7 +62,8 @@
   );
 }
 
-[dir="rtl"] .x-group > :is(.x-button, .x-text-input, .x-select, .x-toggle) {
+.x-group:where(:dir(rtl))
+  > :is(.x-button, .x-text-input, .x-select, .x-toggle) {
   --seam-left: var(--seam-end);
   --seam-right: var(--seam-start);
 }
@@ -91,9 +92,15 @@
  *                                                                                                 *
  ***************************************************************************************************/
 
-.x-group
+/* Physical sides from the group's :dir(), not logical props on the child: a child
+ * with its own dir="ltr" / dir="auto" would otherwise resolve them the wrong way. */
+.x-group:where(:dir(ltr))
   > :is(.x-button, .x-text-input, .x-select, .x-toggle):not(:first-child) {
-  margin-inline-start: -1px;
+  margin-left: -1px;
+}
+.x-group:where(:dir(rtl))
+  > :is(.x-button, .x-text-input, .x-select, .x-toggle):not(:first-child) {
+  margin-right: -1px;
 }
 
 .x-group
@@ -134,37 +141,37 @@
 
 /***************************************************************************************************
  *                                                                                                 *
- * CORNERS — flatten only the interior-facing corners (logical props → RTL-safe). Each control       *
+ * CORNERS — flatten only the interior-facing corners, by the group's :dir(). Each control         *
  * keeps its OWN native outer radius: first child keeps leading corners, last keeps trailing,        *
  * a lone child keeps all four. No radius formula is restated here.                                  *
  *                                                                                                 *
  ***************************************************************************************************/
 
-/* All but the last — flatten the trailing (logical-end) corners. */
-.x-group
-  > :is(.x-button, .x-text-input, .x-select, .x-toggle):not(:last-child) {
-  border-start-end-radius: 0;
-  border-end-end-radius: 0;
+/* By visual side, physical props from the group's :dir() (see SEAM). Kept at 0,3,0 so the
+ * material reset below wins by order. Wrapper-form text-inputs (<div class="x-text-input">
+ * <span>affix</span><input></div>) flatten their inner <input> too, or its own radius pokes
+ * past the flat wrapper edge. */
+
+/* Right corners: face the next control in LTR, the previous one in RTL. */
+.x-group:where(:dir(ltr))
+  > :is(.x-button, .x-text-input, .x-select, .x-toggle):not(:last-child),
+.x-group:where(:dir(rtl))
+  > :is(.x-button, .x-text-input, .x-select, .x-toggle):not(:first-child),
+.x-group:where(:dir(ltr)) > .x-text-input:not(:last-child) > input,
+.x-group:where(:dir(rtl)) > .x-text-input:not(:first-child) > input {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
 }
 
-/* All but the first — flatten the leading (logical-start) corners. */
-.x-group
-  > :is(.x-button, .x-text-input, .x-select, .x-toggle):not(:first-child) {
-  border-start-start-radius: 0;
-  border-end-start-radius: 0;
-}
-
-/* Wrapper-form text-input (<div class="x-text-input"><span>affix</span><input></div>) keeps its
- * own inner <input> radius (calc(border-radius - border-width)), rounded on the side facing no
- * affix. Flatten that inner corner on the group-seam side too, or it pokes past the flat wrapper
- * edge. Bare-input text-inputs have no `> input` child, so these rules are wrapper-only. */
-.x-group > .x-text-input:not(:last-child) > input {
-  border-start-end-radius: 0;
-  border-end-end-radius: 0;
-}
-.x-group > .x-text-input:not(:first-child) > input {
-  border-start-start-radius: 0;
-  border-end-start-radius: 0;
+/* Left corners: the mirror. */
+.x-group:where(:dir(ltr))
+  > :is(.x-button, .x-text-input, .x-select, .x-toggle):not(:first-child),
+.x-group:where(:dir(rtl))
+  > :is(.x-button, .x-text-input, .x-select, .x-toggle):not(:last-child),
+.x-group:where(:dir(ltr)) > .x-text-input:not(:first-child) > input,
+.x-group:where(:dir(rtl)) > .x-text-input:not(:last-child) > input {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
 }
 
 /***************************************************************************************************
@@ -178,8 +185,7 @@
   box-shadow: inset 1px 0 0 0
     color-mix(in srgb, var(--accent-contrast) 20%, transparent);
 }
-[dir="rtl"]
-  .x-group
+.x-group:where(:dir(rtl))
   > .x-button[data-variant="solid"]
   + .x-button[data-variant="solid"] {
   box-shadow: inset -1px 0 0 0

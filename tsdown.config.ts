@@ -95,7 +95,7 @@ export default defineConfig([
     css: {
       transformer: "lightningcss",
       splitting: true,
-      target: ["chrome100", "firefox100", "safari16"],
+      target: ["chrome120", "firefox100", "safari16.4"],
     },
   },
 ]);

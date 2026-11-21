@@ -35,3 +35,17 @@ describe("x-select direction", () => {
     expect(parseFloat(s.paddingLeft)).toBeGreaterThan(parseFloat(s.paddingRight));
   });
 });
+
+describe("x-select own dir attribute", () => {
+  it("keeps the chevron on the right for a dir=ltr select in an RTL page", () => {
+    const s = mount("rtl");
+    s.dir = "ltr";
+    expect(getComputedStyle(s).backgroundPositionX).toBe("calc(100% - 12px)");
+  });
+
+  it("puts the chevron on the left for a dir=rtl select in an LTR page", () => {
+    const s = mount("ltr");
+    s.dir = "rtl";
+    expect(getComputedStyle(s).backgroundPositionX).toBe("12px");
+  });
+});

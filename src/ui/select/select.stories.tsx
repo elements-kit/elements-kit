@@ -117,6 +117,38 @@ export const RTL: Story = {
     ),
 };
 
+// A select's own dir wins over the page: dir="ltr" keeps the chevron on the
+// right inside an RTL page, dir="rtl" moves it left inside an LTR page.
+export const OwnDirection: Story = {
+  render: (args) =>
+    (
+      <div style="display: grid; gap: 12px; justify-items: start">
+        <div dir="rtl">
+          <select
+            class:unset
+            class:x-select
+            data-variant={args.variant}
+            data-size={args.size}
+            dir="ltr"
+          >
+            <option>dir=ltr in RTL page</option>
+          </select>
+        </div>
+        <div dir="ltr">
+          <select
+            class:unset
+            class:x-select
+            data-variant={args.variant}
+            data-size={args.size}
+            dir="rtl"
+          >
+            <option>dir=rtl in LTR page</option>
+          </select>
+        </div>
+      </div>
+    ),
+};
+
 export const Disabled: Story = {
   args: { disabled: true },
   render: (args) =>

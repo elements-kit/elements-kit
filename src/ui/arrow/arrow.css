@@ -13,8 +13,7 @@
   transition: transform 0.2s ease;
 }
 
-[dir="rtl"] .x-arrow,
-.x-arrow[dir="rtl"] {
+.x-arrow:dir(rtl) {
   --arrow-direction: -1;
 }
 

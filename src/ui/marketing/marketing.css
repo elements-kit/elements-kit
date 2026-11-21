@@ -204,7 +204,7 @@
   letter-spacing: var(--letter-spacing-9);
   overflow-wrap: break-word;
 }
-[dir="rtl"] .section-heading {
+.section-heading:dir(rtl) {
   line-height: 1.4;
   letter-spacing: 0;
 }
