@@ -36,8 +36,28 @@
 }
 
 /* Non-icon children flow to column 2 */
-.x-alert > :where(:not(.x-alert-icon)) {
+.x-alert > :where(:not(.x-alert-icon, .x-alert-trailing)) {
   grid-column-start: 2;
+}
+
+/* End slot (close, action): column 3, centered on the first line like the icon. */
+.x-alert:has(> .x-alert-trailing) {
+  grid-template-columns: auto 1fr auto;
+}
+
+.x-alert-trailing {
+  grid-column-start: 3;
+  grid-row-start: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: var(--alert-icon-height);
+}
+
+/* Inside a card: the card's radius. A `data-inset` alert bleeds to the edge
+ * and takes the card's inner corners instead. */
+.x-card .x-alert:where(:not([data-inset])) {
+  border-radius: var(--card-border-radius);
 }
 
 /***************************************************************************************************

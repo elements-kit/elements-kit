@@ -3,6 +3,7 @@ import type { Meta, StoryObj } from "@storybook/html-vite";
 
 import "./alert.css";
 import "../button/button.css";
+import "../card/card.css";
 
 interface Args {
   variant: "soft" | "surface" | "outline";
@@ -193,6 +194,60 @@ export const WithAction: Story = {
         </div>
       </div>
     ),
+};
+
+// End slot: close and actions sit in column 3, centered on the first line.
+export const WithTrailing: Story = {
+  args: { description: "A new version is available." },
+  render: (args) => (
+    <div style="display: grid; gap: 12px">
+      <div class:unset class:x-alert data-variant={args.variant} data-size={args.size} data-accent="blue">
+        {InfoIcon()}
+        <div>{args.description}</div>
+        <div class="x-alert-trailing">
+          <button class:unset class:x-button data-variant="borderless" data-size="1" data-icon aria-label="Close">
+            <StoryIcon name="close" size="16px" />
+          </button>
+        </div>
+      </div>
+      <div class:unset class:x-alert data-variant={args.variant} data-size={args.size} data-accent="blue">
+        {InfoIcon()}
+        <div>{args.description}</div>
+        <div>Restart to apply it. Your open tabs come back.</div>
+        <div class="x-alert-trailing">
+          <button class:unset class:x-button data-variant="soft" data-size="1">Restart</button>
+          <button class:unset class:x-button data-variant="borderless" data-size="1" data-icon aria-label="Close">
+            <StoryIcon name="close" size="16px" />
+          </button>
+        </div>
+      </div>
+    </div>
+  ),
+};
+
+// Inside a card: nested in its padding, the radius follows the card's curve;
+// with `data-inset`, it bleeds to the edge and takes the card's corners.
+export const InCard: Story = {
+  render: (args) => (
+    <div style="display: grid; gap: 24px; max-width: 420px">
+      {(["1", "3", "5"] as const).map((size) => (
+        <div class:unset class:x-card data-size={size}>
+          <div class:unset class:x-alert data-variant={args.variant} data-size={args.size} data-accent="amber">
+            {InfoIcon()}
+            <div>{args.description}</div>
+          </div>
+          <p style="margin: 12px 0 0">Card size {size}</p>
+        </div>
+      ))}
+      <div class:unset class:x-card>
+        <div class:unset class:x-alert data-inset="top" data-size={args.size} data-accent="amber">
+          {InfoIcon()}
+          <div>{args.description}</div>
+        </div>
+        <p style="margin: 12px 0 0">Banner: data-inset="top"</p>
+      </div>
+    </div>
+  ),
 };
 
 export const Gallery: Story = {
