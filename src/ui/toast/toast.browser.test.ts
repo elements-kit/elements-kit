@@ -154,6 +154,23 @@ describe("Toaster", () => {
     expect(mid(a)).toBeCloseTo(mid(b), 0);
   });
 
+  it("on touch, a tap on the stack holds it until a tap elsewhere", async () => {
+    const t = setup();
+    t.show(alert("A"));
+    const { element } = t.show(alert("B")).box;
+    await frame();
+    const r = rect(element);
+    const touch = (type: string, x: number, y: number, target: EventTarget = document) =>
+      target.dispatchEvent(new PointerEvent(type, { clientX: x, clientY: y, pointerType: "touch" }));
+
+    touch("pointerup", r.left + 10, r.top + 10);
+    touch("pointerleave", r.left + 10, r.top + 10, document.documentElement); // the lifted finger
+    expect(t.held()).toBe(true);
+
+    touch("pointerup", 5, innerHeight - 5);
+    expect(t.held()).toBe(false);
+  });
+
   it("stays spread when a toast under the pointer is dismissed", async () => {
     const t = setup();
     const a = t.show(alert("A"));

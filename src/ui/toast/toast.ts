@@ -234,12 +234,16 @@ export class Toaster implements Disposable {
     [, this.#stop] = scope(() => {
       // Over the stack's bounds, not each toast: crossing a gap, or a toast
       // leaving from under the pointer, doesn't collapse it. A press (a swipe)
-      // keeps it as it is until release.
+      // keeps it as it is until release. Touch has no hover: a tap on the stack
+      // holds it, a tap elsewhere lets go — so the leave each lifted finger
+      // fires doesn't count.
       on(document, "pointermove", (e) => {
         if (!e.buttons) this.#hovered(this.#over(e.clientX, e.clientY));
       });
       on(document, "pointerup", (e) => this.#hovered(this.#over(e.clientX, e.clientY)));
-      on(document.documentElement, "pointerleave", () => this.#hovered(false));
+      on(document.documentElement, "pointerleave", (e) => {
+        if (e.pointerType !== "touch") this.#hovered(false);
+      });
       effect(() => {
         const list = this.toasts();
         const spread = this.held() || this.expanded();
